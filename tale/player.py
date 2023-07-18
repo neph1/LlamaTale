@@ -102,7 +102,7 @@ class Player(base.Living, pubsub.Listener):
             request_body['prompt'] = prompt
             if max_length:
                 request_body['max_length'] = amount
-            response = requests.post('http://localhost:5006/api/v1/generate', data=json.dumps(request_body))
+            response = requests.post('http://localhost:5001/api/v1/generate', data=json.dumps(request_body))
             text = json.loads(response.text)['results'][0]['text']
             return self.trim_response(text)
         return str(message)
