@@ -1,3 +1,15 @@
+This fork uses an LLM backend to describe things in a more vivid way. (LLM not included)
+
+By default it uses KoboldCpp, but if you're feeling adventurous you can change llm_config.yaml in the tale/ folder to another one. 
+
+1. Download repo, either with 'git clone' or as a zip.
+2. Run 'pip install -re requirements.txt'
+3. Start KoboldCpp (port 5001 by default)
+4. Start with ``python -m tale.demo.story``
+
+There are some other demo stories in the repo as well.
+
+
 [![saythanks](https://img.shields.io/badge/say-thanks-ff69b4.svg)](https://saythanks.io/to/irmen)
 [![Build Status](https://travis-ci.org/irmen/Tale.svg?branch=master)](https://travis-ci.org/irmen/Tale)
 [![Latest Version](https://img.shields.io/pypi/v/tale.svg)](https://pypi.python.org/pypi/tale/)
