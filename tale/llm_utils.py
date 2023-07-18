@@ -14,18 +14,16 @@ class LlmUtil():
         self.default_body = json.loads(config_file['DEFAULT_BODY'])
         self.memory_size = config_file['MEMORY_SIZE']
         self.rolling_prompt = ''
+        self.base_prompt = config_file['BASE_PROMPT']
 
     def evoke(self, message: str, max_length : bool=False):
         if len(message) > 0 and str(message) != "\n":
             amount = len(message) * 2
-            print(f'evoke {message}')
+            print(f'Original:[ {message} ]')
             prompt = self.rolling_prompt
-            prompt += ' ### Instruction: Below is a piece of text containing story or description. Rewrite it in your own words using evokative and vivid language. Use max %s words. Text:\n\n' % amount
-            prompt += str(message)
-            prompt += "\n\n End of text. \n\n"
-            prompt += " ### Response: \n\n"
+            prompt += self.base_prompt.format(input_text=str(message))
             
-            request_body = self.default_body #self.genparams
+            request_body = self.default_body
             request_body['prompt'] = prompt
             if max_length:
                 request_body['max_length'] = amount
@@ -38,7 +36,7 @@ class LlmUtil():
     def update_memory(self, response_text: str):
         self.rolling_prompt += response_text
         if len(self.rolling_prompt) > self.memory_size:
-            self.rolling_prompt = self.rolling_prompt[:self.memory_size+1]
+            self.rolling_prompt = self.rolling_prompt[self.memory_size+1:]
         
     
     def trim_response(self, message: str):
