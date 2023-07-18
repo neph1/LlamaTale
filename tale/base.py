@@ -1074,7 +1074,7 @@ class Living(MudObject):
         """Tell something to this creature, but do it after all other messages."""
         pending_tells.send(lambda: self.tell(message, evoke=True, max_length=True))
 
-    def tell_others(self, message: str, target: Optional['Living']=None, evoke: bool=False) -> None:
+    def tell_others(self, message: str, target: Optional['Living']=None, evoke: bool=False, max_length: bool=True) -> None:
         """
         Send a message to the other livings in the location, but not to self.
         There are a few formatting strings for easy shorthands:
