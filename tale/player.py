@@ -24,6 +24,7 @@ from .story import GameMode
 from .tio import DEFAULT_SCREEN_WIDTH, DEFAULT_SCREEN_INDENT
 from .tio.iobase import strip_text_styles, IoAdapterBase
 from .vfs import VirtualFileSystem, Resource
+from .llm_utils import LlmUtil
 
 
 class Player(base.Living, pubsub.Listener):
@@ -46,6 +47,7 @@ class Player(base.Living, pubsub.Listener):
         self.last_input_time = time.time()
         self.init_nonserializables()
         
+        self.llm_util = LlmUtil()
         self.genparams = {'stop_sequence': '\n\n', 'max_length':300, 'max_context_length':512, 'temperature':0.8, 'top_k':120, 'top_a':0.0, 'top_p':0.85, 'typical_p':1.0, 'tfs':1.0, 'rep_pen':1.1, 'rep_pen_range':128, 'mirostat':0, 'mirostat_tau':5.0, 'mirostat_eta':0.1, 'sampler_order':[6,0,1,3,4,2,5], 'seed':-1}
 
     def init_nonserializables(self) -> None:
@@ -98,11 +100,11 @@ class Player(base.Living, pubsub.Listener):
             prompt += "\n\n End of text. \n\n"
             prompt += " ### Response: \n\n"
             
-            request_body = self.genparams
+            request_body = self.llm_util.default_body #self.genparams
             request_body['prompt'] = prompt
             if max_length:
                 request_body['max_length'] = amount
-            response = requests.post('http://localhost:5001/api/v1/generate', data=json.dumps(request_body))
+            response = requests.post(self.llm_util.url, data=json.dumps(request_body))
             text = json.loads(response.text)['results'][0]['text']
             return self.trim_response(text)
         return str(message)

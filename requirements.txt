@@ -1,4 +1,6 @@
 appdirs
 colorama>=0.3.6
+PyYAML==6.0.1
+Requests==2.31.0
 smartypants>=1.8.6
 serpent>=1.23
