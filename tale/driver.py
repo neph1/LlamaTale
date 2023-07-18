@@ -602,7 +602,7 @@ class Driver(pubsub.Listener):
         xt = player.location.exits[direction]
         xt.allow_passage(player)
         if xt.enter_msg:
-            player.tell(xt.enter_msg, end=True)
+            player.tell(xt.enter_msg, end=True, evoke=True, max_length=True)
             player.tell("\n")
         player.move(xt.target, direction_names=[xt.name] + list(xt.aliases))
         player.look()

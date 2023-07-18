@@ -51,7 +51,7 @@ class Cat(Living):
     def init(self) -> None:
         self.aliases = {"cat"}
 
-    @call_periodically(5, 20)
+    @call_periodically(30, 60)
     def do_purr(self, ctx: Context) -> None:
         if random.random() > 0.7:
             self.location.tell("%s purrs happily." % capital(self.title))

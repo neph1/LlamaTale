@@ -5,9 +5,12 @@ Player code
 Copyright by Irmen de Jong (irmen@razorvine.net)
 """
 
+import json
 import os
 import queue
+import requests
 import time
+import traceback
 from threading import Event
 from typing import Any, Sequence, Tuple, IO, Optional, Set, List, Union
 
@@ -42,6 +45,8 @@ class Player(base.Living, pubsub.Listener):
         self.known_locations = set()   # type: Set[base.Location]
         self.last_input_time = time.time()
         self.init_nonserializables()
+        
+        self.genparams = {'stop_sequence': '\n\n', 'max_length':300, 'max_context_length':512, 'temperature':0.8, 'top_k':120, 'top_a':0.0, 'top_p':0.85, 'typical_p':1.0, 'tfs':1.0, 'rep_pen':1.1, 'rep_pen_range':128, 'mirostat':0, 'mirostat_tau':5.0, 'mirostat_eta':0.1, 'sampler_order':[6,0,1,3,4,2,5], 'seed':-1}
 
     def init_nonserializables(self) -> None:
         # these things cannot be serialized or have to be reinitialized
@@ -63,7 +68,7 @@ class Player(base.Living, pubsub.Listener):
         self.screen_indent = indent
         self.screen_width = width
 
-    def tell(self, message: str, *, end: bool=False, format: bool=True) -> base.Living:
+    def tell(self, message: str, *, end: bool=False, format: bool=True, evoke: bool=False, max_length : bool=False) -> base.Living:
         """
         Sends a message to a player, meant to be printed on the screen.
         Message will be converted to str if required.
@@ -72,13 +77,44 @@ class Player(base.Living, pubsub.Listener):
         and whitespace is untouched. Empty strings aren't outputted at all.
         The player object is returned so you can chain calls.
         """
-        msg = str(message)
+        if evoke:
+            msg = self.evoke(message, max_length = max_length)
+        else:
+            msg = str(message)     
+        
         super().tell(msg)
         if msg == "\n":
             self._output.p()
         else:
             self._output.print(msg, end=end, format=format)
         return self
+    
+    def evoke(self, message: str, max_length : bool=False):
+        if len(message) > 0 and str(message) != "\n":
+            amount = len(message) * 2
+            print(f'evoke {message}')
+            prompt = ' ### Instruction: Below is a piece of text containing story or description. Rewrite it in your own words using evokative and vivid language. Use max %s words. Text:\n\n' % amount
+            prompt += str(message)
+            prompt += "\n\n End of text. \n\n"
+            prompt += " ### Response: \n\n"
+            
+            request_body = self.genparams
+            request_body['prompt'] = prompt
+            if max_length:
+                request_body['max_length'] = amount
+            response = requests.post('http://localhost:5006/api/v1/generate', data=json.dumps(request_body))
+            text = json.loads(response.text)['results'][0]['text']
+            return self.trim_response(text)
+        return str(message)
+    
+    def trim_response(self, message: str):
+        enders = ['.', '!', '?', '`', '*', '"', ')', '}', '`', ']']
+        lastChar = 0
+        for c in enders:
+            last = message.rfind(c)
+            if last > lastChar:
+                lastChar = last
+        return message[:lastChar+1]
 
     def tell_text_file(self, file_resource: Resource, reformat=True) -> None:
         """
@@ -103,8 +139,9 @@ class Player(base.Living, pubsub.Listener):
         if self.location:
             self.known_locations.add(self.location)
             look_paragraphs = self.location.look(exclude_living=self, short=short)
-            for paragraph in look_paragraphs:
-                self.tell(paragraph, end=True)
+            
+            #for paragraph in look_paragraphs:
+            self.tell(look_paragraphs, end=True, evoke=True)
         else:
             self.tell("You see nothing.")
 
