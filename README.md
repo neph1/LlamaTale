@@ -20,6 +20,13 @@ Caveats:
 * It's written specifically for KoboldCpp as backend, but as much as possible of the config is in llm_config.yaml, so you can experiment with other backends as well.
 
 
+
+ORIGINAL README for Tale:
+
+----------------------
+
+
+
 [![saythanks](https://img.shields.io/badge/say-thanks-ff69b4.svg)](https://saythanks.io/to/irmen)
 [![Build Status](https://travis-ci.org/irmen/Tale.svg?branch=master)](https://travis-ci.org/irmen/Tale)
 [![Latest Version](https://img.shields.io/pypi/v/tale.svg)](https://pypi.python.org/pypi/tale/)
