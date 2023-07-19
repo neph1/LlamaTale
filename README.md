@@ -7,7 +7,17 @@ By default it uses KoboldCpp, but if you're feeling adventurous you can change l
 3. Start KoboldCpp (port 5001 by default)
 4. Start with ``python -m tale.demo.story``
 
-There are some other demo stories in the repo as well.
+There are some other demo stories in the (original) repo as well.
+
+Features:
+* When the MUD describes something, through commands like 'look' or other verbs, it sends the original description as a prompt to the LLM. The LLM either has free hands to write as much as it wants, or for some things, it's limited to a certain amount of tokens, not to cause too many delays.
+* Not only for player-driven actions, mobs and NPC's also trigger this.
+* It has a 'rolling memory' of previous generations, this is inserted before the instructions in the prompt with each request. This should help it keep the context when doing dialogues, for example
+
+Caveats:
+* Like any LLM generated content, it's only as good as its input, and can sometimes go off-track when generating responses. Thus, the original description the MUD generates is also included, not to lose any important data.
+* The LLM (currently) can't drive any actions. There's no parsing happening of the content it generates.
+* It's written specifically for KoboldCpp as backend, but as much as possible of the config is in llm_config.yaml, so you can experiment with other backends as well.
 
 
 [![saythanks](https://img.shields.io/badge/say-thanks-ff69b4.svg)](https://saythanks.io/to/irmen)
