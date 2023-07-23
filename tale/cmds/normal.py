@@ -884,7 +884,7 @@ def do_say(player: Player, parsed: base.ParseResult, ctx: util.Context) -> None:
                 target = " to " + possible_target.title
                 _, _, message = message.partition(parsed.args[0])
                 message = message.lstrip()
-    player.tell("You say%s: %s" % (target, message), evoke=True, max_length=False)
+    player.tell("You say%s: %s" % (target, message), evoke=False, max_length=False)
     player.tell_others("{Actor} says%s: %s" % (target, message), evoke=True, max_length=False)
 
 

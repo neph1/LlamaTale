@@ -45,6 +45,7 @@ class Player(base.Living, pubsub.Listener):
         self.last_input_time = time.time()
         self.init_nonserializables()
         self.llm_util = LlmUtil()
+        self.rolling_prompt = ''
 
     def init_nonserializables(self) -> None:
         # these things cannot be serialized or have to be reinitialized
@@ -76,7 +77,8 @@ class Player(base.Living, pubsub.Listener):
         The player object is returned so you can chain calls.
         """
         if evoke:
-            msg = self.llm_util.evoke(message, max_length = max_length)
+            msg, rolling_prompt = self.llm_util.evoke(message, max_length = max_length, rolling_prompt = self.rolling_prompt)
+            self.rolling_prompt = rolling_prompt
         else:
             msg = str(message)     
         
