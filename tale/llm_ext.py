@@ -33,8 +33,8 @@ class LivingNpc(Living):
             greet = True
             targeted = True
         if greet and targeted:
-            self.tell_others("{self.title} says: \"Hi.\"", evoke=True)
-            self.update_conversation("{self.title} says: \"Hi.\"")
+            self.tell_others("{Actor} says: \"Hi.\"", evoke=True)
+            self.update_conversation(f"{self.title} says: \"Hi.\"")
         elif parsed.verb == "say" and targeted:
             self.update_conversation(f'{actor.title}:{parsed.unparsed}\n')
             response = self.llm_util.generate_dialogue(conversation=self.conversation, character_card = self.character_card, character_name = self.title, target = actor.title )
