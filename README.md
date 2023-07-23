@@ -5,7 +5,7 @@ By default it uses KoboldCpp, but if you're feeling adventurous you can change l
 1. Download repo, either with 'git clone' or as a zip.
 2. Run 'pip install -re requirements.txt'
 3. Start KoboldCpp (port 5001 by default)
-4. Start with ``python -m tale.demo.story``
+4. Start with ``python -m stories.prancingllama.story``
 
 There are some other demo stories in the (original) repo as well.
 
@@ -21,7 +21,16 @@ Caveats:
 
 
 
-ORIGINAL README for Tale:
+
+
+
+
+
+
+ORIGINAL README for Tale (public archive):
+
+
+
 
 ----------------------
 
