@@ -19,17 +19,17 @@ outside = Location("Outside", "A snow-storm is raging across the craggy landscap
 
 #library_door = Door(["school_grounds", "door"], school_grounds, "A door leading to the school grounds", "", locked=False, opened=True, key_code="1")
 
-Exit.connect(main_hall, ["bar", "north"], "", "To the north you are you see some people sitting over by a massive bar.", bar, ["main_hall", "south"], "To the south you see an area full of tables with people eating, drinking and talking", "")
+Exit.connect(main_hall, ["bar", "north"], "", "To the north you are you see some people sitting over by a massive bar.", bar, ["main hall", "south"], "To the south you see an area full of tables with people eating, drinking and talking", "")
 
-Exit.connect(main_hall, ["hearth", "west"], "To the west you see a giant hearth with a comforting fire", "", hearth, ["main_hall", "east"], "To the east you see an area full of tables with people eating, drinking and talking", "")
+Exit.connect(main_hall, ["hearth", "west"], "To the west you see a giant hearth with a comforting fire", "", hearth, ["main hall", "east"], "To the east you see an area full of tables with people eating, drinking and talking", "")
 
 Exit.connect(bar, ["kitchen", "north"], "", "To the north, there's a door leading to the kitchen.", kitchen, ["bar", "south"], "Through a door to the south you see the bar, and beyond that, the main hall", "")
 
-Exit.connect(main_hall, ["entrance", "south"], "", "The entrance to the building is to the south.", entrance, ["main_hall", "north"], "There's a warm glow and loud, noisy conversations coming through a doorway to the north", "")
+Exit.connect(main_hall, ["entrance", "south"], "", "The entrance to the building is to the south.", entrance, ["main hall", "north"], "There's a warm glow and loud, noisy conversations coming through a doorway to the north", "")
 
 Exit.connect(entrance, ["outside", "south"], "", "A biting wind reaches you through the door to the south.", outside, ["entrance", "north"], "There's shelter from the cold wind through a door to the north.", "")
 
-main_hall.init_inventory([shanda, elid_gold])
+main_hall.init_inventory([shanda, elid_gald])
 
 bar.init_inventory([urta, norhardt])
 
