@@ -3,10 +3,9 @@ from tale.base import Living, ParseResult
 
 class LivingNpc(Living):
     def __init__(self, name: str, gender: str, *,
-                 title: str="", descr: str="", short_descr: str="", age: int, appearance: str, personality: str, occupation: str=""):
+                 title: str="", descr: str="", short_descr: str="", age: int, personality: str, occupation: str=""):
         super(LivingNpc, self).__init__(name=name, gender=gender, title=title, descr=descr, short_descr=short_descr)
         self.age = age
-        self.appearance = appearance
         self.personality = personality
         self.occupation = occupation
         self.llm_util = LlmUtil()
@@ -14,7 +13,7 @@ class LivingNpc(Living):
         self.memory_size = 512
         
     def init(self) -> None:
-        self.aliases = {"Student"}
+        self.aliases = {"Npc"}
         
     def notify_action(self, parsed: ParseResult, actor: Living) -> None:
         if actor is self or parsed.verb in self.verbs:
@@ -52,10 +51,11 @@ class LivingNpc(Living):
             self.conversation = self.conversation[len(self.conversation) - self.memory_size+1:]
     @property
     def character_card(self) -> str:
-        return '[{name};gender: {gender}; age: {age}; occupation: Student; appearance: {appearance}; personality: {personality}; description: {description}]'.format(
+        return '[{name}; gender: {gender}; age: {age}; occupation: {occupation}; personality: {personality}; appearance: {description}; items:{items}]'.format(
                 name=self.title,
                 gender=self.gender,
                 age=self.age,
-                appearance=self.appearance,
                 personality=self.personality,
-                description=self.description)
+                description=self.description,
+                occupation=self.occupation,
+                items='[]'.format(', '.join([str(i.name) for i in self.inventory])))

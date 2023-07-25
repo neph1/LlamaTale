@@ -1,12 +1,12 @@
 import random
 
-from tale.base import Location, Exit, Door, Key, Living, ParseResult
+from tale.base import Location, Item, Exit, Door, Key, Living, ParseResult
 from tale.errors import StoryCompleted
 from tale.lang import capital
 from tale.player import Player
 from tale.util import Context, call_periodically
 from tale.verbdefs import AGGRESSIVE_VERBS
-from npcs.llama import *
+from npcs.npcs import *
 
 
 
@@ -16,8 +16,6 @@ kitchen = Location("Kitchen", "The walls are lined with barrels and smoke is sur
 hearth = Location("Hearth", "A place for newly arrived visitors to unthaw their frozen limbs.")
 entrance = Location("Entrance", "A room full of furry and snow-covered coats. Loud voices and roars of laughter can be heard from the main hall.")
 outside = Location("Outside", "A snow-storm is raging across the craggy landscape outside, it's dark, and noone to be seen. It's better to stay indoors")
-
-#library_door = Door(["school_grounds", "door"], school_grounds, "A door leading to the school grounds", "", locked=False, opened=True, key_code="1")
 
 Exit.connect(main_hall, ["bar", "north"], "", "To the north you are you see some people sitting over by a massive bar.", bar, ["main hall", "south"], "To the south you see an area full of tables with people eating, drinking and talking", "")
 
@@ -35,4 +33,11 @@ bar.init_inventory([urta, norhardt])
 
 hearth.init_inventory([count_karta])
 
+drink = Item("ale", "jug of ale", descr="Looks and smells like strong ale.")
+
+urta.init_inventory([drink])
+
+old_map = Item("map", "old map.", descr="It looks like a map, and a cave is marked on it.")
+
+norhardt.init_inventory([old_map])
 

@@ -70,6 +70,8 @@ class StoryConfig:
         self.mud_port = 0                    # for mud mode: port number to bind the server on
         self.zones = []                      # type: List[str]  # names of zone modules to load, in this order
         self.server_mode = GameMode.IF       # the actual game mode the server is operating in (will be set at startup time)
+        self.items = ""                      # items to populate the world with. only used by json loading
+        self.npcs = ""                       # npcs to populate the world with. only used by json loading
 
     def __eq__(self, other: Any) -> bool:
         return isinstance(other, StoryConfig) and vars(self) == vars(other)
