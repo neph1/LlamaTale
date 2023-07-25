@@ -10,6 +10,9 @@ By default it uses KoboldCpp, but if you're feeling adventurous you can change l
 7. Start KoboldCpp (port 5001 by default)
 8. Start with ``python -m stories.prancingllama.story``
 
+In the game:
+You can probably read up on this, or use 'help' in the prompt, but you can move around using directions, like n, w, s, e, or type the location you want to go to.
+To trigger a dialogue, address people with 'say character: what you want to say'. There are a number of 'aliases' for each character, and the game seems to help you find the right one.
 
 Features:
 * When the MUD describes something, through commands like 'look' or other verbs, it sends the original description as a prompt to the LLM. The LLM either has free hands to write as much as it wants, or for some things, it's limited to a certain amount of tokens, not to cause too many delays.
