@@ -28,14 +28,15 @@ Caveats:
 
 
 Example:
+
 Here's the kind of output you can except. "Original" is the written description. "Generated" is what the LLM produces.
 
-After a grizzling journey through the snow storm you have finally
+Scenario background story: After a grizzling journey through the snow storm you have finally
   arrived at  The Prancing Llama, the only refuge for miles and miles in
   this craggy, snow-covered landscape.  You have heard many tales about
   this place, but now the time has come to make your own.
   
-  Original:[ [’[Entrance]’, ’A room full of furry and snow-covered
+>  Original:[ [’[Entrance]’, ’A room full of furry and snow-covered
   coats.  Loud voices and roars of laughter can be heard from the main
   hall.’, “There’s a warm glow and loud, noisy conversations coming
   through a doorway to the north “] ] Generated: As I entered the
@@ -46,7 +47,7 @@ After a grizzling journey through the snow storm you have finally
   revealing a room ablaze in light and sound - voices mingling together
   in a cacophony of warmth and camaraderie.
 
-Original:[ [’[Main Hall]’, ’An area full of tables with people eating,
+> Original:[ [’[Main Hall]’, ’An area full of tables with people eating,
   drinking and talking’, ’  To the west you see a giant hearth with a
   comforting fire’, ’A fierce looking woman sitting by a table, whose
   eyes seem to follow you.  A slender gentleman with a patch over one of
@@ -70,7 +71,7 @@ Excerpt from talking to Elid (prompting with his ‘character card’):
  
   You say: elid: ’what are you doing here?’.
 
->>   Elid Gald says: “Elid Gald chuckles mischievously at Arto’s question
+>   Elid Gald says: “Elid Gald chuckles mischievously at Arto’s question
   and smirks, adjusting his hat before responding, “Why, I’m just
   enjoying a stroll through the market, my dear sir.  And what about
   yourself?  What brings you to these parts?”  His voice is smooth and
@@ -79,7 +80,7 @@ Excerpt from talking to Elid (prompting with his ‘character card’):
   You say: elid: ’i’m looking for some goods to buy, my purse is laden
   with gold’.
 
->>   Elid Gald says: “Elid Gald nods approvingly at Arto’s mention of
+>   Elid Gald says: “Elid Gald nods approvingly at Arto’s mention of
   wealth and grins wickedly, leaning in closer to whisper, “Well then,
   perhaps I can help you find something truly unique and valuable.
   Perhaps some items that are not available on the open market, eh?  You
@@ -100,7 +101,7 @@ Excerpt from talking to Elid (prompting with his ‘character card’):
 You say: elid: ’maybe you’re right.. do you charge a fee for your
   services?’.
 
->>   Elid Gald says: “Elid Gald chuckles softly and takes a step back,
+>   Elid Gald says: “Elid Gald chuckles softly and takes a step back,
   giving Arto an appraising look.  “I always charge a fee, young man,”
   he says with a smirk, “And my fee is quite substantial.  But I believe
   that the items I can help you acquire will be more than worth it.”
