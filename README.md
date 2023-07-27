@@ -27,6 +27,90 @@ Caveats:
 
 
 
+Example:
+Here's the kind of output you can except. "Original" is the written description. "Generated" is what the LLM produces.
+
+After a grizzling journey through the snow storm you have finally
+  arrived at  The Prancing Llama, the only refuge for miles and miles in
+  this craggy, snow-covered landscape.  You have heard many tales about
+  this place, but now the time has come to make your own.
+  
+  Original:[ [’[Entrance]’, ’A room full of furry and snow-covered
+  coats.  Loud voices and roars of laughter can be heard from the main
+  hall.’, “There’s a warm glow and loud, noisy conversations coming
+  through a doorway to the north “] ] Generated: As I entered the
+  building, I was greeted by a sea of fluffy and snow-dusted jackets,
+  their colors and patterns as varied as the people wearing them.  The
+  air was alive with excited chatter and boisterous laughter, echoing
+  off the walls like a symphony of joy.  To my left, a door stood open,
+  revealing a room ablaze in light and sound - voices mingling together
+  in a cacophony of warmth and camaraderie.
+
+Original:[ [’[Main Hall]’, ’An area full of tables with people eating,
+  drinking and talking’, ’  To the west you see a giant hearth with a
+  comforting fire’, ’A fierce looking woman sitting by a table, whose
+  eyes seem to follow you.  A slender gentleman with a patch over one of
+  his eyes, leaning against the wall.’] ] Generated: As I entered the
+  building, my gaze was immediately drawn to the bustling main hall,
+  where tables were scattered throughout the room like islands in a sea
+  of chatter and laughter.  The air was thick with the scent of
+  delicious food and warmth, and my stomach rumbled in anticipation.  By
+  the west wall, a massive hearth roared with life, its flames casting
+  flickering shadows across the room as they danced on the walls.  In
+  one corner, a fierce-looking woman sat at her table, her eyes
+  constantly moving as she surveyed the scene around her.  Next to her,
+  a slender gentleman with a patch over one eye leaned against the wall,
+  his gaze fixed on something beyond my line of sight.I couldn’t
+  help but feel a sense of excitement as I made my way towards them,
+  eager to join in the merriment and warmth that filled the room.
+
+
+Excerpt from talking to Elid (prompting with his ‘character card’):
+
+ 
+  You say: elid: ’what are you doing here?’.
+
+>>   Elid Gald says: “Elid Gald chuckles mischievously at Arto’s question
+  and smirks, adjusting his hat before responding, “Why, I’m just
+  enjoying a stroll through the market, my dear sir.  And what about
+  yourself?  What brings you to these parts?”  His voice is smooth and
+  alluring with an undercurrent of danger hidden beneath it.”
+
+  You say: elid: ’i’m looking for some goods to buy, my purse is laden
+  with gold’.
+
+>>   Elid Gald says: “Elid Gald nods approvingly at Arto’s mention of
+  wealth and grins wickedly, leaning in closer to whisper, “Well then,
+  perhaps I can help you find something truly unique and valuable.
+  Perhaps some items that are not available on the open market, eh?  You
+  see, I have connections with certain…merchants who might be willing
+  to part with their finest wares for someone like you.”  He pauses
+  meaningfully, allowing the implication to linger in the air between
+  them as his hand slips casually into his pocket.As he speaks, one
+  could almost hear the clinking of coins in his pocket - but whether
+  it’s real or just a clever illusion is anyone’s guess.  “You know,” he
+  says softly, “I’ve always been known for my eye for rare and exquisite
+  goods.  Why not let me help you acquire something truly special?
+  After all, I’m sure you don’t want to be caught with common trinkets.”
+  His voice is silky smooth and seductive as he leans even closer to
+  Arto, a glint of mischief in his remaining eye.”Wouldn’t you
+  rather have something that sets you apart from others?  Something that
+  screams ’wealthy aristocrat’?””
+
+You say: elid: ’maybe you’re right.. do you charge a fee for your
+  services?’.
+
+>>   Elid Gald says: “Elid Gald chuckles softly and takes a step back,
+  giving Arto an appraising look.  “I always charge a fee, young man,”
+  he says with a smirk, “And my fee is quite substantial.  But I believe
+  that the items I can help you acquire will be more than worth it.”
+  His voice is still silky smooth and seductive, his mischievous gaze
+  never leaving Arto’s face.\n”However,” He continues, “If you’re
+  willing to make a deal with me… let’s say, a mutually beneficial
+  agreement… then we could discuss a different kind of payment.”  He
+  winks at Arto, his remaining eye gleaming with curiosity.”What do
+  you think?  Are you willing to take a risk for something truly
+  unique?””
 
 
 
@@ -34,8 +118,6 @@ Caveats:
 
 
 ORIGINAL README for Tale (public archive):
-
-
 
 
 ----------------------
