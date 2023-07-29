@@ -884,11 +884,12 @@ class Location(MudObject):
 class Stats:
     def __init__(self) -> None:
         self.gender = 'n'
-        self.level = 0
+        self.level = 1
         self.xp = 0
         self.hp = 0
         self.maxhp_dice = ""
         self.ac = 0
+        self.wc = 0
         self.attack_dice = ""  # damage roll when attacking without a weapon
         self.alignment = 0   # -1000 (evil) to +1000 (good), neutral=[-349..349]
         self.bodytype = races.BodyType.HUMANOID
@@ -896,6 +897,8 @@ class Stats:
         self.weight = 0.0
         self.size = races.BodySize.HUMAN_SIZED
         self.race = ""      # the name of the race of this creature
+        self.strength = 3
+        self.agility = 3
 
     def __repr__(self):
         return "<Stats: %s>" % vars(self)
@@ -1170,7 +1173,11 @@ class Living(MudObject):
         self.tell(actor_message, evoke=True, max_length=False)
         self.location.tell(room_message, self, who, target_message, evoke=True, max_length=False)
         pending_actions.send(lambda actor=self: actor.location._notify_action_all(parsed, actor))
-        if parsed.verb in verbdefs.AGGRESSIVE_VERBS:
+        if parsed.verb == 'attack' :
+            for thing in who:
+                if isinstance(thing, Living):
+                    pending_actions.send(lambda victim=thing: self.start_attack(victim))
+        elif parsed.verb in verbdefs.AGGRESSIVE_VERBS:
             # usually monsters immediately attack,
             # other npcs may choose to attack or to ignore it
             # We need to check the verb qualifier, it might void the actual action :)
@@ -1320,11 +1327,70 @@ class Living(MudObject):
         # @todo actual fight.   Also implement 'assist' command to help someone that is already fighting.
         # NOTE: combat commands should have a check so that you cannot spam them!
         name = lang.capital(self.title)
-        room_msg = "%s starts attacking %s!" % (name, victim.title)
-        victim_msg = "%s starts attacking you!" % name
-        attacker_msg = "You start attacking %s!" % victim.title
-        victim.tell(victim_msg, evoke=True, max_length=True)
-        victim.location.tell(room_msg, exclude_living=victim, specific_targets={self}, specific_target_msg=attacker_msg, evoke=True, max_length=True)
+        
+        result = self.combat(victim)
+        
+        if result < 0.5:
+            text = "After a fierce battle, %s dies." % (name)
+        elif result > 0.5:
+            text = "After a fierce battle, %s dies." % (victim.title)
+        else:
+            text = "After a fierce battle, both retreat."
+        
+        room_msg = "%s attacks %s! %s" % (name, victim.title, text)
+        victim_msg = "%s attacks you. %s!" % (name, result)
+        attacker_msg = "You attack %s. %s!" % (victim.title, text)
+        victim.tell(victim_msg, evoke=True, max_length=False)
+        victim.location.tell(room_msg, exclude_living=victim, specific_targets={self}, specific_target_msg=attacker_msg, evoke=True, max_length=False)
+        
+        if result < 0.5:
+            self.destroy()
+        elif result > 0.5:
+            victim.destroy()
+    
+    def combat(self, actor2: 'Living'):
+        actor1 = self
+        """ Simple combat. Credit to ChatGPT.
+            < 0.5 actor2 'victim' dies
+            > 0.5 actor1 'attacker' dies"""
+        
+        def calculate_attack(actor: 'Living'):
+            # The attack strength depends on the level and strength of the actor
+            return actor.stats.level
+    
+        def calculate_defense(actor: 'Living'):
+            # The defense strength depends on the level and agility of the actor
+            return actor.stats.level * actor.stats.agility
+    
+        def calculate_weapon_bonus(actor: 'Living'):
+            # The weapon bonus is a random factor between 0 and 1. If the actor has no weapon, bonus is 1.
+            return actor.stats.wc + 1
+    
+        def calculate_armor_bonus(actor: 'Living'):
+            # The armor bonus is a random factor between 0 and 1. If the actor has no armor, bonus is 1.
+            return actor.stats.ac + 1
+    
+        def calculate_damage(attacker: 'Living', defender: 'Living'):
+            # Calculate the damage done by the attacker to the defender
+            attack_strength = calculate_attack(attacker) * calculate_weapon_bonus(attacker) * attacker.stats.strength * attacker.stats.size.order
+            defense_strength = calculate_defense(defender) * calculate_armor_bonus(defender) * defender.stats.strength * defender.stats.size.order
+            damage = max(0, attack_strength - defense_strength)
+            return damage
+    
+        # Calculate the chances of actor1 and actor2 winning
+        damage_to_actor1 = calculate_damage(actor2, actor1)
+        damage_to_actor2 = calculate_damage(actor1, actor2)
+    
+        # Use some randomness to introduce unpredictability
+        damage_to_actor1 *= random.uniform(0.9, 1.1)
+        damage_to_actor2 *= random.uniform(0.9, 1.1)
+    
+        # Calculate the normalized factor
+        total_damage = damage_to_actor1 + damage_to_actor2
+        if total_damage == 0:
+            return 0.5
+        return damage_to_actor1 / total_damage
+        
 
     def allow_give_money(self, amount: float, actor: Optional['Living']) -> None:
         """Do we accept money? Raise ActionRefused if not."""
@@ -1404,6 +1470,12 @@ class Living(MudObject):
         else:
             # non-pets just move to the target location and don't try to keep up.
             self.move(target_location)
+            
+    def check_stat(self, stat : str):
+        if stat == 'hp':
+            return self.stat.hp
+        
+        
 
 
 class Container(Item):
@@ -1765,6 +1837,9 @@ class Key(Item):
             if not self.key_code:
                 raise LocationIntegrityError("door has no key_code set", "", door, door.target)
 
+class Corpse(MudObject):
+    """ The remains of someone or something that has died """
+    
 
 class Soul:
     """

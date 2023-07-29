@@ -171,7 +171,7 @@ class Player(base.Living, pubsub.Listener):
             self.transcript.write("\n\n>> %s\n" % cmd)
         self.input_is_available.set()
         self.last_input_time = time.time()
-
+        
     @property
     def idle_time(self) -> float:
         return time.time() - self.last_input_time
