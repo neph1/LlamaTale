@@ -52,6 +52,7 @@ from . import races
 from . import util
 from . import story
 from . import verbdefs
+from . import combat
 from .errors import ActionRefused, ParseError, LocationIntegrityError, TaleError, UnknownVerbException, NonSoulVerb
 
 __all__ = ["MudObject", "Armour", 'Container', "Door", "Exit", "Item", "Living", "Stats", "Location", "Weapon", "Key", "Soul"]
@@ -164,6 +165,7 @@ class MudObjRegistry:
     all_livings = WeakValueDictionary()     # type: WeakValueDictionary[int, Living]
     all_locations = WeakValueDictionary()   # type: WeakValueDictionary[int, Location]
     all_exits = WeakValueDictionary()       # type: WeakValueDictionary[int, Exit]
+    all_remains = WeakValueDictionary()
 
     @staticmethod
     def track_vnum(instance: Any, fix_clones: bool=False):
@@ -178,6 +180,8 @@ class MudObjRegistry:
             MudObjRegistry.all_exits[instance.vnum] = instance        # type: ignore
         elif isinstance(instance, Location):
             MudObjRegistry.all_locations[instance.vnum] = instance    # type: ignore
+        elif isinstance(instance, Remains):
+            MudObjRegistry.all_remains[instance.vnum] = instance    # type: ignore
         else:
             raise TypeError("weird MudObj subtype: " + str(type(instance)))
         if fix_clones:
@@ -936,6 +940,7 @@ class Living(MudObject):
             self.stats = Stats.from_race(race, gender=gender)
         else:
             self.stats = Stats()
+        self.alive = True
         self.init_gender(gender)
         self.soul = Soul()
         self.location = _limbo  # type: Location  # set transitional location
@@ -1055,7 +1060,7 @@ class Living(MudObject):
         """get a wiretap for this living"""
         return pubsub.topic(("wiretap-living", "%s#%d" % (self.name, self.vnum)))
 
-    def tell(self, message: str, *, end: bool=False, format: bool=True, evoke: bool=False, max_length : bool=False) -> 'Living':
+    def tell(self, message: str, *, end: bool=False, format: bool=True, evoke: bool=False, max_length : bool=False, alt_prompt = '') -> 'Living':
         """
         Every living thing in the mud can receive an action message.
         Message will be converted to str if required.
@@ -1077,7 +1082,7 @@ class Living(MudObject):
         """Tell something to this creature, but do it after all other messages."""
         pending_tells.send(lambda: self.tell(message, evoke=True, max_length=True))
 
-    def tell_others(self, message: str, target: Optional['Living']=None, evoke: bool=False, max_length: bool=True) -> None:
+    def tell_others(self, message: str, target: Optional['Living']=None, evoke=False, max_length=True, alt_prompt='') -> None:
         """
         Send a message to the other livings in the location, but not to self.
         There are a few formatting strings for easy shorthands:
@@ -1092,7 +1097,7 @@ class Living(MudObject):
             room_msg = message.format(actor=self.title, Actor=lang.capital(self.title),
                                       target=target.title, Target=lang.capital(target.title))
             spec_msg = message.format(actor=self.title, Actor=lang.capital(self.title), target="you", Target="You")
-            self.location.tell(room_msg, exclude_living=self, specific_targets={target}, specific_target_msg=spec_msg, evoke=evoke, max_length=True)
+            self.location.tell(room_msg, exclude_living=self, specific_targets={target}, specific_target_msg=spec_msg, evoke=evoke, max_length=True, alt_prompt=alt_prompt)
 
     def parse(self, commandline: str, external_verbs: Set[str]=set()) -> ParseResult:
         """Parse the commandline into something that can be processed by the soul (ParseResult)"""
@@ -1327,70 +1332,19 @@ class Living(MudObject):
         # @todo actual fight.   Also implement 'assist' command to help someone that is already fighting.
         # NOTE: combat commands should have a check so that you cannot spam them!
         name = lang.capital(self.title)
+
+        result, dead = combat.resolve_attack(self, victim)
         
-        result = self.combat(victim)
-        
-        if result < 0.5:
-            text = "After a fierce battle, %s dies." % (name)
-        elif result > 0.5:
-            text = "After a fierce battle, %s dies." % (victim.title)
-        else:
-            text = "After a fierce battle, both retreat."
-        
-        room_msg = "%s attacks %s! %s" % (name, victim.title, text)
+        room_msg = "%s attacks %s! %s" % (name, victim.title, result)
         victim_msg = "%s attacks you. %s!" % (name, result)
-        attacker_msg = "You attack %s. %s!" % (victim.title, text)
+        attacker_msg = "You attack %s! %s." % (victim.title, result)
         victim.tell(victim_msg, evoke=True, max_length=False)
         victim.location.tell(room_msg, exclude_living=victim, specific_targets={self}, specific_target_msg=attacker_msg, evoke=True, max_length=False)
-        
-        if result < 0.5:
-            self.destroy()
-        elif result > 0.5:
-            victim.destroy()
-    
-    def combat(self, actor2: 'Living'):
-        actor1 = self
-        """ Simple combat. Credit to ChatGPT.
-            < 0.5 actor2 'victim' dies
-            > 0.5 actor1 'attacker' dies"""
-        
-        def calculate_attack(actor: 'Living'):
-            # The attack strength depends on the level and strength of the actor
-            return actor.stats.level
-    
-        def calculate_defense(actor: 'Living'):
-            # The defense strength depends on the level and agility of the actor
-            return actor.stats.level * actor.stats.agility
-    
-        def calculate_weapon_bonus(actor: 'Living'):
-            # The weapon bonus is a random factor between 0 and 1. If the actor has no weapon, bonus is 1.
-            return actor.stats.wc + 1
-    
-        def calculate_armor_bonus(actor: 'Living'):
-            # The armor bonus is a random factor between 0 and 1. If the actor has no armor, bonus is 1.
-            return actor.stats.ac + 1
-    
-        def calculate_damage(attacker: 'Living', defender: 'Living'):
-            # Calculate the damage done by the attacker to the defender
-            attack_strength = calculate_attack(attacker) * calculate_weapon_bonus(attacker) * attacker.stats.strength * attacker.stats.size.order
-            defense_strength = calculate_defense(defender) * calculate_armor_bonus(defender) * defender.stats.strength * defender.stats.size.order
-            damage = max(0, attack_strength - defense_strength)
-            return damage
-    
-        # Calculate the chances of actor1 and actor2 winning
-        damage_to_actor1 = calculate_damage(actor2, actor1)
-        damage_to_actor2 = calculate_damage(actor1, actor2)
-    
-        # Use some randomness to introduce unpredictability
-        damage_to_actor1 *= random.uniform(0.9, 1.1)
-        damage_to_actor2 *= random.uniform(0.9, 1.1)
-    
-        # Calculate the normalized factor
-        total_damage = damage_to_actor1 + damage_to_actor2
-        if total_damage == 0:
-            return 0.5
-        return damage_to_actor1 / total_damage
-        
+        if dead:
+            remains = Container(f"remains of {dead.title}")
+            remains.init_inventory(dead.inventory)
+            dead.location.insert(remains, None)
+            dead.destroy(util.Context)
 
     def allow_give_money(self, amount: float, actor: Optional['Living']) -> None:
         """Do we accept money? Raise ActionRefused if not."""
@@ -1836,10 +1790,9 @@ class Key(Item):
             self.key_code = door.key_code
             if not self.key_code:
                 raise LocationIntegrityError("door has no key_code set", "", door, door.target)
-
-class Corpse(MudObject):
-    """ The remains of someone or something that has died """
-    
+                
+class Remains(Container):
+    """ Remains after someone/something that has died """
 
 class Soul:
     """

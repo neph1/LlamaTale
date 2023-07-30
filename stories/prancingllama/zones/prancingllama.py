@@ -10,10 +10,15 @@ from npcs.npcs import *
 
 
 class Cellar(Location):
+
+    def init(self):
+        self.rat = None
+
     @call_periodically(40, 90)
     def spawn_rat(self, ctx: Context) -> None:
-        w = Rat("giant rat", random.choice("m"), descr="A vicious looking, giant, rat", race="rodent")
-        w.move(self)
+        if not self.rat or self.rat.alive == False:
+            self.rat = Rat("giant rat", random.choice("m"), descr="A vicious looking, giant, rat", race="rodent")
+            self.rat.move(self)
 
 main_hall = Location("Main Hall", "An area full of tables with people eating, drinking and talking")
 bar = Location("Bar", "A bar carved from a single, massive tree trunk stretches across the room")

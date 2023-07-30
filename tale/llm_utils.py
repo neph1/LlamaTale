@@ -18,9 +18,10 @@ class LlmUtil():
         self.base_prompt = config_file['BASE_PROMPT']
         self.dialogue_prompt = config_file['DIALOGUE_PROMPT']
 
-    def evoke(self, message: str, max_length : bool=False, rolling_prompt=''):
+    def evoke(self, message: str, max_length : bool=False, rolling_prompt='', alt_prompt=''):
         if len(message) > 0 and str(message) != "\n":
             trimmed_message = self.remove_special_chars(str(message))
+            base_prompt = alt_prompt if alt_prompt else self.base_prompt
             amount = len(trimmed_message) * 2
             prompt = rolling_prompt
             prompt += self.base_prompt.format(input_text=str(trimmed_message))
