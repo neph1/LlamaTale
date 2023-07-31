@@ -44,7 +44,6 @@ class Player(base.Living, pubsub.Listener):
         self.known_locations = set()   # type: Set[base.Location]
         self.last_input_time = time.time()
         self.init_nonserializables()
-        self.llm_util = LlmUtil()
         self.rolling_prompt = ''
 
     def init_nonserializables(self) -> None:
@@ -54,6 +53,7 @@ class Player(base.Living, pubsub.Listener):
         self.input_is_available = Event()
         self.transcript = None   # type: Optional[IO[str]]
         self._output = TextBuffer()
+        self._llm_util = None
 
     def init_names(self, name: str, title: str, descr: str, short_descr: str) -> None:
         title = lang.capital(title or name)  # make sure the title of a player remains capitalized
@@ -77,7 +77,7 @@ class Player(base.Living, pubsub.Listener):
         The player object is returned so you can chain calls.
         """
         if evoke:
-            msg, rolling_prompt = self.llm_util.evoke(message, max_length = max_length, rolling_prompt = self.rolling_prompt, alt_prompt = alt_prompt)
+            msg, rolling_prompt = self._llm_util.evoke(message, max_length = max_length, rolling_prompt = self.rolling_prompt, alt_prompt = alt_prompt)
             self.rolling_prompt = rolling_prompt
         else:
             msg = str(message)     
@@ -454,3 +454,11 @@ class PlayerConnection:
         if self.player:
             self.player.destroy(ctx)
             self.player = None          # type: ignore
+
+    @property
+    def llm_util(self) -> LlmUtil:
+        return self._llm_util
+
+    @llm_util.setter
+    def llm_util(self, value: 'LlmUtil') -> None:
+        self._llm_util = value

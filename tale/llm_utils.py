@@ -17,14 +17,19 @@ class LlmUtil():
         self.pre_prompt = config_file['PRE_PROMPT']
         self.base_prompt = config_file['BASE_PROMPT']
         self.dialogue_prompt = config_file['DIALOGUE_PROMPT']
+        self.item_prompt = config_file['ITEM_PROMPT']
+        self.stream = True
+        self._story_background = ''
 
     def evoke(self, message: str, max_length : bool=False, rolling_prompt='', alt_prompt=''):
         if len(message) > 0 and str(message) != "\n":
+            if not rolling_prompt:
+                rolling_prompt += self._story_background
             trimmed_message = self.remove_special_chars(str(message))
             base_prompt = alt_prompt if alt_prompt else self.base_prompt
-            amount = len(trimmed_message) * 2
+            amount = len(trimmed_message) * 2.5
             prompt = rolling_prompt
-            prompt += self.base_prompt.format(input_text=str(trimmed_message))
+            prompt += base_prompt.format(input_text=str(trimmed_message))
             
             rolling_prompt = self.update_memory(rolling_prompt, trimmed_message)
             
@@ -52,7 +57,7 @@ class LlmUtil():
         response = requests.post(self.url, data=json.dumps(request_body))
         text = self.trim_response(json.loads(response.text)['results'][0]['text'])
         return f'{text}'
-
+    
     def update_memory(self, rolling_prompt: str, response_text: str):
         rolling_prompt += response_text
         if len(rolling_prompt) > self.memory_size:
@@ -71,3 +76,11 @@ class LlmUtil():
             if last > lastChar:
                 lastChar = last
         return message[:lastChar+1]
+    
+    @property
+    def story_background(self) -> str:
+        return self._story_background
+
+    @story_background.setter
+    def story_background(self, value: str) -> None:
+        self._story_background = value

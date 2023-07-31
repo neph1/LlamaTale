@@ -10,7 +10,7 @@ class LivingNpc(Living):
         self.occupation = occupation
         self.llm_util = LlmUtil()
         self.conversation = ''
-        self.memory_size = 512
+        self.memory_size = 1024
         
     def init(self) -> None:
         self.aliases = {"Npc"}
@@ -40,6 +40,7 @@ class LivingNpc(Living):
             self.update_conversation(f"{self.title} says: \"{response}\"")
             if len(self.conversation) > self.memory_size:
                 self.conversation = self.conversation[self.memory_size+1:]
+
             self.tell_others(f"{self.title} says: \"{response}\"", evoke=False, max_length=True)
         elif self in parsed.who_info:
             # store actions against npc

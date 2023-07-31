@@ -635,7 +635,7 @@ class Location(MudObject):
         return pubsub.topic(("wiretap-location", "%s#%d" % (self.name, self.vnum)))
 
     def tell(self, room_msg: str, exclude_living: 'Living'=None, specific_targets: Set[Union[ParsedWhoType]]=None,
-             specific_target_msg: str="", evoke=True, max_length=True) -> None:
+             specific_target_msg: str="", evoke : bool=True, max_length : bool=True) -> None:
         """
         Tells something to the livings in the room (excluding the living from exclude_living).
         This is just the message string! If you want to react on events, consider not doing
@@ -1082,7 +1082,7 @@ class Living(MudObject):
         """Tell something to this creature, but do it after all other messages."""
         pending_tells.send(lambda: self.tell(message, evoke=True, max_length=True))
 
-    def tell_others(self, message: str, target: Optional['Living']=None, evoke=False, max_length=True, alt_prompt='') -> None:
+    def tell_others(self, message: str, target: Optional['Living']=None, evoke=False, max_length : bool=True, alt_prompt='') -> None:
         """
         Send a message to the other livings in the location, but not to self.
         There are a few formatting strings for easy shorthands:
@@ -1174,11 +1174,12 @@ class Living(MudObject):
         A soul verb such as 'ponder' was entered. Socialize with the environment to handle this.
         Some verbs may trigger a response or action from something or someone else.
         """
+        attacking = parsed.verb == 'attack'
         who, actor_message, room_message, target_message = self.soul.process_verb_parsed(self, parsed)
-        self.tell(actor_message, evoke=True, max_length=False)
-        self.location.tell(room_message, self, who, target_message, evoke=True, max_length=False)
+        self.tell(actor_message, evoke=not attacking, max_length=False)
+        self.location.tell(room_message, self, who, target_message, evoke=not attacking, max_length=False)
         pending_actions.send(lambda actor=self: actor.location._notify_action_all(parsed, actor))
-        if parsed.verb == 'attack' :
+        if attacking:
             for thing in who:
                 if isinstance(thing, Living):
                     pending_actions.send(lambda victim=thing: self.start_attack(victim))

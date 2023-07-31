@@ -3,12 +3,13 @@ This fork uses an LLM backend to describe things in a more vivid way. (LLM not i
 By default it uses KoboldCpp, but if you're feeling adventurous you can change llm_config.yaml in the tale/ folder to another one. 
 
 2. Get and install KoboldCpp: https://github.com/LostRuins/koboldcpp/releases
-3. Download a suitable llm model for koboldcpp. I recommend https://huggingface.co/TheBloke/Nous-Hermes-Llama2-GGML or https://huggingface.co/TheBloke/chronos-hermes-13B-GGML
+3. Download a suitable llm model for koboldcpp. I recommend https://huggingface.co/TheBloke/Nous-Hermes-Llama2-GGML or https://huggingface.co/TheBloke/chronos-hermes-13B-GGML. Recently I've tested with llama-2-7b-chat-codeCherryPop.ggmlv3.q5_K_M, which seems to be working really well, too.
 4. Make sure KoboldCpp works.
 1. Download repo, either with 'git clone' or as a zip.
 6. Run 'pip install -r requirements.txt'
 7. Start KoboldCpp (port 5001 by default)
 8. Start with ``python -m stories.prancingllama.story``
+9. If you'd rather play in a browser, add the '--web' flag and connect to http://localhost:8180/tale/story
 
 In the game:
 You can probably read up on this, or use 'help' in the prompt, but you can move around using directions, like n, w, s, e, or type the location you want to go to.
