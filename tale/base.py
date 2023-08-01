@@ -635,7 +635,7 @@ class Location(MudObject):
         return pubsub.topic(("wiretap-location", "%s#%d" % (self.name, self.vnum)))
 
     def tell(self, room_msg: str, exclude_living: 'Living'=None, specific_targets: Set[Union[ParsedWhoType]]=None,
-             specific_target_msg: str="", evoke : bool=True, max_length : bool=True) -> None:
+             specific_target_msg: str="", evoke : bool=True, max_length : bool=False, alt_prompt: str='') -> None:
         """
         Tells something to the livings in the room (excluding the living from exclude_living).
         This is just the message string! If you want to react on events, consider not doing
@@ -649,9 +649,9 @@ class Location(MudObject):
             if living == exclude_living:
                 continue
             if living in targets:
-                living.tell(specific_target_msg, evoke=evoke, max_length=max_length)
+                living.tell(specific_target_msg, evoke=evoke, max_length=max_length, alt_prompt=alt_prompt)
             else:
-                living.tell(room_msg, evoke=evoke, max_length=max_length)
+                living.tell(room_msg, evoke=evoke, max_length=max_length, alt_prompt=alt_prompt)
         if room_msg:
             tap = self.get_wiretap()
             tap.send((self.name, room_msg))
@@ -1060,7 +1060,7 @@ class Living(MudObject):
         """get a wiretap for this living"""
         return pubsub.topic(("wiretap-living", "%s#%d" % (self.name, self.vnum)))
 
-    def tell(self, message: str, *, end: bool=False, format: bool=True, evoke: bool=False, max_length : bool=False, alt_prompt = '') -> 'Living':
+    def tell(self, message: str, *, end: bool=False, format: bool=True, evoke: bool=False, max_length : bool=False, alt_prompt : str='') -> 'Living':
         """
         Every living thing in the mud can receive an action message.
         Message will be converted to str if required.
@@ -1080,7 +1080,7 @@ class Living(MudObject):
 
     def tell_later(self, message: str) -> None:
         """Tell something to this creature, but do it after all other messages."""
-        pending_tells.send(lambda: self.tell(message, evoke=True, max_length=True))
+        pending_tells.send(lambda: self.tell(message, evoke=True, max_length=False))
 
     def tell_others(self, message: str, target: Optional['Living']=None, evoke=False, max_length : bool=True, alt_prompt='') -> None:
         """
@@ -1092,12 +1092,12 @@ class Living(MudObject):
         """
         if target is None:
             room_msg = message.format(actor=self.title, Actor=lang.capital(self.title))
-            self.location.tell(room_msg, exclude_living=self, evoke=evoke, max_length=True)
+            self.location.tell(room_msg, exclude_living=self, evoke=evoke, max_length=max_length)
         else:
             room_msg = message.format(actor=self.title, Actor=lang.capital(self.title),
                                       target=target.title, Target=lang.capital(target.title))
             spec_msg = message.format(actor=self.title, Actor=lang.capital(self.title), target="you", Target="You")
-            self.location.tell(room_msg, exclude_living=self, specific_targets={target}, specific_target_msg=spec_msg, evoke=evoke, max_length=True, alt_prompt=alt_prompt)
+            self.location.tell(room_msg, exclude_living=self, specific_targets={target}, specific_target_msg=spec_msg, evoke=evoke, max_length=max_length, alt_prompt=alt_prompt)
 
     def parse(self, commandline: str, external_verbs: Set[str]=set()) -> ParseResult:
         """Parse the commandline into something that can be processed by the soul (ParseResult)"""
@@ -1337,10 +1337,11 @@ class Living(MudObject):
         result, dead = combat.resolve_attack(self, victim)
         
         room_msg = "%s attacks %s! %s" % (name, victim.title, result)
-        victim_msg = "%s attacks you. %s!" % (name, result)
-        attacker_msg = "You attack %s! %s." % (victim.title, result)
+        victim_msg = "%s attacks you. %s" % (name, result)
+        attacker_msg = "You attack %s! %s" % (victim.title, result)
         victim.tell(victim_msg, evoke=True, max_length=False)
-        victim.location.tell(room_msg, exclude_living=victim, specific_targets={self}, specific_target_msg=attacker_msg, evoke=True, max_length=False)
+        combat_prompt = f'### Instruction: Rewrite the following combat between user {name} and {victim.title} and result into a vivid description in less than 300 words. Location: {self.location}, {self.location.short_description}. Write one to two paragraphs, ending in either death, or a stalemate. Combat Result: {attacker_msg} ### Response:\n\n'
+        victim.location.tell(room_msg, exclude_living=victim, specific_targets={self}, specific_target_msg=attacker_msg, evoke=True, max_length=False, alt_prompt=combat_prompt)
         if dead:
             remains = Container(f"remains of {dead.title}")
             remains.init_inventory(dead.inventory)

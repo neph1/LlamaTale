@@ -27,8 +27,8 @@ class LlmUtil():
                 rolling_prompt += self._story_background
             trimmed_message = self.remove_special_chars(str(message))
             base_prompt = alt_prompt if alt_prompt else self.base_prompt
-            amount = len(trimmed_message) * 2.5
-            prompt = rolling_prompt
+            amount = int(len(trimmed_message) * 2.5)
+            prompt = rolling_prompt if not alt_prompt else ''
             prompt += base_prompt.format(input_text=str(trimmed_message))
             
             rolling_prompt = self.update_memory(rolling_prompt, trimmed_message)
