@@ -25,6 +25,7 @@ import appdirs
 
 from . import __version__ as tale_version_str, _check_required_libraries
 from . import mud_context, errors, util, cmds, player, pubsub, charbuilder, lang, verbdefs, vfs, base
+from .llm_utils import LlmUtil
 from .story import TickMethod, GameMode, MoneyType, StoryBase
 from .tio import DEFAULT_SCREEN_WIDTH
 from .races import playable_races
@@ -43,6 +44,7 @@ class Commands:
     def __init__(self) -> None:
         self.commands_per_priv = {"": {}}    # type: Dict[str, Dict[str, Callable]]
         self.no_soul_parsing = set()   # type: Set[str]
+        self.llm_util = LlmUtil()
 
     def add(self, verb: str, func: Callable, privilege: str="") -> None:
         self.validatefunc(func)

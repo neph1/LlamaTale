@@ -1,7 +1,11 @@
+import random
 from tale import mud_context
+
 from tale.base import Item, Living, ParseResult
 from tale.errors import ParseError, ActionRefused
 from tale.llm_ext import LivingNpc
+from tale.player import Player
+from tale.util import call_periodically, Context
 
 class InnKeeper(LivingNpc):
     
@@ -35,6 +39,14 @@ class InnKeeper(LivingNpc):
         price_str = mud_context.driver.moneyfmt.display(price)
         actor.tell("After handing %s the %s, %s gives you the %s." % (self.objective, price_str, self.subjective, drink.title), evoke=True, max_length=True)
         self.tell_others("{Actor} says: \"Here's your drink, enjoy it!\"", evoke=True, max_length=True)
+
+class Maid(LivingNpc):
+
+    @call_periodically(10, 20)
+    def do_random_move(self, ctx: Context) -> None:
+        direction = self.select_random_move()
+        if direction:
+            self.move(direction.target, self, direction_names=direction.names)
 
 class Patron(LivingNpc):
     
@@ -76,6 +88,19 @@ class Guard(LivingNpc):
                     
                     break
 
+class Rat(Living):
+    def init(self) -> None:
+        super().init()
+        self.aggressive = False
+        self.stats.strength = 1
+        self.stats.agility = 5
+
+    @call_periodically(10, 25)
+    def do_idle_action(self, ctx: Context) -> None:
+        if random.random() < 0.5:
+            self.tell_others("{Actor} hisses.", evoke=True, max_length=True)
+        else:
+            self.tell_others("{Actor} sniffs around.", evoke=True, max_length=True)
 
 
 norhardt = Patron("Norhardt", "m", age=56, descr="A grizzled old man, with parchment-like skin and sunken eyes. He\'s wearing ragged clothing and big leather boots. He\'s a formidable presence, commanding yet somber.", personality="An experienced explorer who is obsessed with finding the mythological Yeti which supposedly haunts these mountains. He won\'t stop talking about it.", short_descr="An old grizzled man sitting by the bar.")

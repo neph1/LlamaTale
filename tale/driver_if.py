@@ -21,6 +21,7 @@ from . import savegames
 from .player import PlayerConnection, Player
 from .tio import DEFAULT_SCREEN_DELAY
 from .tio import iobase
+from .llm_utils import LlmUtil
 
 
 class IFDriver(driver.Driver):
@@ -40,6 +41,7 @@ class IFDriver(driver.Driver):
         if web:
             self.io_type = "web"
         self.wizard_override = wizard_override
+        self.llm_util = LlmUtil()
 
     def start_main_loop(self):
         if self.io_type == "web":
@@ -184,6 +186,10 @@ class IFDriver(driver.Driver):
             player.move(self.lookup_location(self.story.config.startlocation_player))
         player.tell("\n")
         prompt = self.story.welcome(player)
+
+        self.llm_util.story_background = self.resources["messages/welcome.txt"].text
+        player.llm_util = self.llm_util
+        player._llm_util = self.llm_util
         if prompt:
             conn.input_direct("\n" + prompt)   # blocks  (note: cannot use yield here)
         player.tell("\n")
