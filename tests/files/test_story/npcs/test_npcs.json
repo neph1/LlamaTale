@@ -1,0 +1,12 @@
+[
+    {
+        "name":"Kobbo",
+        "gender":"m",
+        "race":"kobold",
+        "type":"Living",
+        "title":"Kobbo the King",
+        "descr":"Kobbo has a grace only royal kobolds posses",
+        "short_descr":"A kobold",
+        "location":"Cave.Royal Grotto"
+    }
+]

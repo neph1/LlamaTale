@@ -1340,6 +1340,7 @@ class Living(MudObject):
         victim_msg = "%s attacks you. %s" % (name, result)
         attacker_msg = "You attack %s! %s" % (victim.title, result)
         victim.tell(victim_msg, evoke=True, max_length=False)
+        # TODO: try to get from config file instead
         combat_prompt = f'### Instruction: Rewrite the following combat between user {name} and {victim.title} and result into a vivid description in less than 300 words. Location: {self.location}, {self.location.short_description}. Write one to two paragraphs, ending in either death, or a stalemate. Combat Result: {attacker_msg} ### Response:\n\n'
         victim.location.tell(room_msg, exclude_living=victim, specific_targets={self}, specific_target_msg=attacker_msg, evoke=True, max_length=False, alt_prompt=combat_prompt)
         if dead:

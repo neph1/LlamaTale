@@ -18,7 +18,6 @@ class LlmUtil():
         self.base_prompt = config_file['BASE_PROMPT']
         self.dialogue_prompt = config_file['DIALOGUE_PROMPT']
         self.item_prompt = config_file['ITEM_PROMPT']
-        self.stream = True
         self._story_background = ''
 
     def evoke(self, message: str, max_length : bool=False, rolling_prompt='', alt_prompt=''):
@@ -56,8 +55,39 @@ class LlmUtil():
         request_body['prompt'] = prompt
         response = requests.post(self.url, data=json.dumps(request_body))
         text = self.trim_response(json.loads(response.text)['results'][0]['text'])
-        return f'{text}'
+        
+        item_handling_result = self.item_handling_check(text, character_card, character_name, target)
+        
+        return f'{text}', item_handling_result 
     
+    def item_handling_check(self, text: str, character_card: str, character_name: str, target: str):
+        items = json.loads(character_card.replace(';', ',')['items'])
+        prompt = self.pre_prompt
+        prompt += self.item_prompt.format(
+                text=text, 
+                items=items,
+                character1=character_name,
+                character2=target)
+        request_body = self.default_body
+        request_body['prompt'] = prompt
+        response = requests.post(self.url, data=json.dumps(request_body))
+        text = '{' + self.trim_response(json.loads(response.text)['results'][0]['text']).split('{', 1)
+        valid, json_result = self.validate_item_response(text, character_name, target, items)
+        if valid:
+            return json_result
+        return None
+     
+    def validate_item_response(self, text: str, character1: str, character2: str, items = []) -> bool:
+        json_result = json.loads(text)
+        result = json_result['result']
+        if 'item' not in result or not result['item']:
+            return False, None
+        if not result['from']:
+            return False, None
+        if result['item'] in items:
+            return True, result
+        return False, None
+      
     def update_memory(self, rolling_prompt: str, response_text: str):
         rolling_prompt += response_text
         if len(rolling_prompt) > self.memory_size:

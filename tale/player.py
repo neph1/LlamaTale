@@ -79,7 +79,7 @@ class Player(base.Living, pubsub.Listener):
         if evoke:
             if self.title in message:
                 message = message.replace(self.title, 'you')
-            msg, rolling_prompt = self._llm_util.evoke(message, max_length = False, rolling_prompt = self.rolling_prompt, alt_prompt = alt_prompt)
+            msg, rolling_prompt = self._llm_util.evoke(message, max_length = max_length, rolling_prompt = self.rolling_prompt, alt_prompt = alt_prompt)
             self.rolling_prompt = rolling_prompt
         else:
             msg = str(message)     

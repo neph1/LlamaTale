@@ -1,5 +1,7 @@
 from tale.llm_utils import LlmUtil
 from tale.base import Living, ParseResult
+from tale.errors import TaleError
+from tale.player import Player
 
 class LivingNpc(Living):
     def __init__(self, name: str, gender: str, *,
@@ -36,22 +38,52 @@ class LivingNpc(Living):
             self.update_conversation(f"{self.title} says: \"Hi.\"")
         elif parsed.verb == "say" and targeted:
             self.update_conversation(f'{actor.title}:{parsed.unparsed}\n')
-            response = self.llm_util.generate_dialogue(conversation=self.conversation, character_card = self.character_card, character_name = self.title, target = actor.title )
+            response, item_result = self.llm_util.generate_dialogue(conversation=self.conversation, character_card = self.character_card, character_name = self.title, target = actor.title )
             self.update_conversation(f"{self.title} says: \"{response}\"")
             if len(self.conversation) > self.memory_size:
                 self.conversation = self.conversation[self.memory_size+1:]
-
+            
             self.tell_others(f"{self.title} says: \"{response}\"", evoke=False, max_length=True)
+            if item_result:
+                self.handle_item_result(item_result)
+                    
         elif self in parsed.who_info:
             # store actions against npc
             pass
     
+    def handle_item_result(self, result: str, actor: Living):
+        
+        if result["from"] == self.title:
+            item = self.search_item(result["item"])
+            if not item:
+                raise TaleError("item not found on actor %s " % item)
+            #self.remove(item, self)
+            if result["to"]:
+                
+                if result["to"] == actor.name or result["to"] == actor.name:
+                    item.move(actor, self)
+                    #actor.insert(item, None)
+                elif result["to"] in ["user", "you", "player"] and isinstance(actor, Player):
+                    item.move(actor, self)
+                    #actor.insert(item, None)
+                actor.tell("%s gives you %s." % (self.subjective, item.title), evoke=False)
+                self.tell_others("{Actor} gives %s to %s" % (item.title, actor.title), evoke=False)
+            else:
+                item.move(self.location, self)
+                #self.location.insert(item, self)
+                actor.tell("{Actor} drops %s on the floor" % (item.title), evoke=False)
+                self.tell_others("{Actor} drops %s on the floor" % (item.title), evoke=False)
+                    
+        
     def update_conversation(self, line: str):
         self.conversation += line
         if len(self.conversation) > self.memory_size:
             self.conversation = self.conversation[len(self.conversation) - self.memory_size+1:]
     @property
     def character_card(self) -> str:
+        items = ''
+        for i in self.inventory:
+            items += i.name + ', '
         return '[{name}; gender: {gender}; age: {age}; occupation: {occupation}; personality: {personality}; appearance: {description}; items:{items}]'.format(
                 name=self.title,
                 gender=self.gender,
@@ -59,4 +91,4 @@ class LivingNpc(Living):
                 personality=self.personality,
                 description=self.description,
                 occupation=self.occupation,
-                items='[]'.format(', '.join([str(i.name) for i in self.inventory])))
+                items=f'[{items}]')
