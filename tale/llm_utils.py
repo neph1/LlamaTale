@@ -3,6 +3,7 @@ import os
 import re
 import requests
 import yaml
+from json import JSONDecodeError
 
 class LlmUtil():
     def __init__(self):
@@ -61,24 +62,35 @@ class LlmUtil():
         return f'{text}', item_handling_result 
     
     def item_handling_check(self, text: str, character_card: str, character_name: str, target: str):
-        items = json.loads(character_card.replace(';', ',')['items'])
-        prompt = self.pre_prompt
-        prompt += self.item_prompt.format(
-                text=text, 
-                items=items,
-                character1=character_name,
-                character2=target)
+        items = character_card.split('items:')[1].split(']')[0]
+        prompt = self.generate_item_prompt(text, items, character_name, target)
         request_body = self.default_body
         request_body['prompt'] = prompt
         response = requests.post(self.url, data=json.dumps(request_body))
-        text = '{' + self.trim_response(json.loads(response.text)['results'][0]['text']).split('{', 1)
+        
+        text = self.trim_response(json.loads(response.text)['results'][0]['text'])
         valid, json_result = self.validate_item_response(text, character_name, target, items)
         if valid:
             return json_result
         return None
+
+    def generate_item_prompt(self, text: str, items: str, character1: str, character2: str) -> str:
+        prompt = self.pre_prompt
+        prompt += self.item_prompt.format(
+                text=text, 
+                items=items,
+                character1=character1,
+                character2=character2)
+        return prompt
      
-    def validate_item_response(self, text: str, character1: str, character2: str, items = []) -> bool:
-        json_result = json.loads(text)
+    def validate_item_response(self, text: str, character1: str, character2: str, items: str) -> bool:
+        try:
+            json_result = json.loads(text.replace('\n', ''))
+        except JSONDecodeError as exc:
+            print(exc)
+            return False, None
+        if 'result' not in json_result or not json_result.get('result'):
+            return False, None
         result = json_result['result']
         if 'item' not in result or not result['item']:
             return False, None

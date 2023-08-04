@@ -18,7 +18,7 @@ class Story(StoryBase):
     config.version = tale.__version__
     config.supported_modes = {GameMode.IF, GameMode.MUD}
     config.player_money = 10.5
-    config.playable_races = {"human", "elf", "dwarf", "hobbit"}
+    config.playable_races = {"human"}
     config.money_type = MoneyType.FANTASY
     config.server_tick_method = TickMethod.TIMER
     config.server_tick_time = 0.5

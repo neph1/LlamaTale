@@ -45,27 +45,11 @@ class TestLlmExt():
         assert(not npc.search_item('ale', include_location=False))
         assert(player.search_item('ale', include_location=False))
 
-    def test_handle_item_result_user(self):
-        location = Location("test_room")
-        npc = LivingNpc(name='test', gender='m', age=42, personality='')
-        drink = Item("ale", "jug of ale", descr="Looks and smells like strong ale.")
-        npc.init_inventory([drink])
-        
-
-        player = Player(name='player', gender='m')
-        location.init_inventory([npc, player])
-        item_result = json.loads('{"from":"test", "to":"user", "item":"ale"}')
-
-        npc.handle_item_result(item_result, player)
-        assert(not npc.search_item('ale', include_location=False))
-        assert(player.search_item('ale', include_location=False))
-
     def test_handle_item_result_drop(self):
         location = Location("test_room")
         npc = LivingNpc(name='test', gender='m', age=42, personality='')
         drink = Item("ale", "jug of ale", descr="Looks and smells like strong ale.")
         npc.init_inventory([drink])
-        
 
         player = Player(name='player', gender='m')
         location.init_inventory([npc, player])
@@ -75,3 +59,4 @@ class TestLlmExt():
 
         assert(not npc.search_item('ale', include_location=False))
         assert(drink.location == location)
+

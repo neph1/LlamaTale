@@ -45,7 +45,7 @@ class LivingNpc(Living):
             
             self.tell_others(f"{self.title} says: \"{response}\"", evoke=False, max_length=True)
             if item_result:
-                self.handle_item_result(item_result)
+                self.handle_item_result(item_result, actor)
                     
         elif self in parsed.who_info:
             # store actions against npc
@@ -81,9 +81,9 @@ class LivingNpc(Living):
             self.conversation = self.conversation[len(self.conversation) - self.memory_size+1:]
     @property
     def character_card(self) -> str:
-        items = ''
+        items = []
         for i in self.inventory:
-            items += i.name + ', '
+            items.append(str(i.name))
         return '[{name}; gender: {gender}; age: {age}; occupation: {occupation}; personality: {personality}; appearance: {description}; items:{items}]'.format(
                 name=self.title,
                 gender=self.gender,
@@ -91,4 +91,4 @@ class LivingNpc(Living):
                 personality=self.personality,
                 description=self.description,
                 occupation=self.occupation,
-                items=f'[{items}]')
+                items=','.join(items))
