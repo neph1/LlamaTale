@@ -22,14 +22,14 @@ from .player import PlayerConnection, Player
 from .tio import DEFAULT_SCREEN_DELAY
 from .tio import iobase
 from .llm_utils import LlmUtil
-
+from tale.load_character import CharacterLoader
 
 class IFDriver(driver.Driver):
     """
     The Single user 'driver'.
     Used to control interactive fiction where there's only one 'player'.
     """
-    def __init__(self, *, screen_delay: int=DEFAULT_SCREEN_DELAY, gui: bool=False, web: bool=False, wizard_override: bool=False) -> None:
+    def __init__(self, *, screen_delay: int=DEFAULT_SCREEN_DELAY, gui: bool=False, web: bool=False, wizard_override: bool=False, character_to_load: str='') -> None:
         super().__init__()
         self.game_mode = GameMode.IF
         if screen_delay < 0 or screen_delay > 100:
@@ -42,6 +42,12 @@ class IFDriver(driver.Driver):
             self.io_type = "web"
         self.wizard_override = wizard_override
         self.llm_util = LlmUtil()
+        if character_to_load:
+            character_loader = CharacterLoader()
+            if '.json' in character_to_load:
+                self.loaded_character = character_loader.load_from_json(character_to_load)
+            elif '.png' in character_to_load or '.jpg' in character_to_load:
+                self.loaded_character = character_loader.load_image(character_to_load)
 
     def start_main_loop(self):
         if self.io_type == "web":
@@ -153,7 +159,14 @@ class IFDriver(driver.Driver):
             conn.player.look(short=False)   # force a 'look' command to get our bearings
             return
 
-        if self.story.config.player_name:
+        if self.loaded_character:
+            name_info = charbuilder.PlayerNaming()
+            name_info.name = self.loaded_character.get('name')
+            name_info.stats.race = self.loaded_character.get('race', 'human')
+            name_info.gender = self.loaded_character.get('gender', 'm')
+            name_info.money = self.loaded_character.get('money', 0.0)
+            name_info.wizard = "wizard" in conn.player.privileges
+        elif self.story.config.player_name:
             # story config provides a name etc.
             name_info = charbuilder.PlayerNaming()
             name_info.name = self.story.config.player_name

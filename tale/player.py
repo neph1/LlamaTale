@@ -5,7 +5,6 @@ Player code
 Copyright by Irmen de Jong (irmen@razorvine.net)
 """
 
-import json
 import os
 import queue
 import time

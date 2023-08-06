@@ -4,6 +4,7 @@ import re
 import requests
 import yaml
 from json import JSONDecodeError
+import tale.parse_utils as parse_utils
 
 class LlmUtil():
     def __init__(self):
@@ -14,6 +15,7 @@ class LlmUtil():
                 print(exc)
         self.url = config_file['URL'] + config_file['ENDPOINT']
         self.default_body = json.loads(config_file['DEFAULT_BODY'])
+        self.analysis_body = json.loads(config_file['ANALYSIS_BODY'])
         self.memory_size = config_file['MEMORY_SIZE']
         self.pre_prompt = config_file['PRE_PROMPT']
         self.base_prompt = config_file['BASE_PROMPT']
@@ -25,7 +27,7 @@ class LlmUtil():
         if len(message) > 0 and str(message) != "\n":
             if not rolling_prompt:
                 rolling_prompt += self._story_background
-            trimmed_message = self.remove_special_chars(str(message))
+            trimmed_message = parse_utils.remove_special_chars(str(message))
             base_prompt = alt_prompt if alt_prompt else self.base_prompt
             amount = int(len(trimmed_message) * 2.5)
             prompt = rolling_prompt if not alt_prompt else ''
@@ -33,47 +35,62 @@ class LlmUtil():
             
             rolling_prompt = self.update_memory(rolling_prompt, trimmed_message)
             
-            request_body = self.default_body
+            request_body = self.default_body 
             request_body['prompt'] = prompt
             if max_length:
                 request_body['max_length'] = amount
             response = requests.post(self.url, data=json.dumps(request_body))
-            text = self.trim_response(json.loads(response.text)['results'][0]['text'])
+            text = parse_utils.trim_response(json.loads(response.text)['results'][0]['text'])
             
             rolling_prompt = self.update_memory(rolling_prompt, text)
             return f'Original:[ {message} ] Generated:\n{text}', rolling_prompt
         return str(message), rolling_prompt
     
-    def generate_dialogue(self, conversation: str, character_card: str, character_name: str, target: str):
+    def generate_dialogue(self, conversation: str, character_card: str, character_name: str, target: str, sentiment = ''):
         prompt = self.pre_prompt
         prompt += self.dialogue_prompt.format(
                 previous_conversation=conversation, 
                 character2_description=character_card,
                 character2=character_name,
-                character1=target)
+                character1=target,
+                sentiment=sentiment)
         
         request_body = self.default_body
         request_body['prompt'] = prompt
         response = requests.post(self.url, data=json.dumps(request_body))
-        text = self.trim_response(json.loads(response.text)['results'][0]['text'])
+        text = parse_utils.trim_response(json.loads(response.text)['results'][0]['text'])
         
-        item_handling_result = self.item_handling_check(text, character_card, character_name, target)
+        item_handling_result, new_sentiment = self.dialogue_analysis(text, character_card, character_name, target)
         
-        return f'{text}', item_handling_result 
+        return f'{text}', item_handling_result, new_sentiment
     
-    def item_handling_check(self, text: str, character_card: str, character_name: str, target: str):
+    def dialogue_analysis(self, text: str, character_card: str, character_name: str, target: str):
         items = character_card.split('items:')[1].split(']')[0]
         prompt = self.generate_item_prompt(text, items, character_name, target)
-        request_body = self.default_body
+        request_body = self.analysis_body
         request_body['prompt'] = prompt
         response = requests.post(self.url, data=json.dumps(request_body))
         
-        text = self.trim_response(json.loads(response.text)['results'][0]['text'])
-        valid, json_result = self.validate_item_response(text, character_name, target, items)
-        if valid:
-            return json_result
-        return None
-
+        text = parse_utils.trim_response(json.loads(response.text)['results'][0]['text'])
+        try:
+            json_result = json.loads(text.replace('\n', ''))
+        except JSONDecodeError as exc:
+            print(exc)
+            return None, None
+        
+        valid, item_result = self.validate_item_response(json_result, character_name, target, items)
+        
+        sentiment = self.validate_sentiment(json_result)
+        
+        return item_result, sentiment
+    
+    def validate_sentiment(self, json: dict):
+        try:
+            return json.get('sentiment')
+        except:
+            print(f'Exception while parsing sentiment {json}')
+            return ''
+    
     def generate_item_prompt(self, text: str, items: str, character1: str, character2: str) -> str:
         prompt = self.pre_prompt
         prompt += self.item_prompt.format(
@@ -83,12 +100,8 @@ class LlmUtil():
                 character2=character2)
         return prompt
      
-    def validate_item_response(self, text: str, character1: str, character2: str, items: str) -> bool:
-        try:
-            json_result = json.loads(text.replace('\n', ''))
-        except JSONDecodeError as exc:
-            print(exc)
-            return False, None
+    def validate_item_response(self, json_result: dict, character1: str, character2: str, items: str) -> bool:
+        
         if 'result' not in json_result or not json_result.get('result'):
             return False, None
         result = json_result['result']
@@ -105,20 +118,7 @@ class LlmUtil():
         if len(rolling_prompt) > self.memory_size:
             rolling_prompt = rolling_prompt[len(rolling_prompt) - self.memory_size + 1:]
         return rolling_prompt
-        
-    def remove_special_chars(self, message: str):
-        re.sub('[^A-Za-z0-9 .,_\-\'\"]+', '', message)
-        return message
-        
-    def trim_response(self, message: str):
-        enders = ['.', '!', '?', '`', '*', '"', ')', '}', '`', ']']
-        lastChar = 0
-        for c in enders:
-            last = message.rfind(c)
-            if last > lastChar:
-                lastChar = last
-        return message[:lastChar+1]
-    
+     
     @property
     def story_background(self) -> str:
         return self._story_background

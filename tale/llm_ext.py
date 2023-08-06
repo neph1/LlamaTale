@@ -13,6 +13,7 @@ class LivingNpc(Living):
         self.llm_util = LlmUtil()
         self.conversation = ''
         self.memory_size = 1024
+        self.sentiments = {}
         
     def init(self) -> None:
         self.aliases = {"Npc"}
@@ -38,7 +39,12 @@ class LivingNpc(Living):
             self.update_conversation(f"{self.title} says: \"Hi.\"")
         elif parsed.verb == "say" and targeted:
             self.update_conversation(f'{actor.title}:{parsed.unparsed}\n')
-            response, item_result = self.llm_util.generate_dialogue(conversation=self.conversation, character_card = self.character_card, character_name = self.title, target = actor.title )
+            response, item_result, sentiment = self.llm_util.generate_dialogue(conversation=self.conversation, 
+                                                                    character_card = self.character_card, 
+                                                                    character_name = self.title, 
+                                                                    target = actor.title,
+                                                                    sentiment = self.sentiments.get(actor.title, ''))
+            
             self.update_conversation(f"{self.title} says: \"{response}\"")
             if len(self.conversation) > self.memory_size:
                 self.conversation = self.conversation[self.memory_size+1:]
@@ -46,7 +52,9 @@ class LivingNpc(Living):
             self.tell_others(f"{self.title} says: \"{response}\"", evoke=False, max_length=True)
             if item_result:
                 self.handle_item_result(item_result, actor)
-                    
+            
+            if sentiment:
+                self.sentiments[actor.title] = sentiment
         elif self in parsed.who_info:
             # store actions against npc
             pass
@@ -60,7 +68,7 @@ class LivingNpc(Living):
             #self.remove(item, self)
             if result["to"]:
                 
-                if result["to"] == actor.name or result["to"] == actor.name:
+                if result["to"] == actor.name or result["to"] == actor.title:
                     item.move(actor, self)
                     #actor.insert(item, None)
                 elif result["to"] in ["user", "you", "player"] and isinstance(actor, Player):
@@ -71,7 +79,6 @@ class LivingNpc(Living):
             else:
                 item.move(self.location, self)
                 #self.location.insert(item, self)
-                actor.tell("{Actor} drops %s on the floor" % (item.title), evoke=False)
                 self.tell_others("{Actor} drops %s on the floor" % (item.title), evoke=False)
                     
         
@@ -79,6 +86,7 @@ class LivingNpc(Living):
         self.conversation += line
         if len(self.conversation) > self.memory_size:
             self.conversation = self.conversation[len(self.conversation) - self.memory_size+1:]
+            
     @property
     def character_card(self) -> str:
         items = []

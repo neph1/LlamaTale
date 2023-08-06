@@ -3,11 +3,12 @@ from tale.items.basic import Money, Note
 from tale.story import GameMode, MoneyType, TickMethod, StoryConfig
 import collections
 import json
+import re
 import sys
 
 def load_json(file_path: str):
     with open(file_path) as f:
-        return json.load(f)
+        return json.load(f, strict=False)
 
 def load_locations(json_file: dict):
     """
@@ -125,3 +126,16 @@ def init_money(item: dict):
     
 def set_note(note: Note, item: dict):
     note.text = item['text']
+
+def remove_special_chars(message: str):
+        re.sub('[^A-Za-z0-9 .,_\-\'\"]+', '', message)
+        return message
+        
+def trim_response(message: str):
+    enders = ['.', '!', '?', '`', '*', '"', ')', '}', '`', ']']
+    lastChar = 0
+    for c in enders:
+        last = message.rfind(c)
+        if last > lastChar:
+            lastChar = last
+    return message[:lastChar+1]
