@@ -2,6 +2,7 @@ import tale.parse_utils as parse_utils
 from PIL import Image
 
 import base64
+import json
 import os
 
 class CharacterLoader():
@@ -21,7 +22,7 @@ class CharacterLoader():
         encoded_char = image.info.get('chara')
 
         char_data = base64.b64decode(encoded_char)
-        return char_data
+        return json.loads(char_data)
 
     def load_from_json(self, path: str):
         json_char = parse_utils.load_json(path)
@@ -43,14 +44,13 @@ class CharacterV2():
         self.name = name
         self.race = race
         self.gender = gender
-        self.appearance = appearance
+        
         self.personality = personality
         self.description = description
+        self.appearance = appearance or description.split(';')[0]
         self.occupation = occupation
         self.age = age
         self.money = money
-        if description:
-            self._parse_description(description)
         
     def from_json(self, json: dict):
         self.name = json.get('name')
@@ -58,15 +58,10 @@ class CharacterV2():
         self.gender = json.get('gender', 'f')
         description = json.get('description')
         self.description = description
+        self.appearance = json.get('appearance', description.split(';')[0])
+        self.personality = json.get('personality', '')
         self.occupation = json.get('occupation', '')
         self.age = json.get('age', 30)
         self.money = json.get('money', 0)
-        if description:
-            self._parse_description(description)
         return self
         
-    def _parse_description(self, description: str):
-        self.personality = description.split('Personality:')[1].split('\r\n')[0]
-        self.appearance = description.split('Appearance:')[1].split('\r\n')[0]
-        self.likes = description.split('Likes:')[1].split('\r\n')[0]
-        self.dislikes = description.split('Dislikes:')[1].split('\r\n')[0]

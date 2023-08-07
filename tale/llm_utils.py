@@ -1,10 +1,12 @@
 import json
 import os
-import re
 import requests
 import yaml
 from json import JSONDecodeError
+from tale.llm_io import IoUtil
 import tale.parse_utils as parse_utils
+from tale.player_utils import TextBuffer
+from .tio.iobase import IoAdapterBase
 
 class LlmUtil():
     def __init__(self):
@@ -22,8 +24,11 @@ class LlmUtil():
         self.dialogue_prompt = config_file['DIALOGUE_PROMPT']
         self.item_prompt = config_file['ITEM_PROMPT']
         self._story_background = ''
+        self.io_util = IoUtil()
+        self.stream = True
+        self.connection = None
 
-    def evoke(self, message: str, max_length : bool=False, rolling_prompt='', alt_prompt=''):
+    def evoke(self, player_io: TextBuffer, message: str, max_length : bool=False, rolling_prompt='', alt_prompt=''):
         if len(message) > 0 and str(message) != "\n":
             if not rolling_prompt:
                 rolling_prompt += self._story_background
@@ -39,11 +44,15 @@ class LlmUtil():
             request_body['prompt'] = prompt
             if max_length:
                 request_body['max_length'] = amount
-            response = requests.post(self.url, data=json.dumps(request_body))
-            text = parse_utils.trim_response(json.loads(response.text)['results'][0]['text'])
             
-            rolling_prompt = self.update_memory(rolling_prompt, text)
-            return f'Original:[ {message} ] Generated:\n{text}', rolling_prompt
+            if not self.stream:
+                text = self.io_util.synchronous_request(self.url, request_body)
+                rolling_prompt = self.update_memory(rolling_prompt, text)
+                return f'Original:[ {message} ]\nGenerated:\n{text}', rolling_prompt
+            else:
+                text = self.io_util.stream_request(player_io, self.url, request_body, self.connection)
+                rolling_prompt = self.update_memory(rolling_prompt, text)
+                return '\n', rolling_prompt
         return str(message), rolling_prompt
     
     def generate_dialogue(self, conversation: str, character_card: str, character_name: str, target: str, sentiment = ''):

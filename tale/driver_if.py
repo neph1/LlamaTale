@@ -57,6 +57,7 @@ class IFDriver(driver.Driver):
             else:
                 print("written by", self.story.config.author)
         connection = self.connect_player(self.io_type, self.screen_delay)
+        self.llm_util.connection = connection
         if self.wizard_override:
             connection.player.privileges.add("wizard")
         # create the login dialog

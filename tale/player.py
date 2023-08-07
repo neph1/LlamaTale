@@ -9,7 +9,7 @@ import os
 import queue
 import time
 from threading import Event
-from typing import Any, Sequence, Tuple, IO, Optional, Set, List, Union
+from typing import Sequence, Tuple, Optional, Union
 
 from . import base
 from . import lang
@@ -21,7 +21,8 @@ from .story import GameMode
 from .tio import DEFAULT_SCREEN_WIDTH, DEFAULT_SCREEN_INDENT
 from .tio.iobase import strip_text_styles, IoAdapterBase
 from .vfs import VirtualFileSystem, Resource
-from .llm_utils import LlmUtil
+from tale.llm_utils import LlmUtil
+from tale.player_utils import TextBuffer
 
 
 class Player(base.Living, pubsub.Listener):
@@ -78,7 +79,7 @@ class Player(base.Living, pubsub.Listener):
         if evoke:
             if self.title in message:
                 message = message.replace(self.title, 'you')
-            msg, rolling_prompt = self._llm_util.evoke(message, max_length = max_length, rolling_prompt = self.rolling_prompt, alt_prompt = alt_prompt)
+            msg, rolling_prompt = self._llm_util.evoke(self._output, message, max_length = max_length, rolling_prompt = self.rolling_prompt, alt_prompt = alt_prompt)
             self.rolling_prompt = rolling_prompt
         else:
             msg = str(message)     
@@ -274,67 +275,7 @@ class Player(base.Living, pubsub.Listener):
         return [strip_text_styles(paragraph_text) for paragraph_text, formatted in paragraphs]
 
 
-class TextBuffer:
-    """
-    Buffered output for the text that the player will see on the screen.
-    The buffer queues up output text into paragraphs.
-    Notice that no actual output formatting is done here, that is performed elsewhere.
-    """
-    class Paragraph:
-        def __init__(self, format: bool=True) -> None:
-            self.format = format
-            self.lines = []  # type: List[str]
 
-        def add(self, line: str) -> None:
-            self.lines.append(line)
-
-        def text(self) -> str:
-            return "\n".join(self.lines) + "\n"
-
-    def __init__(self) -> None:
-        self.init()
-
-    def init(self) -> None:
-        self.paragraphs = []  # type: List[TextBuffer.Paragraph]
-        self.in_paragraph = False
-
-    def p(self) -> None:
-        """Paragraph terminator. Start new paragraph on next line."""
-        if not self.in_paragraph:
-            self.__new_paragraph(False)
-        self.in_paragraph = False
-
-    def __new_paragraph(self, format: bool) -> Paragraph:
-        p = TextBuffer.Paragraph(format)
-        self.paragraphs.append(p)
-        self.in_paragraph = True
-        return p
-
-    def print(self, line: str, end: bool=False, format: bool=True) -> None:
-        """
-        Write a line of text. A single space is inserted between lines, if format=True.
-        If end=True, the current paragraph is ended and a new one begins.
-        If format=True, the text will be formatted when output, otherwise it is outputted as-is.
-        """
-        if not line and format and not end:
-            return
-        if self.in_paragraph:
-            p = self.paragraphs[-1]
-        else:
-            p = self.__new_paragraph(format)
-        if p.format != format:
-            p = self.__new_paragraph(format)
-        if format:
-            line = line.strip()
-        p.add(line)
-        if end:
-            self.in_paragraph = False
-
-    def get_paragraphs(self, clear: bool=True) -> Sequence[Tuple[str, bool]]:
-        paragraphs = [(p.text(), p.format) for p in self.paragraphs]
-        if clear:
-            self.init()
-        return paragraphs
 
 
 class PlayerConnection:
