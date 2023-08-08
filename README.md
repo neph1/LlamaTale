@@ -9,7 +9,13 @@ By default it uses KoboldCpp, but if you're feeling adventurous you can change l
 6. Run 'pip install -r requirements.txt'
 7. Start KoboldCpp (port 5001 by default)
 8. Start with ``python -m stories.prancingllama.story``
-9. If you'd rather play in a browser, add the '--web' flag and connect to http://localhost:8180/tale/story
+
+Optional:
+If you'd rather play in a browser, add the '--web' flag and connect to http://localhost:8180/tale/story
+If you have a v2 character card and want to skip character creation, add '--character path_to_character'
+If you want to load a v2 character as a follower, type 'load_character path_to_character_relative_to_story_folder' in the game prompt
+
+    
 
 In the game:
 You can probably read up on this, or use 'help' in the prompt, but you can move around using directions, like n, w, s, e, or type the location you want to go to.
