@@ -5,15 +5,15 @@ By default it uses KoboldCpp, but if you're feeling adventurous you can change l
 2. Get and install KoboldCpp: https://github.com/LostRuins/koboldcpp/releases
 3. Download a suitable llm model for koboldcpp. I recommend https://huggingface.co/TheBloke/Nous-Hermes-Llama2-GGML or https://huggingface.co/TheBloke/chronos-hermes-13B-GGML. Recently I've tested with llama-2-7b-chat-codeCherryPop.ggmlv3.q5_K_M, which seems to be working really well, too.
 4. Make sure KoboldCpp works.
-1. Download repo, either with 'git clone' or as a zip.
+5. Download repo, either with 'git clone' or as a zip.
 6. Run 'pip install -r requirements.txt'
 7. Start KoboldCpp (port 5001 by default)
 8. Start with ``python -m stories.prancingllama.story``
 
 Optional:
-If you'd rather play in a browser, add the '--web' flag and connect to http://localhost:8180/tale/story
-If you have a v2 character card and want to skip character creation, add '--character path_to_character'
-If you want to load a v2 character as a follower, type 'load_character path_to_character_relative_to_story_folder' in the game prompt
+1. If you'd rather play in a browser, add the '--web' flag and connect to http://localhost:8180/tale/story
+2. If you have a v2 character card and want to skip character creation, add '--character path_to_character'
+3. If you want to load a v2 character as a follower, type 'load_character path_to_character_relative_to_story_folder' in the game prompt
 
     
 
