@@ -6,16 +6,20 @@ from json import JSONDecodeError
 from tale.llm_io import IoUtil
 import tale.parse_utils as parse_utils
 from tale.player_utils import TextBuffer
-from .tio.iobase import IoAdapterBase
 
 class LlmUtil():
+    """ Prepares prompts for various LLM requests"""
+
     def __init__(self):
         with open(os.path.realpath(os.path.join(os.path.dirname(__file__), "llm_config.yaml")), "r") as stream:
             try:
                 config_file = yaml.safe_load(stream)
             except yaml.YAMLError as exc:
                 print(exc)
-        self.url = config_file['URL'] + config_file['ENDPOINT']
+        self.url = config_file['URL']
+        self.endpoint = config_file['ENDPOINT']
+        self.stream_endpoint = config_file['STREAM_ENDPOINT']
+        self.data_endpoint = config_file['DATA_ENDPOINT']
         self.default_body = json.loads(config_file['DEFAULT_BODY'])
         self.analysis_body = json.loads(config_file['ANALYSIS_BODY'])
         self.memory_size = config_file['MEMORY_SIZE']
@@ -46,11 +50,12 @@ class LlmUtil():
                 request_body['max_length'] = amount
             
             if not self.stream:
-                text = self.io_util.synchronous_request(self.url, request_body)
+                text = self.io_util.synchronous_request(self.url + self.endpoint, request_body)
                 rolling_prompt = self.update_memory(rolling_prompt, text)
                 return f'Original:[ {message} ]\nGenerated:\n{text}', rolling_prompt
             else:
-                text = self.io_util.stream_request(player_io, self.url, request_body, self.connection)
+                player_io.print(f'Original:[ {message} ]\nGenerated:\n', end=False, format=True, line_breaks=False)
+                text = self.io_util.stream_request(self.url + self.stream_endpoint, self.url + self.data_endpoint, request_body, player_io, self.connection)
                 rolling_prompt = self.update_memory(rolling_prompt, text)
                 return '\n', rolling_prompt
         return str(message), rolling_prompt

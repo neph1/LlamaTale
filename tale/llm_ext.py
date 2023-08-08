@@ -4,6 +4,8 @@ from tale.errors import TaleError
 from tale.player import Player
 
 class LivingNpc(Living):
+    """An NPC with extra fields to define personality and help LLM generate dialogue"""
+
     def __init__(self, name: str, gender: str, *,
                  title: str="", descr: str="", short_descr: str="", age: int, personality: str, occupation: str=""):
         super(LivingNpc, self).__init__(name=name, gender=gender, title=title, descr=descr, short_descr=short_descr)

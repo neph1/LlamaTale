@@ -13,14 +13,16 @@ class TextBuffer:
             self.line_breaks = line_breaks
 
         def add(self, line: str) -> None:
-            self.lines.append(line)
+            if self.line_breaks:
+                self.lines.append(line)
+            elif len(self.lines) > 0:
+                self.lines[-1] += line 
+            else:
+                self.lines.append(line)
 
         def text(self) -> str:
-            if self.line_breaks:
-                return "\n".join(self.lines) + "\n"
-            else:
-                return "".join(self.lines)
-
+            return "\n".join(self.lines) + "\n"
+            
     def __init__(self) -> None:
         self.init()
 
