@@ -3,6 +3,7 @@ from tale import mud_context
 
 from tale.base import Item, Living, ParseResult
 from tale.errors import ParseError, ActionRefused
+from tale.lang import capital
 from tale.llm_ext import LivingNpc
 from tale.player import Player
 from tale.util import call_periodically, Context
@@ -47,6 +48,10 @@ class Maid(LivingNpc):
         direction = self.select_random_move()
         if direction:
             self.move(direction.target, self, direction_names=direction.names)
+
+    @call_periodically(30, 60)
+    def do_pick_up_dishes(self, ctx: Context) -> None:
+        self.location.tell("%s wipes a table and picks up dishes." % capital(self.title), evoke=False)
 
 class Patron(LivingNpc):
     
@@ -117,5 +122,8 @@ count_karta.aliases = {"count", "karta", "mysterious man"}
 
 urta = InnKeeper("Urta", "f", age=44, descr="A gruff, curvy woman with a long brown coat and bushy hair that reaches her waist. When not serving, she keeps polishing jugs with a dirty rag.", personality="She's the owner of The Prancing Llama, and of few words. But the words she speak are kind. She knows a little about all the patrons in her establishment.", short_descr="A curvy woman with long brown coat standing behind the bar.")
 urta.aliases = {"bartender", "inn keeper", "curvy woman"}
+
+brim = Maid("Brim", "f", age=22, descr="A timid girl with long dark blonde hair in a braid down her back. She carries trays and dishes back and forth.", personality="She's shy and rarely looks anyone in the eye. When she speaks, it is merely a whisper. She traveled up the mountain looking for work, and ended up serving at the Inn. She dreams of big adventures.", short_descr="A timid maid with a braid wearing a tunic and dirty apron.")
+brim.aliases = {"maid", "timid girl", "serving girl"}
 
 

@@ -45,13 +45,13 @@ main_hall.init_inventory([shanda, elid_gald])
 
 bar.init_inventory([urta, norhardt])
 
-hearth.init_inventory([count_karta])
+hearth.init_inventory([count_karta, brim])
 
 drink = Item("ale", "jug of ale", descr="Looks and smells like strong ale.")
 
 urta.init_inventory([drink])
 
-old_map = Item("map", "old map.", descr="It looks like a map, and a cave is marked on it.")
+old_map = Item("map", "old map", descr="It looks like a map, and a cave is marked on it.")
 
 norhardt.init_inventory([old_map])
 

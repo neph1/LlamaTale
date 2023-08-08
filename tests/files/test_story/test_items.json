@@ -1,0 +1,27 @@
+[
+    {
+        "name":"Box 1",
+        "title":"Box 1",
+        "descr":"A small box with intricate bejewelled patterns",
+        "short_descr": "A small bejewelled box",        
+        "type":"Boxlike",
+        "location":"Cave.Cave entrance"
+    },
+    {
+        "name":"Royal Sceptre",
+        "title":"Royal Sceptre",
+        "descr":"This stick is Kobbo the Kings royal sceptre. Looks good for walloping someone with",
+        "short_descr":"A gnarly looking stick",
+        "type":"Weapon",
+        "location":"Cave.Royal Grotto"
+    },
+    {
+        "name":"Hoodie",
+        "title":"Grey Hoodie",
+        "descr":"A brand new, grey hoodie with a logo of a common brand",
+        "short_descr": "A grey hoodie",
+        "type":"Wearable",
+        "location":"Cave.Cave entrance"
+    }
+
+]

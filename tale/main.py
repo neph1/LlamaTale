@@ -30,13 +30,14 @@ def run_from_cmdline(cmdline: Sequence[str]) -> None:
     parser.add_argument('-w', '--web', help='web browser interface', action='store_true')
     parser.add_argument('-r', '--restricted', help='restricted mud mode; do not allow new players', action='store_true')
     parser.add_argument('-z', '--wizard', help='force wizard mode on if story character (for debug purposes)', action='store_true')
+    parser.add_argument('-c', '--character', help='load a v2 character card as player (skips character builder)')
     args = parser.parse_args(cmdline)
     try:
         # select the correct driver type, configure it, and start the story.
         game_mode = GameMode(args.mode)
         if game_mode == GameMode.IF:
             from .driver_if import IFDriver
-            driver = IFDriver(screen_delay=args.delay, gui=args.gui, web=args.web, wizard_override=args.wizard)   # type: Driver
+            driver = IFDriver(screen_delay=args.delay, gui=args.gui, web=args.web, wizard_override=args.wizard, character_to_load=args.character)   # type: Driver
         elif game_mode == GameMode.MUD:
             from .driver_mud import MudDriver
             driver = MudDriver(args.restricted)

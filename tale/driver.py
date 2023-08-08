@@ -30,6 +30,8 @@ from .story import TickMethod, GameMode, MoneyType, StoryBase
 from .tio import DEFAULT_SCREEN_WIDTH
 from .races import playable_races
 from .errors import StoryCompleted
+from tale.load_character import CharacterLoader, CharacterV2
+from tale.llm_ext import LivingNpc
 
 
 topic_pending_actions = pubsub.topic("driver-pending-actions")
@@ -777,6 +779,22 @@ class Driver(pubsub.Listener):
         for func, period in util.get_periodicals(obj).items():
             assert len(period) == 3
             mud_context.driver.defer(period, func)
+            
+    def load_character(self, player: player.Player, path: str):
+        character_loader = CharacterLoader()
+        char_data = character_loader.load_character(path)
+        character = CharacterV2().from_json(char_data)
+        npc = LivingNpc(name = character.name.lower(), 
+                        gender = character.gender,
+                        title = character.name, 
+                        descr  = character.appearance, 
+                        short_descr = character.appearance.split('.')[0], 
+                        age =  character.age, 
+                        personality = character.personality, 
+                        occupation = character.occupation)
+        npc.following = player
+        player.location.insert(npc, None)
+        
 
     @property
     def uptime(self) -> Tuple[int, int, int]:

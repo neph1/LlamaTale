@@ -1,0 +1,37 @@
+[
+    {
+        "name":"Box 1",
+        "title":"Box 1",
+        "descr":"A small box with intricate bejewelled patterns",
+        "short_descr": "A small bejewelled box",        
+        "type":"Boxlike",
+        "location":"Room 1"
+    },
+    {
+        "name":"Note 1",
+        "title":"Note 1",
+        "descr":"",
+        "short_descr":"",
+        "text":"This is a note",
+        "type":"Note",
+        "location":"Room 1"
+    },
+    {
+        "name":"Money 1",
+        "title":"Money 1",
+        "descr":"",
+        "short_descr":"",
+        "type":"Money",
+        "value":100,
+        "location":"House 1.Room 2"
+    },
+    {
+        "name":"Hoodie",
+        "title":"Grey Hoodie",
+        "descr":"A brand new, grey hoodie with a logo of a common brand",
+        "short_descr": "A grey hoodie",
+        "type":"Wearable",
+        "location":"Room 1"
+    }
+
+]
