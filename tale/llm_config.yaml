@@ -1,13 +1,14 @@
 URL: "http://localhost:5001"
 ENDPOINT: "/api/v1/generate"
+STREAM: False
 STREAM_ENDPOINT: "/api/extra/generate/stream"
 DATA_ENDPOINT: "/api/extra/generate/check"
 WORD_LIMIT: 500
-DEFAULT_BODY: '{"stop_sequence": "", "max_length":300, "max_context_length":4096, "temperature":1.0, "top_k":120, "top_a":0.0, "top_p":0.85, "typical_p":1.0, "tfs":1.0, "rep_pen":1.2, "rep_pen_range":256, "mirostat":2, "mirostat_tau":5.0, "mirostat_eta":0.1, "sampler_order":[6,0,1,3,4,2,5], "seed":-1}'
-ANALYSIS_BODY: '{"stop_sequence": "\n\n", "max_length":300, "max_context_length":4096, "temperature":0.15, "top_k":120, "top_a":0.0, "top_p":0.85, "typical_p":1.0, "tfs":1.0, "rep_pen":1.2, "rep_pen_range":256, "mirostat":2, "mirostat_tau":5.0, "mirostat_eta":0.1, "sampler_order":[6,0,1,3,4,2,5], "seed":-1}'
-MEMORY_SIZE: 1024
+DEFAULT_BODY: '{"stop_sequence": "", "max_length":500, "max_context_length":4096, "temperature":1.0, "top_k":120, "top_a":0.0, "top_p":0.85, "typical_p":1.0, "tfs":1.0, "rep_pen":1.2, "rep_pen_range":256, "mirostat":2, "mirostat_tau":5.0, "mirostat_eta":0.1, "sampler_order":[6,0,1,3,4,2,5], "seed":-1}'
+ANALYSIS_BODY: '{"banned_tokens":"\n\n", "stop_sequence": "", "max_length":500, "max_context_length":4096, "temperature":0.15, "top_k":120, "top_a":0.0, "top_p":0.85, "typical_p":1.0, "tfs":1.0, "rep_pen":1.2, "rep_pen_range":256, "mirostat":2, "mirostat_tau":5.0, "mirostat_eta":0.1, "sampler_order":[6,0,1,3,4,2,5], "seed":-1}'
+MEMORY_SIZE: 512
 PRE_PROMPT: 'Below is an instruction that describes a task, paired with an input that provides further context. Write a response that appropriately completes the request.\n\n'
-BASE_PROMPT: '### Instruction: Rewrite the following text in your own words using vivid language. Text:\n\n {input_text} \n\nEnd of text.\n\n### Response:\n'
+BASE_PROMPT: "History: [{history}]. ### Instruction: Rewrite the following text in your own words using vivid language. 'History' can be used to create a context for what you write. Text:\n\n [{input_text}] \n\nEnd of text.\n\n### Response:\n"
 DIALOGUE_PROMPT: 'The following is a conversation between {character1} and {character2}. {character2_description}. Chat history: {previous_conversation}\n\n {character2}s sentiment towards {character1}: {sentiment}. ### Instruction: Write a single response as {character2}, using {character2} description.\n\n### Response:\n'
 ITEM_PROMPT: '### Instruction: Items:[{items}];Characters:[{character1},{character2}] Text:[{text}] \n\nIn the supplied text, was an item explicitly given, taken, dropped or put somewhere? Insert your thoughts about it in [my thoughts], and the results in "item", "from" and "to". Insert {character1}s sentiment towards {character2} in a single word in [sentiment assessment]. Write your response in JSON format. Example: {{ "thoughts":"[my thoughts]", "result": {{ "item":"", "from":"", "to":""}}, {{"sentiment":"[sentiment assessment]"}} }} End of example. \n\n Make sure the response is valid JSON\n\n### Response:\n'
 

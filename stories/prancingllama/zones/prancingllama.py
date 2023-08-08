@@ -45,7 +45,7 @@ main_hall.init_inventory([shanda, elid_gald])
 
 bar.init_inventory([urta, norhardt])
 
-hearth.init_inventory([count_karta])
+hearth.init_inventory([count_karta, brim])
 
 drink = Item("ale", "jug of ale", descr="Looks and smells like strong ale.")
 

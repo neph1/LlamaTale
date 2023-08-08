@@ -29,7 +29,7 @@ class LlmUtil():
         self.item_prompt = config_file['ITEM_PROMPT']
         self._story_background = ''
         self.io_util = IoUtil()
-        self.stream = True
+        self.stream = config_file['STREAM']
         self.connection = None
 
     def evoke(self, player_io: TextBuffer, message: str, max_length : bool=False, rolling_prompt='', alt_prompt=''):
@@ -39,8 +39,7 @@ class LlmUtil():
             trimmed_message = parse_utils.remove_special_chars(str(message))
             base_prompt = alt_prompt if alt_prompt else self.base_prompt
             amount = int(len(trimmed_message) * 2.5)
-            prompt = rolling_prompt if not alt_prompt else ''
-            prompt += base_prompt.format(input_text=str(trimmed_message))
+            prompt = base_prompt.format(history=rolling_prompt if not alt_prompt else '', input_text=str(trimmed_message))
             
             rolling_prompt = self.update_memory(rolling_prompt, trimmed_message)
             
@@ -71,8 +70,7 @@ class LlmUtil():
         
         request_body = self.default_body
         request_body['prompt'] = prompt
-        response = requests.post(self.url, data=json.dumps(request_body))
-        text = parse_utils.trim_response(json.loads(response.text)['results'][0]['text'])
+        text = parse_utils.trim_response(self.io_util.synchronous_request(self.url + self.endpoint, request_body))
         
         item_handling_result, new_sentiment = self.dialogue_analysis(text, character_card, character_name, target)
         
@@ -83,9 +81,7 @@ class LlmUtil():
         prompt = self.generate_item_prompt(text, items, character_name, target)
         request_body = self.analysis_body
         request_body['prompt'] = prompt
-        response = requests.post(self.url, data=json.dumps(request_body))
-        
-        text = parse_utils.trim_response(json.loads(response.text)['results'][0]['text'])
+        text = parse_utils.trim_response(self.io_util.synchronous_request(self.url + self.endpoint, request_body))
         try:
             json_result = json.loads(text.replace('\n', ''))
         except JSONDecodeError as exc:

@@ -35,7 +35,7 @@ class IoUtil():
         """ Process the result from the stream endpoint """
         tries = 0
         old_text = ''
-        while tries < 2:
+        while tries < 4:
             time.sleep(0.5)
             data = requests.post(url)
             text = json.loads(data.text)['results'][0]['text']

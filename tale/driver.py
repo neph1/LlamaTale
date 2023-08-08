@@ -792,6 +792,7 @@ class Driver(pubsub.Listener):
                         age =  character.age, 
                         personality = character.personality, 
                         occupation = character.occupation)
+        npc.following = player
         player.location.insert(npc, None)
         
 
