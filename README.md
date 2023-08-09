@@ -11,9 +11,11 @@ By default it uses KoboldCpp, but if you're feeling adventurous you can change l
 8. Start with ``python -m stories.prancingllama.story``
 
 Optional:
-1. If you'd rather play in a browser, add the '--web' flag and connect to http://localhost:8180/tale/story
-2. If you have a v2 character card and want to skip character creation, add '--character path_to_character'
-3. If you want to load a v2 character as a follower, type 'load_character path_to_character_relative_to_story_folder' in the game prompt
+* If you'd rather play in a browser, add the ``--web`` flag and connect to http://localhost:8180/tale/story
+* There's also a GUI version, which is launched with ``--gui``
+* If you have a v2 character card and want to skip character creation, add ``--character path_to_character``
+* If you want to load a v2 character as a follower, type 'load_character path_to_character_relative_to_story_folder' in the game prompt
+* Check https://github.com/neph1/LlamaTale/wiki/Creating-a-character if you want to make a 'full featured' LlamaTale character.
 
     
 
