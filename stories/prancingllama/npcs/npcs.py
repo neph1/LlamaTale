@@ -7,6 +7,7 @@ from tale.lang import capital
 from tale.llm_ext import LivingNpc
 from tale.player import Player
 from tale.util import call_periodically, Context
+from tale import lang
 
 class InnKeeper(LivingNpc):
     
@@ -51,7 +52,7 @@ class Maid(LivingNpc):
 
     @call_periodically(30, 60)
     def do_pick_up_dishes(self, ctx: Context) -> None:
-        self.location.tell("%s wipes a table and picks up dishes." % capital(self.title), evoke=False)
+        self.location.tell(f"{lang.capital(self.title)} wipes a table and picks up dishes.", evoke=False, max_length=True)
 
 class Patron(LivingNpc):
     
