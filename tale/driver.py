@@ -46,7 +46,6 @@ class Commands:
     def __init__(self) -> None:
         self.commands_per_priv = {"": {}}    # type: Dict[str, Dict[str, Callable]]
         self.no_soul_parsing = set()   # type: Set[str]
-        self.llm_util = LlmUtil()
 
     def add(self, verb: str, func: Callable, privilege: str="") -> None:
         self.validatefunc(func)

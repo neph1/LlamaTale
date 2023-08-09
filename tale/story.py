@@ -72,7 +72,8 @@ class StoryConfig:
         self.server_mode = GameMode.IF       # the actual game mode the server is operating in (will be set at startup time)
         self.items = ""                      # items to populate the world with. only used by json loading
         self.npcs = ""                       # npcs to populate the world with. only used by json loading
-
+        self.context = ""                    # context to giving background for the story.
+        
     def __eq__(self, other: Any) -> bool:
         return isinstance(other, StoryConfig) and vars(self) == vars(other)
 
