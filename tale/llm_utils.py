@@ -1,6 +1,5 @@
 import json
 import os
-import requests
 import yaml
 from json import JSONDecodeError
 from tale.llm_io import IoUtil
@@ -26,28 +25,30 @@ class LlmUtil():
         self.pre_prompt = config_file['PRE_PROMPT']
         self.base_prompt = config_file['BASE_PROMPT']
         self.dialogue_prompt = config_file['DIALOGUE_PROMPT']
+        self.action_prompt = config_file['ACTION_PROMPT']
         self.item_prompt = config_file['ITEM_PROMPT']
+        self.word_limit = config_file['WORD_LIMIT']
         self._story_background = ''
         self.io_util = IoUtil()
         self.stream = config_file['STREAM']
         self.connection = None
 
-    def evoke(self, player_io: TextBuffer, message: str, max_length : bool=False, rolling_prompt='', alt_prompt=''):
+    def evoke(self, player_io: TextBuffer, message: str, max_length : bool=False, rolling_prompt='', alt_prompt='', skip_history=True):
         if len(message) > 0 and str(message) != "\n":
-            if not rolling_prompt:
-                rolling_prompt += self._story_background
             trimmed_message = parse_utils.remove_special_chars(str(message))
             base_prompt = alt_prompt if alt_prompt else self.base_prompt
-            amount = int(len(trimmed_message) * 2.5)
-            prompt = base_prompt.format(history=rolling_prompt if not alt_prompt else '', input_text=str(trimmed_message))
+            amount = int(len(trimmed_message) * 1.5)
+            prompt = base_prompt.format(
+                story_context=self._story_background,
+                history=rolling_prompt if not skip_history or alt_prompt else '',
+                max_words=self.word_limit if not max_length else amount,
+                input_text=str(trimmed_message))
             
             rolling_prompt = self.update_memory(rolling_prompt, trimmed_message)
             
             request_body = self.default_body 
             request_body['prompt'] = prompt
-            if max_length:
-                request_body['max_length'] = amount
-            
+
             if not self.stream:
                 text = self.io_util.synchronous_request(self.url + self.endpoint, request_body)
                 rolling_prompt = self.update_memory(rolling_prompt, text)
@@ -59,15 +60,17 @@ class LlmUtil():
                 return '\n', rolling_prompt
         return str(message), rolling_prompt
     
-    def generate_dialogue(self, conversation: str, character_card: str, character_name: str, target: str, sentiment = ''):
+    def generate_dialogue(self, conversation: str, character_card: str, character_name: str, target: str, sentiment = '', location_description = ''):
         prompt = self.pre_prompt
         prompt += self.dialogue_prompt.format(
+                story_context=self._story_background,
+                location=location_description,
                 previous_conversation=conversation, 
                 character2_description=character_card,
                 character2=character_name,
                 character1=target,
                 sentiment=sentiment)
-        
+        print('story context', self._story_background)
         request_body = self.default_body
         request_body['prompt'] = prompt
         text = parse_utils.trim_response(self.io_util.synchronous_request(self.url + self.endpoint, request_body))

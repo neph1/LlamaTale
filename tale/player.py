@@ -53,7 +53,6 @@ class Player(base.Living, pubsub.Listener):
         self.input_is_available = Event()
         self.transcript = None   # type: Optional[IO[str]]
         self._output = TextBuffer()
-        self._llm_util = None
 
     def init_names(self, name: str, title: str, descr: str, short_descr: str) -> None:
         title = lang.capital(title or name)  # make sure the title of a player remains capitalized
@@ -79,7 +78,11 @@ class Player(base.Living, pubsub.Listener):
         if evoke:
             if self.title in message:
                 message = message.replace(self.title, 'you')
-            msg, rolling_prompt = self._llm_util.evoke(self._output, message, max_length = max_length, rolling_prompt = self.rolling_prompt, alt_prompt = alt_prompt)
+            msg, rolling_prompt = mud_context.driver.llm_util.evoke(self._output, 
+                                                                    message, 
+                                                                    max_length = max_length, 
+                                                                    rolling_prompt = self.rolling_prompt, 
+                                                                    alt_prompt = alt_prompt,)
             self.rolling_prompt = rolling_prompt
         else:
             msg = str(message)     
@@ -275,9 +278,6 @@ class Player(base.Living, pubsub.Listener):
         return [strip_text_styles(paragraph_text) for paragraph_text, formatted in paragraphs]
 
 
-
-
-
 class PlayerConnection:
     """
     Represents a player and the i/o connection that is used for him/her.
@@ -397,10 +397,3 @@ class PlayerConnection:
             self.player.destroy(ctx)
             self.player = None          # type: ignore
 
-    @property
-    def llm_util(self) -> LlmUtil:
-        return self._llm_util
-
-    @llm_util.setter
-    def llm_util(self, value: 'LlmUtil') -> None:
-        self._llm_util = value

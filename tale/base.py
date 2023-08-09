@@ -642,7 +642,6 @@ class Location(MudObject):
         that based on this message string. That will make it quite hard because you need to
         parse the string again to figure out what happened... Use handle_verb / notify_action instead.
         """
-        #alt_prompt ="### Instruction: Location: [" + str(self.look(short=True)) + "]. Rewrite the following text in your own words using vivid language, use 'location' for context. Text:\n\n [{input_text}] \n\nEnd of text.\n\n### Response:\n"
 
         targets = specific_targets or set()
         assert isinstance(targets, (frozenset, set, list, tuple))
@@ -700,7 +699,7 @@ class Location(MudObject):
 
     def look(self, exclude_living: 'Living'=None, short: bool=False) -> Sequence[str]:
         """returns a list of paragraph strings describing the surroundings, possibly excluding one living from the description list"""
-        paragraphs = ["<location>[" + self.name + "]</>"]
+        paragraphs = ["<location>[" + self.title + "]</>"]
         if short:
             if self.exits and mud_context.config.show_exits_in_look:
                 paragraphs.append("Exits: " + ", ".join(sorted(set(self.exits.keys()))))
@@ -1273,9 +1272,9 @@ class Living(MudObject):
             if not silent:
                 direction_txt = display_direction(direction_names or [])
                 if direction_txt:
-                    message = "%s leaves %s." % (lang.capital(self.title), direction_txt)
+                    message = f"{lang.capital(self.title)} leaves {direction_txt}."
                 else:
-                    message = "%s leaves." % lang.capital(self.title)
+                    message = f"{lang.capital(self.title)} leaves."
                 original_location.tell(message, exclude_living=self, evoke=False, max_length=True)
             # queue event
             if is_player:
@@ -1343,7 +1342,7 @@ class Living(MudObject):
         attacker_msg = "You attack %s! %s" % (victim.title, result)
         victim.tell(victim_msg, evoke=True, max_length=False)
         # TODO: try to get from config file instead
-        combat_prompt = f'### Instruction: Rewrite the following combat between user {name} and {victim.title} and result into a vivid description in less than 300 words. Location: {self.location}, {self.location.short_description}. Write one to two paragraphs, ending in either death, or a stalemate. Combat Result: {attacker_msg} ### Response:\n\n'
+        combat_prompt = mud_context.driver.llm_util.combat_prompt
         victim.location.tell(room_msg, exclude_living=victim, specific_targets={self}, specific_target_msg=attacker_msg, evoke=True, max_length=False, alt_prompt=combat_prompt)
         if dead:
             remains = Container(f"remains of {dead.title}")

@@ -1,4 +1,4 @@
-from tale.llm_utils import LlmUtil
+from tale import mud_context
 from tale.base import Living, ParseResult
 from tale.errors import TaleError
 from tale.player import Player
@@ -12,7 +12,6 @@ class LivingNpc(Living):
         self.age = age
         self.personality = personality
         self.occupation = occupation
-        self.llm_util = LlmUtil()
         self.conversation = ''
         self.memory_size = 1024
         self.sentiments = {}
@@ -41,11 +40,12 @@ class LivingNpc(Living):
             self.update_conversation(f"{self.title} says: \"Hi.\"")
         elif parsed.verb == "say" and targeted:
             self.update_conversation(f'{actor.title}:{parsed.unparsed}\n')
-            response, item_result, sentiment = self.llm_util.generate_dialogue(conversation=self.conversation, 
+            response, item_result, sentiment = mud_context.driver.llm_util.generate_dialogue(conversation=self.conversation, 
                                                                     character_card = self.character_card, 
                                                                     character_name = self.title, 
                                                                     target = actor.title,
-                                                                    sentiment = self.sentiments.get(actor.title, ''))
+                                                                    sentiment = self.sentiments.get(actor.title, ''),
+                                                                    location_description=self.location.look(exclude_living=self))
             
             self.update_conversation(f"{self.title} says: \"{response}\"")
             if len(self.conversation) > self.memory_size:

@@ -27,6 +27,7 @@ class Story(StoryBase):
     config.startlocation_player = "prancingllama.entrance"
     config.startlocation_wizard = "prancingllama.entrance"
     config.zones = ["prancingllama"]
+    config.context = "The Prancing Llama is the final outpost high up in a cold, craggy mountain range. It's frequented by adventurers and those seeking to avoid attention."
 
     def init(self, driver: Driver) -> None:
         """Called by the game driver when it is done with its initial initialization."""
