@@ -48,6 +48,11 @@ class IFDriver(driver.Driver):
                 self.loaded_character = character_loader.load_from_json(character_to_load)
             elif '.png' in character_to_load or '.jpg' in character_to_load:
                 self.loaded_character = character_loader.load_image(character_to_load)
+            else:
+                print("Failed to load character, must be .json, .jpg or .png")
+                self.loaded_character = None
+        else:
+            self.loaded_character = None
 
     def start_main_loop(self):
         if self.io_type == "web":
