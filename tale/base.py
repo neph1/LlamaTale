@@ -1330,25 +1330,29 @@ class Living(MudObject):
 
     def start_attack(self, victim: 'Living') -> None:
         """Starts attacking the given living until death ensues on either side."""
-        # @todo I'm not yet sure if the combat/attack logic should go here (just on Living), or that it should be split with Player...
-        # @todo actual fight.   Also implement 'assist' command to help someone that is already fighting.
-        # NOTE: combat commands should have a check so that you cannot spam them!
         name = lang.capital(self.title)
 
-        result, dead = combat.resolve_attack(self, victim)
+        result, damage_to_attacker, damage_to_defender = combat.resolve_attack(self, victim)
         
         room_msg = "%s attacks %s! %s" % (name, victim.title, result)
         victim_msg = "%s attacks you. %s" % (name, result)
         attacker_msg = "You attack %s! %s" % (victim.title, result)
         victim.tell(victim_msg, evoke=True, max_length=False)
-        # TODO: try to get from config file instead
+
         combat_prompt = mud_context.driver.llm_util.combat_prompt
-        victim.location.tell(room_msg, exclude_living=victim, specific_targets={self}, specific_target_msg=attacker_msg, evoke=True, max_length=False, alt_prompt=combat_prompt)
-        if dead:
-            remains = Container(f"remains of {dead.title}")
-            remains.init_inventory(dead.inventory)
-            dead.location.insert(remains, None)
-            dead.destroy(util.Context)
+        victim.location.tell(room_msg,
+                             exclude_living=victim,
+                             specific_targets={self},
+                             specific_target_msg=attacker_msg,
+                             evoke=True,
+                             max_length=False,
+                             alt_prompt=combat_prompt)
+        self.stats.hp -= damage_to_attacker
+        victim.stats.hp -= damage_to_defender
+        if self.stats.hp < 1:
+            combat.produce_remains(util.Context, self)
+        if victim.stats.hp < 1:
+            combat.produce_remains(util.Context, victim)  
 
     def allow_give_money(self, amount: float, actor: Optional['Living']) -> None:
         """Do we accept money? Raise ActionRefused if not."""

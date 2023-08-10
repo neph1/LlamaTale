@@ -44,6 +44,7 @@ class LivingNpc(Living):
                                                                     character_card = self.character_card, 
                                                                     character_name = self.title, 
                                                                     target = actor.title,
+                                                                    target_description = actor.short_description,
                                                                     sentiment = self.sentiments.get(actor.title, ''),
                                                                     location_description=self.location.look(exclude_living=self))
             

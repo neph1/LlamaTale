@@ -60,7 +60,7 @@ class LlmUtil():
                 return '\n', rolling_prompt
         return str(message), rolling_prompt
     
-    def generate_dialogue(self, conversation: str, character_card: str, character_name: str, target: str, sentiment = '', location_description = ''):
+    def generate_dialogue(self, conversation: str, character_card: str, character_name: str, target: str, target_description: str='', sentiment = '', location_description = ''):
         prompt = self.pre_prompt
         prompt += self.dialogue_prompt.format(
                 story_context=self._story_background,
@@ -69,6 +69,7 @@ class LlmUtil():
                 character2_description=character_card,
                 character2=character_name,
                 character1=target,
+                character1_description=character1_description,
                 sentiment=sentiment)
         request_body = self.default_body
         request_body['prompt'] = prompt
