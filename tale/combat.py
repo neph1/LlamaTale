@@ -27,8 +27,8 @@ def combat(actor1: 'Living', actor2: 'Living'):
         return actor.stats.level
 
     def calculate_defense(actor: 'Living'):
-        # The defense strength depends on the level and agility of the actor
-        return actor.stats.level * actor.stats.agility
+        # The defense strength depends on the level and dexterity of the actor
+        return actor.stats.level * actor.stats.dexterity
 
     def calculate_weapon_bonus(actor: 'Living'):
         # The weapon bonus is a random factor between 0 and 1. If the actor has no weapon, bonus is 1.

@@ -37,7 +37,7 @@ class LlmUtil():
         if len(message) > 0 and str(message) != "\n":
             trimmed_message = parse_utils.remove_special_chars(str(message))
             base_prompt = alt_prompt if alt_prompt else self.base_prompt
-            amount = int(len(trimmed_message) * 1.5)
+            amount = int(len(trimmed_message) / 2)
             prompt = base_prompt.format(
                 story_context=self._story_background,
                 history=rolling_prompt if not skip_history or alt_prompt else '',
@@ -70,7 +70,6 @@ class LlmUtil():
                 character2=character_name,
                 character1=target,
                 sentiment=sentiment)
-        print('story context', self._story_background)
         request_body = self.default_body
         request_body['prompt'] = prompt
         text = parse_utils.trim_response(self.io_util.synchronous_request(self.url + self.endpoint, request_body))

@@ -102,9 +102,12 @@ class MudAccounts:
                             xp integer NOT NULL,
                             hp integer NOT NULL,
                             ac integer NOT NULL,
+                            wc integer NOT NULL,
                             maxhp_dice varchar NULL,
                             attack_dice varchar NULL,
                             alignment integer NOT NULL,
+                            strength integer NOT NULL,
+                            dexterity integer NOT NULL,
                             FOREIGN KEY(account) REFERENCES Account(id)
                         );
                         """)

@@ -104,9 +104,9 @@ class Rat(Living):
     @call_periodically(10, 25)
     def do_idle_action(self, ctx: Context) -> None:
         if random.random() < 0.5:
-            self.tell_others("{Actor} hisses.", evoke=True, max_length=True)
+            self.tell_others("{Actor} hisses.", evoke=False, max_length=True)
         else:
-            self.tell_others("{Actor} sniffs around.", evoke=True, max_length=True)
+            self.tell_others("{Actor} sniffs around.", evoke=False, max_length=True)
 
 
 norhardt = Patron("Norhardt", "m", age=56, descr="A grizzled old man, with parchment-like skin and sunken eyes. He\'s wearing ragged clothing and big leather boots. He\'s a formidable presence, commanding yet somber.", personality="An experienced explorer who is obsessed with finding the mythological Yeti which supposedly haunts these mountains. He won\'t stop talking about it.", short_descr="An old grizzled man sitting by the bar.")

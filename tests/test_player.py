@@ -198,16 +198,16 @@ class TestPlayer(unittest.TestCase):
     def test_look(self):
         player = Player("fritz", "m")
         attic = Location("Attic", "A dark attic.")
-        player.look()
+        player.look(short=True, evoke=False)
         self.assertEqual(["[Limbo]\n", "The intermediate or transitional place or state. There's only nothingness. "
                                        "Living beings end up here if they're not in a proper location yet.\n"]
                          , player.test_get_output_paragraphs())
         player.move(attic, silent=True)
-        player.look(short=True)
+        player.look(short=True, evoke=False)
         self.assertEqual(["[Attic]\n"], player.test_get_output_paragraphs())
         julie = Living("julie", "f")
         julie.move(attic, silent=True)
-        player.look(short=True)
+        player.look(short=True, evoke=False)
         self.assertEqual(["[Attic]\n", "Present here: julie\n"], player.test_get_output_paragraphs())
 
     def test_look_brief(self):
@@ -218,31 +218,31 @@ class TestPlayer(unittest.TestCase):
         julie.move(attic, silent=True)
         player.move(attic, silent=True)
         player.brief = 0  # default setting: always long descriptions
-        player.look()
-        self.assertEqual(["[Attic]\n", "A dark attic.\n", "Julie is here.\n"], player.test_get_output_paragraphs())
-        player.look()
-        self.assertEqual(["[Attic]\n", "A dark attic.\n", "Julie is here.\n"], player.test_get_output_paragraphs())
-        player.look(short=True)   # override
-        self.assertEqual(["[Attic]\n", "Present here: julie\n"], player.test_get_output_paragraphs())
+        player.look(evoke=False)
+        self.assertEqual(["[Attic]", "A dark attic.", "Julie is here.\n"], player.test_get_output_paragraphs())
+        player.look(evoke=False)
+        self.assertEqual(["[Attic]", "A dark attic.", "Julie is here.\n"], player.test_get_output_paragraphs())
+        player.look(short=True, evoke=False)   # override
+        self.assertEqual(["[Attic]", "Present here: julie\n"], player.test_get_output_paragraphs())
         player.brief = 1  # short for known, long for new locations
-        player.look()
-        self.assertEqual(["[Attic]\n", "Present here: julie\n"], player.test_get_output_paragraphs())
+        player.look(evoke=False)
+        self.assertEqual(["[Attic]", "Present here: julie\n"], player.test_get_output_paragraphs())
         player.move(cellar, silent=True)
-        player.look()
-        self.assertEqual(["[Cellar]\n", "A gloomy cellar.\n"], player.test_get_output_paragraphs())
-        player.look()
+        player.look(evoke=False)
+        self.assertEqual(["[Cellar]", "A gloomy cellar.\n"], player.test_get_output_paragraphs())
+        player.look(evoke=False)
         self.assertEqual(["[Cellar]\n"], player.test_get_output_paragraphs())
         player.brief = 2  # short always
         player.known_locations.clear()
-        player.look()
+        player.look(evoke=False)
         self.assertEqual(["[Cellar]\n"], player.test_get_output_paragraphs())
         player.move(attic, silent=True)
-        player.look()
-        self.assertEqual(["[Attic]\n", "Present here: julie\n"], player.test_get_output_paragraphs())
-        player.look(short=True)   # override
-        self.assertEqual(["[Attic]\n", "Present here: julie\n"], player.test_get_output_paragraphs())
-        player.look(short=False)  # override
-        self.assertEqual(["[Attic]\n", "A dark attic.\n", "Julie is here.\n"], player.test_get_output_paragraphs())
+        player.look(evoke=False)
+        self.assertEqual(["[Attic]", "Present here: julie\n"], player.test_get_output_paragraphs())
+        player.look(short=True, evoke=False)   # override
+        self.assertEqual(["[Attic]", "Present here: julie\n"], player.test_get_output_paragraphs())
+        player.look(short=False, evoke=False)  # override
+        self.assertEqual(["[Attic]", "A dark attic.", "Julie is here.\n"], player.test_get_output_paragraphs())
 
     def test_others(self):
         attic = Location("Attic", "A dark attic.")
@@ -259,7 +259,7 @@ class TestPlayer(unittest.TestCase):
         self.assertEqual(["one two three"], julie.messages)
         fritz.clearmessages()
         julie.clearmessages()
-        player.tell_others("{actor} and {Actor}")
+        player.tell_others("{actor} and {Actor}", evoke=False)
         self.assertEqual(["wizard Merlin and Wizard Merlin"], fritz.messages)
 
     def test_wiretap(self):
@@ -272,16 +272,16 @@ class TestPlayer(unittest.TestCase):
         julie = Living("julie", "f")
         julie.move(attic)
         player.move(attic)
-        julie.tell("message for julie")
-        attic.tell("message for room")
+        julie.tell("message for julie", evoke=False)
+        attic.tell("message for room", evoke=False)
         self.assertEqual(["message for room\n"], player.test_get_output_paragraphs())
         with self.assertRaises(ActionRefused):
             player.create_wiretap(julie)
         player.privileges = {"wizard"}
         player.create_wiretap(julie)
         player.create_wiretap(attic)
-        julie.tell("message for julie")
-        attic.tell("message for room")
+        julie.tell("message for julie", evoke=False)
+        attic.tell("message for room", evoke=False)
         pubsub.sync()
         output = pc.get_output()
         self.assertTrue("[wiretapped from `Attic': message for room]" in output)
@@ -292,8 +292,8 @@ class TestPlayer(unittest.TestCase):
         player.clear_wiretaps()
         import gc
         gc.collect()
-        julie.tell("message for julie")
-        attic.tell("message for room")
+        julie.tell("message for julie", evoke=False)
+        attic.tell("message for room", evoke=False)
         self.assertEqual(["message for room\n"], player.test_get_output_paragraphs())
 
     def test_socialize(self):

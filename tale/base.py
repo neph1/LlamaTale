@@ -903,7 +903,7 @@ class Stats:
         self.size = races.BodySize.HUMAN_SIZED
         self.race = ""      # the name of the race of this creature
         self.strength = 3
-        self.agility = 3
+        self.dexterity = 3
 
     def __repr__(self):
         return "<Stats: %s>" % vars(self)
@@ -1083,7 +1083,7 @@ class Living(MudObject):
         """Tell something to this creature, but do it after all other messages."""
         pending_tells.send(lambda: self.tell(message, evoke=True, max_length=False))
 
-    def tell_others(self, message: str, target: Optional['Living']=None, evoke=False, max_length : bool=True, alt_prompt='') -> None:
+    def tell_others(self, message: str, target: Optional['Living']=None, evoke: bool=False, max_length : bool=True, alt_prompt='') -> None:
         """
         Send a message to the other livings in the location, but not to self.
         There are a few formatting strings for easy shorthands:
@@ -1274,7 +1274,7 @@ class Living(MudObject):
                 if direction_txt:
                     message = f"{lang.capital(self.title)} leaves {direction_txt}."
                 else:
-                    message = f"{lang.capital(self.title)} leaves."
+                    message = f"{lang.capital(self.title)} leaves towards {target.title}."
                 original_location.tell(message, exclude_living=self, evoke=False, max_length=True)
             # queue event
             if is_player:
@@ -1284,7 +1284,7 @@ class Living(MudObject):
         else:
             target.insert(self, actor)
         if not silent:
-            target.tell(f"{lang.capital(self.title)} arrives from {original_location}." , exclude_living=self, evoke=False, max_length=True)
+            target.tell(f"{lang.capital(self.title)} arrives from {original_location.title}." , exclude_living=self, evoke=False, max_length=True)
         # queue event
         if is_player:
             pending_actions.send(lambda who=self, where=original_location: target.notify_player_arrived(who, where))
@@ -1680,8 +1680,8 @@ class Door(Exit):
             raise ActionRefused("You try to open it, but it's locked.")
         else:
             self.opened = True
-            actor.tell("You open it.", evoke=True, max_length=True)
-            actor.tell_others("{Actor} opens the %s." % self.name, evoke=True, max_length=True)
+            actor.tell("You open it.", evoke=False, max_length=True)
+            actor.tell_others("{Actor} opens the %s." % self.name, evoke=False, max_length=True)
             if self.linked_door:
                 self.linked_door.opened = True
                 self.target.tell("The %s is opened from the other side." % self.linked_door.name, evoke=False, max_length=True)
@@ -1691,8 +1691,8 @@ class Door(Exit):
         if not self.opened:
             raise ActionRefused("It's already closed.")
         self.opened = False
-        actor.tell("You close it.", evoke=True, max_length=True)
-        actor.tell_others("{Actor} closes the %s." % self.name, evoke=True, max_length=True)
+        actor.tell("You close it.", evoke=False, max_length=True)
+        actor.tell_others("{Actor} closes the %s." % self.name, evoke=False, max_length=True)
         if self.linked_door:
             self.linked_door.opened = False
             self.target.tell("The %s is closed from the other side." % self.linked_door.name, evoke=False, max_length=True)
@@ -1740,12 +1740,12 @@ class Door(Exit):
                 raise ActionRefused("You don't seem to have the means to unlock it.")
         self.locked = False
         self.opened = True
-        actor.tell("Your %s fits! You unlock the %s and open it." % (key.title, self.name), evoke=True, max_length=True)
-        actor.tell_others("{Actor} unlocks the %s with %s %s, and opens it." % (self.name, actor.possessive, key.title), evoke=True, max_length=True)
+        actor.tell("Your %s fits! You unlock the %s and open it." % (key.title, self.name), evoke=False, max_length=True)
+        actor.tell_others("{Actor} unlocks the %s with %s %s, and opens it." % (self.name, actor.possessive, key.title), evoke=False, max_length=True)
         if self.linked_door:
             self.linked_door.locked = False
             self.linked_door.opened = True
-            self.target.tell("The %s is unlocked and opened from the other side." % self.linked_door.name, evoke=True, max_length=True)
+            self.target.tell("The %s is unlocked and opened from the other side." % self.linked_door.name, evoke=False, max_length=True)
 
     def check_key(self, item: Item) -> bool:
         """Check if the item is a proper key for this door (based on key_code)"""

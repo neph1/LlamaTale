@@ -32,6 +32,7 @@ from .races import playable_races
 from .errors import StoryCompleted
 from tale.load_character import CharacterLoader, CharacterV2
 from tale.llm_ext import LivingNpc
+from tale.llm_utils import LlmUtil
 
 
 topic_pending_actions = pubsub.topic("driver-pending-actions")
@@ -46,6 +47,7 @@ class Commands:
     def __init__(self) -> None:
         self.commands_per_priv = {"": {}}    # type: Dict[str, Dict[str, Callable]]
         self.no_soul_parsing = set()   # type: Set[str]
+        self.llm_util = LlmUtil()
 
     def add(self, verb: str, func: Callable, privilege: str="") -> None:
         self.validatefunc(func)
@@ -601,14 +603,14 @@ class Driver(pubsub.Listener):
                 # the player command ended but signaled that an async dialog should be initiated
                 topic_async_dialogs.send((conn, x.dialog))
 
-    def go_through_exit(self, player: player.Player, direction: str) -> None:
+    def go_through_exit(self, player: player.Player, direction: str, evoke: bool=True) -> None:
         xt = player.location.exits[direction]
         xt.allow_passage(player)
         if xt.enter_msg:
-            player.tell(xt.enter_msg, end=True, evoke=True, max_length=True)
+            player.tell(xt.enter_msg, end=True, evoke=evoke, max_length=True)
             player.tell("\n")
         player.move(xt.target, direction_names=[xt.name] + list(xt.aliases))
-        player.look()
+        player.look(evoke=evoke)
 
     def lookup_location(self, location_name: str) -> base.Location:
         location = self.zones
