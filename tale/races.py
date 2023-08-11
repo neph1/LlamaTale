@@ -596,7 +596,8 @@ _races = {
         'body': BodyType.SPECTRAL,
         'language': 'Revenant',
         'mass': 4.0,
-        'size': BodySize.SOMEWHAT_LARGE
+        'size': BodySize.SOMEWHAT_LARGE,
+        'hp' : 5
     }
 }
 
@@ -616,6 +617,7 @@ Race = NamedTuple("Race", [("name", str),
                            ("language", str),
                            ("mass", float),
                            ("size", BodySize),
+                           ("hp", int),
                            ("flags", Flags)])
 
 
@@ -644,7 +646,7 @@ def _create_race_defs() -> None:
                       nonmeat=race in nonmeat_races,
                       playable=race in playable_races)
         races[race] = Race(name=race, body=attrs["body"], language=attrs["language"],       # type: ignore
-                           mass=attrs["mass"], size=attrs["size"], flags=flags)
+                           mass=attrs["mass"], size=attrs["size"], hp=attrs["hp"], flags=flags)
     _all_races = set(_races)
     assert len(swimming_races - _all_races) == 0
     assert len(flying_races - _all_races) == 0

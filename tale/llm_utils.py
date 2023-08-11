@@ -26,6 +26,7 @@ class LlmUtil():
         self.base_prompt = config_file['BASE_PROMPT']
         self.dialogue_prompt = config_file['DIALOGUE_PROMPT']
         self.action_prompt = config_file['ACTION_PROMPT']
+        self.combat_prompt = config_file['COMBAT_PROMPT']
         self.item_prompt = config_file['ITEM_PROMPT']
         self.word_limit = config_file['WORD_LIMIT']
         self._story_background = ''
@@ -37,8 +38,9 @@ class LlmUtil():
         if len(message) > 0 and str(message) != "\n":
             trimmed_message = parse_utils.remove_special_chars(str(message))
             base_prompt = alt_prompt if alt_prompt else self.base_prompt
-            amount = int(len(trimmed_message) / 2)
-            prompt = base_prompt.format(
+            amount = 50 #int(len(trimmed_message) / 2)
+            prompt = self.pre_prompt
+            prompt += base_prompt.format(
                 story_context=self._story_background,
                 history=rolling_prompt if not skip_history or alt_prompt else '',
                 max_words=self.word_limit if not max_length else amount,
@@ -69,7 +71,7 @@ class LlmUtil():
                 character2_description=character_card,
                 character2=character_name,
                 character1=target,
-                character1_description=character1_description,
+                character1_description=target_description,
                 sentiment=sentiment)
         request_body = self.default_body
         request_body['prompt'] = prompt

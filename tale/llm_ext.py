@@ -39,28 +39,32 @@ class LivingNpc(Living):
             self.tell_others("{Actor} says: \"Hi.\"", evoke=True)
             self.update_conversation(f"{self.title} says: \"Hi.\"")
         elif parsed.verb == "say" and targeted:
-            self.update_conversation(f'{actor.title}:{parsed.unparsed}\n')
-            response, item_result, sentiment = mud_context.driver.llm_util.generate_dialogue(conversation=self.conversation, 
-                                                                    character_card = self.character_card, 
-                                                                    character_name = self.title, 
-                                                                    target = actor.title,
-                                                                    target_description = actor.short_description,
-                                                                    sentiment = self.sentiments.get(actor.title, ''),
-                                                                    location_description=self.location.look(exclude_living=self))
-            
-            self.update_conversation(f"{self.title} says: \"{response}\"")
-            if len(self.conversation) > self.memory_size:
-                self.conversation = self.conversation[self.memory_size+1:]
-            
-            self.tell_others(f"{self.title} says: \"{response}\"", evoke=False, max_length=True)
-            if item_result:
-                self.handle_item_result(item_result, actor)
-            
-            if sentiment:
-                self.sentiments[actor.title] = sentiment
+            self.do_say(parsed.unparsed, actor)
         elif self in parsed.who_info:
             # store actions against npc
             pass
+
+    def do_say(self, what_happened: str, actor: Living) -> None:
+        self.update_conversation(f'{actor.title}:{what_happened}\n')
+        response, item_result, sentiment = mud_context.driver.llm_util.generate_dialogue(
+            conversation=self.conversation, 
+            character_card = self.character_card, 
+            character_name = self.title, 
+            target = actor.title,
+            target_description = actor.short_description,
+            sentiment = self.sentiments.get(actor.title, ''),
+            location_description=self.location.look(exclude_living=self))
+            
+        self.update_conversation(f"{self.title} says: \"{response}\"")
+        if len(self.conversation) > self.memory_size:
+            self.conversation = self.conversation[self.memory_size+1:]
+        
+        self.tell_others(f"{self.title} says: \"{response}\"", evoke=False, max_length=True)
+        if item_result:
+            self.handle_item_result(item_result, actor)
+        
+        if sentiment:
+            self.sentiments[actor.title] = sentiment
     
     def handle_item_result(self, result: str, actor: Living):
         

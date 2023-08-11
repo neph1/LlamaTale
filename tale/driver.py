@@ -47,7 +47,6 @@ class Commands:
     def __init__(self) -> None:
         self.commands_per_priv = {"": {}}    # type: Dict[str, Dict[str, Callable]]
         self.no_soul_parsing = set()   # type: Set[str]
-        self.llm_util = LlmUtil()
 
     def add(self, verb: str, func: Callable, privilege: str="") -> None:
         self.validatefunc(func)
@@ -212,6 +211,7 @@ class Driver(pubsub.Listener):
         self.game_clock = None    # type: util.GameDateTime
         self.game_mode = None     # type: GameMode
         self._stop_mainloop = True
+        self.llm_util = LlmUtil()
         # playerconnections that wait for input; maps connection to tuple (dialog, validator, echo_input)
         self.waiting_for_input = {}   # type: Dict[player.PlayerConnection, Tuple[Generator, Any, Any]]
         mud_context.driver = self
@@ -794,6 +794,7 @@ class Driver(pubsub.Listener):
                         personality = character.personality, 
                         occupation = character.occupation)
         npc.following = player
+        npc.stats.hp = character.hp
         player.location.insert(npc, None)
         
 

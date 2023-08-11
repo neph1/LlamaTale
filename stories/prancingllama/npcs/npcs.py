@@ -8,6 +8,7 @@ from tale.llm_ext import LivingNpc
 from tale.player import Player
 from tale.util import call_periodically, Context
 from tale import lang
+from typing import Optional
 
 class InnKeeper(LivingNpc):
     
@@ -54,6 +55,8 @@ class Maid(LivingNpc):
     def do_pick_up_dishes(self, ctx: Context) -> None:
         self.location.tell(f"{lang.capital(self.title)} wipes a table and picks up dishes.", evoke=False, max_length=True)
 
+
+    
 class Patron(LivingNpc):
     
     def __init__(self, name: str, gender: str, *,
@@ -63,6 +66,13 @@ class Patron(LivingNpc):
         
     def init(self) -> None:
         self.aliases = {"patron"}
+
+class Shanda(Patron):
+
+    def allow_give_item(self, item: Item, actor: Optional[Living]) -> None:
+        if item.name == "rat_skull":
+            self.sentiments(actor.title, 'impressed')
+            self.do_say(f'{actor.title} gives Shanda a giant rat skull', actor=actor)
 
 class Guard(LivingNpc):
     
@@ -115,11 +125,11 @@ norhardt.aliases = {"norhardt", "old man", "grizzled man"}
 elid_gald = Patron("Elid Gald", "m", age=51, descr="A gentleman who's aged with grace. He has a slender appearance with regal facial features, and dark hair, but his (one) eye has a dangerous squint. The other is covered by a patch.", personality="Old Gold is a smooth-talking pick-pocket and charlatan. Although claiming to be retired, he never passes on an opportunity to relieve strangers of their valuables. He wishes to obtain the map Norhardt possesses.", short_descr="A slender gentleman with a patch over one of his eyes, leaning against the wall.")
 elid_gald.aliases = {"elid", "one eyed man", "gentleman"}
 
-shanda = Patron("Shanda Heard", "f", age=31, descr="A fierce looking woman, with a face like chiseled from granite and a red bandana around her wild hair. She keeps an unblinking gaze on her surroundings.", personality="She's a heavy drinker and boaster, and for a drink she will spill tales of her conquests and battles and long lost love. She's feared by many but respected by all for her prowess in battle.", short_descr="A fierce looking woman sitting by a table, whose eyes seem to follow you.")
+shanda = Shanda("Shanda Heard", "f", age=31, descr="A fierce looking woman, with a face as if chiseled from granite and a red bandana around her wild hair. She keeps an unblinking gaze on her surroundings.", personality="She's a heavy drinker and boaster, and for a drink she will spill tales of her conquests and battles and long lost love. She's feared by many but respected by all for her prowess in battle.", short_descr="A fierce looking woman sitting by a table, whose eyes seem to follow you.")
 shanda.aliases = {"shanda", "fierce woman", "woman by table"}
 
-count_karta = Patron("Count of Karta", "m", age=43, descr="A hood shadows his facial features, but a prominent jaw juts out. His mouth seems to be working constantly, as if muttering about something.", personality="Having fled from an attempt on his life, and being discredited, he has come here to plan his revenge. He seems to have gold and is looking for able bodies to help him.", short_descr="A mysterious man by the fire.")
-count_karta.aliases = {"count", "karta", "mysterious man"}
+count_karta = Patron("Count of Karta", "m", age=43, descr="A hood shadows his facial features, but a prominent jaw juts out from beneath it. His mouth seems to be working constantly, as if muttering about something.", personality="Having fled from an attempt on his life, and being discredited, he has come here to plan his revenge. He seems to have gold and is looking for able bodies to help him.", short_descr="A mysterious man by the fire.")
+count_karta.aliases = {"count", "karta", "mysterious man", "hooded man"}
 
 urta = InnKeeper("Urta", "f", age=44, descr="A gruff, curvy woman with a long brown coat and bushy hair that reaches her waist. When not serving, she keeps polishing jugs with a dirty rag.", personality="She's the owner of The Prancing Llama, and of few words. But the words she speak are kind. She knows a little about all the patrons in her establishment.", short_descr="A curvy woman with long brown coat standing behind the bar.")
 urta.aliases = {"bartender", "inn keeper", "curvy woman"}

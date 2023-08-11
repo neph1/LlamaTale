@@ -16,8 +16,10 @@ class Cellar(Location):
 
     @call_periodically(40, 90)
     def spawn_rat(self, ctx: Context) -> None:
+        rat_skull = Item("rat_skull", "giant rat skull", descr="It's a giant rat's bloody skull.")
         if not self.rat or self.rat.alive == False:
             self.rat = Rat("giant rat", random.choice("m"), descr="A vicious looking, giant, rat", race="rodent")
+            self.rat.init_inventory([rat_skull])
             self.rat.move(self)
 
 main_hall = Location("Main Hall", "An area full of tables with people eating, drinking and talking")

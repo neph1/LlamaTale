@@ -53,6 +53,7 @@ from . import util
 from . import story
 from . import verbdefs
 from . import combat
+from . import player
 from .errors import ActionRefused, ParseError, LocationIntegrityError, TaleError, UnknownVerbException, NonSoulVerb
 
 __all__ = ["MudObject", "Armour", 'Container', "Door", "Exit", "Item", "Living", "Stats", "Location", "Weapon", "Key", "Soul"]
@@ -891,7 +892,7 @@ class Stats:
         self.gender = 'n'
         self.level = 1
         self.xp = 0
-        self.hp = 0
+        self.hp = 5
         self.maxhp_dice = ""
         self.ac = 0
         self.wc = 0
@@ -926,6 +927,7 @@ class Stats:
         self.language = r.language
         self.weight = r.mass
         self.size = r.size
+        self.hp = r.hp
 
 
 class Living(MudObject):
@@ -1330,16 +1332,26 @@ class Living(MudObject):
 
     def start_attack(self, victim: 'Living') -> None:
         """Starts attacking the given living until death ensues on either side."""
-        name = lang.capital(self.title)
-
+        attacker_name = lang.capital(self.title)
+        victim_name = lang.capital(victim.title)
         result, damage_to_attacker, damage_to_defender = combat.resolve_attack(self, victim)
         
-        room_msg = "%s attacks %s! %s" % (name, victim.title, result)
-        victim_msg = "%s attacks you. %s" % (name, result)
-        attacker_msg = "You attack %s! %s" % (victim.title, result)
+        room_msg = "%s attacks %s! %s" % (attacker_name, victim_name, result)
+        victim_msg = "%s attacks you. %s" % (attacker_name, result)
+        attacker_msg = "You attack %s! %s" % (victim_name, result)
         victim.tell(victim_msg, evoke=True, max_length=False)
+        
 
-        combat_prompt = mud_context.driver.llm_util.combat_prompt
+        if isinstance(self, player.Player):
+            attacker_name += "as 'You'"
+        if isinstance(victim, player.Player):
+            victim_name += "as 'You'"
+
+        combat_prompt = mud_context.driver.llm_util.combat_prompt.format(attacker=attacker_name, 
+                                                                         victim=victim_name, 
+                                                                         attacker_msg=attacker_msg,
+                                                                         location=self.location.title,
+                                                                         location_description=self.location.short_description)
         victim.location.tell(room_msg,
                              exclude_living=victim,
                              specific_targets={self},

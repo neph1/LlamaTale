@@ -44,6 +44,7 @@ class Player(base.Living, pubsub.Listener):
         self.last_input_time = time.time()
         self.init_nonserializables()
         self.rolling_prompt = ''
+        self.stats.hp = 10
 
     def init_nonserializables(self) -> None:
         # these things cannot be serialized or have to be reinitialized

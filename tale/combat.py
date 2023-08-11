@@ -7,10 +7,12 @@ Util class for combat related functions.
 import random
 import tale.util as util
 import tale.base as base
+from tale.util import Context
 
 def resolve_attack(attacker, victim):
     damage_to_attacker, damage_to_defender = combat(attacker, victim)
-      
+    print(f'attacker: {attacker.stats.hp}, {damage_to_attacker}')
+    print(f'victim: {victim.stats.hp}, {damage_to_defender}')
     text = 'After a fierce exchange of attacks '
     if damage_to_attacker > 0:
         text = text + f', {attacker.title} is injured '
@@ -57,16 +59,12 @@ def combat(actor1: 'Living', actor2: 'Living'):
     damage_to_actor1 *= random.uniform(0.9, 1.1)
     damage_to_actor2 *= random.uniform(0.9, 1.1)
 
-    # Calculate the normalized factor
-    #total_damage = damage_to_actor1 + damage_to_actor2
-    #if total_damage == 0:
-    #    return 0.5
     return int(damage_to_actor1), int(damage_to_actor2)
     
 
-def produce_remains(actor: 'Living'):
+def produce_remains(context: Context, actor: 'Living'):
     # Produce the remains of the actor
     remains = base.Container(f"remains of {actor.title}")
     remains.init_inventory(actor.inventory)
     actor.location.insert(remains, None)
-    actor.destroy(util.Context)
+    actor.destroy(context)
