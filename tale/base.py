@@ -53,6 +53,7 @@ from . import util
 from . import story
 from . import verbdefs
 from . import combat
+from . import player
 from .errors import ActionRefused, ParseError, LocationIntegrityError, TaleError, UnknownVerbException, NonSoulVerb
 
 __all__ = ["MudObject", "Armour", 'Container', "Door", "Exit", "Item", "Living", "Stats", "Location", "Weapon", "Key", "Soul"]
@@ -891,7 +892,7 @@ class Stats:
         self.gender = 'n'
         self.level = 1
         self.xp = 0
-        self.hp = 0
+        self.hp = 5
         self.maxhp_dice = ""
         self.ac = 0
         self.wc = 0
@@ -903,7 +904,7 @@ class Stats:
         self.size = races.BodySize.HUMAN_SIZED
         self.race = ""      # the name of the race of this creature
         self.strength = 3
-        self.agility = 3
+        self.dexterity = 3
 
     def __repr__(self):
         return "<Stats: %s>" % vars(self)
@@ -926,6 +927,7 @@ class Stats:
         self.language = r.language
         self.weight = r.mass
         self.size = r.size
+        self.hp = r.hp
 
 
 class Living(MudObject):
@@ -1083,7 +1085,7 @@ class Living(MudObject):
         """Tell something to this creature, but do it after all other messages."""
         pending_tells.send(lambda: self.tell(message, evoke=True, max_length=False))
 
-    def tell_others(self, message: str, target: Optional['Living']=None, evoke=False, max_length : bool=True, alt_prompt='') -> None:
+    def tell_others(self, message: str, target: Optional['Living']=None, evoke: bool=False, max_length : bool=True, alt_prompt='') -> None:
         """
         Send a message to the other livings in the location, but not to self.
         There are a few formatting strings for easy shorthands:
@@ -1274,7 +1276,7 @@ class Living(MudObject):
                 if direction_txt:
                     message = f"{lang.capital(self.title)} leaves {direction_txt}."
                 else:
-                    message = f"{lang.capital(self.title)} leaves."
+                    message = f"{lang.capital(self.title)} leaves towards {target.title}."
                 original_location.tell(message, exclude_living=self, evoke=False, max_length=True)
             # queue event
             if is_player:
@@ -1284,7 +1286,7 @@ class Living(MudObject):
         else:
             target.insert(self, actor)
         if not silent:
-            target.tell(f"{lang.capital(self.title)} arrives from {original_location}." , exclude_living=self, evoke=False, max_length=True)
+            target.tell(f"{lang.capital(self.title)} arrives from {original_location.title}." , exclude_living=self, evoke=False, max_length=True)
         # queue event
         if is_player:
             pending_actions.send(lambda who=self, where=original_location: target.notify_player_arrived(who, where))
@@ -1330,25 +1332,39 @@ class Living(MudObject):
 
     def start_attack(self, victim: 'Living') -> None:
         """Starts attacking the given living until death ensues on either side."""
-        # @todo I'm not yet sure if the combat/attack logic should go here (just on Living), or that it should be split with Player...
-        # @todo actual fight.   Also implement 'assist' command to help someone that is already fighting.
-        # NOTE: combat commands should have a check so that you cannot spam them!
-        name = lang.capital(self.title)
-
-        result, dead = combat.resolve_attack(self, victim)
+        attacker_name = lang.capital(self.title)
+        victim_name = lang.capital(victim.title)
+        result, damage_to_attacker, damage_to_defender = combat.resolve_attack(self, victim)
         
-        room_msg = "%s attacks %s! %s" % (name, victim.title, result)
-        victim_msg = "%s attacks you. %s" % (name, result)
-        attacker_msg = "You attack %s! %s" % (victim.title, result)
+        room_msg = "%s attacks %s! %s" % (attacker_name, victim_name, result)
+        victim_msg = "%s attacks you. %s" % (attacker_name, result)
+        attacker_msg = "You attack %s! %s" % (victim_name, result)
         victim.tell(victim_msg, evoke=True, max_length=False)
-        # TODO: try to get from config file instead
-        combat_prompt = mud_context.driver.llm_util.combat_prompt
-        victim.location.tell(room_msg, exclude_living=victim, specific_targets={self}, specific_target_msg=attacker_msg, evoke=True, max_length=False, alt_prompt=combat_prompt)
-        if dead:
-            remains = Container(f"remains of {dead.title}")
-            remains.init_inventory(dead.inventory)
-            dead.location.insert(remains, None)
-            dead.destroy(util.Context)
+        
+
+        if isinstance(self, player.Player):
+            attacker_name += "as 'You'"
+        if isinstance(victim, player.Player):
+            victim_name += "as 'You'"
+
+        combat_prompt = mud_context.driver.llm_util.combat_prompt.format(attacker=attacker_name, 
+                                                                         victim=victim_name, 
+                                                                         attacker_msg=attacker_msg,
+                                                                         location=self.location.title,
+                                                                         location_description=self.location.short_description)
+        victim.location.tell(room_msg,
+                             exclude_living=victim,
+                             specific_targets={self},
+                             specific_target_msg=attacker_msg,
+                             evoke=True,
+                             max_length=False,
+                             alt_prompt=combat_prompt)
+        self.stats.hp -= damage_to_attacker
+        victim.stats.hp -= damage_to_defender
+        if self.stats.hp < 1:
+            combat.produce_remains(util.Context, self)
+        if victim.stats.hp < 1:
+            combat.produce_remains(util.Context, victim)  
 
     def allow_give_money(self, amount: float, actor: Optional['Living']) -> None:
         """Do we accept money? Raise ActionRefused if not."""
@@ -1680,8 +1696,8 @@ class Door(Exit):
             raise ActionRefused("You try to open it, but it's locked.")
         else:
             self.opened = True
-            actor.tell("You open it.", evoke=True, max_length=True)
-            actor.tell_others("{Actor} opens the %s." % self.name, evoke=True, max_length=True)
+            actor.tell("You open it.", evoke=False, max_length=True)
+            actor.tell_others("{Actor} opens the %s." % self.name, evoke=False, max_length=True)
             if self.linked_door:
                 self.linked_door.opened = True
                 self.target.tell("The %s is opened from the other side." % self.linked_door.name, evoke=False, max_length=True)
@@ -1691,8 +1707,8 @@ class Door(Exit):
         if not self.opened:
             raise ActionRefused("It's already closed.")
         self.opened = False
-        actor.tell("You close it.", evoke=True, max_length=True)
-        actor.tell_others("{Actor} closes the %s." % self.name, evoke=True, max_length=True)
+        actor.tell("You close it.", evoke=False, max_length=True)
+        actor.tell_others("{Actor} closes the %s." % self.name, evoke=False, max_length=True)
         if self.linked_door:
             self.linked_door.opened = False
             self.target.tell("The %s is closed from the other side." % self.linked_door.name, evoke=False, max_length=True)
@@ -1740,12 +1756,12 @@ class Door(Exit):
                 raise ActionRefused("You don't seem to have the means to unlock it.")
         self.locked = False
         self.opened = True
-        actor.tell("Your %s fits! You unlock the %s and open it." % (key.title, self.name), evoke=True, max_length=True)
-        actor.tell_others("{Actor} unlocks the %s with %s %s, and opens it." % (self.name, actor.possessive, key.title), evoke=True, max_length=True)
+        actor.tell("Your %s fits! You unlock the %s and open it." % (key.title, self.name), evoke=False, max_length=True)
+        actor.tell_others("{Actor} unlocks the %s with %s %s, and opens it." % (self.name, actor.possessive, key.title), evoke=False, max_length=True)
         if self.linked_door:
             self.linked_door.locked = False
             self.linked_door.opened = True
-            self.target.tell("The %s is unlocked and opened from the other side." % self.linked_door.name, evoke=True, max_length=True)
+            self.target.tell("The %s is unlocked and opened from the other side." % self.linked_door.name, evoke=False, max_length=True)
 
     def check_key(self, item: Item) -> bool:
         """Check if the item is a proper key for this door (based on key_code)"""

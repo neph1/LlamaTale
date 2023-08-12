@@ -21,7 +21,6 @@ from .story import GameMode
 from .tio import DEFAULT_SCREEN_WIDTH, DEFAULT_SCREEN_INDENT
 from .tio.iobase import strip_text_styles, IoAdapterBase
 from .vfs import VirtualFileSystem, Resource
-from tale.llm_utils import LlmUtil
 from tale.player_utils import TextBuffer
 
 
@@ -45,6 +44,7 @@ class Player(base.Living, pubsub.Listener):
         self.last_input_time = time.time()
         self.init_nonserializables()
         self.rolling_prompt = ''
+        self.stats.hp = 10
 
     def init_nonserializables(self) -> None:
         # these things cannot be serialized or have to be reinitialized
@@ -105,7 +105,7 @@ class Player(base.Living, pubsub.Listener):
         else:
             self.tell(file_resource.text, format=False)
 
-    def look(self, short: Optional[bool]=None) -> None:
+    def look(self, short: Optional[bool]=None, evoke: bool=True) -> None:
         """look around in your surroundings (it excludes the player himself from livings)"""
         if short is None:
             if self.brief == 2:
@@ -119,7 +119,7 @@ class Player(base.Living, pubsub.Listener):
             look_paragraphs = self.location.look(exclude_living=self, short=short)
             
             #for paragraph in look_paragraphs:
-            self.tell(look_paragraphs, end=True, evoke=True)
+            self.tell(', '.join(look_paragraphs), end=True, evoke=evoke)
         else:
             self.tell("You see nothing.")
 

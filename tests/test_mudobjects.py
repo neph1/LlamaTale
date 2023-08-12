@@ -434,16 +434,16 @@ class TestDoorsExits(unittest.TestCase):
         tap_j.subscribe(collector_j)
         tap_p.subscribe(collector_p)
         tap_s.subscribe(collector_s)
-        driver.go_through_exit(julie, "ladder1")
-        driver.go_through_exit(peter, "ladder2")
-        driver.go_through_exit(sarah, "door1")
+        driver.go_through_exit(julie, "ladder1", evoke=False)
+        driver.go_through_exit(peter, "ladder2", evoke=False)
+        driver.go_through_exit(sarah, "door1", evoke=False)
         pubsub.sync()
         self.assertEqual(0, len(hall.livings))
         self.assertEqual(3, len(attic.livings))
         self.assertEqual(["entering the attic via exit 1", "\n", "<location>[attic]</>"], collector_j.messages[0:3])
-        self.assertEqual(["Julie leaves.", "<location>[attic]</>"], collector_p.messages[0:2])
-        self.assertEqual(["Julie leaves.", "Peter leaves.", "entering the attic via door",
-                          "\n", "<location>[attic]</>"], collector_s.messages[0:5])
+        self.assertEqual(["Julie leaves towards attic.", "<location>[attic]</>, Julie is here."], collector_p.messages[0:2]) # changed so that livings are included
+        self.assertEqual(["Julie leaves towards attic.", "Peter leaves towards attic.", "entering the attic via door",
+                          "\n", "<location>[attic]</>, Julie and Peter are here."], collector_s.messages[0:5])
 
     def test_bind_exit(self):
         class ModuleDummy:
@@ -627,8 +627,8 @@ class TestLiving(unittest.TestCase):
         rat2.move(attic, direction_names=["up"])
         rat3.move(attic, direction_names=["somewhere"])
         pubsub.sync()
-        self.assertEqual([("hall", "Rat leaves."), ("hall", "Rat2 leaves up."), ("hall", "Rat3 leaves.")], wiretap_hall.msgs)
-        self.assertEqual([("attic", "Rat arrives."), ("attic", "Rat2 arrives."), ("attic", "Rat3 arrives.")], wiretap_attic.msgs)
+        self.assertEqual([("hall", "Rat leaves towards attic."), ("hall", "Rat2 leaves up."), ("hall", "Rat3 leaves towards attic.")], wiretap_hall.msgs)
+        self.assertEqual([("attic", "Rat arrives from hall."), ("attic", "Rat2 arrives from hall."), ("attic", "Rat3 arrives from hall.")], wiretap_attic.msgs)
         # now try with direction aliases
         rat2.move(hall, silent=True)
         rat3.move(hall, silent=True)
@@ -637,8 +637,8 @@ class TestLiving(unittest.TestCase):
         rat2.move(attic, direction_names=["unknown", "up"])
         rat3.move(attic, direction_names=["anywhere", "somewhere"])
         pubsub.sync()
-        self.assertEqual([("hall", "Rat2 leaves up."), ("hall", "Rat3 leaves.")], wiretap_hall.msgs)
-        self.assertEqual([("attic", "Rat2 arrives."), ("attic", "Rat3 arrives.")], wiretap_attic.msgs)
+        self.assertEqual([("hall", "Rat2 leaves up."), ("hall", "Rat3 leaves towards attic.")], wiretap_hall.msgs)
+        self.assertEqual([("attic", "Rat2 arrives from hall."), ("attic", "Rat3 arrives from hall.")], wiretap_attic.msgs)
         # now try silent
         wiretap_hall.clear()
         wiretap_attic.clear()

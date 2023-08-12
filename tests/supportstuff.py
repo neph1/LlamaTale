@@ -9,7 +9,7 @@ import datetime
 from typing import Any, List
 
 from tale import pubsub, util, driver, base, story
-
+from tale.llm_utils import LlmUtil
 
 class Thing:
     def __init__(self) -> None:
@@ -26,6 +26,7 @@ class FakeDriver(driver.Driver):
         # fix up some essential attributes on the driver that are normally only present after loading a story file
         self.game_clock = util.GameDateTime(datetime.datetime.now())
         self.moneyfmt = util.MoneyFormatter.create_for(story.MoneyType.MODERN)
+        self.llm_util = LlmUtil()
         assert len(self.commands.get([])) > 0
 
 
@@ -54,6 +55,6 @@ class MsgTraceNPC(base.Living):
     def clearmessages(self) -> None:
         self.messages = []
 
-    def tell(self, message: str, *, end: bool=False, format: bool=True) -> base.Living:
+    def tell(self, message: str, *, end: bool=False, format: bool=True, evoke: bool=False, max_length: bool=False, alt_prompt: str='') -> base.Living:
         self.messages.append(message)
         return self

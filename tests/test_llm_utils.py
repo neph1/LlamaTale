@@ -2,6 +2,7 @@ import pytest
 import json
 from tale.base import Item
 from tale.llm_utils import LlmUtil
+import tale.parse_utils as parse_utils
 
 class TestLlmUtils():
 
@@ -61,7 +62,7 @@ class TestLlmUtils():
 
     def test_handle_response_no_result(self):
         response = '{"thoughts":"The character Norhardt did not give anything listed. The character Arto took nothing. But the author mentioned that they saw something big and fury near where they were walking so likely this creature got dropped there."}'
-        result = json.loads(self.llm_util.trim_response(json.dumps(json.loads(response))))
+        result = json.loads(parse_utils.trim_response(json.dumps(json.loads(response))))
         assert(result)
 
     def test_validate_response_empty_result(self):

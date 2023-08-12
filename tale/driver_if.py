@@ -41,7 +41,6 @@ class IFDriver(driver.Driver):
         if web:
             self.io_type = "web"
         self.wizard_override = wizard_override
-        self.llm_util = LlmUtil()
         if character_to_load:
             character_loader = CharacterLoader()
             if '.json' in character_to_load:
