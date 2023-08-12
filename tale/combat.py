@@ -11,8 +11,6 @@ from tale.util import Context
 
 def resolve_attack(attacker, victim):
     damage_to_attacker, damage_to_defender = combat(attacker, victim)
-    print(f'attacker: {attacker.stats.hp}, {damage_to_attacker}')
-    print(f'victim: {victim.stats.hp}, {damage_to_defender}')
     text = 'After a fierce exchange of attacks '
     if damage_to_attacker > 0:
         text = text + f', {attacker.title} is injured '
@@ -68,3 +66,4 @@ def produce_remains(context: Context, actor: 'Living'):
     remains.init_inventory(actor.inventory)
     actor.location.insert(remains, None)
     actor.destroy(context)
+    return remains

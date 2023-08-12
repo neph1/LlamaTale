@@ -198,9 +198,9 @@ class TestPlayer(unittest.TestCase):
     def test_look(self):
         player = Player("fritz", "m")
         attic = Location("Attic", "A dark attic.")
-        player.look(short=True, evoke=False)
-        self.assertEqual(["[Limbo]\n", "The intermediate or transitional place or state. There's only nothingness. "
-                                       "Living beings end up here if they're not in a proper location yet.\n"]
+        player.look(evoke=False)
+        self.assertEqual(self._concat_list(["[Limbo]", "The intermediate or transitional place or state. There's only nothingness. "
+                                       "Living beings end up here if they're not in a proper location yet.\n"])
                          , player.test_get_output_paragraphs())
         player.move(attic, silent=True)
         player.look(short=True, evoke=False)
@@ -208,7 +208,7 @@ class TestPlayer(unittest.TestCase):
         julie = Living("julie", "f")
         julie.move(attic, silent=True)
         player.look(short=True, evoke=False)
-        self.assertEqual(["[Attic]\n", "Present here: julie\n"], player.test_get_output_paragraphs())
+        self.assertEqual(self._concat_list(["[Attic]", "Present here: julie\n"]), player.test_get_output_paragraphs())
 
     def test_look_brief(self):
         player = Player("fritz", "m")
@@ -219,17 +219,17 @@ class TestPlayer(unittest.TestCase):
         player.move(attic, silent=True)
         player.brief = 0  # default setting: always long descriptions
         player.look(evoke=False)
-        self.assertEqual(["[Attic]", "A dark attic.", "Julie is here.\n"], player.test_get_output_paragraphs())
+        self.assertEqual(self._concat_list(["[Attic]", "A dark attic.", "Julie is here.\n"]), player.test_get_output_paragraphs())
         player.look(evoke=False)
-        self.assertEqual(["[Attic]", "A dark attic.", "Julie is here.\n"], player.test_get_output_paragraphs())
+        self.assertEqual(self._concat_list(["[Attic]", "A dark attic.", "Julie is here.\n"]), player.test_get_output_paragraphs())
         player.look(short=True, evoke=False)   # override
-        self.assertEqual(["[Attic]", "Present here: julie\n"], player.test_get_output_paragraphs())
+        self.assertEqual(self._concat_list(["[Attic]", "Present here: julie\n"]), player.test_get_output_paragraphs())
         player.brief = 1  # short for known, long for new locations
         player.look(evoke=False)
-        self.assertEqual(["[Attic]", "Present here: julie\n"], player.test_get_output_paragraphs())
+        self.assertEqual(self._concat_list(["[Attic]", "Present here: julie\n"]), player.test_get_output_paragraphs())
         player.move(cellar, silent=True)
         player.look(evoke=False)
-        self.assertEqual(["[Cellar]", "A gloomy cellar.\n"], player.test_get_output_paragraphs())
+        self.assertEqual(self._concat_list(["[Cellar]", "A gloomy cellar.\n"]), player.test_get_output_paragraphs())
         player.look(evoke=False)
         self.assertEqual(["[Cellar]\n"], player.test_get_output_paragraphs())
         player.brief = 2  # short always
@@ -238,11 +238,14 @@ class TestPlayer(unittest.TestCase):
         self.assertEqual(["[Cellar]\n"], player.test_get_output_paragraphs())
         player.move(attic, silent=True)
         player.look(evoke=False)
-        self.assertEqual(["[Attic]", "Present here: julie\n"], player.test_get_output_paragraphs())
+        self.assertEqual(self._concat_list(["[Attic]", "Present here: julie\n"]), player.test_get_output_paragraphs())
         player.look(short=True, evoke=False)   # override
-        self.assertEqual(["[Attic]", "Present here: julie\n"], player.test_get_output_paragraphs())
+        self.assertEqual(self._concat_list(["[Attic]", "Present here: julie\n"]), player.test_get_output_paragraphs())
         player.look(short=False, evoke=False)  # override
-        self.assertEqual(["[Attic]", "A dark attic.", "Julie is here.\n"], player.test_get_output_paragraphs())
+        self.assertEqual(self._concat_list(["[Attic]", "A dark attic.", "Julie is here.\n"]), player.test_get_output_paragraphs())
+
+    def _concat_list(self, input):
+        return [', '.join(input)]
 
     def test_others(self):
         attic = Location("Attic", "A dark attic.")

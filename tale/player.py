@@ -119,7 +119,7 @@ class Player(base.Living, pubsub.Listener):
             look_paragraphs = self.location.look(exclude_living=self, short=short)
             
             #for paragraph in look_paragraphs:
-            self.tell(look_paragraphs, end=True, evoke=evoke)
+            self.tell(', '.join(look_paragraphs), end=True, evoke=evoke)
         else:
             self.tell("You see nothing.")
 
