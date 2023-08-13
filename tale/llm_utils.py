@@ -3,8 +3,9 @@ import os
 import yaml
 from json import JSONDecodeError
 from tale.llm_io import IoUtil
-import tale.parse_utils as parse_utils
+from tale.load_character import CharacterV2
 from tale.player_utils import TextBuffer
+import tale.parse_utils as parse_utils
 
 class LlmUtil():
     """ Prepares prompts for various LLM requests"""
@@ -27,6 +28,7 @@ class LlmUtil():
         self.dialogue_prompt = config_file['DIALOGUE_PROMPT']
         self.action_prompt = config_file['ACTION_PROMPT']
         self.combat_prompt = config_file['COMBAT_PROMPT']
+        self.character_prompt = config_file['CREATE_CHARACTER_PROMPT']
         self.item_prompt = config_file['ITEM_PROMPT']
         self.word_limit = config_file['WORD_LIMIT']
         self._story_background = ''
@@ -88,7 +90,7 @@ class LlmUtil():
         request_body['prompt'] = prompt
         text = parse_utils.trim_response(self.io_util.synchronous_request(self.url + self.endpoint, request_body))
         try:
-            json_result = json.loads(text.replace('\n', ''))
+            json_result = json.loads(parse_utils.sanitize_json(text))
         except JSONDecodeError as exc:
             print(exc)
             return None, None
@@ -133,7 +135,29 @@ class LlmUtil():
         if len(rolling_prompt) > self.memory_size:
             rolling_prompt = rolling_prompt[len(rolling_prompt) - self.memory_size + 1:]
         return rolling_prompt
-     
+    
+    def generate_character(self, story_context: str = '', keywords: list = []):
+        """ Generate a character card based on the current story context"""
+        prompt = self.character_prompt.format(story_context=story_context, 
+                                              keywords=', '.join(keywords))
+        request_body = self.default_body
+        request_body['stop_sequence'] = ['\n\n']
+        request_body['temperature'] = 1.0
+        request_body['banned_tokens'] = ['```']
+        request_body['prompt'] = prompt
+        result = self.io_util.synchronous_request(self.url + self.endpoint, request_body)
+        try:
+            json_result = json.loads(parse_utils.sanitize_json(result))
+        except JSONDecodeError as exc:
+            print(exc)
+            return None
+        try:
+            return CharacterV2().from_json(json_result)
+        except:
+            print(f'Exception while parsing character {json_result}')
+            return None
+
+
     @property
     def story_background(self) -> str:
         return self._story_background

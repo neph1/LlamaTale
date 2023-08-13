@@ -56,6 +56,29 @@ class Maid(LivingNpc):
         self.location.tell(f"{lang.capital(self.title)} wipes a table and picks up dishes.", evoke=False, max_length=True)
 
 
+class RoamingPatron(LivingNpc):
+
+
+    def __init__(self, name: str, gender: str, *,
+                 title: str="", descr: str="", short_descr: str="", age: int, personality: str):
+        super(RoamingPatron, self).__init__(name=name, gender=gender,
+                 title=title, descr=descr, short_descr=short_descr, age=age, personality=personality, occupation='')
+        self.sitting = False
+        
+    @call_periodically(45, 120)
+    def do_random_move(self, ctx: Context) -> None:
+        if not self.sitting:
+            if random.random() < 0.25:
+                self.sitting = True
+                self.tell_others("{Actor} sits down.", evoke=False, max_length=True)
+            else:
+                direction = self.select_random_move()
+                if direction:
+                    self.move(direction.target, self, direction_names=direction.names)
+        elif random.random() < 0.5:
+            self.sitting = False
+            self.tell_others("{Actor} stands up.", evoke=False, max_length=True)
+
     
 class Patron(LivingNpc):
     

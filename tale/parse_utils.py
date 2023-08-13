@@ -139,3 +139,10 @@ def trim_response(message: str):
         if last > lastChar:
             lastChar = last
     return message[:lastChar+1]
+
+def sanitize_json(result: str):
+    """ Removes special chars from json string. Some common, and some 'creative' ones. """
+    # .replace('}}', '}')
+    result = result.replace('\\"', '"').replace('"\\n"', '","').replace('\\n', '').replace('}\n{', '},{').replace('}{', '},{').replace('\\r', '').replace('\\t', '').replace('"{', '{').replace('}"', '}').replace('"\\', '"').replace('""', '"').replace('\\”', '"').replace('" "', '","').replace(':,',':')
+    print('sanitized json: ' + result)
+    return result

@@ -60,7 +60,7 @@ class CharacterV2():
     def from_json(self, json: dict):
         self.name = json.get('name')
         self.race = json.get('race', 'human')
-        self.gender = json.get('gender', 'f')
+        self.gender = json.get('gender', 'f')[0].lower()
         description = json.get('description')
         self.description = description
         self.appearance = json.get('appearance', description.split(';')[0])

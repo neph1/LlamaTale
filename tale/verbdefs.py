@@ -332,7 +332,6 @@ VERBS = {
     "duck":      (PERS, None, "duck$ \nHOW out of the way", "duck$ \nHOW out of \nPOSS way"),
 }  # type: Dict[str, Tuple]
 
-
 assert all(v[1] is None or type(v[1]) is tuple for v in VERBS.values()), "Second specifier in verb list must be None or tuple, not str"
 
 AGGRESSIVE_VERBS = {
