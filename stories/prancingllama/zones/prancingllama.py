@@ -6,6 +6,7 @@ from tale.lang import capital
 from tale.player import Player
 from tale.util import Context, call_periodically
 from tale.verbdefs import AGGRESSIVE_VERBS
+from tale.verbdefs import VERBS
 from npcs.npcs import *
 
 
@@ -57,3 +58,33 @@ old_map = Item("map", "old map", descr="It looks like a map, and a cave is marke
 
 norhardt.init_inventory([old_map])
 
+all_locations = [main_hall, bar, kitchen, hearth, entrance, outside, cellar]
+
+def _generate_character():
+    # select 5 random verbs from VERBS
+    verbs = []
+    for i in range(5):
+        verbs.append(random.choice(list(VERBS.keys())))
+
+    character = mud_context.driver.llm_util.generate_character(story_context=mud_context.config.context, keywords=verbs) # Characterv2
+    if character:
+        patron = RoamingPatron(character.name, 
+                        gender=character.gender, 
+                        title=lang.capital(character.name), 
+                        descr=character.description, 
+                        short_descr=character.appearance, 
+                        age=character.age, 
+                        personality=character.personality)
+        patron.aliases = [character.name.split(' ')[0]]
+        location = all_locations[random.randint(0, len(all_locations) - 1)]
+        location.insert(patron, None)
+        return True
+    return False
+
+# 10 attempts to generate 2 characters
+generated = 0
+for i in range(10):
+    if _generate_character():
+        generated += 1
+    if generated == 2:
+        break
