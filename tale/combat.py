@@ -23,26 +23,26 @@ def resolve_attack(attacker, victim):
     
     return text, damage_to_attacker, damage_to_defender
 
-def combat(actor1: 'Living', actor2: 'Living'):
+def combat(actor1: 'base.Living', actor2: 'base.Living'):
     """ Simple combat, but rather complex logic. Credit to ChatGPT."""
     
-    def calculate_attack(actor: 'Living'):
+    def calculate_attack(actor: 'base.Living'):
         # The attack strength depends on the level and strength of the actor
         return actor.stats.level
 
-    def calculate_defense(actor: 'Living'):
+    def calculate_defense(actor: 'base.Living'):
         # The defense strength depends on the level and dexterity of the actor
         return actor.stats.level * actor.stats.dexterity
 
-    def calculate_weapon_bonus(actor: 'Living'):
+    def calculate_weapon_bonus(actor: 'base.Living'):
         # The weapon bonus is a random factor between 0 and 1. If the actor has no weapon, bonus is 1.
         return actor.stats.wc + 1
 
-    def calculate_armor_bonus(actor: 'Living'):
+    def calculate_armor_bonus(actor: 'base.Living'):
         # The armor bonus is a random factor between 0 and 1. If the actor has no armor, bonus is 1.
         return actor.stats.ac + 1
 
-    def calculate_damage(attacker: 'Living', defender: 'Living'):
+    def calculate_damage(attacker: 'base.Living', defender: 'base.Living'):
         # Calculate the damage done by the attacker to the defender
         attack_strength = calculate_attack(attacker) * calculate_weapon_bonus(attacker) * attacker.stats.strength * attacker.stats.size.order
         defense_strength = calculate_defense(defender) * calculate_armor_bonus(defender) * defender.stats.strength * defender.stats.size.order
@@ -60,7 +60,7 @@ def combat(actor1: 'Living', actor2: 'Living'):
     return int(damage_to_actor1), int(damage_to_actor2)
     
 
-def produce_remains(context: Context, actor: 'Living'):
+def produce_remains(context: Context, actor: 'base.Living'):
     # Produce the remains of the actor
     remains = base.Container(f"remains of {actor.title}")
     remains.init_inventory(actor.inventory)
