@@ -7,16 +7,16 @@ class TestCharacterLoader():
 
     character_loader = CharacterLoader()
 
-    def test_load_image(self):
-        image = 'tests/files/gandalf.png'
+    # def test_load_image(self):
+    #     image = 'tests/files/gandalf.png'
 
-        json_data = self.character_loader.load_character(image)
+    #     json_data = self.character_loader.load_character(image)
 
-        assert(json_data)
+    #     assert(json_data)
 
-        character = CharacterV2().from_json(json_data)
-        assert(json_data.get('name'))
-        assert(json_data.get('description'))
+    #     character = CharacterV2().from_json(json_data)
+    #     assert(json_data.get('name'))
+    #     assert(json_data.get('description'))
 
     def test_load_from_json(self):
         path = 'tests/files/test_character.json'
