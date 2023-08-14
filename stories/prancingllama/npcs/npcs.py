@@ -97,36 +97,6 @@ class Shanda(Patron):
             self.sentiments(actor.title, 'impressed')
             self.do_say(f'{actor.title} gives Shanda a giant rat skull', actor=actor)
 
-class Guard(LivingNpc):
-    
-    def __init__(self, name: str, gender: str, *,
-                 title: str="", descr: str="", short_descr: str="", age: int, personality: str):
-        super(Patron, self).__init__(name=name, gender=gender,
-                 title=title, descr=descr, short_descr=short_descr, age=age, personality=personality, occupation='')
-        
-    def init(self) -> None:
-        self.aliases = {"guard"}
-
-    def notify_action(self, parsed: ParseResult, actor: Living) -> None:
-        if actor is self or parsed.verb in self.verbs:
-            return  # avoid reacting to ourselves, or reacting to verbs we already have a handler for
-        if parsed.verb in AGGRESSIVE_VERBS:
-            self.tell_others("{Actor} screams at you: 'What are you doing!?'")
-            do_attack()
-                
-        elif parsed.verb in ("hello", "hi", "greet"):
-            self.tell_others("{Actor} says 'Hello' to {target}.", target=actor)
-
-    def do_attack(self) -> None:
-        if not self.attacking:
-            for liv in self.location.livings:
-                if isinstance(liv, Player):
-                    self.start_attack(self.location)
-                    liv.tell("It may be a good idea to run away!")
-                    self.attacking = True
-                    
-                    break
-
 class Rat(Living):
     def init(self) -> None:
         super().init()
