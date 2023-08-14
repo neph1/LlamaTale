@@ -3,7 +3,7 @@ This fork uses an LLM backend to describe things in a more vivid way. (LLM not i
 By default it uses KoboldCpp, but if you're feeling adventurous you can change llm_config.yaml in the tale/ folder to another one. 
 
 2. Get and install KoboldCpp: https://github.com/LostRuins/koboldcpp/releases
-3. Download a suitable llm model for koboldcpp. I recommend https://huggingface.co/TheBloke/Nous-Hermes-Llama2-GGML or https://huggingface.co/TheBloke/chronos-hermes-13B-GGML. Recently I've tested with llama-2-7b-chat-codeCherryPop.ggmlv3.q5_K_M, which seems to be working really well, too.
+3. Download a suitable llm model for koboldcpp. I recommend llama-2-7b-chat-codeCherryPop.ggmlv3.q5_K_M(https://huggingface.co/TokenBender/llama2-7b-chat-hf-codeCherryPop-qLoRA-merged), a 7b model which is both fast and very accurate (relatively speaking) when generating JSON.
 4. Make sure KoboldCpp works.
 5. Download repo, either with 'git clone' or as a zip.
 6. Run 'pip install -r requirements.txt'
