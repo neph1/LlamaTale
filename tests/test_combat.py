@@ -23,9 +23,11 @@ class TestCombat():
             assert('attacker dies' in text)
         if defender.stats.hp < 1:
             assert('defender dies' in text)
-        
-    # def test_produce_remains(self):
-    #     ctx = util.Context(driver=FakeDriver(), clock=None, config=None, player_connection=None)
-    #     rat = LivingNpc(name='Giant Rat', gender='m', age=4, personality='Sneaky and nasty')
-    #     remains = combat.produce_remains(ctx, rat)
-    #     assert(remains)
+
+    def test_produce_remains(self):
+        ctx = util.Context(driver=FakeDriver(), clock=None, config=None, player_connection=None)
+        rat = LivingNpc(name='Giant Rat', gender='m', age=4, personality='Sneaky and nasty')
+        remains = combat.produce_remains(ctx, rat)
+        assert(remains)
+        remains.location.remove(remains, None)
+

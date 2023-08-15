@@ -64,7 +64,14 @@ class LlmUtil():
                 return '\n', rolling_prompt
         return str(message), rolling_prompt
     
-    def generate_dialogue(self, conversation: str, character_card: str, character_name: str, target: str, target_description: str='', sentiment = '', location_description = ''):
+    def generate_dialogue(self, conversation: str, 
+                          character_card: str, 
+                          character_name: str, 
+                          target: str, 
+                          target_description: str='', 
+                          sentiment = '', 
+                          location_description = '',
+                          max_length : bool=False):
         prompt = self.pre_prompt
         prompt += self.dialogue_prompt.format(
                 story_context=self._story_background,
@@ -77,8 +84,12 @@ class LlmUtil():
                 sentiment=sentiment)
         request_body = self.default_body
         request_body['prompt'] = prompt
+        #if not self.stream:
         text = parse_utils.trim_response(self.io_util.synchronous_request(self.url + self.endpoint, request_body))
-        
+        #else:
+        #    player_io = mud_context.pla
+        #    text = self.io_util.stream_request(self.url + self.stream_endpoint, self.url + self.data_endpoint, request_body, player_io, self.connection)
+
         item_handling_result, new_sentiment = self.dialogue_analysis(text, character_card, character_name, target)
         
         return f'{text}', item_handling_result, new_sentiment
@@ -141,7 +152,7 @@ class LlmUtil():
         prompt = self.character_prompt.format(story_context=story_context, 
                                               keywords=', '.join(keywords))
         request_body = self.default_body
-        request_body['stop_sequence'] = ['\n\n']
+        request_body['stop_sequence'] = ['\n\n'] # to avoid text after the character card
         request_body['temperature'] = 1.0
         request_body['banned_tokens'] = ['```']
         request_body['prompt'] = prompt
@@ -156,7 +167,6 @@ class LlmUtil():
         except:
             print(f'Exception while parsing character {json_result}')
             return None
-
 
     @property
     def story_background(self) -> str:

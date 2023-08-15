@@ -255,7 +255,7 @@ class MudAccounts:
         columns = ["account"]
         values = [account_id]
         stat_vars = dict(vars(stats))
-        for not_stored in ["bodytype", "language", "weight", "size"]:
+        for not_stored in ["bodytype", "language", "weight", "size", "unarmed_attack"]:
             del stat_vars[not_stored]    # these are not stored, but always initialized from the races table
         for key, value in stat_vars.items():
             columns.append(key)

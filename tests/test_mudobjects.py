@@ -821,6 +821,21 @@ class TestLiving(unittest.TestCase):
         self.assertEqual(["Julie farts.", "Julie takes a note."], listener.messages)
         self.assertEqual(1, j.inventory_size)
 
+    def test_wield(self):
+        weapon_attacker = Weapon(name='sword', wc=2)
+        attacker = Living(name='attacker', gender='m', race='human')
+        attacker.init_inventory([weapon_attacker])
+        assert(attacker.wielding.name == 'fists')
+        attacker.wielding = weapon_attacker
+        assert(attacker.stats.wc == 2)
+        assert(attacker.wielding == weapon_attacker)
+
+        attacker.wielding = None
+        assert(attacker.stats.wc == 0)
+        assert(attacker.wielding.name == 'fists')
+
+        
+
 
 class TestAggressiveNpc(unittest.TestCase):
     def test_init_inventory(self):
