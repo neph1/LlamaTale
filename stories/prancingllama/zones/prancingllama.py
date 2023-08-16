@@ -32,17 +32,17 @@ outside = Location("Outside", "A snow-storm is raging across the craggy landscap
 cellar = Cellar("Cellar", "A dark and damp place, with cob-webs in the corners. Filled with barrels and boxes of various kind.")
 
 
-Exit.connect(main_hall, ["bar", "north"], "", "To the north are some people sitting by a massive bar.", bar, ["main hall", "south"], "To the south is an area full of tables with people eating, drinking and talking", "")
+Exit.connect(main_hall, ["bar", "north"], "To the north are some people sitting by a massive bar.", "", bar, ["main hall", "south"], "To the south is an area full of tables with people eating, drinking and talking", "")
 
 Exit.connect(main_hall, ["hearth", "west"], "To the west you see a giant hearth with a comforting fire", "", hearth, ["main hall", "east"], "To the east is an area full of tables with people eating, drinking and talking", "")
 
-Exit.connect(bar, ["kitchen", "north"], "", "To the north, there's a door leading to the kitchen.", kitchen, ["bar", "south"], "Through a door to the south you see the bar, and beyond that, the main hall", "")
+Exit.connect(bar, ["kitchen", "north"], "To the north, there's a door leading to the kitchen.", "", kitchen, ["bar", "south"], "Through a door to the south you see the bar, and beyond that, the main hall", "")
 
-Exit.connect(bar, ["cellar", "east"], "", "By the east wall, there's a narrow stair leading down'", cellar, ["bar", "w"], "There's light shining down from above", "")
+Exit.connect(bar, ["cellar", "east", "down"], "By the east wall, there's a narrow stair leading down", "", cellar, ["bar", "west", "up"], "There's light shining down from above", "")
 
 Exit.connect(main_hall, ["entrance", "south"], "", "The entrance to the building is to the south.", entrance, ["main hall", "north"], "There's a warm glow and loud, noisy conversations coming through a doorway to the north", "")
 
-Exit.connect(entrance, ["outside", "south"], "", "A biting wind reaches you through the door to the south.", outside, ["entrance", "north"], "There's shelter from the cold wind through a door to the north.", "")
+Exit.connect(entrance, ["outside", "south"], "A biting wind reaches you through the door to the south.", "", outside, ["entrance", "north"], "There's shelter from the cold wind through a door to the north.", "")
 
 main_hall.init_inventory([shanda, elid_gald])
 
