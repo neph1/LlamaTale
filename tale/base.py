@@ -925,7 +925,6 @@ class Stats:
         # the stats that are static are always initialized from the races table
         # we look it up via the name, not needed to store the actual Race object here
         r = races.races[self.race]
-        print(f'race {r}')
         self.bodytype = r.body
         self.language = r.language
         self.weight = r.mass

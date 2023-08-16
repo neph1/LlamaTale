@@ -40,7 +40,7 @@ class LlmUtil():
         if len(message) > 0 and str(message) != "\n":
             trimmed_message = parse_utils.remove_special_chars(str(message))
             base_prompt = alt_prompt if alt_prompt else self.base_prompt
-            amount = 50 #int(len(trimmed_message) / 2)
+            amount = 25 #int(len(trimmed_message) / 2)
             prompt = self.pre_prompt
             prompt += base_prompt.format(
                 story_context=self._story_background,

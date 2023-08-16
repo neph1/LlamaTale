@@ -1,6 +1,6 @@
 import random
 
-from tale.base import Location, Item, Exit, Door, Key, Living, ParseResult
+from tale.base import Location, Item, Exit, Door, Key, Living, ParseResult, Weapon
 from tale.errors import StoryCompleted
 from tale.lang import capital
 from tale.player import Player
@@ -48,7 +48,12 @@ main_hall.init_inventory([shanda, elid_gald])
 
 bar.init_inventory([urta, norhardt])
 
-hearth.init_inventory([count_karta, brim])
+prongs = Weapon("prongs", wc=1, descr="A pair of prongs, used for cooking.")
+
+hearth.init_inventory([count_karta, brim, prongs])
+
+knife = Weapon("knife", wc=1, descr="A sharp kitchen knife.")
+kitchen.init_inventory([knife])
 
 drink = Item("ale", "jug of ale", descr="Looks and smells like strong ale.")
 
