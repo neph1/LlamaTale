@@ -1681,7 +1681,7 @@ def do_account(player: Player, parsed: base.ParseResult, ctx: util.Context) -> N
 
 @cmd("load_character")
 def do_load_character(player: Player, parsed: base.ParseResult, ctx: util.Context) -> None:
-    """Load a character from file."""
+    """Load a companion character from file."""
     if len(parsed.args) != 1:
         raise ParseError("You need to specify the path to the character file")
     try:
@@ -1690,3 +1690,23 @@ def do_load_character(player: Player, parsed: base.ParseResult, ctx: util.Contex
         raise ActionRefused(str(x))
 
     ctx.driver.load_character(player, path)
+
+@cmd("wield")
+def do_wield(player: Player, parsed: base.ParseResult, ctx: util.Context) -> None:
+    """Wield a weapon."""
+    if len(parsed.args) != 1:
+        raise ParseError("You need to specify the weapon to wield")
+    try:
+        weapon = str(parsed.args[0])
+    except ValueError as x:
+        raise ActionRefused(str(x))
+    result = player.locate_item(weapon, include_location=False)
+    if result:
+        player.wielding = result[0]
+    else:
+        raise ActionRefused("You don't have that weapon")
+
+@cmd("unwield")
+def do_unwield(player: Player, parsed: base.ParseResult, ctx: util.Context) -> None:
+    """Unwield a weapon."""
+    player.wielding = None

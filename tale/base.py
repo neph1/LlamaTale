@@ -55,6 +55,7 @@ from . import verbdefs
 from . import combat
 from . import player
 from .errors import ActionRefused, ParseError, LocationIntegrityError, TaleError, UnknownVerbException, NonSoulVerb
+from tale.races import UnarmedAttack
 
 __all__ = ["MudObject", "Armour", 'Container', "Door", "Exit", "Item", "Living", "Stats", "Location", "Weapon", "Key", "Soul"]
 
@@ -420,10 +421,10 @@ class Item(MudObject):
     to check containment.
     """
 
-    def __init__(self, name: str, title: str = "", *, descr: str = "", short_descr: str = "") -> None:
+    def __init__(self, name: str, title: str = "", *, descr: str = "", short_descr: str = "", value: int = 0) -> None:
         self.contained_in = None   # type: Optional[ContainingType]
         self.default_verb = "examine"
-        self.value = 0.0   # what the item is worth
+        self.value = value   # what the item is worth
         self.rent = 0.0    # price to keep in store / day
         self.weight = 0.0  # some abstract unit
         self.takeable = True    # can this item be taken/picked up?
@@ -581,7 +582,9 @@ class Weapon(Item):
     An item that can be wielded by a Living (i.e. present in a weapon itemslot),
     and that can be used to attack another Living.
     """
-    pass
+    def __init__(self, name: str, wc: int = 0, title: str = "", *, descr: str = "", short_descr: str = "") -> None:
+        super().__init__(name, title, descr=descr, short_descr=short_descr)
+        self.wc = wc
 
 
 class Armour(Item):
@@ -635,7 +638,7 @@ class Location(MudObject):
         """get a wiretap for this location"""
         return pubsub.topic(("wiretap-location", "%s#%d" % (self.name, self.vnum)))
 
-    def tell(self, room_msg: str, exclude_living: 'Living'=None, specific_targets: Set[Union[ParsedWhoType]]=None,
+    def tell(self, room_msg: str, exclude_living: 'Living'=None, specific_targets: Set[Union[ParsedWhoType, 'Living']]=None,
              specific_target_msg: str="", evoke : bool=True, max_length : bool=False, alt_prompt: str='') -> None:
         """
         Tells something to the livings in the room (excluding the living from exclude_living).
@@ -905,6 +908,7 @@ class Stats:
         self.race = ""      # the name of the race of this creature
         self.strength = 3
         self.dexterity = 3
+        self.unarmed_attack = Weapon(UnarmedAttack.FISTS.name)
 
     def __repr__(self):
         return "<Stats: %s>" % vars(self)
@@ -928,6 +932,7 @@ class Stats:
         self.weight = r.mass
         self.size = r.size
         self.hp = r.hp
+        self.unarmed_attack = Weapon(name=r.unarmed_attack.name)
 
 
 class Living(MudObject):
@@ -957,6 +962,7 @@ class Living(MudObject):
         self.teleported_from = None   # type: Optional[Location]   # used by teleport/return commands
         self.following = None   # type: Optional[Living]
         self.is_pet = False   # set this to True if creature is/becomes someone's pet
+        self.__wielding = None   # type: Optional[Weapon]
         super().__init__(name, title=title, descr=descr, short_descr=short_descr)
 
     def init_gender(self, gender: str) -> None:
@@ -1349,6 +1355,8 @@ class Living(MudObject):
 
         combat_prompt = mud_context.driver.llm_util.combat_prompt.format(attacker=attacker_name, 
                                                                          victim=victim_name, 
+                                                                         attacker_weapon=self.wielding.name,
+                                                                         victim_weapon=victim.wielding.name,
                                                                          attacker_msg=attacker_msg,
                                                                          location=self.location.title,
                                                                          location_description=self.location.short_description)
@@ -1448,8 +1456,17 @@ class Living(MudObject):
     def check_stat(self, stat : str):
         if stat == 'hp':
             return self.stat.hp
+    
+    @property
+    def wielding(self) -> Weapon:
+        """Return the item we're wielding, or unarmed if we're not wielding anything."""
+        return self.__wielding if self.__wielding is not None else self.stats.unarmed_attack
         
-        
+    @wielding.setter
+    def wielding(self, weapon: Optional[Weapon]) -> None:
+        """Wield a weapon. If weapon is None, unwield."""
+        self.__wielding = weapon
+        self.stats.wc = weapon.wc if self.__wielding else 0
 
 
 class Container(Item):

@@ -245,7 +245,7 @@ class TestPlayer(unittest.TestCase):
         self.assertEqual(self._concat_list(["[Attic]", "A dark attic.", "Julie is here.\n"]), player.test_get_output_paragraphs())
 
     def _concat_list(self, input):
-        return [', '.join(input)]
+        return ['\n'.join(input)]
 
     def test_others(self):
         attic = Location("Attic", "A dark attic.")

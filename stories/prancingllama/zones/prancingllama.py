@@ -1,6 +1,6 @@
 import random
 
-from tale.base import Location, Item, Exit, Door, Key, Living, ParseResult
+from tale.base import Location, Item, Exit, Door, Key, Living, ParseResult, Weapon
 from tale.errors import StoryCompleted
 from tale.lang import capital
 from tale.player import Player
@@ -19,7 +19,7 @@ class Cellar(Location):
     def spawn_rat(self, ctx: Context) -> None:
         rat_skull = Item("rat_skull", "giant rat skull", descr="It's a giant rat's bloody skull.")
         if not self.rat or self.rat.alive == False:
-            self.rat = Rat("giant rat", random.choice("m"), descr="A vicious looking, giant, rat", race="rodent")
+            self.rat = Rat("giant rat", random.choice("m"), descr="A vicious looking, giant, rat", race="giant rat")
             self.rat.init_inventory([rat_skull])
             self.rat.move(self)
 
@@ -32,23 +32,28 @@ outside = Location("Outside", "A snow-storm is raging across the craggy landscap
 cellar = Cellar("Cellar", "A dark and damp place, with cob-webs in the corners. Filled with barrels and boxes of various kind.")
 
 
-Exit.connect(main_hall, ["bar", "north"], "", "To the north are some people sitting by a massive bar.", bar, ["main hall", "south"], "To the south is an area full of tables with people eating, drinking and talking", "")
+Exit.connect(main_hall, ["bar", "north"], "To the north are some people sitting by a massive bar.", "", bar, ["main hall", "south"], "To the south is an area full of tables with people eating, drinking and talking", "")
 
 Exit.connect(main_hall, ["hearth", "west"], "To the west you see a giant hearth with a comforting fire", "", hearth, ["main hall", "east"], "To the east is an area full of tables with people eating, drinking and talking", "")
 
-Exit.connect(bar, ["kitchen", "north"], "", "To the north, there's a door leading to the kitchen.", kitchen, ["bar", "south"], "Through a door to the south you see the bar, and beyond that, the main hall", "")
+Exit.connect(bar, ["kitchen", "north"], "To the north, there's a door leading to the kitchen.", "", kitchen, ["bar", "south"], "Through a door to the south you see the bar, and beyond that, the main hall", "")
 
-Exit.connect(bar, ["cellar", "east"], "", "By the east wall, there's a narrow stair leading down'", cellar, ["bar", "w"], "There's light shining down from above", "")
+Exit.connect(bar, ["cellar", "east", "down"], "By the east wall, there's a narrow stair leading down", "", cellar, ["bar", "west", "up"], "There's light shining down from above", "")
 
 Exit.connect(main_hall, ["entrance", "south"], "", "The entrance to the building is to the south.", entrance, ["main hall", "north"], "There's a warm glow and loud, noisy conversations coming through a doorway to the north", "")
 
-Exit.connect(entrance, ["outside", "south"], "", "A biting wind reaches you through the door to the south.", outside, ["entrance", "north"], "There's shelter from the cold wind through a door to the north.", "")
+Exit.connect(entrance, ["outside", "south"], "A biting wind reaches you through the door to the south.", "", outside, ["entrance", "north"], "There's shelter from the cold wind through a door to the north.", "")
 
 main_hall.init_inventory([shanda, elid_gald])
 
 bar.init_inventory([urta, norhardt])
 
-hearth.init_inventory([count_karta, brim])
+prongs = Weapon("prongs", wc=1, descr="A pair of prongs, used for cooking.")
+
+hearth.init_inventory([count_karta, brim, prongs])
+
+knife = Weapon("knife", wc=1, descr="A sharp kitchen knife.")
+kitchen.init_inventory([knife])
 
 drink = Item("ale", "jug of ale", descr="Looks and smells like strong ale.")
 
@@ -83,7 +88,7 @@ def _generate_character():
 
 # 10 attempts to generate 2 characters
 generated = 0
-for i in range(10):
+for i in range(5):
     if _generate_character():
         generated += 1
     if generated == 2:

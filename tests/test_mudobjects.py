@@ -441,9 +441,9 @@ class TestDoorsExits(unittest.TestCase):
         self.assertEqual(0, len(hall.livings))
         self.assertEqual(3, len(attic.livings))
         self.assertEqual(["entering the attic via exit 1", "\n", "<location>[attic]</>"], collector_j.messages[0:3])
-        self.assertEqual(["Julie leaves towards attic.", "<location>[attic]</>, Julie is here."], collector_p.messages[0:2]) # changed so that livings are included
+        self.assertEqual(["Julie leaves towards attic.", "<location>[attic]</>\nJulie is here."], collector_p.messages[0:2]) # changed so that livings are included
         self.assertEqual(["Julie leaves towards attic.", "Peter leaves towards attic.", "entering the attic via door",
-                          "\n", "<location>[attic]</>, Julie and Peter are here."], collector_s.messages[0:5])
+                          "\n", "<location>[attic]</>\nJulie and Peter are here."], collector_s.messages[0:5])
 
     def test_bind_exit(self):
         class ModuleDummy:
@@ -820,6 +820,21 @@ class TestLiving(unittest.TestCase):
         pubsub.sync()
         self.assertEqual(["Julie farts.", "Julie takes a note."], listener.messages)
         self.assertEqual(1, j.inventory_size)
+
+    def test_wield(self):
+        weapon_attacker = Weapon(name='sword', wc=2)
+        attacker = Living(name='attacker', gender='m', race='human')
+        attacker.init_inventory([weapon_attacker])
+        assert(attacker.wielding.name == 'fists')
+        attacker.wielding = weapon_attacker
+        assert(attacker.stats.wc == 2)
+        assert(attacker.wielding == weapon_attacker)
+
+        attacker.wielding = None
+        assert(attacker.stats.wc == 0)
+        assert(attacker.wielding.name == 'fists')
+
+        
 
 
 class TestAggressiveNpc(unittest.TestCase):
