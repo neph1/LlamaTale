@@ -55,6 +55,7 @@ from . import verbdefs
 from . import combat
 from . import player
 from .errors import ActionRefused, ParseError, LocationIntegrityError, TaleError, UnknownVerbException, NonSoulVerb
+from tale.races import UnarmedAttack
 
 __all__ = ["MudObject", "Armour", 'Container', "Door", "Exit", "Item", "Living", "Stats", "Location", "Weapon", "Key", "Soul"]
 
@@ -907,6 +908,7 @@ class Stats:
         self.race = ""      # the name of the race of this creature
         self.strength = 3
         self.dexterity = 3
+        self.unarmed_attack = Weapon(UnarmedAttack.FISTS.name)
 
     def __repr__(self):
         return "<Stats: %s>" % vars(self)
@@ -1353,8 +1355,8 @@ class Living(MudObject):
 
         combat_prompt = mud_context.driver.llm_util.combat_prompt.format(attacker=attacker_name, 
                                                                          victim=victim_name, 
-                                                                         attacker_weapon=self.wielding,
-                                                                         victim_weapon=victim.wielding,
+                                                                         attacker_weapon=self.wielding.name,
+                                                                         victim_weapon=victim.wielding.name,
                                                                          attacker_msg=attacker_msg,
                                                                          location=self.location.title,
                                                                          location_description=self.location.short_description)
@@ -1464,7 +1466,7 @@ class Living(MudObject):
     def wielding(self, weapon: Optional[Weapon]) -> None:
         """Wield a weapon. If weapon is None, unwield."""
         self.__wielding = weapon
-        self.stats.wc = self.__wielding.wc if self.__wielding else 0
+        self.stats.wc = weapon.wc if self.__wielding else 0
 
 
 class Container(Item):

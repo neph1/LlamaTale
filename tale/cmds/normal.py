@@ -1700,7 +1700,11 @@ def do_wield(player: Player, parsed: base.ParseResult, ctx: util.Context) -> Non
         weapon = str(parsed.args[0])
     except ValueError as x:
         raise ActionRefused(str(x))
-    player.wielding = weapon
+    result = player.locate_item(weapon, include_location=False)
+    if result:
+        player.wielding = result[0]
+    else:
+        raise ActionRefused("You don't have that weapon")
 
 @cmd("unwield")
 def do_unwield(player: Player, parsed: base.ParseResult, ctx: util.Context) -> None:

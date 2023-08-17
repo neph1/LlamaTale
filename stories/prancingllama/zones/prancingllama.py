@@ -19,7 +19,7 @@ class Cellar(Location):
     def spawn_rat(self, ctx: Context) -> None:
         rat_skull = Item("rat_skull", "giant rat skull", descr="It's a giant rat's bloody skull.")
         if not self.rat or self.rat.alive == False:
-            self.rat = Rat("giant rat", random.choice("m"), descr="A vicious looking, giant, rat", race="rodent")
+            self.rat = Rat("giant rat", random.choice("m"), descr="A vicious looking, giant, rat", race="giant rat")
             self.rat.init_inventory([rat_skull])
             self.rat.move(self)
 
@@ -88,7 +88,7 @@ def _generate_character():
 
 # 10 attempts to generate 2 characters
 generated = 0
-for i in range(10):
+for i in range(5):
     if _generate_character():
         generated += 1
     if generated == 2:

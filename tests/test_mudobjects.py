@@ -441,9 +441,9 @@ class TestDoorsExits(unittest.TestCase):
         self.assertEqual(0, len(hall.livings))
         self.assertEqual(3, len(attic.livings))
         self.assertEqual(["entering the attic via exit 1", "\n", "<location>[attic]</>"], collector_j.messages[0:3])
-        self.assertEqual(["Julie leaves towards attic.", "<location>[attic]</>, Julie is here."], collector_p.messages[0:2]) # changed so that livings are included
+        self.assertEqual(["Julie leaves towards attic.", "<location>[attic]</>\nJulie is here."], collector_p.messages[0:2]) # changed so that livings are included
         self.assertEqual(["Julie leaves towards attic.", "Peter leaves towards attic.", "entering the attic via door",
-                          "\n", "<location>[attic]</>, Julie and Peter are here."], collector_s.messages[0:5])
+                          "\n", "<location>[attic]</>\nJulie and Peter are here."], collector_s.messages[0:5])
 
     def test_bind_exit(self):
         class ModuleDummy:

@@ -7,8 +7,8 @@ class LivingNpc(Living):
     """An NPC with extra fields to define personality and help LLM generate dialogue"""
 
     def __init__(self, name: str, gender: str, *,
-                 title: str="", descr: str="", short_descr: str="", age: int, personality: str, occupation: str=""):
-        super(LivingNpc, self).__init__(name=name, gender=gender, title=title, descr=descr, short_descr=short_descr)
+                 title: str="", descr: str="", short_descr: str="", age: int, personality: str, occupation: str="", race: str=""):
+        super(LivingNpc, self).__init__(name=name, gender=gender, title=title, descr=descr, short_descr=short_descr, race=race)
         self.age = age
         self.personality = personality
         self.occupation = occupation
@@ -46,6 +46,8 @@ class LivingNpc(Living):
 
     def do_say(self, what_happened: str, actor: Living) -> None:
         self.update_conversation(f'{actor.title}:{what_happened}\n')
+        max_length = False if isinstance(actor, Player) else True
+        
         response, item_result, sentiment = mud_context.driver.llm_util.generate_dialogue(
             conversation=self.conversation, 
             character_card = self.character_card, 
@@ -53,7 +55,8 @@ class LivingNpc(Living):
             target = actor.title,
             target_description = actor.short_description,
             sentiment = self.sentiments.get(actor.title, ''),
-            location_description=self.location.look(exclude_living=self))
+            location_description=self.location.look(exclude_living=self),
+            max_length=max_length)
             
         self.update_conversation(f"{self.title} says: \"{response}\"")
         if len(self.conversation) > self.memory_size:
