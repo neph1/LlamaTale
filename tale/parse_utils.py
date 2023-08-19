@@ -128,8 +128,8 @@ def set_note(note: Note, item: dict):
     note.text = item['text']
 
 def remove_special_chars(message: str):
-        re.sub('[^A-Za-z0-9 .,_\-\'\"]+', '', message)
-        return message
+    re.sub('[^A-Za-z0-9 .,_\-\'\"]+', '', message)
+    return message
         
 def trim_response(message: str):
     enders = ['.', '!', '?', '`', '*', '"', ')', '}', '`', ']']

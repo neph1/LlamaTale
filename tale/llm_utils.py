@@ -2,6 +2,7 @@ import json
 import os
 import yaml
 from json import JSONDecodeError
+from tale.base import Location
 from tale.llm_io import IoUtil
 from tale.load_character import CharacterV2
 from tale.player_utils import TextBuffer
@@ -11,7 +12,7 @@ class LlmUtil():
     """ Prepares prompts for various LLM requests"""
 
     def __init__(self):
-        with open(os.path.realpath(os.path.join(os.path.dirname(__file__), "llm_config.yaml")), "r") as stream:
+        with open(os.path.realpath(os.path.join(os.path.dirname(__file__), "../llm_config.yaml")), "r") as stream:
             try:
                 config_file = yaml.safe_load(stream)
             except yaml.YAMLError as exc:
@@ -29,6 +30,7 @@ class LlmUtil():
         self.action_prompt = config_file['ACTION_PROMPT']
         self.combat_prompt = config_file['COMBAT_PROMPT']
         self.character_prompt = config_file['CREATE_CHARACTER_PROMPT']
+        self.location_prompt = config_file['CREATE_LOCATION_PROMPT']
         self.item_prompt = config_file['ITEM_PROMPT']
         self.word_limit = config_file['WORD_LIMIT']
         self._story_background = ''
@@ -37,32 +39,34 @@ class LlmUtil():
         self.connection = None
 
     def evoke(self, player_io: TextBuffer, message: str, max_length : bool=False, rolling_prompt='', alt_prompt='', skip_history=True):
-        if len(message) > 0 and str(message) != "\n":
-            trimmed_message = parse_utils.remove_special_chars(str(message))
-            base_prompt = alt_prompt if alt_prompt else self.base_prompt
-            amount = 25 #int(len(trimmed_message) / 2)
-            prompt = self.pre_prompt
-            prompt += base_prompt.format(
-                story_context=self._story_background,
-                history=rolling_prompt if not skip_history or alt_prompt else '',
-                max_words=self.word_limit if not max_length else amount,
-                input_text=str(trimmed_message))
-            
-            rolling_prompt = self.update_memory(rolling_prompt, trimmed_message)
-            
-            request_body = self.default_body 
-            request_body['prompt'] = prompt
+        """Evoke a response from LLM. Async if stream is True, otherwise synchronous."""
+        """Update the rolling prompt with the latest message."""
+        if not message or str(message) == "\n":
+            str(message), rolling_prompt
+        trimmed_message = parse_utils.remove_special_chars(str(message))
+        base_prompt = alt_prompt if alt_prompt else self.base_prompt
+        amount = 25 #int(len(trimmed_message) / 2)
+        prompt = self.pre_prompt
+        prompt += base_prompt.format(
+            story_context=self._story_background,
+            history=rolling_prompt if not skip_history or alt_prompt else '',
+            max_words=self.word_limit if not max_length else amount,
+            input_text=str(trimmed_message))
+        
+        rolling_prompt = self.update_memory(rolling_prompt, trimmed_message)
+        
+        request_body = self.default_body 
+        request_body['prompt'] = prompt
 
-            if not self.stream:
-                text = self.io_util.synchronous_request(self.url + self.endpoint, request_body)
-                rolling_prompt = self.update_memory(rolling_prompt, text)
-                return f'Original:[ {message} ]\nGenerated:\n{text}', rolling_prompt
-            else:
-                player_io.print(f'Original:[ {message} ]\nGenerated:\n', end=False, format=True, line_breaks=False)
-                text = self.io_util.stream_request(self.url + self.stream_endpoint, self.url + self.data_endpoint, request_body, player_io, self.connection)
-                rolling_prompt = self.update_memory(rolling_prompt, text)
-                return '\n', rolling_prompt
-        return str(message), rolling_prompt
+        if not self.stream:
+            text = self.io_util.synchronous_request(self.url + self.endpoint, request_body)
+            rolling_prompt = self.update_memory(rolling_prompt, text)
+            return f'Original:[ {message} ]\nGenerated:\n{text}', rolling_prompt
+        else:
+            player_io.print(f'Original:[ {message} ]\nGenerated:\n', end=False, format=True, line_breaks=False)
+            text = self.io_util.stream_request(self.url + self.stream_endpoint, self.url + self.data_endpoint, request_body, player_io, self.connection)
+            rolling_prompt = self.update_memory(rolling_prompt, text)
+            return '\n', rolling_prompt
     
     def generate_dialogue(self, conversation: str, 
                           character_card: str, 
@@ -95,6 +99,7 @@ class LlmUtil():
         return f'{text}', item_handling_result, new_sentiment
     
     def dialogue_analysis(self, text: str, character_card: str, character_name: str, target: str):
+        """Parse the response from LLM and determine if there are any items to be handled."""
         items = character_card.split('items:')[1].split(']')[0]
         prompt = self.generate_item_prompt(text, items, character_name, target)
         request_body = self.analysis_body
@@ -129,7 +134,6 @@ class LlmUtil():
         return prompt
      
     def validate_item_response(self, json_result: dict, character1: str, character2: str, items: str) -> bool:
-        
         if 'result' not in json_result or not json_result.get('result'):
             return False, None
         result = json_result['result']
@@ -168,6 +172,31 @@ class LlmUtil():
             print(f'Exception while parsing character {json_result}')
             return None
 
+    def build_location(self, location: Location, exit_location: Location):
+        """ Generate a location based on the current story context"""
+        prompt = self.location_prompt.format(
+            story_type=self._story_type,
+            story_context=self._story_background,
+            exit_location=exit_location.name,
+            location_name=location.name)
+        request_body = self.default_body
+        request_body['stop_sequence'] = ['\n\n']
+        request_body['temperature'] = 1.0
+        request_body['banned_tokens'] = ['```']
+        request_body['prompt'] = prompt
+        result = self.io_util.synchronous_request(self.url + self.endpoint, request_body)
+        try:
+            json_result = json.loads(parse_utils.sanitize_json(result))
+            #should be a location in json format
+        except JSONDecodeError as exc:
+            print(exc)
+            return None
+        try:
+            return location.from_json(json_result)
+        except:
+            print(f'Exception while parsing location {json_result}')
+            return None
+        
     @property
     def story_background(self) -> str:
         return self._story_background

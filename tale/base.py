@@ -607,6 +607,7 @@ class Location(MudObject):
         self.exits = {}       # type: Dict[str, Exit] # dictionary of all exits: exit_direction -> Exit object with target & descr
         super().__init__(name, descr=descr)
         self.name = name      # make sure we preserve the case; base object overwrites it in lowercase
+        self.built = True     # has this location been built yet? If not, LLM will describe it.
 
     def __contains__(self, obj: Union['Living', Item]) -> bool:
         return obj in self.livings or obj in self.items

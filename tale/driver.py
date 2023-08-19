@@ -792,6 +792,7 @@ class Driver(pubsub.Listener):
                         short_descr = character.appearance.split('.')[0], 
                         age =  character.age, 
                         personality = character.personality, 
+                        race = character.race,
                         occupation = character.occupation)
         npc.following = player
         npc.stats.hp = character.hp
