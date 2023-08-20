@@ -23,7 +23,7 @@ def load_locations(json_file: dict):
     zone[json_file['name']] = locations
     for loc in json_file['rooms']:
         name = loc['name']
-        locations[name] = Location(name, loc['descr'])
+        locations[name] = location_from_json(loc)
         loc_exits = loc['exits']
         for loc_exit in loc_exits:
             temp_exits.setdefault(name,{})[loc_exit['name']] = loc_exit
@@ -41,6 +41,13 @@ def load_locations(json_file: dict):
             parsed_exits.append([exit_from, exit_to])
     return zone, exits
 
+
+def location_from_json(json_object: dict):
+    return Location(name=json_object['name'], descr=json_object['descr'])
+
+def connect_location_to_exit(location_to: Location, location_from: Location, exit_from: Exit):
+    exit_from.bind(location_to)
+    exit_back = Exit(directions=location_from.name, short_desc=exit_from.short_desc, long_desc=exit_from.long_desc) # need exit descs
 
 def load_items(json_file: dict, locations = {}):
     """
@@ -146,3 +153,4 @@ def sanitize_json(result: str):
     result = result.replace('\\"', '"').replace('"\\n"', '","').replace('\\n', '').replace('}\n{', '},{').replace('}{', '},{').replace('\\r', '').replace('\\t', '').replace('"{', '{').replace('}"', '}').replace('"\\', '"').replace('""', '"').replace('\\”', '"').replace('" "', '","').replace(':,',':')
     print('sanitized json: ' + result)
     return result
+

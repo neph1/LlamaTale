@@ -56,6 +56,7 @@ from . import combat
 from . import player
 from .errors import ActionRefused, ParseError, LocationIntegrityError, TaleError, UnknownVerbException, NonSoulVerb
 from tale.races import UnarmedAttack
+from tale.wearable import Wearable, WearLocation
 
 __all__ = ["MudObject", "Armour", 'Container', "Door", "Exit", "Item", "Living", "Stats", "Location", "Weapon", "Key", "Soul"]
 
@@ -590,6 +591,7 @@ class Weapon(Item):
 class Armour(Item):
     """
     An item that can be worn by a Living (i.e. present in an armour itemslot)
+    Used by Circle Mud. Not related to Wearable at present. Not used by LlamaTale.
     """
     pass
 
@@ -964,6 +966,8 @@ class Living(MudObject):
         self.following = None   # type: Optional[Living]
         self.is_pet = False   # set this to True if creature is/becomes someone's pet
         self.__wielding = None   # type: Optional[Weapon]
+        self.__wearing = dict()  # type: Dict[str, Wearable]
+
         super().__init__(name, title=title, descr=descr, short_descr=short_descr)
 
     def init_gender(self, gender: str) -> None:
@@ -1468,6 +1472,18 @@ class Living(MudObject):
         """Wield a weapon. If weapon is None, unwield."""
         self.__wielding = weapon
         self.stats.wc = weapon.wc if self.__wielding else 0
+
+    def set_wearable(self, wearable: Optional[Wearable], location: Optional[WearLocation]) -> None:
+        """ Wear an item if item is not None, else unwear location"""
+        if wearable:
+            loc = location if location else wearable.location
+            self.__wearing[loc] = wearable
+        elif location:
+            self.__wearing.pop(location, None)
+
+    def get_wearable(self, location: WearLocation) -> Optional[Wearable]:
+        """Return the wearable item at the given location, or None if no item is worn there."""
+        return self.__wearing.get(location)
 
 
 class Container(Item):
