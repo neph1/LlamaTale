@@ -14,6 +14,8 @@ object hierarchy::
       |     |
       |     +-- Weapon
       |     +-- Armour
+            +-- Wearable
+            +-- Remains
       |     +-- Container
       |     +-- Key
       |
@@ -53,10 +55,9 @@ from . import util
 from . import story
 from . import verbdefs
 from . import combat
-from . import player
 from .errors import ActionRefused, ParseError, LocationIntegrityError, TaleError, UnknownVerbException, NonSoulVerb
 from tale.races import UnarmedAttack
-from tale.wearable import Wearable, WearLocation
+from . import wearable
 
 __all__ = ["MudObject", "Armour", 'Container', "Door", "Exit", "Item", "Living", "Stats", "Location", "Weapon", "Key", "Soul"]
 
@@ -596,6 +597,14 @@ class Armour(Item):
     pass
 
 
+class Wearable(Item):
+    
+    def __init__(self, name: str, weight, value, ac, wearable_type):
+        super(Wearable).__init__(name, descr=name, value=value)
+        self.ac = ac
+        self.weight = weight
+        self.type = wearable_type
+
 class Location(MudObject):
     """
     A location in the mud world. Livings and Items are in it.
@@ -966,7 +975,7 @@ class Living(MudObject):
         self.following = None   # type: Optional[Living]
         self.is_pet = False   # set this to True if creature is/becomes someone's pet
         self.__wielding = None   # type: Optional[Weapon]
-        self.__wearing = dict()  # type: Dict[str, Wearable]
+        self.__wearing = dict()  # type: Dict[str, wearable.Wearable]
 
         super().__init__(name, title=title, descr=descr, short_descr=short_descr)
 
@@ -1353,9 +1362,9 @@ class Living(MudObject):
         victim.tell(victim_msg, evoke=True, max_length=False)
         
 
-        if isinstance(self, player.Player):
+        if isinstance(self, 'tale.player.Player'):
             attacker_name += "as 'You'"
-        if isinstance(victim, player.Player):
+        if isinstance(victim, 'tale.player.Player'):
             victim_name += "as 'You'"
 
         combat_prompt = mud_context.driver.llm_util.combat_prompt.format(attacker=attacker_name, 
@@ -1473,7 +1482,7 @@ class Living(MudObject):
         self.__wielding = weapon
         self.stats.wc = weapon.wc if self.__wielding else 0
 
-    def set_wearable(self, wearable: Optional[Wearable], location: Optional[WearLocation]) -> None:
+    def set_wearable(self, wearable: Optional[Wearable], location: Optional[wearable.WearLocation]) -> None:
         """ Wear an item if item is not None, else unwear location"""
         if wearable:
             loc = location if location else wearable.location
@@ -1481,7 +1490,7 @@ class Living(MudObject):
         elif location:
             self.__wearing.pop(location, None)
 
-    def get_wearable(self, location: WearLocation) -> Optional[Wearable]:
+    def get_wearable(self, location: wearable.WearLocation) -> Optional[Wearable]:
         """Return the wearable item at the given location, or None if no item is worn there."""
         return self.__wearing.get(location)
 

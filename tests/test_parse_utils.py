@@ -1,6 +1,6 @@
 import pytest
 from tale import mud_context, util
-from tale.base import Location
+from tale.base import Exit, Location
 from tale.driver_if import IFDriver
 from tale.story import GameMode, MoneyType
 import tale.parse_utils as parse_utils
@@ -58,4 +58,34 @@ class TestParseUtils():
         assert(config.supported_modes == {GameMode.IF})
         assert(config.zones == ["test zone"])
         
+    def test_connect_location_to_exit(self):
+        """ This simulates a room having been generated before"""
+
+        cave_entrance = Location('Cave entrance', 'A dark cave entrance')
+        new_location = Location('Royal grotto', 'A small grotto, fit for a kobold king')
+        exit_to = Exit(directions=['north', 'Royal grotto'], target_location=new_location, short_descr='There\'s an opening that leads deeper into the cave', enter_msg='You enter the small crevice')
+        cave_entrance.add_exits([exit_to])
+        # the room has now been 'built' and is being added to story
+        parse_utils.connect_location_to_exit(new_location, cave_entrance, exit_to)
+        assert(len(cave_entrance.exits) == 2)
+        assert(cave_entrance.exits['north'].target == new_location)
+        assert(cave_entrance.exits['Royal grotto'].target == new_location)
+        assert(len(new_location.exits) == 2)
         
+        assert(new_location.exits['south'].target == cave_entrance)
+        assert(new_location.exits['cave entrance'].target == cave_entrance)
+        assert(new_location.exits['cave entrance'].short_description == f'You can see {cave_entrance.name}')
+
+    def test_opposite_direction(self):
+        assert(parse_utils.opposite_direction('north') == 'south')
+        assert(parse_utils.opposite_direction('south') == 'north')
+        assert(parse_utils.opposite_direction('east') == 'west')
+        assert(parse_utils.opposite_direction('west') == 'east')
+        assert(parse_utils.opposite_direction('up') == 'down')
+        assert(parse_utils.opposite_direction('down') == 'up')
+        assert(parse_utils.opposite_direction('in') == 'out')
+        assert(parse_utils.opposite_direction('out') == 'in')
+        assert(parse_utils.opposite_direction('hubwards') == None)
+
+        
+          

@@ -14,7 +14,7 @@ class JsonStory(StoryBase):
         for zone in self.config.zones:
             locs, exits = parse_utils.load_locations(parse_utils.load_json(self.path +'zones/'+zone + '.json'))
         self._locations = locs
-        self.zones = locs
+        self._zones = locs
         self._npcs = parse_utils.load_npcs(parse_utils.load_json(self.path +'npcs/'+self.config.npcs + '.json'), self._locations)
         self._items = parse_utils.load_items(parse_utils.load_json(self.path + self.config.items + '.json'), self._locations)
         
@@ -35,8 +35,27 @@ class JsonStory(StoryBase):
         player.tell("Thanks for trying out Tale!")
 
     def get_location(self, zone: str, name: str) -> Location:
-        return self._locations[zone][name]
+        """ Find a location by name in a zone."""
+        return self._zones[zone][name]
     
+    def find_location(self, name: str) -> Location:
+        """ Find a location by name in any zone."""
+        for zone in self._zones:
+            for loc in zone.values():
+                if loc.name == name:
+                    return loc
+                
+    def add_location(self, location: Location, zone: str = '') -> None:
+        """ Add a location to the story. 
+        If zone is specified, add to that zone, otherwise add to first zone.
+        """
+        if zone:
+            self._zones[zone][location.name] = location
+            return
+        for zone in self._zones:
+            self._zones[zone][location.name] = location
+            break
+
     def get_npc(self, npc: str) -> Living:
         return self._npcs[npc]
     

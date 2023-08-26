@@ -17,6 +17,7 @@ import random
 import sys
 import threading
 import time
+import typing
 from functools import total_ordering
 from types import ModuleType
 from typing import Sequence, Union, Tuple, Any, Dict, Callable, Iterable, Generator, Set, List, MutableSequence, Optional
@@ -25,13 +26,12 @@ import appdirs
 
 from . import __version__ as tale_version_str, _check_required_libraries
 from . import mud_context, errors, util, cmds, player, pubsub, charbuilder, lang, verbdefs, vfs, base
-from .llm_utils import LlmUtil
 from .story import TickMethod, GameMode, MoneyType, StoryBase
 from .tio import DEFAULT_SCREEN_WIDTH
 from .races import playable_races
 from .errors import StoryCompleted
 from tale.load_character import CharacterLoader, CharacterV2
-from tale.llm_ext import LivingNpc
+from tale.llm_ext import LivingNpc, DynamicStory
 from tale.llm_utils import LlmUtil
 
 
@@ -606,6 +606,16 @@ class Driver(pubsub.Listener):
     def go_through_exit(self, player: player.Player, direction: str, evoke: bool=True) -> None:
         xt = player.location.exits[direction]
         xt.allow_passage(player)
+        if not xt.target.built:
+            # generate the location if it's not built yet. retry 5 times.
+            for i in range(5):
+                new_locations = self.llm_util.build_location(location=xt.target, exit_location=player.location)
+                if new_locations:
+                    break
+            if not new_locations:
+                raise AssertionError("failed to build location: " + xt.target.name + ". You can try entering again.")
+            for location in new_locations:
+                typing.cast(DynamicStory, self.story).add_location(location)
         if xt.enter_msg:
             player.tell(xt.enter_msg, end=True, evoke=evoke, max_length=True)
             player.tell("\n")

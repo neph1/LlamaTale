@@ -1,5 +1,5 @@
 import enum
-from tale.base import Item
+import tale.base as base
 
 class WearLocation(enum.Enum):
     FULL_BODY = 0 # robes etc, covers TORSO, ARMS, LEGS
@@ -15,7 +15,7 @@ class WearLocation(enum.Enum):
     BACK = 10 # backpacks etc
     UNDER_GARMENTS = 11 # underwear etc
 
-
+# Mostly 'copilot' generated wearable types
 wearables_fantasy = {
     'robe': {
         'type': WearLocation.FULL_BODY,
@@ -85,6 +85,7 @@ wearables_fantasy = {
     },
 }
 
+# Mostly 'copilot' generated wearable types
 wearables_modern = {
     't-shirt': {
         'type': WearLocation.TORSO,
@@ -250,14 +251,7 @@ wearables_modern = {
     },
 }
 
+# Disclaimer: Not to limit the player, but to give the generator some hints
 female_clothing_modern = {'dress', 'dress_shirt', 'blouse', 'skirt', 'bra', 'panties', 'thong', 'stockings', 'top'}
 male_clothing_modern = {'suit', 'boxers', 'briefs', 'shirt'}
 neutral_clothing_modern = {'t-shirt', 'shirt', 'jeans', 'sneakers', 'belt', 'dress_shoes', 'hat', 'coveralls', 'sweater', 'socks', 'coat', 'jacket'}
-
-class Wearable(Item):
-    
-    def __init__(self, name: str, weight, value, ac, wearable_type):
-        super().__init__(name, descr=name, value=value)
-        self.ac = ac
-        self.weight = weight
-        self.type = wearable_type

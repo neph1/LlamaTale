@@ -33,7 +33,8 @@ class LlmUtil():
         self.location_prompt = config_file['CREATE_LOCATION_PROMPT']
         self.item_prompt = config_file['ITEM_PROMPT']
         self.word_limit = config_file['WORD_LIMIT']
-        self._story_background = ''
+        self.story_background = ''
+        self.story_type = ''
         self.io_util = IoUtil()
         self.stream = config_file['STREAM']
         self.connection = None
@@ -48,7 +49,7 @@ class LlmUtil():
         amount = 25 #int(len(trimmed_message) / 2)
         prompt = self.pre_prompt
         prompt += base_prompt.format(
-            story_context=self._story_background,
+            story_context=self.story_background,
             history=rolling_prompt if not skip_history or alt_prompt else '',
             max_words=self.word_limit if not max_length else amount,
             input_text=str(trimmed_message))
@@ -78,7 +79,7 @@ class LlmUtil():
                           max_length : bool=False):
         prompt = self.pre_prompt
         prompt += self.dialogue_prompt.format(
-                story_context=self._story_background,
+                story_context=self.story_background,
                 location=location_description,
                 previous_conversation=conversation, 
                 character2_description=character_card,
@@ -157,7 +158,9 @@ class LlmUtil():
                                               keywords=', '.join(keywords))
         request_body = self.default_body
         request_body['stop_sequence'] = ['\n\n'] # to avoid text after the character card
-        request_body['temperature'] = 1.0
+        request_body['temperature'] = 0.7
+        request_body['top_p'] = 0.92
+        request_body['rep_pen'] = 1.0
         request_body['banned_tokens'] = ['```']
         request_body['prompt'] = prompt
         result = self.io_util.synchronous_request(self.url + self.endpoint, request_body)
@@ -175,32 +178,30 @@ class LlmUtil():
     def build_location(self, location: Location, exit_location: Location):
         """ Generate a location based on the current story context"""
         prompt = self.location_prompt.format(
-            story_type=self._story_type,
-            story_context=self._story_background,
+            story_type=self.story_type,
+            story_context=self.story_background,
             exit_location=exit_location.name,
             location_name=location.name)
         request_body = self.default_body
         request_body['stop_sequence'] = ['\n\n']
-        request_body['temperature'] = 1.0
+        request_body['temperature'] = 0.7
+        request_body['top_p'] = 0.92
+        request_body['top_k'] = 0
+        request_body['rep_pen'] = 1.1
         request_body['banned_tokens'] = ['```']
         request_body['prompt'] = prompt
         result = self.io_util.synchronous_request(self.url + self.endpoint, request_body)
         try:
             json_result = json.loads(parse_utils.sanitize_json(result))
-            #should be a location in json format
+            # should be a location in json format, including exits, items and npcs
+            location.description = json_result['description']
+            # handle items
+            # handle characters
+            new_locations, exits = parse_utils.parse_generated_exits(json_result, exit_location.name, location)
+            location.built = True
+            location.add_exits(exits)
+            return new_locations
         except JSONDecodeError as exc:
             print(exc)
             return None
-        try:
-            return location.from_json(json_result)
-        except:
-            print(f'Exception while parsing location {json_result}')
-            return None
-        
-    @property
-    def story_background(self) -> str:
-        return self._story_background
-
-    @story_background.setter
-    def story_background(self, value: str) -> None:
-        self._story_background = value
+   
