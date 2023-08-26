@@ -22,6 +22,7 @@ from ..items.basic import GameClock, Money
 from ..player import Player
 from ..story import GameMode
 from ..verbdefs import VERBS, ACTION_QUALIFIERS, BODY_PARTS, AGGRESSIVE_VERBS
+from tale.wearable import WearLocation
 
 
 @cmd("inventory")
@@ -1701,12 +1702,33 @@ def do_wield(player: Player, parsed: base.ParseResult, ctx: util.Context) -> Non
     except ValueError as x:
         raise ActionRefused(str(x))
     result = player.locate_item(weapon, include_location=False)
-    if result:
-        player.wielding = result[0]
-    else:
+    if not result:
         raise ActionRefused("You don't have that weapon")
+    player.wielding = result[0]
 
 @cmd("unwield")
 def do_unwield(player: Player, parsed: base.ParseResult, ctx: util.Context) -> None:
     """Unwield a weapon."""
     player.wielding = None
+
+@cmd("wear")
+def do_wear(player: Player, parsed: base.ParseResult, ctx: util.Context) -> None:
+    """Wear an item."""
+    if len(parsed.args) < 1:
+        raise ParseError("You need to specify the item to wear")
+    try:
+        item = str(parsed.args[0])
+    except ValueError as x:
+        raise ActionRefused(str(x))
+    if len(parsed.args) == 2:
+        try:
+            parsed_loc = str(parsed.args[1])
+            location = WearLocation[parsed_loc.upper()]
+        except ValueError:
+            raise ActionRefused("Invalid location")
+        
+
+    result = player.locate_item(item, include_location=False)
+    if not result:
+        raise ActionRefused("You don't have that item")
+    player.set_wearable(result[0], location=location)

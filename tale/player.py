@@ -45,7 +45,7 @@ class Player(base.Living, pubsub.Listener):
         self.init_nonserializables()
         self.rolling_prompt = ''
         self.stats.hp = 10
-        self.look_hashes = dict()
+        self.look_hashes = dict() # type: Dict[int, str] # location hashes for look command. currently never cleared.
 
     def init_nonserializables(self) -> None:
         # these things cannot be serialized or have to be reinitialized

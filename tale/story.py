@@ -73,6 +73,7 @@ class StoryConfig:
         self.items = ""                      # items to populate the world with. only used by json loading
         self.npcs = ""                       # npcs to populate the world with. only used by json loading
         self.context = ""                    # context to giving background for the story.
+        self.type = ""                       # brief description of the setting and type of story, for LLM context
         
     def __eq__(self, other: Any) -> bool:
         return isinstance(other, StoryConfig) and vars(self) == vars(other)

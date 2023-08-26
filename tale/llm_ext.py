@@ -1,7 +1,8 @@
 from tale import mud_context
-from tale.base import Living, ParseResult
+from tale.base import Living, Location, ParseResult
 from tale.errors import TaleError
 from tale.player import Player
+from tale.story import StoryBase
 
 class LivingNpc(Living):
     """An NPC with extra fields to define personality and help LLM generate dialogue"""
@@ -110,3 +111,8 @@ class LivingNpc(Living):
                 description=self.description,
                 occupation=self.occupation,
                 items=','.join(items))
+
+class DynamicStory(StoryBase):
+
+    def add_location(self, location: Location, zone: str = '') -> None:
+        pass

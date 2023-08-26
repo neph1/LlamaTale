@@ -14,6 +14,8 @@ object hierarchy::
       |     |
       |     +-- Weapon
       |     +-- Armour
+            +-- Wearable
+            +-- Remains
       |     +-- Container
       |     +-- Key
       |
@@ -53,9 +55,9 @@ from . import util
 from . import story
 from . import verbdefs
 from . import combat
-from . import player
 from .errors import ActionRefused, ParseError, LocationIntegrityError, TaleError, UnknownVerbException, NonSoulVerb
 from tale.races import UnarmedAttack
+from . import wearable
 
 __all__ = ["MudObject", "Armour", 'Container', "Door", "Exit", "Item", "Living", "Stats", "Location", "Weapon", "Key", "Soul"]
 
@@ -590,9 +592,18 @@ class Weapon(Item):
 class Armour(Item):
     """
     An item that can be worn by a Living (i.e. present in an armour itemslot)
+    Used by Circle Mud. Not related to Wearable at present. Not used by LlamaTale.
     """
     pass
 
+
+class Wearable(Item):
+    
+    def __init__(self, name: str, weight, value, ac, wearable_type):
+        super(Wearable).__init__(name, descr=name, value=value)
+        self.ac = ac
+        self.weight = weight
+        self.type = wearable_type
 
 class Location(MudObject):
     """
@@ -607,6 +618,7 @@ class Location(MudObject):
         self.exits = {}       # type: Dict[str, Exit] # dictionary of all exits: exit_direction -> Exit object with target & descr
         super().__init__(name, descr=descr)
         self.name = name      # make sure we preserve the case; base object overwrites it in lowercase
+        self.built = True     # has this location been built yet? If not, LLM will describe it.
 
     def __contains__(self, obj: Union['Living', Item]) -> bool:
         return obj in self.livings or obj in self.items
@@ -963,6 +975,8 @@ class Living(MudObject):
         self.following = None   # type: Optional[Living]
         self.is_pet = False   # set this to True if creature is/becomes someone's pet
         self.__wielding = None   # type: Optional[Weapon]
+        self.__wearing = dict()  # type: Dict[str, wearable.Wearable]
+
         super().__init__(name, title=title, descr=descr, short_descr=short_descr)
 
     def init_gender(self, gender: str) -> None:
@@ -1348,9 +1362,9 @@ class Living(MudObject):
         victim.tell(victim_msg, evoke=True, max_length=False)
         
 
-        if isinstance(self, player.Player):
+        if isinstance(self, 'tale.player.Player'):
             attacker_name += "as 'You'"
-        if isinstance(victim, player.Player):
+        if isinstance(victim, 'tale.player.Player'):
             victim_name += "as 'You'"
 
         combat_prompt = mud_context.driver.llm_util.combat_prompt.format(attacker=attacker_name, 
@@ -1467,6 +1481,18 @@ class Living(MudObject):
         """Wield a weapon. If weapon is None, unwield."""
         self.__wielding = weapon
         self.stats.wc = weapon.wc if self.__wielding else 0
+
+    def set_wearable(self, wearable: Optional[Wearable], location: Optional[wearable.WearLocation]) -> None:
+        """ Wear an item if item is not None, else unwear location"""
+        if wearable:
+            loc = location if location else wearable.location
+            self.__wearing[loc] = wearable
+        elif location:
+            self.__wearing.pop(location, None)
+
+    def get_wearable(self, location: wearable.WearLocation) -> Optional[Wearable]:
+        """Return the wearable item at the given location, or None if no item is worn there."""
+        return self.__wearing.get(location)
 
 
 class Container(Item):

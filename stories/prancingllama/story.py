@@ -3,13 +3,15 @@ import sys
 from typing import Optional, Generator
 
 import tale
+from tale.base import Location
 from tale.driver import Driver
+from tale.llm_ext import DynamicStory
 from tale.main import run_from_cmdline
 from tale.player import Player, PlayerConnection
 from tale.charbuilder import PlayerNaming
 from tale.story import *
 
-class Story(StoryBase):
+class Story(DynamicStory):
 
     config = StoryConfig()
     config.name = "The Prancing Llama"
@@ -28,10 +30,14 @@ class Story(StoryBase):
     config.startlocation_wizard = "prancingllama.entrance"
     config.zones = ["prancingllama"]
     config.context = "The Prancing Llama is the final outpost high up in a cold, craggy mountain range. It's frequented by adventurers and those seeking to avoid attention."
-
+    config.type = "A low level fantasy adventure with focus of character building and interaction."
+    
+    
     def init(self, driver: Driver) -> None:
         """Called by the game driver when it is done with its initial initialization."""
         self.driver = driver
+        self._dynamic_locations = dict() # type: dict(str, [])
+        self._dynamic_locations["prancingllama"] = []
 
     def init_player(self, player: Player) -> None:
         """
@@ -74,6 +80,12 @@ class Story(StoryBase):
         """goodbye text when player quits the game"""
         player.tell("Goodbye, %s. Please come back again soon." % player.title)
         player.tell("\n")
+
+    def add_location(self, location: Location, zone: str = '') -> None:
+        """ Add a location to the story. 
+        If zone is specified, add to that zone, otherwise add to first zone.
+        """
+        self._dynamic_locations["prancingllama"].append(location)
 
 
 if __name__ == "__main__":
