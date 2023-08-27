@@ -1361,19 +1361,11 @@ class Living(MudObject):
         attacker_msg = "You attack %s! %s" % (victim_name, result)
         victim.tell(victim_msg, evoke=True, max_length=False)
         
-
-        if isinstance(self, 'tale.player.Player'):
-            attacker_name += "as 'You'"
-        if isinstance(victim, 'tale.player.Player'):
-            victim_name += "as 'You'"
-
-        combat_prompt = mud_context.driver.llm_util.combat_prompt.format(attacker=attacker_name, 
-                                                                         victim=victim_name, 
-                                                                         attacker_weapon=self.wielding.name,
-                                                                         victim_weapon=victim.wielding.name,
-                                                                         attacker_msg=attacker_msg,
-                                                                         location=self.location.title,
-                                                                         location_description=self.location.short_description)
+        combat_prompt = mud_context.driver.prepare_combat_prompt(attacker=self, 
+                              victim=victim, 
+                              location_title = self.location.title, 
+                              location_description = self.location.short_description,
+                              attacker_msg = attacker_msg)
         victim.location.tell(room_msg,
                              exclude_living=victim,
                              specific_targets={self},
