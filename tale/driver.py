@@ -603,7 +603,7 @@ class Driver(pubsub.Listener):
                 # the player command ended but signaled that an async dialog should be initiated
                 topic_async_dialogs.send((conn, x.dialog))
 
-    def go_through_exit(self, player: player.Player, direction: str, evoke: bool=False) -> None:
+    def go_through_exit(self, player: player.Player, direction: str, evoke: bool=True) -> None:
         xt = player.location.exits[direction]
         xt.allow_passage(player)
         if not xt.target.built:
