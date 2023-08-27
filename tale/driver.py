@@ -617,7 +617,7 @@ class Driver(pubsub.Listener):
             for location in new_locations:
                 typing.cast(DynamicStory, self.story).add_location(location)
         if xt.enter_msg:
-            player.tell(xt.enter_msg, end=True, evoke=evoke, max_length=True)
+            player.tell(xt.enter_msg, end=True, evoke=False, max_length=True)
             player.tell("\n")
         player.move(xt.target, direction_names=[xt.name] + list(xt.aliases))
         player.look(evoke=evoke)
@@ -825,6 +825,7 @@ class Driver(pubsub.Listener):
                               location_title: str, 
                               location_description: str, 
                               attacker_msg: str):
+        """ TODO: A bad work around. Need to find a better way to do this."""
         attacker_name = lang.capital(attacker.title)
         victim_name = lang.capital(victim.title)
 

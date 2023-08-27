@@ -1,4 +1,5 @@
 import pytest
+import json
 from tale import mud_context, util
 from tale.base import Exit, Location
 from tale.driver_if import IFDriver
@@ -38,6 +39,15 @@ class TestParseUtils():
         assert(item.value == 100)
         assert(item.location == locations['House 1']['Room 2'])
         assert(items['Hoodie'])
+
+    def test_load_generated_items(self):
+        items_string = '{"items": [{"name":"Woolly gloves", "type":"Wearable"}]}'
+        items = json.loads(items_string)
+        assert(len(items) == 1)
+        loaded_items = parse_utils.load_items(items['items'])
+        assert(len(loaded_items) == 1)
+        assert(loaded_items['Woolly gloves'])
+
         
     def test_load_npcs(self):
         locations = {}

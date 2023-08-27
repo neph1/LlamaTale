@@ -1,6 +1,6 @@
 import pytest
 import json
-from tale.base import Item
+from tale.base import Location, Wearable
 from tale.llm_utils import LlmUtil
 import tale.parse_utils as parse_utils
 
@@ -20,6 +20,8 @@ class TestLlmUtils():
 
     actual_response_3 = '{\n    "thoughts": "\ud83d\ude0d Norhardt feels that he is close to finding something important after a long and dangerous journey through rough terrain and harsh weather, and it consumes him fully.",\n    "result": {\n        "item": "map",\n        "from": "Norhardt",\t\n        "to": "Arto"\n    }\n}'
 
+    generated_location = '{"name": "Outside","description": "A barren wasteland of snow and ice stretches as far as the eye can see. The wind howls through the mountains like a chorus of banshees, threatening to sweep away any unfortunate soul caught outside without shelter.", "exits": [{"name": "North Pass","short_desc": "The North Pass is treacherous mountain pass that leads deeper into the heart of the range","enter_msg":"You shuffle your feet through knee-deep drifts of snow, trying to keep your balance on the narrow path."}, {"name": "South Peak","short_Desc": "The South Peak offers breathtaking views of the surrounding landscape from its summit, but it\'s guarded by a pack of fierce winter wolves.","Enter_msg":"You must face off against the snarling beasts if you wish to reach the peak."}] ,"items": [{"name":"Woolly gloves", "type":"Wearable"}],"npcs": []}'
+    
     def test_validate_item_response_valid(self):
         items = json.loads('["ale"]')
         valid, result = self.llm_util.validate_item_response(json.loads(self.test_text_valid), 'bartender', 'user', items)
@@ -78,3 +80,18 @@ class TestLlmUtils():
     def test_validate_sentiment(self):
         sentiment = self.llm_util.validate_sentiment(json.loads(self.test_text_valid))
         assert(sentiment == 'cheerful')
+
+    def test_validate_location(self):
+        location = Location(name='Outside')
+        location.built = False
+        locations = self.llm_util.validate_location(json.loads(self.generated_location), location_to_build=location, exit_location_name='Entrance')
+        assert(location.description.startswith('A barren wasteland'))
+        assert(len(location.exits) == 2)
+        assert(location.exits['north pass'])
+        assert(location.exits['south peak'])
+        assert(len(location.items) == 1) # woolly gloves
+        assert(len(locations) == 2)
+        assert(locations[0].name == 'north pass')
+        assert(locations[1].name == 'south peak')
+
+

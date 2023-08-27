@@ -45,11 +45,12 @@ def load_locations(json_file: dict):
 def location_from_json(json_object: dict):
     return Location(name=json_object['name'], descr=json_object['descr'])
 
-def load_items(json_file: dict, locations = {}):
+def load_items(json_file: [], locations = {}):
     """
         Loads and returns a dict of items from a supplied json dict
         Inserts into locations if supplied and has location
     """
+    # TODO: add support for wearables
     items = {}
     for item in json_file:
         item_type = item['type']
@@ -58,15 +59,15 @@ def load_items(json_file: dict, locations = {}):
         else:
             module = sys.modules['tale.items.basic']
             clazz = getattr(module, item_type)
-            new_item = clazz(name=item['name'], title=item['title'], descr=item['descr'], short_descr=item['short_descr'])
+            new_item = clazz(name=item['name'], title=item.get('title', item['name']), descr=item.get('descr', ''), short_descr=item.get('short_descr', ''))
             if isinstance(new_item, Note):
                 set_note(new_item, item)
         items[item['name']] = new_item
-        if locations and item['location']:
+        if locations and item['location']: 
             _insert(new_item, locations, item['location'])
     return items
 
-def load_npcs(json_file: dict, locations = {}):
+def load_npcs(json_file: [], locations = {}):
     """
         Loads npcs and returns a dict from a supplied json dict
         May be custom classes, but be sure the class is available
@@ -150,6 +151,9 @@ def sanitize_json(result: str):
     print('sanitized json: ' + result)
     return result
 
+def _convert_name(name: str):
+    return name.lower().replace(' ', '_')
+
 # These are related to LLM generated content
 
 def connect_location_to_exit(location_to: Location, location_from: Location, exit_from: Exit):
@@ -200,7 +204,7 @@ def parse_generated_exits(json_result: dict, exit_location_name: str, location: 
     for exit in json_result['exits']:
         if exit['name'] != exit_location_name:
             # create location
-            new_location = Location(exit['name'])
+            new_location = Location(exit['name'].lower())
             new_location.built = False
             exit_back = Exit(directions=location.name, 
                     target_location=location, 
