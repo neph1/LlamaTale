@@ -2,6 +2,7 @@ import pytest
 import json
 from tale.base import Location, Wearable
 from tale.llm_utils import LlmUtil
+from tests.supportstuff import FakeIoUtil
 import tale.parse_utils as parse_utils
 
 class TestLlmUtils():
@@ -93,5 +94,24 @@ class TestLlmUtils():
         assert(len(locations) == 2)
         assert(locations[0].name == 'north pass')
         assert(locations[1].name == 'south peak')
+
+    def test_evoke(self):
+        evoke_string = 'test response'
+        self.llm_util.io_util = FakeIoUtil(evoke_reply=evoke_string)
+        result = self.llm_util.evoke(message='test evoke', player_io=None)
+        assert(result)
+
+    def test_generate_character(self):
+        character_string = json.dumps(parse_utils.load_json('tests/files/test_character.json'))
+        self.llm_util.io_util = FakeIoUtil(character_reply=character_string)
+        result = self.llm_util.generate_character()
+        assert(result)
+
+    def test_build_location(self):
+        location = Location(name='Outside')
+        exit_location_name = 'Entrance'
+        self.llm_util.io_util = FakeIoUtil(location_reply=self.generated_location)
+        locations = self.llm_util.build_location(location, exit_location_name)
+        assert(len(locations) == 2)
 
 

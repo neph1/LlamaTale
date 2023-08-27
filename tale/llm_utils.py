@@ -175,12 +175,12 @@ class LlmUtil():
             print(f'Exception while parsing character {json_result}')
             return None
 
-    def build_location(self, location: Location, exit_location: Location):
+    def build_location(self, location: Location, exit_location_name: str):
         """ Generate a location based on the current story context"""
         prompt = self.location_prompt.format(
             story_type=self.story_type,
             story_context=self.story_background,
-            exit_location=exit_location.name,
+            exit_location=exit_location_name,
             location_name=location.name)
         request_body = self.default_body
         request_body['stop_sequence'] = ['\n\n']
@@ -193,7 +193,7 @@ class LlmUtil():
         result = self.io_util.synchronous_request(self.url + self.endpoint, request_body)
         try:
             json_result = json.loads(parse_utils.sanitize_json(result))
-            return self.validate_location(json_result, location, exit_location.name)
+            return self.validate_location(json_result, location, exit_location_name)
         except JSONDecodeError as exc:
             print(exc)
             return None

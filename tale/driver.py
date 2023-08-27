@@ -609,7 +609,7 @@ class Driver(pubsub.Listener):
         if not xt.target.built:
             # generate the location if it's not built yet. retry 5 times.
             for i in range(5):
-                new_locations = self.llm_util.build_location(location=xt.target, exit_location=player.location)
+                new_locations = self.llm_util.build_location(location=xt.target, exit_location_name=player.location.name)
                 if new_locations:
                     break
             if not new_locations:
