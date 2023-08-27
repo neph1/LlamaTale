@@ -603,7 +603,7 @@ class Driver(pubsub.Listener):
                 # the player command ended but signaled that an async dialog should be initiated
                 topic_async_dialogs.send((conn, x.dialog))
 
-    def go_through_exit(self, player: player.Player, direction: str, evoke: bool=True) -> None:
+    def go_through_exit(self, player: player.Player, direction: str, evoke: bool=False) -> None:
         xt = player.location.exits[direction]
         xt.allow_passage(player)
         if not xt.target.built:
@@ -818,3 +818,25 @@ class Driver(pubsub.Listener):
         hours, seconds = divmod(uptime.total_seconds(), 3600)
         minutes, seconds = divmod(seconds, 60)
         return int(hours), int(minutes), int(seconds)
+    
+    def prepare_combat_prompt(self, 
+                              attacker: LivingNpc, 
+                              victim: LivingNpc, 
+                              location_title: str, 
+                              location_description: str, 
+                              attacker_msg: str):
+        attacker_name = lang.capital(attacker.title)
+        victim_name = lang.capital(victim.title)
+
+        if isinstance(attacker, player.Player):
+            attacker_name += "as 'You'"
+        if isinstance(victim, player.Player):
+            victim_name += "as 'You'"
+
+        return self.llm_util.combat_prompt.format(attacker=attacker_name, 
+                                                                         victim=victim_name, 
+                                                                         attacker_weapon=attacker.wielding.name,
+                                                                         victim_weapon=victim.wielding.name,
+                                                                         attacker_msg=attacker_msg,
+                                                                         location=location_title,
+                                                                         location_description=location_description)
