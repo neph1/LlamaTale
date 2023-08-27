@@ -103,14 +103,14 @@ class TestLlmUtils():
 
     def test_generate_character(self):
         character_string = json.dumps(parse_utils.load_json('tests/files/test_character.json'))
-        self.llm_util.io_util = FakeIoUtil(character_reply=character_string)
+        self.llm_util.io_util = FakeIoUtil(response=character_string)
         result = self.llm_util.generate_character()
         assert(result)
 
     def test_build_location(self):
         location = Location(name='Outside')
         exit_location_name = 'Entrance'
-        self.llm_util.io_util = FakeIoUtil(location_reply=self.generated_location)
+        self.llm_util.io_util = FakeIoUtil(response=self.generated_location)
         locations = self.llm_util.build_location(location, exit_location_name)
         assert(len(locations) == 2)
 

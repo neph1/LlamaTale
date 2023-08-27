@@ -61,17 +61,9 @@ class MsgTraceNPC(base.Living):
         return self
 
 class FakeIoUtil(IoUtil):
-    def __init__(self, evoke_reply: str = '', location_reply: str = '', character_reply: str = '') -> None:
+    def __init__(self, response: str = '') -> None:
         super().__init__()
-        self.evoke_reply = evoke_reply
-        self.location_reply = location_reply
-        self.character_reply = character_reply
+        self.response = response
 
     def synchronous_request(self, url: str, request_body: dict) -> str:
-        if 'diverse character' in request_body['prompt']:
-            return self.character_reply
-        elif 'Exit example' in request_body['prompt']:
-            return self.location_reply
-        elif 'Rewrite the following Text' in request_body['prompt']:
-            return self.evoke_reply
-        return ''
+        return self.response

@@ -77,7 +77,6 @@ class Player(base.Living, pubsub.Listener):
         The player object is returned so you can chain calls.
         """
         if evoke:
-            print('evoke ' + message)
             if self.title in message:
                 message = message.replace(self.title, 'you')
             msg, rolling_prompt = mud_context.driver.llm_util.evoke(self._output, 
@@ -87,7 +86,6 @@ class Player(base.Living, pubsub.Listener):
                                                                     alt_prompt = alt_prompt,)
             self.rolling_prompt = rolling_prompt
             if not mud_context.driver.llm_util.stream and hashed_text != -1:
-                print('putting ' + (str)(hashed_text) + ' ' + msg)
                 self.look_hashes[hashed_text] = msg
         else:
             msg = str(message)     
@@ -125,7 +123,6 @@ class Player(base.Living, pubsub.Listener):
             look_text = '\n'.join(look_paragraphs)
             hashed_text = hash(look_text)
             if evoke and hashed_text in self.look_hashes:
-                print('getting ' + self.look_hashes[hashed_text])
                 self.tell(self.look_hashes[hashed_text], end=True, evoke=False)
                 return
             self.tell(look_text, end=True, evoke=evoke, hashed_text=hashed_text)
