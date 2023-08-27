@@ -38,13 +38,24 @@ class LlmUtil():
         self.io_util = IoUtil()
         self.stream = config_file['STREAM']
         self.connection = None
+        self._look_hashes = dict() # type: dict[int, str] # location hashes for look command. currently never cleared.
 
     def evoke(self, player_io: TextBuffer, message: str, max_length : bool=False, rolling_prompt='', alt_prompt='', skip_history=True):
-        """Evoke a response from LLM. Async if stream is True, otherwise synchronous."""
-        """Update the rolling prompt with the latest message."""
+        """Evoke a response from LLM. Async if stream is True, otherwise synchronous.
+        Update the rolling prompt with the latest message.
+        Will put generated text in _look_hashes, and reuse it if same hash is passed in."""
+
         if not message or str(message) == "\n":
             str(message), rolling_prompt
+
+        text_hash_value = hash(message)
+        if text_hash_value in self._look_hashes:
+            text = self._look_hashes[text_hash_value]
+            rolling_prompt = self.update_memory(rolling_prompt, text)
+            return f'Original:[ {message} ]\nGenerated:\n{text}', rolling_prompt
+
         trimmed_message = parse_utils.remove_special_chars(str(message))
+
         base_prompt = alt_prompt if alt_prompt else self.base_prompt
         amount = 25 #int(len(trimmed_message) / 2)
         prompt = self.pre_prompt
@@ -62,12 +73,14 @@ class LlmUtil():
         if not self.stream:
             text = self.io_util.synchronous_request(self.url + self.endpoint, request_body)
             rolling_prompt = self.update_memory(rolling_prompt, text)
+            self._store_hash(text_hash_value, text)
             return f'Original:[ {message} ]\nGenerated:\n{text}', rolling_prompt
-        else:
-            player_io.print(f'Original:[ {message} ]\nGenerated:\n', end=False, format=True, line_breaks=False)
-            text = self.io_util.stream_request(self.url + self.stream_endpoint, self.url + self.data_endpoint, request_body, player_io, self.connection)
-            rolling_prompt = self.update_memory(rolling_prompt, text)
-            return '\n', rolling_prompt
+
+        player_io.print(f'Original:[ {message} ]\nGenerated:\n', end=False, format=True, line_breaks=False)
+        text = self.io_util.stream_request(self.url + self.stream_endpoint, self.url + self.data_endpoint, request_body, player_io, self.connection)
+        self._store_hash(text_hash_value, text)
+        rolling_prompt = self.update_memory(rolling_prompt, text)
+        return '\n', rolling_prompt
     
     def generate_dialogue(self, conversation: str, 
                           character_card: str, 
@@ -210,6 +223,7 @@ class LlmUtil():
             for item in items.values():
                 location_to_build.insert(item, None)
             # handle characters
+            npcs = parse_utils.load_npcs(json_result.get("npcs", []))
 
             new_locations, exits = parse_utils.parse_generated_exits(json_result, 
                                                                      exit_location_name, 
@@ -221,4 +235,8 @@ class LlmUtil():
             print(f'Exception while parsing location {json_result} ')
             print(exc)
             return None
+        
+    def _store_hash(self, text_hash_value: int, text: str):
+        if text_hash_value != -1:
+            self._look_hashes[text_hash_value] = text
    

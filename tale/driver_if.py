@@ -21,7 +21,6 @@ from . import savegames
 from .player import PlayerConnection, Player
 from .tio import DEFAULT_SCREEN_DELAY
 from .tio import iobase
-from .llm_utils import LlmUtil
 from tale.load_character import CharacterLoader
 
 class IFDriver(driver.Driver):

@@ -97,9 +97,10 @@ class TestLlmUtils():
 
     def test_evoke(self):
         evoke_string = 'test response'
-        self.llm_util.io_util = FakeIoUtil(evoke_reply=evoke_string)
+        self.llm_util.io_util = FakeIoUtil(response=evoke_string)
         result = self.llm_util.evoke(message='test evoke', player_io=None)
         assert(result)
+        assert(self.llm_util._look_hashes[hash('test evoke')] == evoke_string)
 
     def test_generate_character(self):
         character_string = json.dumps(parse_utils.load_json('tests/files/test_character.json'))
@@ -113,5 +114,3 @@ class TestLlmUtils():
         self.llm_util.io_util = FakeIoUtil(response=self.generated_location)
         locations = self.llm_util.build_location(location, exit_location_name)
         assert(len(locations) == 2)
-
-
