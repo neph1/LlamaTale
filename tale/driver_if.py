@@ -21,7 +21,6 @@ from . import savegames
 from .player import PlayerConnection, Player
 from .tio import DEFAULT_SCREEN_DELAY
 from .tio import iobase
-from .llm_utils import LlmUtil
 from tale.load_character import CharacterLoader
 
 class IFDriver(driver.Driver):
@@ -205,9 +204,6 @@ class IFDriver(driver.Driver):
         player.tell("\n")
         prompt = self.story.welcome(player)
 
-        self.llm_util.story_type = self.story.config.type
-        self.llm_util.story_background = self.story.config.context
-        
         if prompt:
             conn.input_direct("\n" + prompt)   # blocks  (note: cannot use yield here)
         player.tell("\n")

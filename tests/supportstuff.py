@@ -10,6 +10,7 @@ from typing import Any, List
 
 from tale import pubsub, util, driver, base, story
 from tale.llm_utils import LlmUtil
+from tale.llm_io import IoUtil
 
 class Thing:
     def __init__(self) -> None:
@@ -58,3 +59,11 @@ class MsgTraceNPC(base.Living):
     def tell(self, message: str, *, end: bool=False, format: bool=True, evoke: bool=False, max_length: bool=False, alt_prompt: str='') -> base.Living:
         self.messages.append(message)
         return self
+
+class FakeIoUtil(IoUtil):
+    def __init__(self, response: str = '') -> None:
+        super().__init__()
+        self.response = response
+
+    def synchronous_request(self, url: str, request_body: dict) -> str:
+        return self.response

@@ -45,7 +45,6 @@ class Player(base.Living, pubsub.Listener):
         self.init_nonserializables()
         self.rolling_prompt = ''
         self.stats.hp = 10
-        self.look_hashes = dict() # type: Dict[int, str] # location hashes for look command. currently never cleared.
 
     def init_nonserializables(self) -> None:
         # these things cannot be serialized or have to be reinitialized
@@ -67,7 +66,7 @@ class Player(base.Living, pubsub.Listener):
         self.screen_indent = indent
         self.screen_width = width
 
-    def tell(self, message: str, *, end: bool=False, format: bool=True, evoke: bool=False, max_length : bool=False, alt_prompt : str='', hashed_text : int=-1) -> base.Living:
+    def tell(self, message: str, *, end: bool=False, format: bool=True, evoke: bool=False, max_length : bool=False, alt_prompt : str='') -> base.Living:
         """
         Sends a message to a player, meant to be printed on the screen.
         Message will be converted to str if required.
@@ -83,9 +82,8 @@ class Player(base.Living, pubsub.Listener):
                                                                     message, 
                                                                     max_length = max_length, 
                                                                     rolling_prompt = self.rolling_prompt, 
-                                                                    alt_prompt = alt_prompt,)
+                                                                    alt_prompt = alt_prompt)
             self.rolling_prompt = rolling_prompt
-            self.look_hashes[hashed_text] = msg
         else:
             msg = str(message)     
         
@@ -120,11 +118,7 @@ class Player(base.Living, pubsub.Listener):
             self.known_locations.add(self.location)
             look_paragraphs = self.location.look(exclude_living=self, short=short)
             look_text = '\n'.join(look_paragraphs)
-            hashed_text = hash(look_text)
-            if evoke and hashed_text in self.look_hashes:
-                self.tell(self.look_hashes[hashed_text], end=True, evoke=False)
-                return
-            self.tell(look_text, end=True, evoke=evoke, hashed_text=hashed_text)
+            self.tell(look_text, end=True, evoke=evoke and not self.location.generated)
         else:
             self.tell("You see nothing.")
 

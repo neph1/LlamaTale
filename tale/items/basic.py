@@ -15,7 +15,7 @@ from ..errors import ActionRefused, TaleError
 
 
 __all__ = ["Boxlike", "Drink", "Food", "GameClock", "Light", "MagicItem", "Money",
-           "Note", "Potion", "Scroll", "Trash", "Boat", "Wearable", "Fountain"]
+           "Note", "Potion", "Scroll", "Trash", "Boat", "Fountain"]
 
 
 class Boxlike(Container):
@@ -320,9 +320,9 @@ class Boat(Item):
         super().init()
 
 
-class Wearable(Item):
-    def init(self) -> None:
-        super().init()
+# class Wearable(Item):
+#     def init(self) -> None:
+#         super().init()
 
 
 class Fountain(Item):

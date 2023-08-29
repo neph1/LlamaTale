@@ -1,4 +1,5 @@
 import pytest
+import json
 from tale import mud_context, util
 from tale.base import Exit, Location
 from tale.driver_if import IFDriver
@@ -14,15 +15,16 @@ class TestParseUtils():
     def test_load_locations(self):
         room_json = parse_utils.load_json("tests/files/test_locations.json")
         locations, exits = parse_utils.load_locations(room_json)
-        assert(locations['test house']['test room'])
-        assert(locations['test house']['test room 2'])
+        assert(locations['test house']['locations']['test room'])
+        assert(locations['test house']['locations']['test room 2'])
         assert(exits[0].__repr__().startswith("(<base.Exit to 'test room 2'"))
 
     def test_load_items(self):
         locations = {}
         locations['Room 1'] = Location('Room 1', 'A small room perfect for testing')
         locations['House 1'] = {}
-        locations['House 1']['Room 2'] = Location('Room 2', 'Another testing room')
+        locations['House 1']['locations'] = {}
+        locations['House 1']['locations']['Room 2'] = Location('Room 2', 'Another testing room')
         mud_context.driver = IFDriver()
         mud_context.driver.moneyfmt = util.MoneyFormatter.create_for(MoneyType.MODERN)
         items_json = parse_utils.load_json("tests/files/test_items.json")
@@ -36,8 +38,17 @@ class TestParseUtils():
         assert(item.text == 'This is a note')
         item = items['Money 1']
         assert(item.value == 100)
-        assert(item.location == locations['House 1']['Room 2'])
+        assert(item.location == locations['House 1']['locations']['Room 2'])
         assert(items['Hoodie'])
+
+    def test_load_generated_items(self):
+        items_string = '{"items": [{"name":"Woolly gloves", "type":"Wearable"}]}'
+        items = json.loads(items_string)
+        assert(len(items) == 1)
+        loaded_items = parse_utils.load_items(items['items'])
+        assert(len(loaded_items) == 1)
+        assert(loaded_items['Woolly gloves'])
+
         
     def test_load_npcs(self):
         locations = {}

@@ -115,4 +115,19 @@ class LivingNpc(Living):
 class DynamicStory(StoryBase):
 
     def add_location(self, location: Location, zone: str = '') -> None:
+        """ Add a location to the story. 
+        If zone is specified, add to that zone, otherwise add to first zone.
+        """
+        pass
+
+    def races_for_zone(self, zone: str) -> [str]:
+        """ Returns a list of races available to meet in the specified zone. """
+        pass
+   
+    def drops_for_zone(self, zone: str) -> [str]:
+        """ Returns a list of items available to find in the specified zone. """
+        pass
+
+    def zone_info(self, zone: str, location: str) -> dict():
+        """ Returns a description of the specified zone. """
         pass

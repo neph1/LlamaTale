@@ -29,7 +29,7 @@ class Story(DynamicStory):
     config.startlocation_player = "prancingllama.entrance"
     config.startlocation_wizard = "prancingllama.entrance"
     config.zones = ["prancingllama"]
-    config.context = "The Prancing Llama is the final outpost high up in a cold, craggy mountain range. It's frequented by adventurers and those seeking to avoid attention."
+    config.context = "The Prancing Llama is the final outpost high up in a cold, craggy mountain range. It's frequented by adventurers and those looking to avoid attention."
     config.type = "A low level fantasy adventure with focus of character building and interaction."
     
     
@@ -82,11 +82,18 @@ class Story(DynamicStory):
         player.tell("\n")
 
     def add_location(self, location: Location, zone: str = '') -> None:
-        """ Add a location to the story. 
-        If zone is specified, add to that zone, otherwise add to first zone.
-        """
         self._dynamic_locations["prancingllama"].append(location)
 
+    def races_for_zone(self, zone: str) -> [str]:
+        return ["human", "giant rat", "bat", "balrog", "dwarf", "elf", "gnome", "halfling", "hobbit", "kobold", "orc", "troll", "vampire", "werewolf", "zombie"]
+
+    def items_for_zone(self, zone: str) -> [str]:
+        return ["woolly gloves", "ice pick", "fur cap", "rusty sword", "lantern", "food rations"]
+
+    def zone_info(self, zone: str, location: str) -> dict():
+        return {"description": "A cold, craggy mountain range. Snow covered peaks and uncharted valleys hide and attract all manners of creatures.", 
+                "races": self.races_for_zone(''), 
+                "drop_items": self.items_for_zone('')}
 
 if __name__ == "__main__":
     # story is invoked as a script, start it in the Tale Driver.

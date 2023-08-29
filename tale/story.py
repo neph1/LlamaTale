@@ -6,9 +6,9 @@ Copyright by Irmen de Jong (irmen@razorvine.net)
 """
 
 import datetime
-import distutils.version
 import enum
 from typing import Optional, Any, List, Set, Generator
+from packaging.version import Version
 
 from . import __version__ as tale_version_str
 from .errors import StoryConfigError
@@ -144,7 +144,7 @@ class StoryBase:
             raise StoryConfigError("Story's config money_type is of invalid type")
         if type(self.config.server_tick_method) is not TickMethod:
             raise StoryConfigError("Story's config server_tick_method is of invalid type")
-        tale_version = distutils.version.LooseVersion(tale_version_str)
-        tale_version_required = distutils.version.LooseVersion(self.config.requires_tale)
+        tale_version = Version(tale_version_str)
+        tale_version_required = Version(self.config.requires_tale)
         if tale_version < tale_version_required:
             raise StoryConfigError("This game requires tale " + self.config.requires_tale + ", but " + tale_version_str + " is installed.")

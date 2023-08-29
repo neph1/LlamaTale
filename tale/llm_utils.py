@@ -3,6 +3,7 @@ import os
 import yaml
 from json import JSONDecodeError
 from tale.base import Location
+from tale.llm_ext import DynamicStory
 from tale.llm_io import IoUtil
 from tale.load_character import CharacterV2
 from tale.player_utils import TextBuffer
@@ -33,23 +34,33 @@ class LlmUtil():
         self.location_prompt = config_file['CREATE_LOCATION_PROMPT']
         self.item_prompt = config_file['ITEM_PROMPT']
         self.word_limit = config_file['WORD_LIMIT']
-        self.story_background = ''
-        self.story_type = ''
+        self.__story = None # type: DynamicStory
         self.io_util = IoUtil()
         self.stream = config_file['STREAM']
         self.connection = None
+        self._look_hashes = dict() # type: dict[int, str] # location hashes for look command. currently never cleared.
 
     def evoke(self, player_io: TextBuffer, message: str, max_length : bool=False, rolling_prompt='', alt_prompt='', skip_history=True):
-        """Evoke a response from LLM. Async if stream is True, otherwise synchronous."""
-        """Update the rolling prompt with the latest message."""
+        """Evoke a response from LLM. Async if stream is True, otherwise synchronous.
+        Update the rolling prompt with the latest message.
+        Will put generated text in _look_hashes, and reuse it if same hash is passed in."""
+
         if not message or str(message) == "\n":
             str(message), rolling_prompt
+
+        text_hash_value = hash(message)
+        if text_hash_value in self._look_hashes:
+            text = self._look_hashes[text_hash_value]
+            rolling_prompt = self.update_memory(rolling_prompt, text)
+            return f'Original:[ {message} ]\nGenerated:\n{text}', rolling_prompt
+
         trimmed_message = parse_utils.remove_special_chars(str(message))
+
         base_prompt = alt_prompt if alt_prompt else self.base_prompt
         amount = 25 #int(len(trimmed_message) / 2)
         prompt = self.pre_prompt
         prompt += base_prompt.format(
-            story_context=self.story_background,
+            story_context=self.__story.config.context,
             history=rolling_prompt if not skip_history or alt_prompt else '',
             max_words=self.word_limit if not max_length else amount,
             input_text=str(trimmed_message))
@@ -62,12 +73,14 @@ class LlmUtil():
         if not self.stream:
             text = self.io_util.synchronous_request(self.url + self.endpoint, request_body)
             rolling_prompt = self.update_memory(rolling_prompt, text)
+            self._store_hash(text_hash_value, text)
             return f'Original:[ {message} ]\nGenerated:\n{text}', rolling_prompt
-        else:
-            player_io.print(f'Original:[ {message} ]\nGenerated:\n', end=False, format=True, line_breaks=False)
-            text = self.io_util.stream_request(self.url + self.stream_endpoint, self.url + self.data_endpoint, request_body, player_io, self.connection)
-            rolling_prompt = self.update_memory(rolling_prompt, text)
-            return '\n', rolling_prompt
+
+        player_io.print(f'Original:[ {message} ]\nGenerated:\n', end=False, format=True, line_breaks=False)
+        text = self.io_util.stream_request(self.url + self.stream_endpoint, self.url + self.data_endpoint, request_body, player_io, self.connection)
+        self._store_hash(text_hash_value, text)
+        rolling_prompt = self.update_memory(rolling_prompt, text)
+        return '\n', rolling_prompt
     
     def generate_dialogue(self, conversation: str, 
                           character_card: str, 
@@ -79,7 +92,7 @@ class LlmUtil():
                           max_length : bool=False):
         prompt = self.pre_prompt
         prompt += self.dialogue_prompt.format(
-                story_context=self.story_background,
+                story_context=self.__story.config.context,
                 location=location_description,
                 previous_conversation=conversation, 
                 character2_description=character_card,
@@ -175,33 +188,59 @@ class LlmUtil():
             print(f'Exception while parsing character {json_result}')
             return None
 
-    def build_location(self, location: Location, exit_location: Location):
+    def build_location(self, location: Location, exit_location_name: str):
         """ Generate a location based on the current story context"""
         prompt = self.location_prompt.format(
-            story_type=self.story_type,
-            story_context=self.story_background,
-            exit_location=exit_location.name,
+            story_type=self.__story.config.type,
+            zone_info=self.__story.zone_info(zone='', location=exit_location_name),
+            story_context=self.__story.config.context,
+            exit_location=exit_location_name,
             location_name=location.name)
         request_body = self.default_body
         request_body['stop_sequence'] = ['\n\n']
-        request_body['temperature'] = 0.7
-        request_body['top_p'] = 0.92
+        request_body['temperature'] = 0.5
+        request_body['top_p'] = 0.6
         request_body['top_k'] = 0
-        request_body['rep_pen'] = 1.1
+        request_body['rep_pen'] = 1.0
         request_body['banned_tokens'] = ['```']
         request_body['prompt'] = prompt
         result = self.io_util.synchronous_request(self.url + self.endpoint, request_body)
         try:
             json_result = json.loads(parse_utils.sanitize_json(result))
-            # should be a location in json format, including exits, items and npcs
-            location.description = json_result['description']
-            # handle items
-            # handle characters
-            new_locations, exits = parse_utils.parse_generated_exits(json_result, exit_location.name, location)
-            location.built = True
-            location.add_exits(exits)
-            return new_locations
+            return self.validate_location(json_result, location, exit_location_name)
         except JSONDecodeError as exc:
             print(exc)
             return None
+        
+    def validate_location(self, json_result: dict, location_to_build: Location, exit_location_name: str):
+        """Validate the location generated by LLM and update the location object."""
+        try:
+            location_to_build.description = json_result['description']
+
+            items = parse_utils.load_items(json_result.get("items", []))
+            # the loading function works differently and will not insert the items into the location
+            # since the item doesn't have the location
+            
+            for item in items.values():
+                location_to_build.insert(item, None)
+
+            npcs = parse_utils.load_npcs(json_result.get("npcs", []))
+
+            new_locations, exits = parse_utils.parse_generated_exits(json_result, 
+                                                                     exit_location_name, 
+                                                                     location_to_build)
+            location_to_build.built = True
+            location_to_build.add_exits(exits)
+            return new_locations
+        except Exception as exc:
+            print(f'Exception while parsing location {json_result} ')
+            print(exc)
+            return None
+        
+    def _store_hash(self, text_hash_value: int, text: str):
+        if text_hash_value != -1:
+            self._look_hashes[text_hash_value] = text
+
+    def set_story(self, story: DynamicStory):
+        self.__story = story
    

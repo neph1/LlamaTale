@@ -281,6 +281,7 @@ class Driver(pubsub.Listener):
         user_data_dir.mkdir(mode=0o700, parents=True, exist_ok=True)
         self.user_resources = vfs.VirtualFileSystem(root_path=user_data_dir, readonly=False)  # r/w to the local 'user data' directory
         self.story.init(self)
+        self.llm_util.set_story(self.story)
         if self.story.config.playable_races:
             # story provides playable races. Check that every race is known.
             invalid = self.story.config.playable_races - playable_races
@@ -609,7 +610,7 @@ class Driver(pubsub.Listener):
         if not xt.target.built:
             # generate the location if it's not built yet. retry 5 times.
             for i in range(5):
-                new_locations = self.llm_util.build_location(location=xt.target, exit_location=player.location)
+                new_locations = self.llm_util.build_location(location=xt.target, exit_location_name=player.location.name)
                 if new_locations:
                     break
             if not new_locations:
@@ -617,7 +618,7 @@ class Driver(pubsub.Listener):
             for location in new_locations:
                 typing.cast(DynamicStory, self.story).add_location(location)
         if xt.enter_msg:
-            player.tell(xt.enter_msg, end=True, evoke=evoke, max_length=True)
+            player.tell(xt.enter_msg, end=True, evoke=False, max_length=True)
             player.tell("\n")
         player.move(xt.target, direction_names=[xt.name] + list(xt.aliases))
         player.look(evoke=evoke)
@@ -825,6 +826,7 @@ class Driver(pubsub.Listener):
                               location_title: str, 
                               location_description: str, 
                               attacker_msg: str):
+        """ TODO: A bad work around. Need to find a better way to do this."""
         attacker_name = lang.capital(attacker.title)
         victim_name = lang.capital(victim.title)
 

@@ -1,5 +1,8 @@
 {
     "name":"Cave",
+    "description":"A dark cave",
+    "races":["kobold", "bat", "giant rat"],
+    "items":["torch", "sword", "shield"],
     "rooms":[
         {
             "name": "Cave entrance",

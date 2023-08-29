@@ -1,7 +1,7 @@
 import json
 import pytest
 from tale.base import Item, Location
-from tale.llm_ext import LivingNpc
+from tale.llm_ext import LivingNpc, DynamicStory
 from tale.player import Player
 
 class TestLlmExt():
@@ -59,4 +59,3 @@ class TestLlmExt():
 
         assert(not npc.search_item('ale', include_location=False))
         assert(drink.location == location)
-
