@@ -3,6 +3,7 @@ import os
 import yaml
 from json import JSONDecodeError
 from tale.base import Location
+from tale.llm_ext import DynamicStory
 from tale.llm_io import IoUtil
 from tale.load_character import CharacterV2
 from tale.player_utils import TextBuffer
@@ -33,12 +34,12 @@ class LlmUtil():
         self.location_prompt = config_file['CREATE_LOCATION_PROMPT']
         self.item_prompt = config_file['ITEM_PROMPT']
         self.word_limit = config_file['WORD_LIMIT']
-        self.story_background = ''
-        self.story_type = ''
+        self.__story = None # type: DynamicStory
         self.io_util = IoUtil()
         self.stream = config_file['STREAM']
         self.connection = None
         self._look_hashes = dict() # type: dict[int, str] # location hashes for look command. currently never cleared.
+        self.evoke_generated_locs = config_file['EVOKE_GENERATED_LOCS']
 
     def evoke(self, player_io: TextBuffer, message: str, max_length : bool=False, rolling_prompt='', alt_prompt='', skip_history=True):
         """Evoke a response from LLM. Async if stream is True, otherwise synchronous.
@@ -60,7 +61,7 @@ class LlmUtil():
         amount = 25 #int(len(trimmed_message) / 2)
         prompt = self.pre_prompt
         prompt += base_prompt.format(
-            story_context=self.story_background,
+            story_context=self.__story.config.context,
             history=rolling_prompt if not skip_history or alt_prompt else '',
             max_words=self.word_limit if not max_length else amount,
             input_text=str(trimmed_message))
@@ -92,7 +93,7 @@ class LlmUtil():
                           max_length : bool=False):
         prompt = self.pre_prompt
         prompt += self.dialogue_prompt.format(
-                story_context=self.story_background,
+                story_context=self.__story.config.context,
                 location=location_description,
                 previous_conversation=conversation, 
                 character2_description=character_card,
@@ -191,16 +192,17 @@ class LlmUtil():
     def build_location(self, location: Location, exit_location_name: str):
         """ Generate a location based on the current story context"""
         prompt = self.location_prompt.format(
-            story_type=self.story_type,
-            story_context=self.story_background,
+            story_type=self.__story.config.type,
+            zone_info=self.__story.zone_info(zone='', location=exit_location_name),
+            story_context=self.__story.config.context,
             exit_location=exit_location_name,
             location_name=location.name)
         request_body = self.default_body
         request_body['stop_sequence'] = ['\n\n']
-        request_body['temperature'] = 0.7
-        request_body['top_p'] = 0.92
+        request_body['temperature'] = 0.5
+        request_body['top_p'] = 0.6
         request_body['top_k'] = 0
-        request_body['rep_pen'] = 1.1
+        request_body['rep_pen'] = 1.0
         request_body['banned_tokens'] = ['```']
         request_body['prompt'] = prompt
         result = self.io_util.synchronous_request(self.url + self.endpoint, request_body)
@@ -222,7 +224,7 @@ class LlmUtil():
             
             for item in items.values():
                 location_to_build.insert(item, None)
-            # handle characters
+
             npcs = parse_utils.load_npcs(json_result.get("npcs", []))
 
             new_locations, exits = parse_utils.parse_generated_exits(json_result, 
@@ -239,4 +241,7 @@ class LlmUtil():
     def _store_hash(self, text_hash_value: int, text: str):
         if text_hash_value != -1:
             self._look_hashes[text_hash_value] = text
+
+    def set_story(self, story: DynamicStory):
+        self.__story = story
    
