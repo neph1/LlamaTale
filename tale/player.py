@@ -118,7 +118,7 @@ class Player(base.Living, pubsub.Listener):
             self.known_locations.add(self.location)
             look_paragraphs = self.location.look(exclude_living=self, short=short)
             look_text = '\n'.join(look_paragraphs)
-            self.tell(look_text, end=True, evoke=evoke)
+            self.tell(look_text, end=True, evoke=evoke and not self.location.generated)
         else:
             self.tell("You see nothing.")
 

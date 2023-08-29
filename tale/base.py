@@ -619,6 +619,7 @@ class Location(MudObject):
         super().__init__(name, descr=descr)
         self.name = name      # make sure we preserve the case; base object overwrites it in lowercase
         self.built = True     # has this location been built yet? If not, LLM will describe it.
+        self.generated = False # whether this location is LLM generated or not
 
     def __contains__(self, obj: Union['Living', Item]) -> bool:
         return obj in self.livings or obj in self.items
@@ -929,7 +930,7 @@ class Stats:
 
     @classmethod
     def from_race(cls: type, race: builtins.str, gender: builtins.str='n') -> 'Stats':
-        r = races.races[race]
+        r = races.races.get('race', 'human')
         s = cls()
         s.gender = gender
         s.race = race

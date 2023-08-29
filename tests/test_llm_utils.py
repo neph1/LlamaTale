@@ -1,9 +1,11 @@
 import pytest
 import json
-from tale.base import Location, Wearable
+from tale.base import Location
+from tale.json_story import JsonStory
 from tale.llm_utils import LlmUtil
 from tests.supportstuff import FakeIoUtil
 import tale.parse_utils as parse_utils
+from tale.driver_if import IFDriver
 
 class TestLlmUtils():
 
@@ -23,6 +25,9 @@ class TestLlmUtils():
 
     generated_location = '{"name": "Outside","description": "A barren wasteland of snow and ice stretches as far as the eye can see. The wind howls through the mountains like a chorus of banshees, threatening to sweep away any unfortunate soul caught outside without shelter.", "exits": [{"name": "North Pass","short_desc": "The North Pass is treacherous mountain pass that leads deeper into the heart of the range","enter_msg":"You shuffle your feet through knee-deep drifts of snow, trying to keep your balance on the narrow path."}, {"name": "South Peak","short_Desc": "The South Peak offers breathtaking views of the surrounding landscape from its summit, but it\'s guarded by a pack of fierce winter wolves.","Enter_msg":"You must face off against the snarling beasts if you wish to reach the peak."}] ,"items": [{"name":"Woolly gloves", "type":"Wearable"}],"npcs": []}'
     
+    story = JsonStory('tests/files/test_story/', parse_utils.load_story_config(parse_utils.load_json('tests/files/test_story/test_story_config.json')))
+    story.init(IFDriver())
+
     def test_validate_item_response_valid(self):
         items = json.loads('["ale"]')
         valid, result = self.llm_util.validate_item_response(json.loads(self.test_text_valid), 'bartender', 'user', items)
@@ -98,6 +103,7 @@ class TestLlmUtils():
     def test_evoke(self):
         evoke_string = 'test response'
         self.llm_util.io_util = FakeIoUtil(response=evoke_string)
+        self.llm_util.set_story(self.story)
         result = self.llm_util.evoke(message='test evoke', player_io=None)
         assert(result)
         assert(self.llm_util._look_hashes[hash('test evoke')] == evoke_string)
@@ -110,7 +116,8 @@ class TestLlmUtils():
 
     def test_build_location(self):
         location = Location(name='Outside')
-        exit_location_name = 'Entrance'
+        exit_location_name = 'Cave entrance'
+        self.llm_util.set_story(self.story)
         self.llm_util.io_util = FakeIoUtil(response=self.generated_location)
         locations = self.llm_util.build_location(location, exit_location_name)
         assert(len(locations) == 2)

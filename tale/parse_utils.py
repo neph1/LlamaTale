@@ -2,6 +2,7 @@ from typing import Union
 from tale.base import Location, Exit, Item, Living
 from tale.items.basic import Money, Note
 from tale.story import GameMode, MoneyType, TickMethod, StoryConfig
+from tale.llm_ext import LivingNpc
 import json
 import re
 import sys
@@ -19,8 +20,14 @@ def load_locations(json_file: dict):
     exits = []
     temp_exits = {}
     parsed_exits = []
+    zones = {}
     zone = {}
-    zone[json_file['name']] = locations
+    zone['name'] = json_file['name']
+    zone['description'] = json_file['description']
+    zone['races'] = json_file['races']
+    zone['items'] = json_file['items']
+    zone['locations'] = locations
+    zones[json_file['name']] = zone
     for loc in json_file['rooms']:
         name = loc['name']
         locations[name] = location_from_json(loc)
@@ -39,7 +46,7 @@ def load_locations(json_file: dict):
             exits.append(Exit.connect(loc_one, to_name, exit_to['short_desc'], exit_to['long_desc'],
                  loc_two, from_name, exit_from['short_desc'], exit_from['long_desc']))
             parsed_exits.append([exit_from, exit_to])
-    return zone, exits
+    return zones, exits
 
 
 def location_from_json(json_object: dict):
@@ -53,12 +60,21 @@ def load_items(json_file: [], locations = {}):
     # TODO: add support for wearables
     items = {}
     for item in json_file:
-        item_type = item['type']
+        item_type = item.get('type', 'Item')
+        
         if item_type == 'Money':
             new_item = init_money(item)
         else:
             module = sys.modules['tale.items.basic']
-            clazz = getattr(module, item_type)
+            try:
+                clazz = getattr(module, item_type)
+            except AttributeError:
+                if item_type == 'Wearable':
+                    clazz = getattr(sys.modules['tale.base'], 'Wearable')
+                elif item_type == 'Weapon':
+                    clazz = getattr(sys.modules['tale.base'], 'Weapon')
+                else:
+                    clazz = getattr(sys.modules['tale.base'], 'Item')
             new_item = clazz(name=item['name'], title=item.get('title', item['name']), descr=item.get('descr', ''), short_descr=item.get('short_descr', ''))
             if isinstance(new_item, Note):
                 set_note(new_item, item)
@@ -75,13 +91,21 @@ def load_npcs(json_file: [], locations = {}):
     """
     npcs = {}
     for npc in json_file:
-        npc_type = npc['type']
-        if npc_type == 'Living':
-            new_npc = Living(name=npc['name'], gender=npc['gender'], race=npc['race'], title=npc['title'], descr=npc['descr'], short_descr=npc['short_descr'])
-        else:
-            module = sys.modules['tale.items.basic']
-            clazz = getattr(npc_type)
-            new_npc = clazz(name=npc['name'], gender=npc['gender'], race=npc['race'], title=npc['title'], descr=npc['descr'], short_descr=npc['short_descr'], args=npc)
+        npc_type = npc.get('type', 'LivingNpc')
+        if npc_type == 'LivingNpc':
+            new_npc = LivingNpc(name=npc['name'], 
+                                gender=npc.get('gender'.lower(), 'm'), 
+                                race=npc.get('race'.lower(), 'human'), 
+                                title=npc.get('title', ''), 
+                                descr=npc.get('descr', ''), 
+                                short_descr=npc.get('short_descr', npc.get('description', '')), 
+                                age=npc.get('age', 0), 
+                                personality=npc.get('personality', ''), 
+                                occupation=npc.get('occupation', ''))
+        # else:
+        #     module = sys.modules['tale.items.basic']
+        #     clazz = getattr(module, npc_type)
+        #     new_npc = clazz(name=npc['name'], gender=npc['gender'], race=npc['race'], title=npc['title'], descr=npc['descr'], short_descr=npc['short_descr'], args=npc)
         if locations and npc['location']:
             _insert(new_npc, locations, npc['location'])
         npcs[npc['name']] = new_npc
@@ -121,7 +145,8 @@ def _insert(new_item: Item, locations, location: str):
     location_parts = location.split('.')
     for part in location_parts:
         location = locations[part]
-        locations = location
+        if 'locations' in location:
+            locations = location['locations']
     if location:
         location.insert(new_item, None)
 
@@ -207,6 +232,7 @@ def parse_generated_exits(json_result: dict, exit_location_name: str, location: 
             # create location
             new_location = Location(exit['name'].lower())
             new_location.built = False
+            new_location.generated = True
             exit_back = Exit(directions=location.name, 
                     target_location=location, 
                     short_descr=f'You can see {location.name}') # need exit descs

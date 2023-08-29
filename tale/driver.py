@@ -281,6 +281,7 @@ class Driver(pubsub.Listener):
         user_data_dir.mkdir(mode=0o700, parents=True, exist_ok=True)
         self.user_resources = vfs.VirtualFileSystem(root_path=user_data_dir, readonly=False)  # r/w to the local 'user data' directory
         self.story.init(self)
+        self.llm_util.set_story(self.story)
         if self.story.config.playable_races:
             # story provides playable races. Check that every race is known.
             invalid = self.story.config.playable_races - playable_races

@@ -3,7 +3,7 @@
         "name":"Kobbo",
         "gender":"m",
         "race":"kobold",
-        "type":"Living",
+        "type":"LivingNpc",
         "title":"Kobbo the King",
         "descr":"Kobbo has a grace only royal kobolds posses",
         "short_descr":"A kobold",

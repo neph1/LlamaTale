@@ -204,9 +204,6 @@ class IFDriver(driver.Driver):
         player.tell("\n")
         prompt = self.story.welcome(player)
 
-        self.llm_util.story_type = self.story.config.type
-        self.llm_util.story_background = self.story.config.context
-        
         if prompt:
             conn.input_direct("\n" + prompt)   # blocks  (note: cannot use yield here)
         player.tell("\n")

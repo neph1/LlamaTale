@@ -39,7 +39,6 @@ class LlmUtil():
         self.stream = config_file['STREAM']
         self.connection = None
         self._look_hashes = dict() # type: dict[int, str] # location hashes for look command. currently never cleared.
-        self.evoke_generated_locs = config_file['EVOKE_GENERATED_LOCS']
 
     def evoke(self, player_io: TextBuffer, message: str, max_length : bool=False, rolling_prompt='', alt_prompt='', skip_history=True):
         """Evoke a response from LLM. Async if stream is True, otherwise synchronous.

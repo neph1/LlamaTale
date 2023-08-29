@@ -1,5 +1,8 @@
 {
     "name":"test house",
+    "description":"test house description",
+    "races":["Kobbo"],
+    "items":[],
     "rooms":[
         {
             "name": "test room",

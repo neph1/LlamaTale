@@ -1,22 +1,26 @@
 import tale
 from tale.base import Location, Item, Living
 from tale.driver import Driver
+from tale.llm_ext import DynamicStory
 from tale.player import Player
 from tale.story import StoryBase, StoryConfig
 import tale.parse_utils as parse_utils
 
-class JsonStory(StoryBase):
+class JsonStory(DynamicStory):
     
     def __init__(self, path: str, config: StoryConfig):
         self.config = config
         self.path = path
         locs = {}
         for zone in self.config.zones:
-            locs, exits = parse_utils.load_locations(parse_utils.load_json(self.path +'zones/'+zone + '.json'))
+            zones, exits = parse_utils.load_locations(parse_utils.load_json(self.path +'zones/'+zone + '.json'))
+        for zone in zones.values():
+            for loc in zone['locations'].values():
+                locs[loc.name] = loc
         self._locations = locs
-        self._zones = locs
-        self._npcs = parse_utils.load_npcs(parse_utils.load_json(self.path +'npcs/'+self.config.npcs + '.json'), self._locations)
-        self._items = parse_utils.load_items(parse_utils.load_json(self.path + self.config.items + '.json'), self._locations)
+        self._zones = zones # type: dict(str, dict)
+        self._npcs = parse_utils.load_npcs(parse_utils.load_json(self.path +'npcs/'+self.config.npcs + '.json'), self._zones)
+        self._items = parse_utils.load_items(parse_utils.load_json(self.path + self.config.items + '.json'), self._zones)
         
     def init(self, driver) -> None:
         pass
@@ -36,14 +40,22 @@ class JsonStory(StoryBase):
 
     def get_location(self, zone: str, name: str) -> Location:
         """ Find a location by name in a zone."""
-        return self._zones[zone][name]
+        return self._zones[zone]['locations'][name]
     
     def find_location(self, name: str) -> Location:
         """ Find a location by name in any zone."""
         for zone in self._zones:
-            for loc in zone.values():
+            for loc in zone['locations']:
                 if loc.name == name:
                     return loc
+    
+    def find_zone(self, location: str) -> str:
+        """ Find a zone by location."""
+        for zone in self._zones:
+            for loc in self._zones[zone]['locations']:
+                if loc == location:
+                    return zone
+        return None
                 
     def add_location(self, location: Location, zone: str = '') -> None:
         """ Add a location to the story. 
@@ -55,6 +67,20 @@ class JsonStory(StoryBase):
         for zone in self._zones:
             self._zones[zone][location.name] = location
             break
+
+    def races_for_zone(self, zone: str) -> [str]:
+        return self._zones[zone]["races"]
+   
+    def items_for_zone(self, zone: str) -> [str]:
+        return self._zones[zone]["items"]
+
+    def zone_info(self, zone: str = '', location: str = '') -> dict():
+        if not zone and location:
+            zone = self.find_zone(location)
+        
+        return {"description":self._zones[zone]['description'],
+                "races": self.races_for_zone(zone),
+                "items":self.items_for_zone(zone)}
 
     def get_npc(self, npc: str) -> Living:
         return self._npcs[npc]
