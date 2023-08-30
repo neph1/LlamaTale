@@ -46,6 +46,7 @@ Exit.connect(main_hall, ["entrance", "south"], "", "The entrance to the building
 entrance.add_exits([Exit(["outside", "south"], short_descr="A biting wind reaches you through the door to the south.", target_location=outside)])
 
 outside.add_exits([Exit(["entrance", "north"], short_descr="The door to the north leads inside The Prancing Llama.", target_location=entrance)])
+outside.generated = True
 
 main_hall.init_inventory([shanda, elid_gald])
 

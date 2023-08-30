@@ -9,16 +9,35 @@ from tale.player_utils import TextBuffer
 class IoUtil():
     """ Handles connection and data retrieval from backend """
 
-    def synchronous_request(self, url: str, request_body: dict):
-        """ Send request to backend and return the result """
-        response = requests.post(url, data=json.dumps(request_body))
-        text = parse_utils.trim_response(json.loads(response.text)['results'][0]['text'])
-        return text
+    def __init__(self, config: dict):
+        self.backend = config['BACKEND']
+        self.url = config['URL']
+        self.endpoint = config['ENDPOINT']
+        self.stream_endpoint = config['STREAM_ENDPOINT']
+        self.data_endpoint = config['DATA_ENDPOINT']
+        if self.backend == 'openai':
+            headers = json.loads(config['OPENAI_HEADERS'])
+            headers['Authorization'] = f"Bearer {config['OPENAI_API_KEY']}"
+            self.headers = headers
+        else:
+            self.headers = {}
+        self.stream = config['STREAM']
 
-    def stream_request(self, stream_url: str, data_url: str, request_body: dict, player_io: TextBuffer, io) -> str:
-        result = asyncio.run(self._do_stream_request(stream_url, request_body))
+    def synchronous_request(self, request_body: dict):
+        """ Send request to backend and return the result """
+        response = requests.post(self.url + self.endpoint, headers=self.headers, data=json.dumps(request_body))
+        if self.backend == 'openai':
+            parsed_response = self._parse_openai_result(response.text)
+        else:
+            parsed_response = self._parse_kobold_result(response.text)
+        return parse_utils.trim_response(parsed_response)
+
+    def stream_request(self, request_body: dict, player_io: TextBuffer, io) -> str:
+        if self.backend == 'openai':
+            raise NotImplementedError("Currently does not support streaming requests for OpenAI")
+        result = asyncio.run(self._do_stream_request(self.url + self.stream_endpoint, request_body))
         if result:
-            return self._do_process_result(data_url, player_io, io)
+            return self._do_process_result(self.url + self.data_endpoint, player_io, io)
         return ''
 
     async def _do_stream_request(self, url: str, request_body: dict,) -> bool:
@@ -38,7 +57,7 @@ class IoUtil():
         while tries < 4:
             time.sleep(0.5)
             data = requests.post(url)
-            text = json.loads(data.text)['results'][0]['text']
+            text = self._parse_kobold_result(data.text)
 
             if len(text) == len(old_text):
                 tries += 1
@@ -49,3 +68,12 @@ class IoUtil():
             old_text = text
 
         return old_text
+
+    def _parse_kobold_result(self, result: str) -> str:
+        """ Parse the result from the kobold endpoint """
+        return json.loads(result)['results'][0]['text']
+    
+    def _parse_openai_result(self, result: str) -> str:
+        """ Parse the result from the openai endpoint """
+        return json.loads(result)['choices'][0]['message']['content']
+

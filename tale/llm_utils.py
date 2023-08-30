@@ -18,11 +18,8 @@ class LlmUtil():
                 config_file = yaml.safe_load(stream)
             except yaml.YAMLError as exc:
                 print(exc)
-        self.url = config_file['URL']
-        self.endpoint = config_file['ENDPOINT']
-        self.stream_endpoint = config_file['STREAM_ENDPOINT']
-        self.data_endpoint = config_file['DATA_ENDPOINT']
-        self.default_body = json.loads(config_file['DEFAULT_BODY'])
+        self.backend = config_file['BACKEND']
+        self.default_body = json.loads(config_file['DEFAULT_BODY']) if self.backend == 'kobold_cpp' else json.loads(config_file['OPENAI_BODY'])
         self.analysis_body = json.loads(config_file['ANALYSIS_BODY'])
         self.memory_size = config_file['MEMORY_SIZE']
         self.pre_prompt = config_file['PRE_PROMPT']
@@ -35,7 +32,7 @@ class LlmUtil():
         self.item_prompt = config_file['ITEM_PROMPT']
         self.word_limit = config_file['WORD_LIMIT']
         self.__story = None # type: DynamicStory
-        self.io_util = IoUtil()
+        self.io_util = IoUtil(config=config_file)
         self.stream = config_file['STREAM']
         self.connection = None
         self._look_hashes = dict() # type: dict[int, str] # location hashes for look command. currently never cleared.
@@ -67,17 +64,20 @@ class LlmUtil():
         
         rolling_prompt = self.update_memory(rolling_prompt, trimmed_message)
         
-        request_body = self.default_body 
-        request_body['prompt'] = prompt
+        request_body = self.default_body
+        if self.backend == 'kobold_cpp':
+            request_body['prompt'] = prompt
+        elif self.backend == 'openai':
+            request_body['content'] = prompt
 
         if not self.stream:
-            text = self.io_util.synchronous_request(self.url + self.endpoint, request_body)
+            text = self.io_util.synchronous_request(request_body)
             rolling_prompt = self.update_memory(rolling_prompt, text)
             self._store_hash(text_hash_value, text)
             return f'Original:[ {message} ]\nGenerated:\n{text}', rolling_prompt
 
         player_io.print(f'Original:[ {message} ]\nGenerated:\n', end=False, format=True, line_breaks=False)
-        text = self.io_util.stream_request(self.url + self.stream_endpoint, self.url + self.data_endpoint, request_body, player_io, self.connection)
+        text = self.io_util.stream_request(request_body, player_io, self.connection)
         self._store_hash(text_hash_value, text)
         rolling_prompt = self.update_memory(rolling_prompt, text)
         return '\n', rolling_prompt
@@ -101,9 +101,12 @@ class LlmUtil():
                 character1_description=target_description,
                 sentiment=sentiment)
         request_body = self.default_body
-        request_body['prompt'] = prompt
+        if self.backend == 'kobold_cpp':
+            request_body['prompt'] = prompt
+        elif self.backend == 'openai':
+            request_body['content'] = prompt
         #if not self.stream:
-        text = parse_utils.trim_response(self.io_util.synchronous_request(self.url + self.endpoint, request_body))
+        text = parse_utils.trim_response(self.io_util.synchronous_request(request_body))
         #else:
         #    player_io = mud_context.pla
         #    text = self.io_util.stream_request(self.url + self.stream_endpoint, self.url + self.data_endpoint, request_body, player_io, self.connection)
@@ -117,8 +120,11 @@ class LlmUtil():
         items = character_card.split('items:')[1].split(']')[0]
         prompt = self.generate_item_prompt(text, items, character_name, target)
         request_body = self.analysis_body
-        request_body['prompt'] = prompt
-        text = parse_utils.trim_response(self.io_util.synchronous_request(self.url + self.endpoint, request_body))
+        if self.backend == 'kobold_cpp':
+            request_body['prompt'] = prompt
+        elif self.backend == 'openai':
+            request_body['content'] = prompt
+        text = parse_utils.trim_response(self.io_util.synchronous_request(request_body))
         try:
             json_result = json.loads(parse_utils.sanitize_json(text))
         except JSONDecodeError as exc:
@@ -170,13 +176,17 @@ class LlmUtil():
         prompt = self.character_prompt.format(story_context=story_context, 
                                               keywords=', '.join(keywords))
         request_body = self.default_body
-        request_body['stop_sequence'] = ['\n\n'] # to avoid text after the character card
-        request_body['temperature'] = 0.7
-        request_body['top_p'] = 0.92
-        request_body['rep_pen'] = 1.0
-        request_body['banned_tokens'] = ['```']
-        request_body['prompt'] = prompt
-        result = self.io_util.synchronous_request(self.url + self.endpoint, request_body)
+        if self.backend == 'kobold_cpp':
+            # do some parameter tweaking for kobold_cpp
+            request_body['stop_sequence'] = ['\n\n'] # to avoid text after the character card
+            request_body['temperature'] = 0.7
+            request_body['top_p'] = 0.92
+            request_body['rep_pen'] = 1.0
+            request_body['banned_tokens'] = ['```']
+            request_body['prompt'] = prompt
+        elif self.backend == 'openai':
+            request_body['content'] = prompt
+        result = self.io_util.synchronous_request(request_body)
         try:
             json_result = json.loads(parse_utils.sanitize_json(result))
         except JSONDecodeError as exc:
@@ -196,15 +206,20 @@ class LlmUtil():
             story_context=self.__story.config.context,
             exit_location=exit_location_name,
             location_name=location.name)
+        
         request_body = self.default_body
-        request_body['stop_sequence'] = ['\n\n']
-        request_body['temperature'] = 0.5
-        request_body['top_p'] = 0.6
-        request_body['top_k'] = 0
-        request_body['rep_pen'] = 1.0
-        request_body['banned_tokens'] = ['```']
-        request_body['prompt'] = prompt
-        result = self.io_util.synchronous_request(self.url + self.endpoint, request_body)
+        if self.backend == 'kobold_cpp':
+            # do some parameter tweaking for kobold_cpp
+            request_body['stop_sequence'] = ['\n\n']
+            request_body['temperature'] = 0.5
+            request_body['top_p'] = 0.6
+            request_body['top_k'] = 0
+            request_body['rep_pen'] = 1.0
+            request_body['banned_tokens'] = ['```']
+            request_body['prompt'] = prompt
+        elif self.backend == 'openai':
+            request_body['content'] = prompt
+        result = self.io_util.synchronous_request(request_body)
         try:
             json_result = json.loads(parse_utils.sanitize_json(result))
             return self.validate_location(json_result, location, exit_location_name)
@@ -243,4 +258,3 @@ class LlmUtil():
 
     def set_story(self, story: DynamicStory):
         self.__story = story
-   
