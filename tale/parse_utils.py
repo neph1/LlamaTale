@@ -94,8 +94,8 @@ def load_npcs(json_file: [], locations = {}):
         npc_type = npc.get('type', 'LivingNpc')
         if npc_type == 'LivingNpc':
             new_npc = LivingNpc(name=npc['name'], 
-                                gender=npc.get('gender'.lower(), 'm'), 
-                                race=npc.get('race'.lower(), 'human'), 
+                                gender=npc.get('gender', 'm').lower(), 
+                                race=npc.get('race', 'human').lower(), 
                                 title=npc.get('title', ''), 
                                 descr=npc.get('descr', ''), 
                                 short_descr=npc.get('short_descr', npc.get('description', '')), 
