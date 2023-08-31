@@ -240,6 +240,8 @@ class LlmUtil():
                 location_to_build.insert(item, None)
 
             npcs = parse_utils.load_npcs(json_result.get("npcs", []))
+            for npc in npcs.values():
+                location_to_build.insert(npc, None)
 
             new_locations, exits = parse_utils.parse_generated_exits(json_result, 
                                                                      exit_location_name, 
