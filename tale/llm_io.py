@@ -9,7 +9,10 @@ from tale.player_utils import TextBuffer
 class IoUtil():
     """ Handles connection and data retrieval from backend """
 
-    def __init__(self, config: dict):
+    def __init__(self, config: dict = None):
+        if not config:
+            # for tests
+            return 
         self.backend = config['BACKEND']
         self.url = config['URL']
         self.endpoint = config['ENDPOINT']

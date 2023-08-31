@@ -65,5 +65,5 @@ class FakeIoUtil(IoUtil):
         super().__init__()
         self.response = response
 
-    def synchronous_request(self, url: str, request_body: dict) -> str:
+    def synchronous_request(self, request_body: dict) -> str:
         return self.response
