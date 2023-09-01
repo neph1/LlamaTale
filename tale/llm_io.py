@@ -78,5 +78,9 @@ class IoUtil():
     
     def _parse_openai_result(self, result: str) -> str:
         """ Parse the result from the openai endpoint """
-        return json.loads(result)['choices'][0]['message']['content']
+        try:
+            return json.loads(result)['choices'][0]['message']['content']
+        except:
+            print("Error parsing result from OpenAI")
+            print(result)
 
