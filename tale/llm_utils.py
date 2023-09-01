@@ -68,7 +68,7 @@ class LlmUtil():
         if self.backend == 'kobold_cpp':
             request_body['prompt'] = prompt
         elif self.backend == 'openai':
-            request_body['content'] = prompt
+            request_body['messages'][1]['content'] = prompt
 
         if not self.stream:
             text = self.io_util.synchronous_request(request_body)
@@ -104,7 +104,7 @@ class LlmUtil():
         if self.backend == 'kobold_cpp':
             request_body['prompt'] = prompt
         elif self.backend == 'openai':
-            request_body['content'] = prompt
+            request_body['messages'][1]['content'] = prompt
         #if not self.stream:
         text = parse_utils.trim_response(self.io_util.synchronous_request(request_body))
         #else:
@@ -123,7 +123,7 @@ class LlmUtil():
         if self.backend == 'kobold_cpp':
             request_body['prompt'] = prompt
         elif self.backend == 'openai':
-            request_body['content'] = prompt
+            request_body['messages'][1]['content'] = prompt
         text = parse_utils.trim_response(self.io_util.synchronous_request(request_body))
         try:
             json_result = json.loads(parse_utils.sanitize_json(text))
@@ -185,7 +185,7 @@ class LlmUtil():
             request_body['banned_tokens'] = ['```']
             request_body['prompt'] = prompt
         elif self.backend == 'openai':
-            request_body['content'] = prompt
+            request_body['messages'][1]['content'] = prompt
         result = self.io_util.synchronous_request(request_body)
         try:
             json_result = json.loads(parse_utils.sanitize_json(result))
@@ -218,7 +218,7 @@ class LlmUtil():
             request_body['banned_tokens'] = ['```']
             request_body['prompt'] = prompt
         elif self.backend == 'openai':
-            request_body['content'] = prompt
+            request_body['messages'][1]['content'] = prompt
         result = self.io_util.synchronous_request(request_body)
         try:
             json_result = json.loads(parse_utils.sanitize_json(result))
