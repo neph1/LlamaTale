@@ -1,7 +1,9 @@
 import json
 import os
 import yaml
+import random
 from json import JSONDecodeError
+from tale import math_utils
 from tale.base import Location
 from tale.llm_ext import DynamicStory
 from tale.llm_io import IoUtil
@@ -31,6 +33,8 @@ class LlmUtil():
         self.location_prompt = config_file['CREATE_LOCATION_PROMPT']
         self.item_prompt = config_file['ITEM_PROMPT']
         self.word_limit = config_file['WORD_LIMIT']
+        self.spawn_prompt = config_file['SPAWN_PROMPT']
+        self.items_prompt = config_file['ITEMS_PROMPT']
         self.__story = None # type: DynamicStory
         self.io_util = IoUtil(config=config_file)
         self.stream = config_file['STREAM']
@@ -200,12 +204,30 @@ class LlmUtil():
 
     def build_location(self, location: Location, exit_location_name: str):
         """ Generate a location based on the current story context"""
+        zone_info = self.__story.zone_info(zone_name='', location=exit_location_name)
+
+        # TODO: this is a just a placeholder algo to create some things randomly.
+        spawn_prompt = ''
+        spawn_chance = 0.25
+        spawn = random.random() < spawn_chance
+        if spawn:
+            mood = zone_info.get('mood', 0) + random.randint(-5, 5)
+            level = math_utils.normpdf(mean=zone_info.get('level', 1), sd=3, x=0)
+            spawn_prompt = self.spawn_prompt.format(alignment=mood > 0 and 'friendly' or 'hostile', level=level)
+
+        items_prompt = ''
+        item_amount = random.randint(0, 3)
+        if item_amount > 0:
+            items_prompt = self.items_prompt.format(items=item_amount)
+
         prompt = self.location_prompt.format(
             story_type=self.__story.config.type,
-            zone_info=self.__story.zone_info(zone='', location=exit_location_name),
+            zone_info=zone_info,
             story_context=self.__story.config.context,
             exit_location=exit_location_name,
-            location_name=location.name)
+            location_name=location.name,
+            spawn_prompt=spawn_prompt,
+            items_prompt=items_prompt,)
         
         request_body = self.default_body
         if self.backend == 'kobold_cpp':

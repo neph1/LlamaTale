@@ -24,6 +24,8 @@ def load_locations(json_file: dict):
     zone = Zone(json_file['name'], description=json_file['description'])
     zone.races = json_file['races']
     zone.items = json_file['items']
+    zone.mood = json_file['mood']
+    zone.level = json_file['level']
     zones[json_file['name']] = zone
     for loc in json_file['locations']:
         name = loc['name']

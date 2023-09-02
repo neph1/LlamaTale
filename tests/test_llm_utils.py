@@ -26,6 +26,7 @@ class TestLlmUtils():
     generated_location = '{"name": "Outside","description": "A barren wasteland of snow and ice stretches as far as the eye can see. The wind howls through the mountains like a chorus of banshees, threatening to sweep away any unfortunate soul caught outside without shelter.", "exits": [{"name": "North Pass","short_desc": "The North Pass is treacherous mountain pass that leads deeper into the heart of the range","enter_msg":"You shuffle your feet through knee-deep drifts of snow, trying to keep your balance on the narrow path."}, {"name": "South Peak","short_Desc": "The South Peak offers breathtaking views of the surrounding landscape from its summit, but it\'s guarded by a pack of fierce winter wolves.","Enter_msg":"You must face off against the snarling beasts if you wish to reach the peak."}] ,"items": [{"name":"Woolly gloves", "type":"Wearable"}],"npcs": []}'
     
     story = JsonStory('tests/files/test_story/', parse_utils.load_story_config(parse_utils.load_json('tests/files/test_story/test_story_config.json')))
+    
     story.init(IFDriver())
 
     def test_validate_item_response_valid(self):

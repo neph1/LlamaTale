@@ -45,17 +45,16 @@ class JsonStory(DynamicStory):
     
     def find_location(self, name: str) -> Location:
         """ Find a location by name in any zone."""
-        for zone in self._zones:
-            for loc in zone.locations:
-                if loc.name == name:
-                    return loc
+        for zone in self._zones.values():
+            location = zone.get_location(name)
+            if location:
+                return location
     
     def find_zone(self, location: str) -> str:
         """ Find a zone by location."""
-        for zone in self._zones:
-            for loc in self._zones[zone].locations:
-                if loc == location:
-                    return zone
+        for zone in self._zones.values():
+            if zone.get_location(location):
+                return zone
         return None
                 
     def add_location(self, location: Location, zone: str = '') -> None:
@@ -75,10 +74,11 @@ class JsonStory(DynamicStory):
     def items_for_zone(self, zone: str) -> [str]:
         return self._zones[zone].items
 
-    def zone_info(self, zone: str = '', location: str = '') -> dict():
-        if not zone and location:
+    def zone_info(self, zone_name: str = '', location: str = '') -> dict():
+        if not zone_name and location:
             zone = self.find_zone(location)
-        
+        else:
+            zone = self._zones[zone_name]
         return zone.info()
 
     def get_npc(self, npc: str) -> Living:

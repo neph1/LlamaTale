@@ -2438,6 +2438,8 @@ class Zone():
         self.level = 1 # average level of the zone
         self.races = [] # common races to be encountered in the zone
         self.items = [] # common items to find in the zone
+        self.mood = 0 # defines friendliness or hostility of the zone. > 0 is friendly
+        
         self.name = name
 
     def add_location(self, location: Location) -> None:
@@ -2448,6 +2450,8 @@ class Zone():
     
     def info(self) -> dict():
         return {"description":self.description,
+                "level":self.level,
+                "mood":self.mood,
                 "races": self.races,
                 "items":self.items}
 

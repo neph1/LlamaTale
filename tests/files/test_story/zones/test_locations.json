@@ -3,6 +3,8 @@
     "description":"A dark cave",
     "races":["kobold", "bat", "giant rat"],
     "items":["torch", "sword", "shield"],
+    "level":1,
+    "mood":-1,
     "locations":[
         {
             "name": "Cave entrance",
