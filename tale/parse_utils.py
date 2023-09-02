@@ -1,5 +1,5 @@
 from typing import Union
-from tale.base import Location, Exit, Item, Living
+from tale.base import Location, Exit, Item, Living, Zone
 from tale.items.basic import Money, Note
 from tale.story import GameMode, MoneyType, TickMethod, StoryConfig
 from tale.llm_ext import LivingNpc
@@ -21,16 +21,15 @@ def load_locations(json_file: dict):
     temp_exits = {}
     parsed_exits = []
     zones = {}
-    zone = {}
-    zone['name'] = json_file['name']
-    zone['description'] = json_file['description']
-    zone['races'] = json_file['races']
-    zone['items'] = json_file['items']
-    zone['locations'] = locations
+    zone = Zone(json_file['name'], description=json_file['description'])
+    zone.races = json_file['races']
+    zone.items = json_file['items']
     zones[json_file['name']] = zone
-    for loc in json_file['rooms']:
+    for loc in json_file['locations']:
         name = loc['name']
-        locations[name] = location_from_json(loc)
+        location = location_from_json(loc)
+        locations[name] = location
+        zone.add_location(location)
         loc_exits = loc['exits']
         for loc_exit in loc_exits:
             temp_exits.setdefault(name,{})[loc_exit['name']] = loc_exit
@@ -50,7 +49,7 @@ def load_locations(json_file: dict):
 
 
 def location_from_json(json_object: dict):
-    return Location(name=json_object['name'], descr=json_object['descr'])
+    return Location(name=json_object['name'], descr=json_object.get('descr', ''))
 
 def load_items(json_file: [], locations = {}):
     """
@@ -93,10 +92,10 @@ def load_npcs(json_file: [], locations = {}):
     for npc in json_file:
         npc_type = npc.get('type', 'LivingNpc')
         if npc_type == 'LivingNpc':
-            new_npc = LivingNpc(name=npc['name'], 
+            new_npc = LivingNpc(name=npc['name'].lower().split(' ')[0], 
                                 gender=npc.get('gender', 'm').lower(), 
                                 race=npc.get('race', 'human').lower(), 
-                                title=npc.get('title', ''), 
+                                title=npc.get('title', npc['name']), 
                                 descr=npc.get('descr', ''), 
                                 short_descr=npc.get('short_descr', npc.get('description', '')), 
                                 age=npc.get('age', 0), 
@@ -143,12 +142,13 @@ def load_story_config(json_file: dict):
 
 def _insert(new_item: Item, locations, location: str):
     location_parts = location.split('.')
-    for part in location_parts:
-        location = locations[part]
-        if 'locations' in location:
-            locations = location['locations']
-    if location:
-        location.insert(new_item, None)
+    if len(location_parts) == 2:
+        zone = locations.get(location_parts[0])
+        loc = zone.get_location(location_parts[1])
+    else:
+        loc = locations.get(location)
+    if loc:
+        loc.insert(new_item, None)
 
 def init_money(item: dict):
     return Money(name=item['name'], value=item['value'], title=item['title'], short_descr=item['short_descr'])
@@ -227,10 +227,10 @@ def parse_generated_exits(json_result: dict, exit_location_name: str, location: 
     """
     new_locations = []
     exits = []
-    for exit in json_result['exits']:
+    for exit in json_result.get('exits', []):
         if exit['name'] != exit_location_name:
             # create location
-            new_location = Location(exit['name'].lower())
+            new_location = Location(exit['name'].lower().replace('the ', ''))
             new_location.built = False
             new_location.generated = True
             exit_back = Exit(directions=location.name, 

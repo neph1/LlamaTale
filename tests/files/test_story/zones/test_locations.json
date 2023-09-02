@@ -3,7 +3,7 @@
     "description":"A dark cave",
     "races":["kobold", "bat", "giant rat"],
     "items":["torch", "sword", "shield"],
-    "rooms":[
+    "locations":[
         {
             "name": "Cave entrance",
 		    "descr": "This cave entrance gives shelter from the wind and rain.",

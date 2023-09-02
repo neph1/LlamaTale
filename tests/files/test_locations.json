@@ -3,7 +3,7 @@
     "description":"test house description",
     "races":["Kobbo"],
     "items":[],
-    "rooms":[
+    "locations":[
         {
             "name": "test room",
 		    "descr": "test room description",

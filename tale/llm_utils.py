@@ -45,10 +45,12 @@ class LlmUtil():
         if not message or str(message) == "\n":
             str(message), rolling_prompt
 
+        rolling_prompt = self.update_memory(rolling_prompt, message)
+
         text_hash_value = hash(message)
         if text_hash_value in self._look_hashes:
             text = self._look_hashes[text_hash_value]
-            rolling_prompt = self.update_memory(rolling_prompt, text)
+            
             return f'Original:[ {message} ]\nGenerated:\n{text}', rolling_prompt
 
         trimmed_message = parse_utils.remove_special_chars(str(message))
@@ -62,8 +64,6 @@ class LlmUtil():
             max_words=self.word_limit if not max_length else amount,
             input_text=str(trimmed_message))
         
-        rolling_prompt = self.update_memory(rolling_prompt, trimmed_message)
-        
         request_body = self.default_body
         if self.backend == 'kobold_cpp':
             request_body['prompt'] = prompt
@@ -72,14 +72,13 @@ class LlmUtil():
 
         if not self.stream:
             text = self.io_util.synchronous_request(request_body)
-            rolling_prompt = self.update_memory(rolling_prompt, text)
             self._store_hash(text_hash_value, text)
             return f'Original:[ {message} ]\nGenerated:\n{text}', rolling_prompt
 
         player_io.print(f'Original:[ {message} ]\nGenerated:\n', end=False, format=True, line_breaks=False)
         text = self.io_util.stream_request(request_body, player_io, self.connection)
         self._store_hash(text_hash_value, text)
-        rolling_prompt = self.update_memory(rolling_prompt, text)
+        
         return '\n', rolling_prompt
     
     def generate_dialogue(self, conversation: str, 
@@ -166,6 +165,7 @@ class LlmUtil():
         return False, None
       
     def update_memory(self, rolling_prompt: str, response_text: str):
+        """ Keeps a history of the last couple of events"""
         rolling_prompt += response_text
         if len(rolling_prompt) > self.memory_size:
             rolling_prompt = rolling_prompt[len(rolling_prompt) - self.memory_size + 1:]

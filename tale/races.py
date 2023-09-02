@@ -686,6 +686,14 @@ _races = {
         'size': BodySize.SOMEWHAT_LARGE,
         'hp' : 5,
         'unarmed_attack': UnarmedAttack.TENTACLES
+    },
+    'yeti': {
+        'body': BodyType.HUMANOID,
+        'language': 'Yeti',
+        'mass': 160.0,
+        'size': BodySize.SOMEWHAT_LARGE,
+        'hp' : 5,
+        'unarmed_attack': UnarmedAttack.FISTS
     }
 }
 

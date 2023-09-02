@@ -1,8 +1,9 @@
 from tale import mud_context
-from tale.base import Living, Location, ParseResult
+from tale.base import ContainingType, Living, Location, ParseResult
 from tale.errors import TaleError
 from tale.player import Player
 from tale.story import StoryBase
+from typing import Sequence
 
 class LivingNpc(Living):
     """An NPC with extra fields to define personality and help LLM generate dialogue"""
@@ -15,6 +16,7 @@ class LivingNpc(Living):
         self.occupation = occupation
         self.conversation = ''
         self.memory_size = 1024
+        self.known_locations = dict()
         self.sentiments = {}
         
     def init(self) -> None:
@@ -76,20 +78,16 @@ class LivingNpc(Living):
             item = self.search_item(result["item"])
             if not item:
                 raise TaleError("item not found on actor %s " % item)
-            #self.remove(item, self)
             if result["to"]:
                 
                 if result["to"] == actor.name or result["to"] == actor.title:
                     item.move(actor, self)
-                    #actor.insert(item, None)
                 elif result["to"] in ["user", "you", "player"] and isinstance(actor, Player):
                     item.move(actor, self)
-                    #actor.insert(item, None)
                 actor.tell("%s gives you %s." % (self.subjective, item.title), evoke=False)
                 self.tell_others("{Actor} gives %s to %s" % (item.title, actor.title), evoke=False)
             else:
                 item.move(self.location, self)
-                #self.location.insert(item, self)
                 self.tell_others("{Actor} drops %s on the floor" % (item.title), evoke=False)
                     
         
@@ -97,6 +95,12 @@ class LivingNpc(Living):
         self.conversation += line
         if len(self.conversation) > self.memory_size:
             self.conversation = self.conversation[len(self.conversation) - self.memory_size+1:]
+
+    def move(self, target: ContainingType, actor: Living=None,
+             *, silent: bool=False, is_player: bool=False, verb: str="move", direction_names: Sequence[str]=None) -> None:
+        self.known_locations[self.location.name] = f"description: {self.location.description}. " + self.location.look(exclude_living=self, short=True)
+
+        super().move(target, actor, silent=silent, is_player=is_player, verb=verb, direction_names=direction_names)
             
     @property
     def character_card(self) -> str:

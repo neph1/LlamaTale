@@ -793,6 +793,7 @@ class Driver(pubsub.Listener):
             mud_context.driver.defer(period, func)
             
     def load_character(self, player: player.Player, path: str):
+        """Loads a character from a json file and inserts it into the player's location."""
         character_loader = CharacterLoader()
         char_data = character_loader.load_character(path)
         character = CharacterV2().from_json(char_data)
