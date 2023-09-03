@@ -19,12 +19,18 @@ class TestJsonStory():
         assert(self.story.get_npc('Kobbo').location.name == 'Royal Grotto')
         assert(self.story.get_item('Hoodie').location.name == 'Cave entrance')
         zone_info = self.story.zone_info('Cave')
-        print(zone_info)
         assert(zone_info['description'] == 'A dark cave')
         assert(zone_info['races'] == ['kobold', 'bat', 'giant rat'])
         assert(zone_info['items'] == ['torch', 'sword', 'shield'])
+        assert(zone_info['level'] == 1)
+        assert(zone_info['mood'] == -1)
 
 
     def test_add_location(self):
         new_location = Location('New Location', 'New Location')
         self.story.add_location(new_location)
+
+    def test_find_location(self):
+        location = self.story.find_location('Cave entrance')
+        assert(location)
+        assert(location.name == 'Cave entrance')

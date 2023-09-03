@@ -14,8 +14,9 @@ class JsonStory(DynamicStory):
         locs = {}
         for zone in self.config.zones:
             zones, exits = parse_utils.load_locations(parse_utils.load_json(self.path +'zones/'+zone + '.json'))
-        for zone in zones.values():
-            for loc in zone['locations'].values():
+        for name in zones.keys():
+            zone = zones[name]
+            for loc in zone.locations.values():
                 locs[loc.name] = loc
         self._locations = locs
         self._zones = zones # type: dict(str, dict)
@@ -40,21 +41,20 @@ class JsonStory(DynamicStory):
 
     def get_location(self, zone: str, name: str) -> Location:
         """ Find a location by name in a zone."""
-        return self._zones[zone]['locations'][name]
+        return self._zones[zone].get_location(name)
     
     def find_location(self, name: str) -> Location:
         """ Find a location by name in any zone."""
-        for zone in self._zones:
-            for loc in zone['locations']:
-                if loc.name == name:
-                    return loc
+        for zone in self._zones.values():
+            location = zone.get_location(name)
+            if location:
+                return location
     
     def find_zone(self, location: str) -> str:
         """ Find a zone by location."""
-        for zone in self._zones:
-            for loc in self._zones[zone]['locations']:
-                if loc == location:
-                    return zone
+        for zone in self._zones.values():
+            if zone.get_location(location):
+                return zone
         return None
                 
     def add_location(self, location: Location, zone: str = '') -> None:
@@ -62,25 +62,24 @@ class JsonStory(DynamicStory):
         If zone is specified, add to that zone, otherwise add to first zone.
         """
         if zone:
-            self._zones[zone][location.name] = location
+            self._zones[zone].add_location(location)
             return
         for zone in self._zones:
-            self._zones[zone][location.name] = location
+            self._zones[zone].add_location(location)
             break
 
     def races_for_zone(self, zone: str) -> [str]:
-        return self._zones[zone]["races"]
+        return self._zones[zone].races
    
     def items_for_zone(self, zone: str) -> [str]:
-        return self._zones[zone]["items"]
+        return self._zones[zone].items
 
-    def zone_info(self, zone: str = '', location: str = '') -> dict():
-        if not zone and location:
+    def zone_info(self, zone_name: str = '', location: str = '') -> dict():
+        if not zone_name and location:
             zone = self.find_zone(location)
-        
-        return {"description":self._zones[zone]['description'],
-                "races": self.races_for_zone(zone),
-                "items":self.items_for_zone(zone)}
+        else:
+            zone = self._zones[zone_name]
+        return zone.info()
 
     def get_npc(self, npc: str) -> Living:
         return self._npcs[npc]

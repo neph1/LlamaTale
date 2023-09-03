@@ -65,11 +65,11 @@ class TestLocations(unittest.TestCase):
     def test_look(self):
         expected = ["[Main hall]", "A very large hall.",
                     "A heavy wooden door to the east blocks the noises from the street outside. A ladder leads up.",
-                    "Someone forgot a key. You see two university magazines and an oak table. Player, attractive Julie, and two rats are here. A fly buzzes around your head."]
+                    "rusty key: Someone forgot a key. You see two university magazines and an oak table. Player, attractive Julie, and two rats are here. fly, A fly buzzes around your head."]
         self.assertEqual(expected, strip_text_styles(self.hall.look()))
         expected = ["[Main hall]", "A very large hall.",
                     "A heavy wooden door to the east blocks the noises from the street outside. A ladder leads up.",
-                    "Someone forgot a key. You see two university magazines and an oak table. Attractive Julie and two rats are here. A fly buzzes around your head."]
+                    "rusty key: Someone forgot a key. You see two university magazines and an oak table. Attractive Julie and two rats are here. fly, A fly buzzes around your head."]
         self.assertEqual(expected, strip_text_styles(self.hall.look(exclude_living=self.player)))
         expected = ["[Attic]", "A dark attic."]
         self.assertEqual(expected, strip_text_styles(self.attic.look()))

@@ -29,7 +29,7 @@ class TestCharacterLoader():
         path = 'tests/files/test_character.json'
         char_data = self.character_loader.load_character(path)
         description = char_data.get('description')
-        character = CharacterV2(name = char_data.get('name'),
+        character = CharacterV2(name = char_data.get('name').lower().split(' ')[0],
             race = char_data.get('race', 'human'),
             gender = char_data.get('gender', 'm'),
             money = char_data.get('money', 0.0),
@@ -45,7 +45,7 @@ class TestCharacterLoader():
         self._verify_character(character)
 
     def _verify_character(self, character: CharacterV2):
-        assert(character.name == 'test character')
+        assert(character.name == 'test')
         assert(character.appearance == 'test appearance')
         assert(character.description == 'test description')
         assert(character.aliases == ['alias1', 'alias2'])

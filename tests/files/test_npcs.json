@@ -8,5 +8,14 @@
         "descr":"Kobbo has a grace only royal kobolds posses",
         "short_descr":"A kobold",
         "location":"Royal grotto"
+    },
+    {
+        "name":"generated name",
+        "gender":"m",
+        "race":"human",
+        "type":"LivingNpc",
+        "descr":"Kobbo has a grace only royal kobolds posses",
+        "short_descr":"A kobold",
+        "location":"Royal grotto"
     }
 ]

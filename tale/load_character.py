@@ -58,8 +58,9 @@ class CharacterV2():
             self.aliases = aliases
         
     def from_json(self, json: dict):
-        self.name = json.get('name')
-        self.race = json.get('race', 'human')
+        self.name = json.get('name').lower().split(' ')[0]
+        self.title = json.get('title', json.get('name'))
+        self.race = json.get('race', 'human').lower()
         self.gender = json.get('gender', 'f')[0].lower()
         description = json.get('description')
         self.description = description

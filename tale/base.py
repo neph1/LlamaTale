@@ -746,7 +746,7 @@ class Location(MudObject):
         uniq_descriptions = set()
         if items_with_short_descr:
             for item in items_with_short_descr:
-                uniq_descriptions.add(item.short_description)
+                uniq_descriptions.add(": ".join([item.title, item.short_description]))
         items_and_livings.extend(uniq_descriptions)
         if items_without_short_descr:
             titles = sorted([lang.a(item.title) for item in items_without_short_descr])
@@ -765,7 +765,7 @@ class Location(MudObject):
         uniq_descriptions = set()
         if livings_with_short_descr:
             for living in livings_with_short_descr:
-                uniq_descriptions.add(living.short_description)
+                uniq_descriptions.add(", ".join([living.title, living.short_description]))
         items_and_livings.extend(uniq_descriptions)
         if items_and_livings:
             paragraphs.append(" ".join(items_and_livings))
@@ -2429,6 +2429,31 @@ class Soul:
         except IndexError:
             pass
         return None, "", 0
+    
+class Zone():
+
+    def __init__(self, name: str, description: str = '') -> None:
+        self.description = description
+        self.locations = dict()  # type: Dict[str, Location]
+        self.level = 1 # average level of the zone
+        self.races = [] # common races to be encountered in the zone
+        self.items = [] # common items to find in the zone
+        self.mood = 0 # defines friendliness or hostility of the zone. > 0 is friendly
+        
+        self.name = name
+
+    def add_location(self, location: Location) -> None:
+        self.locations[location.name] = location
+
+    def get_location(self, name: str) -> Location:
+        return self.locations[name]
+    
+    def info(self) -> dict():
+        return {"description":self.description,
+                "level":self.level,
+                "mood":self.mood,
+                "races": self.races,
+                "items":self.items}
 
 
 _limbo = Location("Limbo", "The intermediate or transitional place or state. There's only nothingness. "

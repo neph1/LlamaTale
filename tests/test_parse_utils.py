@@ -1,7 +1,7 @@
 import pytest
 import json
 from tale import mud_context, util
-from tale.base import Exit, Location
+from tale.base import Exit, Location, Zone
 from tale.driver_if import IFDriver
 from tale.story import GameMode, MoneyType
 import tale.parse_utils as parse_utils
@@ -14,31 +14,30 @@ class TestParseUtils():
         
     def test_load_locations(self):
         room_json = parse_utils.load_json("tests/files/test_locations.json")
-        locations, exits = parse_utils.load_locations(room_json)
-        assert(locations['test house']['locations']['test room'])
-        assert(locations['test house']['locations']['test room 2'])
+        zones, exits = parse_utils.load_locations(room_json)
+        assert(zones['test house'].get_location('test room'))
+        assert(zones['test house'].get_location('test room 2'))
         assert(exits[0].__repr__().startswith("(<base.Exit to 'test room 2'"))
 
     def test_load_items(self):
-        locations = {}
-        locations['Room 1'] = Location('Room 1', 'A small room perfect for testing')
-        locations['House 1'] = {}
-        locations['House 1']['locations'] = {}
-        locations['House 1']['locations']['Room 2'] = Location('Room 2', 'Another testing room')
+        zones = {}
+        zones['Room 1'] = Location('Room 1', 'A small room perfect for testing')
+        zones['House 1'] = Zone('House 1')
+        zones['House 1'].add_location(Location('Room 2', 'Another testing room'))
         mud_context.driver = IFDriver()
         mud_context.driver.moneyfmt = util.MoneyFormatter.create_for(MoneyType.MODERN)
         items_json = parse_utils.load_json("tests/files/test_items.json")
-        items = parse_utils.load_items(items_json, locations)
+        items = parse_utils.load_items(items_json, zones)
         assert(len(items) == 4)
         item = items['Box 1']
         assert(item.title == 'Box 1')
         assert(item.short_description == 'A small bejewelled box')
-        assert(item.location == locations['Room 1'])
+        assert(item.location == zones['Room 1'])
         item = items['Note 1']
         assert(item.text == 'This is a note')
         item = items['Money 1']
         assert(item.value == 100)
-        assert(item.location == locations['House 1']['locations']['Room 2'])
+        assert(item.location == zones['House 1'].get_location('Room 2'))
         assert(items['Hoodie'])
 
     def test_load_generated_items(self):
@@ -55,10 +54,13 @@ class TestParseUtils():
         locations['Royal grotto'] = Location('Royal grotto', 'A small grotto, fit for a kobold king')
         npcs_json = parse_utils.load_json("tests/files/test_npcs.json")
         npcs = parse_utils.load_npcs(npcs_json, locations)
-        assert(len(npcs) == 1)
+        assert(len(npcs) == 2)
         npc = npcs['Kobbo']
         assert(npc.title == 'Kobbo the King')
         assert(npc.location == locations['Royal grotto'])
+        npc2 = npcs['generated name']
+        assert(npc2.name == 'generated')
+        assert(npc2.title == 'generated name')
         
     def test_load_story_config(self):
         config_json = parse_utils.load_json("tests/files/test_story_config.json")
@@ -97,6 +99,41 @@ class TestParseUtils():
         assert(parse_utils.opposite_direction('in') == 'out')
         assert(parse_utils.opposite_direction('out') == 'in')
         assert(parse_utils.opposite_direction('hubwards') == None)
+
+    def test_parse_generated_exits(self):
+        exits = json.loads('{"exits": [{"name": "The Glacier", "short_descr": "A treacherous path leads up to the icy expanse, the sound of creaking ice echoing in the distance.", "enter_msg":"You enter the glacier"}, {"name": "The Cave", "short_descr": "A dark opening in the side of the mountain, rumored to be home to a mysterious creature."}, {"name": "The Forest", "short_descr": "A dense thicket of trees looms in the distance, their branches swaying in the wind."}]}')
+        exit_location_name = 'Entrance'
+        location = Location(name='Outside')
+        new_locations, parsed_exits = parse_utils.parse_generated_exits(json_result=exits, 
+                                                                        exit_location_name=exit_location_name, 
+                                                                        location=location)
+        assert(len(new_locations) == 3)
+        assert(new_locations[0].name == 'glacier')
+        assert(new_locations[1].name == 'cave')
+        assert(new_locations[2].name == 'forest')
+        assert(len(parsed_exits) == 3)
+        assert(parsed_exits[0].name == 'glacier')
+        assert(parsed_exits[1].name == 'cave')
+        assert(parsed_exits[2].name == 'forest')
+        assert(parsed_exits[0].short_description == 'A treacherous path leads up to the icy expanse, the sound of creaking ice echoing in the distance.')
+        assert(parsed_exits[1].short_description == 'A dark opening in the side of the mountain, rumored to be home to a mysterious creature.')
+        assert(parsed_exits[2].short_description == 'A dense thicket of trees looms in the distance, their branches swaying in the wind.')
+        assert(parsed_exits[0].enter_msg == 'You enter the glacier')
+
+    def test_parse_generated_exits_duplicate_name(self):
+        exits = json.loads('{"exits": [{"name": "The Glacier", "direction": "north", "short_descr": "A treacherous path."}, {"name": "The Cave", "direction": "north", "short_descr": "A dark opening."}]}')
+        exit_location_name = 'Entrance'
+        location = Location(name='Outside')
+        new_locations, parsed_exits = parse_utils.parse_generated_exits(json_result=exits, 
+                                                                        exit_location_name=exit_location_name, 
+                                                                        location=location)
+        assert(len(parsed_exits) == 2)
+        assert(parsed_exits[0].names == ['glacier', 'north'])
+        assert(parsed_exits[0].short_description == 'To the north, A treacherous path.')
+        assert(parsed_exits[1].names == ['cave', 'south'])
+        assert(parsed_exits[1].short_description == 'To the south, A dark opening.')
+
+
 
         
           

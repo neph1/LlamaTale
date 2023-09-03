@@ -90,7 +90,7 @@ class Story(DynamicStory):
     def items_for_zone(self, zone: str) -> [str]:
         return ["woolly gloves", "ice pick", "fur cap", "rusty sword", "lantern", "food rations"]
 
-    def zone_info(self, zone: str, location: str) -> dict():
+    def zone_info(self, zone_name: str, location: str) -> dict():
         return {"description": "A cold, craggy mountain range. Snow covered peaks and uncharted valleys hide and attract all manners of creatures.", 
                 "races": self.races_for_zone(''), 
                 "drop_items": self.items_for_zone('')}

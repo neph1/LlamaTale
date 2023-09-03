@@ -1,5 +1,5 @@
 from typing import Union
-from tale.base import Location, Exit, Item, Living
+from tale.base import Location, Exit, Item, Living, Zone
 from tale.items.basic import Money, Note
 from tale.story import GameMode, MoneyType, TickMethod, StoryConfig
 from tale.llm_ext import LivingNpc
@@ -21,16 +21,17 @@ def load_locations(json_file: dict):
     temp_exits = {}
     parsed_exits = []
     zones = {}
-    zone = {}
-    zone['name'] = json_file['name']
-    zone['description'] = json_file['description']
-    zone['races'] = json_file['races']
-    zone['items'] = json_file['items']
-    zone['locations'] = locations
+    zone = Zone(json_file['name'], description=json_file['description'])
+    zone.races = json_file['races']
+    zone.items = json_file['items']
+    zone.mood = json_file.get('mood', 0)
+    zone.level = json_file.get('level', 1)
     zones[json_file['name']] = zone
-    for loc in json_file['rooms']:
+    for loc in json_file['locations']:
         name = loc['name']
-        locations[name] = location_from_json(loc)
+        location = location_from_json(loc)
+        locations[name] = location
+        zone.add_location(location)
         loc_exits = loc['exits']
         for loc_exit in loc_exits:
             temp_exits.setdefault(name,{})[loc_exit['name']] = loc_exit
@@ -50,7 +51,7 @@ def load_locations(json_file: dict):
 
 
 def location_from_json(json_object: dict):
-    return Location(name=json_object['name'], descr=json_object['descr'])
+    return Location(name=json_object['name'], descr=json_object.get('descr', ''))
 
 def load_items(json_file: [], locations = {}):
     """
@@ -93,10 +94,10 @@ def load_npcs(json_file: [], locations = {}):
     for npc in json_file:
         npc_type = npc.get('type', 'LivingNpc')
         if npc_type == 'LivingNpc':
-            new_npc = LivingNpc(name=npc['name'], 
+            new_npc = LivingNpc(name=npc['name'].lower().split(' ')[0], 
                                 gender=npc.get('gender', 'm').lower(), 
                                 race=npc.get('race', 'human').lower(), 
-                                title=npc.get('title', ''), 
+                                title=npc.get('title', npc['name']), 
                                 descr=npc.get('descr', ''), 
                                 short_descr=npc.get('short_descr', npc.get('description', '')), 
                                 age=npc.get('age', 0), 
@@ -143,12 +144,13 @@ def load_story_config(json_file: dict):
 
 def _insert(new_item: Item, locations, location: str):
     location_parts = location.split('.')
-    for part in location_parts:
-        location = locations[part]
-        if 'locations' in location:
-            locations = location['locations']
-    if location:
-        location.insert(new_item, None)
+    if len(location_parts) == 2:
+        zone = locations.get(location_parts[0])
+        loc = zone.get_location(location_parts[1])
+    else:
+        loc = locations.get(location)
+    if loc:
+        loc.insert(new_item, None)
 
 def init_money(item: dict):
     return Money(name=item['name'], value=item['value'], title=item['title'], short_descr=item['short_descr'])
@@ -173,7 +175,7 @@ def sanitize_json(result: str):
     """ Removes special chars from json string. Some common, and some 'creative' ones. """
     # .replace('}}', '}')
     # .replace('""', '"')
-    result = result.replace('\\"', '"').replace('"\\n"', '","').replace('\\n', '').replace('}\n{', '},{').replace('}{', '},{').replace('\\r', '').replace('\\t', '').replace('"{', '{').replace('}"', '}').replace('"\\', '"').replace('\\”', '"').replace('" "', '","').replace(':,',':')
+    result = result.replace('\\"', '"').replace('"\\n"', '","').replace('\\n', '').replace('}\n{', '},{').replace('}{', '},{').replace('\\r', '').replace('\\t', '').replace('"{', '{').replace('}"', '}').replace('"\\', '"').replace('\\”', '"').replace('" "', '","').replace(':,',':').replace('},]', '}]').replace('},}', '}}')
     print('sanitized json: ' + result)
     return result
 
@@ -227,21 +229,51 @@ def parse_generated_exits(json_result: dict, exit_location_name: str, location: 
     """
     new_locations = []
     exits = []
-    for exit in json_result['exits']:
+    occupied_directions = []
+    for exit in location.exits.values():
+        for dir in exit.names:
+            occupied_directions.append(dir)
+    for exit in json_result.get('exits', []):
+        dir = exit.get('direction', '')
+        if not dir:
+            continue
+        if dir not in occupied_directions:
+            occupied_directions.append(dir)
+        else:
+            dir = _select_non_occupied_direction(occupied_directions)
+            occupied_directions.append(dir)
+            exit['direction'] = dir
+            
+    for exit in json_result.get('exits', []):
         if exit['name'] != exit_location_name:
             # create location
-            new_location = Location(exit['name'].lower())
+            new_location = Location(exit['name'].lower().replace('the ', ''))
+            directions_to = [new_location.name]
+            directions_from = [location.name]
+            direction = exit.get('direction', '').lower()
+            if direction:
+                directions_to.append(direction)
+                directions_from.append(opposite_direction(direction))
+            
             new_location.built = False
             new_location.generated = True
-            exit_back = Exit(directions=location.name, 
+            from_description = f'To the {directions_from[1]}, you can see {location.name}' if len(directions_from) > 1 else f'You can see {location.name}'
+            exit_back = Exit(directions=directions_from, 
                     target_location=location, 
-                    short_descr=f'You can see {location.name}') # need exit descs
+                    short_descr=from_description)
             new_location.add_exits([exit_back])
-            exit_to = Exit(directions=new_location.name, 
+
+            to_description = f'To the {directions_to[1]}, ' + exit.get('short_descr', '') if len(directions_from) > 1 else exit.get('short_descr', '')
+            exit_to = Exit(directions=directions_to, 
                             target_location=new_location, 
-                            short_descr=exit.get('short_descr', ''), 
+                            short_descr=to_description, 
                             enter_msg=exit.get('enter_msg', ''))
             exits.append(exit_to)
             new_locations.append(new_location)
     return new_locations, exits
 
+def _select_non_occupied_direction(occupied_directions: [str]):
+    """ Selects a direction that is not occupied by an exit"""
+    for dir in ['north', 'south', 'east', 'west']:
+        if dir not in occupied_directions:
+            return dir
