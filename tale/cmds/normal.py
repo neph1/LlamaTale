@@ -1704,12 +1704,15 @@ def do_wield(player: Player, parsed: base.ParseResult, ctx: util.Context) -> Non
     result = player.locate_item(weapon, include_location=False)
     if not result:
         raise ActionRefused("You don't have that weapon")
+    
     player.wielding = result[0]
+    player.tell("You wield %s" % result[0].name)
 
 @cmd("unwield")
 def do_unwield(player: Player, parsed: base.ParseResult, ctx: util.Context) -> None:
     """Unwield a weapon."""
     player.wielding = None
+    player.tell("You unwield your weapon")
 
 @cmd("wear")
 def do_wear(player: Player, parsed: base.ParseResult, ctx: util.Context) -> None:

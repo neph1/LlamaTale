@@ -175,7 +175,7 @@ def sanitize_json(result: str):
     """ Removes special chars from json string. Some common, and some 'creative' ones. """
     # .replace('}}', '}')
     # .replace('""', '"')
-    result = result.replace('\\"', '"').replace('"\\n"', '","').replace('\\n', '').replace('}\n{', '},{').replace('}{', '},{').replace('\\r', '').replace('\\t', '').replace('"{', '{').replace('}"', '}').replace('"\\', '"').replace('\\”', '"').replace('" "', '","').replace(':,',':')
+    result = result.replace('\\"', '"').replace('"\\n"', '","').replace('\\n', '').replace('}\n{', '},{').replace('}{', '},{').replace('\\r', '').replace('\\t', '').replace('"{', '{').replace('}"', '}').replace('"\\', '"').replace('\\”', '"').replace('" "', '","').replace(':,',':').replace('},]', '}]').replace('},}', '}}')
     print('sanitized json: ' + result)
     return result
 
@@ -259,12 +259,13 @@ def parse_generated_exits(json_result: dict, exit_location_name: str, location: 
             new_location.generated = True
             exit_back = Exit(directions=directions_from, 
                     target_location=location, 
-                    short_descr=f'You can see {location.name}') # need exit descs
+                    short_descr=f'To the {directions_from[1]}, you can see {location.name}') if len(directions_from) > 1 else f'You can see {location.name}'
             new_location.add_exits([exit_back])
 
+            to_description = f'To the {directions_to[1]},' + exit.get('short_descr', '') if len(directions_from) > 1 else exit.get('short_descr', '')
             exit_to = Exit(directions=directions_to, 
                             target_location=new_location, 
-                            short_descr=exit.get('short_descr', ''), 
+                            short_descr=to_description, 
                             enter_msg=exit.get('enter_msg', ''))
             exits.append(exit_to)
             new_locations.append(new_location)
