@@ -121,7 +121,7 @@ class TestParseUtils():
         assert(parsed_exits[0].enter_msg == 'You enter the glacier')
 
     def test_parse_generated_exits_duplicate_name(self):
-        exits = json.loads('{"exits": [{"name": "The Glacier", "direction": "north", "short_descr": "A treacherous path ."}, {"name": "The Cave", "direction": "north", "short_descr": "A dark opening."}]}')
+        exits = json.loads('{"exits": [{"name": "The Glacier", "direction": "north", "short_descr": "A treacherous path."}, {"name": "The Cave", "direction": "north", "short_descr": "A dark opening."}]}')
         exit_location_name = 'Entrance'
         location = Location(name='Outside')
         new_locations, parsed_exits = parse_utils.parse_generated_exits(json_result=exits, 
@@ -129,9 +129,9 @@ class TestParseUtils():
                                                                         location=location)
         assert(len(parsed_exits) == 2)
         assert(parsed_exits[0].names == ['glacier', 'north'])
-        assert(parsed_exits[0].short_description == 'A treacherous path .')
+        assert(parsed_exits[0].short_description == 'To the north, A treacherous path.')
         assert(parsed_exits[1].names == ['cave', 'south'])
-        assert(parsed_exits[1].short_description == 'A dark opening.')
+        assert(parsed_exits[1].short_description == 'To the south, A dark opening.')
 
 
 
