@@ -98,7 +98,7 @@ class LivingNpc(Living):
 
     def move(self, target: ContainingType, actor: Living=None,
              *, silent: bool=False, is_player: bool=False, verb: str="move", direction_names: Sequence[str]=None) -> None:
-        self.known_locations[self.location.name] = f"description: {self.location.description}. " + self.location.look(exclude_living=self, short=True)
+        self.known_locations[self.location.name] = f"description: {self.location.description}. " + ". ".join(self.location.look(exclude_living=self, short=True))
 
         super().move(target, actor, silent=silent, is_player=is_player, verb=verb, direction_names=direction_names)
             
@@ -132,6 +132,6 @@ class DynamicStory(StoryBase):
         """ Returns a list of items available to find in the specified zone. """
         pass
 
-    def zone_info(self, zone: str, location: str) -> dict():
+    def zone_info(self, zone_name: str, location: str) -> dict():
         """ Returns a description of the specified zone. """
         pass

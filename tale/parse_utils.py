@@ -24,8 +24,8 @@ def load_locations(json_file: dict):
     zone = Zone(json_file['name'], description=json_file['description'])
     zone.races = json_file['races']
     zone.items = json_file['items']
-    zone.mood = json_file['mood']
-    zone.level = json_file['level']
+    zone.mood = json_file.get('mood', 0)
+    zone.level = json_file.get('level', 1)
     zones[json_file['name']] = zone
     for loc in json_file['locations']:
         name = loc['name']
@@ -229,17 +229,40 @@ def parse_generated_exits(json_result: dict, exit_location_name: str, location: 
     """
     new_locations = []
     exits = []
+    occupied_directions = []
+    for exit in location.exits.values():
+        for dir in exit.names:
+            occupied_directions.append(dir)
+    for exit in json_result.get('exits', []):
+        dir = exit.get('direction', '')
+        if not dir:
+            continue
+        if dir not in occupied_directions:
+            occupied_directions.append(dir)
+        else:
+            dir = _select_non_occupied_direction(occupied_directions)
+            occupied_directions.append(dir)
+            exit['direction'] = dir
+            
     for exit in json_result.get('exits', []):
         if exit['name'] != exit_location_name:
             # create location
             new_location = Location(exit['name'].lower().replace('the ', ''))
+            directions_to = [new_location.name]
+            directions_from = [location.name]
+            direction = exit.get('direction', '').lower()
+            if direction:
+                directions_to.append(direction)
+                directions_from.append(opposite_direction(direction))
+            
             new_location.built = False
             new_location.generated = True
-            exit_back = Exit(directions=location.name, 
+            exit_back = Exit(directions=directions_from, 
                     target_location=location, 
                     short_descr=f'You can see {location.name}') # need exit descs
             new_location.add_exits([exit_back])
-            exit_to = Exit(directions=new_location.name, 
+
+            exit_to = Exit(directions=directions_to, 
                             target_location=new_location, 
                             short_descr=exit.get('short_descr', ''), 
                             enter_msg=exit.get('enter_msg', ''))
@@ -247,3 +270,8 @@ def parse_generated_exits(json_result: dict, exit_location_name: str, location: 
             new_locations.append(new_location)
     return new_locations, exits
 
+def _select_non_occupied_direction(occupied_directions: [str]):
+    """ Selects a direction that is not occupied by an exit"""
+    for dir in ['north', 'south', 'east', 'west']:
+        if dir not in occupied_directions:
+            return dir

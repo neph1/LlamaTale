@@ -64,11 +64,11 @@ class TestLocations(unittest.TestCase):
 
     def test_look(self):
         expected = ["[Main hall]", "A very large hall.",
-                    "door: A heavy wooden door to the east blocks the noises from the street outside. up: A ladder leads up.",
+                    "A heavy wooden door to the east blocks the noises from the street outside. A ladder leads up.",
                     "rusty key: Someone forgot a key. You see two university magazines and an oak table. Player, attractive Julie, and two rats are here. fly, A fly buzzes around your head."]
         self.assertEqual(expected, strip_text_styles(self.hall.look()))
         expected = ["[Main hall]", "A very large hall.",
-                    "door: A heavy wooden door to the east blocks the noises from the street outside. up: A ladder leads up.",
+                    "A heavy wooden door to the east blocks the noises from the street outside. A ladder leads up.",
                     "rusty key: Someone forgot a key. You see two university magazines and an oak table. Attractive Julie and two rats are here. fly, A fly buzzes around your head."]
         self.assertEqual(expected, strip_text_styles(self.hall.look(exclude_living=self.player)))
         expected = ["[Attic]", "A dark attic."]
@@ -389,7 +389,7 @@ class TestDoorsExits(unittest.TestCase):
         self.assertTrue(hall.exits["up"] is exit2)
         self.assertTrue(hall.exits["ladder3"] is exit3)
         self.assertTrue(hall.exits["window"] is exit4)
-        self.assertEqual(['[hall]', 'ladder1: The first ladder leads to the attic. ladder3: Third ladder to attic. up: Second ladder to attic. window: A window.'], strip_text_styles(hall.look()))
+        self.assertEqual(['[hall]', 'The first ladder leads to the attic. Third ladder to attic. Second ladder to attic. A window.'], strip_text_styles(hall.look()))
         self.assertEqual("Third ladder to attic.", exit3.description)
         self.assertEqual("A window, maybe if you open it you can get out?", exit4.description)
         self.assertEqual("entering the attic", exit1.enter_msg)

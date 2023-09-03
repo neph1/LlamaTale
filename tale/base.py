@@ -738,7 +738,7 @@ class Location(MudObject):
                 exit = self.exits[exit_name]
                 if exit not in exits_seen:
                     exits_seen.add(exit)
-                    exit_paragraph.append(": ".join([exit.name, exit.short_description]))
+                    exit_paragraph.append(exit.short_description)
             paragraphs.append(" ".join(exit_paragraph))
         items_and_livings = []  # type: List[str]
         items_with_short_descr = [item for item in self.items if item.short_description]
