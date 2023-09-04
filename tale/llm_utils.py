@@ -122,10 +122,12 @@ class LlmUtil():
         """Parse the response from LLM and determine if there are any items to be handled."""
         items = character_card.split('items:')[1].split(']')[0]
         prompt = self.generate_item_prompt(text, items, character_name, target)
-        request_body = self.analysis_body
+        
         if self.backend == 'kobold_cpp':
+            request_body = self.analysis_body
             request_body['prompt'] = prompt
         elif self.backend == 'openai':
+            request_body = self.default_body
             request_body['messages'][1]['content'] = prompt
         text = parse_utils.trim_response(self.io_util.synchronous_request(request_body))
         try:
