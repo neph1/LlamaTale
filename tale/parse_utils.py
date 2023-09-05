@@ -1,8 +1,10 @@
 from typing import Union
-from tale.base import Location, Exit, Item, Living, Zone
+from tale.base import Location, Exit, Item
+from tale.coord import Coord
 from tale.items.basic import Money, Note
 from tale.story import GameMode, MoneyType, TickMethod, StoryConfig
 from tale.llm_ext import LivingNpc
+from tale.zone import Zone
 import json
 import re
 import sys
@@ -248,10 +250,12 @@ def parse_generated_exits(json_result: dict, exit_location_name: str, location: 
         if exit['name'] != exit_location_name:
             # create location
             new_location = Location(exit['name'].lower().replace('the ', ''))
+            
             directions_to = [new_location.name]
             directions_from = [location.name]
             direction = exit.get('direction', '').lower()
             if direction:
+                new_location.world_location = coordinates_from_direction(location.world_location, direction)
                 directions_to.append(direction)
                 directions_from.append(opposite_direction(direction))
             
@@ -277,3 +281,34 @@ def _select_non_occupied_direction(occupied_directions: [str]):
     for dir in ['north', 'south', 'east', 'west']:
         if dir not in occupied_directions:
             return dir
+        
+def coordinates_from_direction(coord: Coord, direction: str) -> Coord:
+    """ Returns coordinates for a new location based on the direction and location"""
+    x = coord.x
+    y = coord.y
+    z = coord.z
+    if direction == 'north':
+        y = y + 1
+    elif direction == 'south':
+        y = y - 1
+    elif direction == 'east':
+        x = x + 1
+    elif direction == 'west':
+        x = x - 1
+    elif direction == 'up':
+        z = z + 1
+    elif direction == 'down':
+        z = z - 1
+    elif direction == 'northeast':
+        x = x + 1
+        y = y + 1
+    elif direction == 'northwest':
+        x = x - 1
+        y = y + 1
+    elif direction == 'southeast':
+        x = x + 1
+        y = y - 1
+    elif direction == 'southwest':
+        x = x - 1
+        y = y - 1
+    return Coord(x=x, y=y, z=z)

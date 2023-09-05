@@ -1,8 +1,10 @@
 import pytest
 import json
 from tale.base import Location
+from tale.coord import Coord
 from tale.json_story import JsonStory
 from tale.llm_utils import LlmUtil
+from tale.zone import Zone
 from tests.supportstuff import FakeIoUtil
 import tale.parse_utils as parse_utils
 from tale.driver_if import IFDriver
@@ -26,6 +28,8 @@ class TestLlmUtils():
     generated_location = '{"name": "Outside", "description": "A barren wasteland of snow and ice stretches as far as the eye can see. The wind howls through the mountains like a chorus of banshees, threatening to sweep away any unfortunate soul caught outside without shelter.", "exits": [{"name": "North Pass","short_desc": "The North Pass is treacherous mountain pass that leads deeper into the heart of the range","enter_msg":"You shuffle your feet through knee-deep drifts of snow, trying to keep your balance on the narrow path."}, {"name": "South Peak","short_Desc": "The South Peak offers breathtaking views of the surrounding landscape from its summit, but it\'s guarded by a pack of fierce winter wolves.","Enter_msg":"You must face off against the snarling beasts if you wish to reach the peak."}] ,"items": [{"name":"Woolly gloves", "type":"Wearable"}],"npcs": []}'
     
     generated_location_extra = '{"Outside": { "description": "A barren wasteland of snow and ice stretches", "exits": [{"name": "North Pass","short_desc": "The North Pass is treacherous mountain pass that leads deeper into the heart of the range","enter_msg":"You shuffle your feet through knee-deep drifts of snow, trying to keep your balance on the narrow path."}, {"name": "South Peak","short_Desc": "The South Peak offers breathtaking views of the surrounding landscape from its summit, but it\'s guarded by a pack of fierce winter wolves.","Enter_msg":"You must face off against the snarling beasts if you wish to reach the peak."}] ,"items": [{"name":"Woolly gloves", "type":"Wearable"}],"npcs": []}}'
+    
+    generated_zone = '{"name":"Test Zone", "description":"A test zone", "level":10, "mood":-2, "races":["human", "elf", "dwarf"], "items":["sword", "shield"]}'
     
     story = JsonStory('tests/files/test_story/', parse_utils.load_story_config(parse_utils.load_json('tests/files/test_story/test_story_config.json')))
     
@@ -122,7 +126,7 @@ class TestLlmUtils():
         exit_location_name = 'Cave entrance'
         self.llm_util.set_story(self.story)
         self.llm_util.io_util = FakeIoUtil(response=self.generated_location)
-        locations = self.llm_util.build_location(location, exit_location_name)
+        locations = self.llm_util.build_location(location, exit_location_name, zone_info={})
         assert(len(locations) == 2)
 
     def test_build_location_extra_json(self):
@@ -130,5 +134,52 @@ class TestLlmUtils():
         exit_location_name = 'Cave entrance'
         self.llm_util.set_story(self.story)
         self.llm_util.io_util = FakeIoUtil(response=self.generated_location_extra)
-        locations = self.llm_util.build_location(location, exit_location_name)
+        locations = self.llm_util.build_location(location, exit_location_name, zone_info={})
         assert(len(locations) == 2)
+
+    def test_validate_zone(self):
+        center = Coord(5, 0, 0)
+        zone = self.llm_util.validate_zone(json.loads(self.generated_zone), center=center)
+        assert(zone)
+        assert(zone.name == 'Test Zone')
+        assert(zone.description == 'A test zone')
+        assert(zone.races == ['human', 'elf', 'dwarf'])
+        assert(zone.items == ['sword', 'shield'])
+        assert(zone.center == center)
+        assert(zone.level == 10)
+        assert(zone.mood == -2)
+
+    def test_get_neighbor_or_generate_zone(self):
+        """ Tests the get_neighbor_or_generate_zone method of llm_utils.
+        """
+
+        self.llm_util.io_util = FakeIoUtil(response=self.generated_zone)
+        zone = Zone('Current zone', description='This is the current zone')
+        zone.neighbors['east'] = Zone('East zone', description='This is the east zone')
+        # near location, returning current zone
+        current_location = Location(name='Test Location')
+        current_location.world_location = Coord(0, 0, 0)
+        target_location = Location(name='Target Location')
+        target_location.world_location = Coord(1, 0, 0)
+        zone_info = self.llm_util.get_neighbor_or_generate_zone(zone, current_location, target_location)
+        assert(zone_info['description'] == 'This is the current zone')
+        # far location, neighbor exists, returning east zone
+        current_location.world_location = Coord(10, 0, 0)
+        target_location = Location(name='Target Location')
+        target_location.world_location = Coord(11, 0, 0)
+        zone_info = self.llm_util.get_neighbor_or_generate_zone(zone, current_location, target_location)
+        assert(zone_info['description'] == 'This is the east zone')
+        # far location, neighbor does not exist, generating new zone
+        self.llm_util.io_util = FakeIoUtil(response=self.generated_zone)
+        self.llm_util.set_story(self.story)
+        current_location.world_location = Coord(-10, 0, 0)
+        target_location = Location(name='Target Location')
+        target_location.world_location = Coord(-11, 0, 0)
+        zone_info = self.llm_util.get_neighbor_or_generate_zone(zone, current_location, target_location)
+        assert(zone_info['description'] == 'A test zone')
+
+
+
+
+        
+        

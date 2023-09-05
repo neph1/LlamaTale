@@ -608,15 +608,25 @@ class Driver(pubsub.Listener):
         xt = player.location.exits[direction]
         xt.allow_passage(player)
         if not xt.target.built:
+            dynamic_story = typing.cast(DynamicStory, self.story)
+            zone = dynamic_story.find_zone(location=player.location.name)
+            # are we close to the edge of a zone? if so we need to build the next zone.
+            zone_info = self.llm_util.get_neighbor_or_generate_zone(current_zone=zone, 
+                                                        current_location=player.location, 
+                                                        target_location=xt.target)
+            
+            
             # generate the location if it's not built yet. retry 5 times.
             for i in range(5):
-                new_locations = self.llm_util.build_location(location=xt.target, exit_location_name=player.location.name)
+                new_locations = self.llm_util.build_location(location=xt.target, 
+                                                             exit_location_name=player.location.name, 
+                                                             zone_info=zone_info)
                 if new_locations:
                     break
             if not new_locations:
-                raise AssertionError("failed to build location: " + xt.target.name + ". You can try entering again.")
+                raise errors.TaleError("Reached max attempts when building location: " + xt.target.name + ". You can try entering again.")
             for location in new_locations:
-                typing.cast(DynamicStory, self.story).add_location(location)
+                dynamic_story.add_location(location)
         if xt.enter_msg:
             player.tell(xt.enter_msg, end=True, evoke=False, max_length=True)
             player.tell("\n")
@@ -635,7 +645,7 @@ class Driver(pubsub.Listener):
                     module = importlib.import_module(modulename)
                     location = module
                 except ImportError:
-                    raise errors.TaleError("location not found: " + location_name)
+                    raise errors.TaleError("Location not found: " + location_name)
         return location     # type: ignore
 
     def _load_zones(self, zone_names: Sequence[str]) -> ModuleType:

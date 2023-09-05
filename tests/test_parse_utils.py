@@ -1,9 +1,10 @@
-import pytest
 import json
 from tale import mud_context, util
-from tale.base import Exit, Location, Zone
+from tale.base import Exit, Location
+from tale.coord import Coord
 from tale.driver_if import IFDriver
 from tale.story import GameMode, MoneyType
+from tale.zone import Zone
 import tale.parse_utils as parse_utils
 
 
@@ -133,7 +134,15 @@ class TestParseUtils():
         assert(parsed_exits[1].names == ['cave', 'south'])
         assert(parsed_exits[1].short_description == 'To the south, A dark opening.')
 
-
+    def test_coordinates_from_direction(self):
+        coord = Coord(0,0,0)
+        assert(parse_utils.coordinates_from_direction(coord, 'north') == Coord(0,1,0))
+        assert(parse_utils.coordinates_from_direction(coord, 'south') == Coord(0,-1,0))
+        assert(parse_utils.coordinates_from_direction(coord, 'east') == Coord(1,0,0))
+        assert(parse_utils.coordinates_from_direction(coord, 'west') == Coord(-1,0,0))
+        assert(parse_utils.coordinates_from_direction(coord, 'up') == Coord(0,0,1))
+        assert(parse_utils.coordinates_from_direction(coord, 'down') == Coord(0,0,-1))
+        assert(parse_utils.coordinates_from_direction(coord, 'hubwards') == Coord(0,0,0))
 
         
           
