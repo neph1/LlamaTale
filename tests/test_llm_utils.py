@@ -152,34 +152,45 @@ class TestLlmUtils():
     def test_get_neighbor_or_generate_zone(self):
         """ Tests the get_neighbor_or_generate_zone method of llm_utils.
         """
-
         self.llm_util.io_util = FakeIoUtil(response=self.generated_zone)
         zone = Zone('Current zone', description='This is the current zone')
         zone.neighbors['east'] = Zone('East zone', description='This is the east zone')
+        
         # near location, returning current zone
         current_location = Location(name='Test Location')
         current_location.world_location = Coord(0, 0, 0)
         target_location = Location(name='Target Location')
         target_location.world_location = Coord(1, 0, 0)
-        zone_info = self.llm_util.get_neighbor_or_generate_zone(zone, current_location, target_location)
+        zone_info = self.llm_util.get_neighbor_or_generate_zone(zone, current_location, target_location).get_info()
         assert(zone_info['description'] == 'This is the current zone')
+        
         # far location, neighbor exists, returning east zone
         current_location.world_location = Coord(10, 0, 0)
-        target_location = Location(name='Target Location')
         target_location.world_location = Coord(11, 0, 0)
-        zone_info = self.llm_util.get_neighbor_or_generate_zone(zone, current_location, target_location)
+        zone_info = self.llm_util.get_neighbor_or_generate_zone(zone, current_location, target_location).get_info()
         assert(zone_info['description'] == 'This is the east zone')
+        
         # far location, neighbor does not exist, generating new zone
         self.llm_util.io_util = FakeIoUtil(response=self.generated_zone)
         self.llm_util.set_story(self.story)
         current_location.world_location = Coord(-10, 0, 0)
-        target_location = Location(name='Target Location')
         target_location.world_location = Coord(-11, 0, 0)
-        zone_info = self.llm_util.get_neighbor_or_generate_zone(zone, current_location, target_location)
-        assert(zone_info['description'] == 'A test zone')
+        new_zone = self.llm_util.get_neighbor_or_generate_zone(zone, current_location, target_location)
+        assert(self.story.get_zone(new_zone.name))
+        assert(new_zone.get_info()['description'] == 'A test zone')
 
-
-
-
+        # test add a zone with same name
+        zone_info = self.llm_util.get_neighbor_or_generate_zone(zone, current_location, target_location).get_info()
+        assert(zone_info['description'] == 'This is the current zone')
         
-        
+        # test with non valid json
+        self.llm_util.io_util.response = '{"name":test}'
+        zone_info = self.llm_util.get_neighbor_or_generate_zone(zone, current_location, target_location).get_info()
+        assert(zone_info['description'] == 'This is the current zone')
+
+        # test with valid json but not valid zone
+        self.llm_util.io_util.response = '{}'
+        zone_info = self.llm_util.get_neighbor_or_generate_zone(zone, current_location, target_location).get_info()
+        assert(zone_info['description'] == 'This is the current zone')
+
+

@@ -55,14 +55,20 @@ class TestParseUtils():
         locations['Royal grotto'] = Location('Royal grotto', 'A small grotto, fit for a kobold king')
         npcs_json = parse_utils.load_json("tests/files/test_npcs.json")
         npcs = parse_utils.load_npcs(npcs_json, locations)
-        assert(len(npcs) == 2)
+        assert(len(npcs) == 3)
+
         npc = npcs['Kobbo']
         assert(npc.title == 'Kobbo the King')
         assert(npc.location == locations['Royal grotto'])
+        assert(npc.aliases.pop() == 'kobbo')
         npc2 = npcs['generated name']
-        assert(npc2.name == 'generated')
+        assert(npc2.name == 'generated name')
         assert(npc2.title == 'generated name')
-        
+        assert(npc2.aliases.pop() == 'generated')
+        npc3 = npcs['name']
+        assert(npc3.name == 'name')
+
+
     def test_load_story_config(self):
         config_json = parse_utils.load_json("tests/files/test_story_config.json")
         config = parse_utils.load_story_config(config_json)
@@ -121,7 +127,7 @@ class TestParseUtils():
         assert(parsed_exits[2].short_description == 'A dense thicket of trees looms in the distance, their branches swaying in the wind.')
         assert(parsed_exits[0].enter_msg == 'You enter the glacier')
 
-    def test_parse_generated_exits_duplicate_name(self):
+    def test_parse_generated_exits_duplicate_direction(self):
         exits = json.loads('{"exits": [{"name": "The Glacier", "direction": "north", "short_descr": "A treacherous path."}, {"name": "The Cave", "direction": "north", "short_descr": "A dark opening."}]}')
         exit_location_name = 'Entrance'
         location = Location(name='Outside')
@@ -144,5 +150,21 @@ class TestParseUtils():
         assert(parse_utils.coordinates_from_direction(coord, 'down') == Coord(0,0,-1))
         assert(parse_utils.coordinates_from_direction(coord, 'hubwards') == Coord(0,0,0))
 
+    def test_parse_generated_exits_duplicate_name(self):
+        """ Test that location with same name can't be added (and replace an existing location)"""
+        zone = Zone('test zone')
+        zone.add_location(Location('Glacier', 'A dark cave entrance'))
+
+        exits = json.loads('{"exits": [{"name": "Glacier", "direction": "north", "short_descr": "A treacherous path."}]}')
+        exit_location_name = 'Entrance'
+        location = Location(name='Outside')
+        zone.add_location(location)
+        new_locations, parsed_exits = parse_utils.parse_generated_exits(json_result=exits, 
+                                                                        exit_location_name=exit_location_name, 
+                                                                        location=location)
+        for loc in new_locations:
+            zone.add_location(loc)
+        
+        assert(len(zone.locations) == 2)
         
           

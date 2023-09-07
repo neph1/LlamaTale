@@ -611,22 +611,35 @@ class Driver(pubsub.Listener):
             dynamic_story = typing.cast(DynamicStory, self.story)
             zone = dynamic_story.find_zone(location=player.location.name)
             # are we close to the edge of a zone? if so we need to build the next zone.
-            zone_info = self.llm_util.get_neighbor_or_generate_zone(current_zone=zone, 
+            new_zone = self.llm_util.get_neighbor_or_generate_zone(current_zone=zone, 
                                                         current_location=player.location, 
                                                         target_location=xt.target)
-            
+            if zone.name != new_zone.name:
+                player.tell(f"You're entering {new_zone.name}:{new_zone.description}")
             
             # generate the location if it's not built yet. retry 5 times.
             for i in range(5):
-                new_locations = self.llm_util.build_location(location=xt.target, 
+                new_locations, exits = self.llm_util.build_location(location=xt.target, 
                                                              exit_location_name=player.location.name, 
-                                                             zone_info=zone_info)
+                                                             zone_info=new_zone.get_info())
                 if new_locations:
                     break
             if not new_locations:
-                raise errors.TaleError("Reached max attempts when building location: " + xt.target.name + ". You can try entering again.")
+                raise errors.ActionRefused("Reached max attempts when building location: " + xt.target.name + ". You can try entering again.")
             for location in new_locations:
-                dynamic_story.add_location(location)
+                # try to add location, and if it fails, remove exit to it
+                result = dynamic_story.add_location(location, zone=new_zone.name)
+                if not result:
+                    for exit in exits:
+                        if exit.name == location.name:
+                            exits.remove(exit)
+            for exit in exits:
+                try:
+                    xt.target.add_exits([exit])
+                except errors.LocationIntegrityError:
+                    # fail silently
+                    pass
+                    
         if xt.enter_msg:
             player.tell(xt.enter_msg, end=True, evoke=False, max_length=True)
             player.tell("\n")

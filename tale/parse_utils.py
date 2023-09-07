@@ -1,3 +1,4 @@
+import random
 from typing import Union
 from tale.base import Location, Exit, Item
 from tale.coord import Coord
@@ -96,22 +97,27 @@ def load_npcs(json_file: [], locations = {}):
     for npc in json_file:
         npc_type = npc.get('type', 'LivingNpc')
         if npc_type == 'LivingNpc':
-            new_npc = LivingNpc(name=npc['name'].lower().split(' ')[0], 
+            if npc['name'].startswith('the') or npc['name'].startswith('The'):
+                name = npc['name'].replace('the','').replace('The','').strip()
+            else:
+                name = npc['name']
+            new_npc = LivingNpc(name=name, 
                                 gender=npc.get('gender', 'm').lower(), 
                                 race=npc.get('race', 'human').lower(), 
-                                title=npc.get('title', npc['name']), 
+                                title=npc.get('title', name), 
                                 descr=npc.get('descr', ''), 
                                 short_descr=npc.get('short_descr', npc.get('description', '')), 
                                 age=npc.get('age', 0), 
                                 personality=npc.get('personality', ''), 
                                 occupation=npc.get('occupation', ''))
+            new_npc.aliases.add(name.split(' ')[0].lower())
         # else:
         #     module = sys.modules['tale.items.basic']
         #     clazz = getattr(module, npc_type)
         #     new_npc = clazz(name=npc['name'], gender=npc['gender'], race=npc['race'], title=npc['title'], descr=npc['descr'], short_descr=npc['short_descr'], args=npc)
         if locations and npc['location']:
             _insert(new_npc, locations, npc['location'])
-        npcs[npc['name']] = new_npc
+        npcs[name] = new_npc
     return npcs
 
 def load_story_config(json_file: dict):
@@ -155,7 +161,10 @@ def _insert(new_item: Item, locations, location: str):
         loc.insert(new_item, None)
 
 def init_money(item: dict):
-    return Money(name=item['name'], value=item['value'], title=item['title'], short_descr=item['short_descr'])
+    return Money(name=item['name'], 
+                 value=item.get('value', 10), 
+                 title=item.get('title', item['name']), 
+                 short_descr=item.get('short_descr', ''))
     
 def set_note(note: Note, item: dict):
     note.text = item['text']
@@ -177,7 +186,8 @@ def sanitize_json(result: str):
     """ Removes special chars from json string. Some common, and some 'creative' ones. """
     # .replace('}}', '}')
     # .replace('""', '"')
-    result = result.replace('\\"', '"').replace('"\\n"', '","').replace('\\n', '').replace('}\n{', '},{').replace('}{', '},{').replace('\\r', '').replace('\\t', '').replace('"{', '{').replace('}"', '}').replace('"\\', '"').replace('\\”', '"').replace('" "', '","').replace(':,',':').replace('},]', '}]').replace('},}', '}}')
+    result = result.replace('```json', '').replace('\\"', '"').replace('"\\n"', '","').replace('\\n', '').replace('}\n{', '},{').replace('}{', '},{').replace('\\r', '').replace('\\t', '').replace('"{', '{').replace('}"', '}').replace('"\\', '"').replace('\\”', '"').replace('" "', '","').replace(':,',':').replace('},]', '}]').replace('},}', '}}')
+    result = result.split('```')[0]
     print('sanitized json: ' + result)
     return result
 
@@ -249,7 +259,7 @@ def parse_generated_exits(json_result: dict, exit_location_name: str, location: 
     for exit in json_result.get('exits', []):
         if exit['name'] != exit_location_name:
             # create location
-            new_location = Location(exit['name'].lower().replace('the ', ''))
+            new_location = Location(exit['name'].replace('the ', ''))
             
             directions_to = [new_location.name]
             directions_from = [location.name]
@@ -312,3 +322,19 @@ def coordinates_from_direction(coord: Coord, direction: str) -> Coord:
         x = x - 1
         y = y - 1
     return Coord(x=x, y=y, z=z)
+
+def direction_from_coordinates(direction: Coord):
+    """ Returns a direction based on the coordinates"""
+    if direction.x == 1:
+        return 'east'
+    if direction.x == -1:
+        return 'west'
+    if direction.y == -1:
+        return 'north'
+    if direction.y == 1:
+        return 'south'
+    if direction.z == 1:
+        return 'up'
+    if direction.z == -1:
+        return 'down'
+    return None

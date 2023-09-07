@@ -963,7 +963,10 @@ class Living(MudObject):
     def __init__(self, name: str, gender: str, *, race: str="human",
                  title: str="", descr: str="", short_descr: str="") -> None:
         if race:
-            self.stats = Stats.from_race(race, gender=gender)
+            try:
+                self.stats = Stats.from_race(race, gender=gender)
+            except KeyError:
+                self.stats = Stats.from_race('human', gender=gender)
         else:
             self.stats = Stats()
         self.alive = True

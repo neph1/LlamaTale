@@ -17,17 +17,21 @@ class Zone():
         self.center = Coord(0,0,0) 
         self.name = name
 
-    def add_location(self, location: Location) -> None:
+    def add_location(self, location: Location) -> bool:
+        """ Add a location to the zone. Skip if location already exists."""
+        if location.name in self.locations:
+            return False
         self.locations[location.name] = location
+        return True
 
     def get_location(self, name: str) -> Location:
-        return self.locations[name]
+        return self.locations.get(name, None)
     
     def get_info(self) -> dict():
         return {"description":self.description,
                 "level":self.level,
                 "mood":self.mood,
-                "races": self.races,
+                "races":self.races,
                 "items":self.items}
 
     def get_neighbor(self, direction: str) -> 'Zone':
@@ -52,6 +56,7 @@ class Zone():
         """ Returns true if the coordinate is on the edge of the zone in the given direction. 
         Higher likelihood the further away from the center of the zone.
         """
+        #return True
         zone_distance = self.center.xyz_distance(coord)
         if (direction.x != 0 and zone_distance.x > self.size):
             return random.random() < 0.2 * (zone_distance.x - self.size)

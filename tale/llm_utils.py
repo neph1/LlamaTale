@@ -3,7 +3,7 @@ import os
 import yaml
 import random
 from json import JSONDecodeError
-from tale import math_utils
+from tale import mud_context, math_utils
 from tale.base import Location
 from tale.coord import Coord
 from tale.llm_ext import DynamicStory
@@ -27,6 +27,7 @@ class LlmUtil():
         self.analysis_body = json.loads(config_file['ANALYSIS_BODY'])
         self.memory_size = config_file['MEMORY_SIZE']
         self.pre_prompt = config_file['PRE_PROMPT']
+        self.pre_json_prompt = config_file['PRE_JSON_PROMPT']
         self.base_prompt = config_file['BASE_PROMPT']
         self.dialogue_prompt = config_file['DIALOGUE_PROMPT']
         self.action_prompt = config_file['ACTION_PROMPT']
@@ -80,7 +81,7 @@ class LlmUtil():
         if not self.stream:
             text = self.io_util.synchronous_request(request_body)
             self._store_hash(text_hash_value, text)
-            return f'Original:[ {message} ]\nGenerated:\n{text}', rolling_prompt
+            return f'Original:[ {message} ]\n\nGenerated:\n{text}', rolling_prompt
 
         player_io.print(f'Original:[ {message} ]\nGenerated:\n', end=False, format=True, line_breaks=False)
         text = self.io_util.stream_request(request_body, player_io, self.connection)
@@ -180,7 +181,8 @@ class LlmUtil():
     
     def generate_character(self, story_context: str = '', keywords: list = []):
         """ Generate a character card based on the current story context"""
-        prompt = self.character_prompt.format(story_context=story_context, 
+        prompt = self.character_prompt.format(story_type=mud_context.config.type,
+                                              story_context=story_context, 
                                               keywords=', '.join(keywords))
         request_body = self.default_body
         if self.backend == 'kobold_cpp':
@@ -205,22 +207,31 @@ class LlmUtil():
             print(f'Exception while parsing character {json_result}')
             return None
     
-    def get_neighbor_or_generate_zone(self, current_zone: Zone, current_location: Location, target_location: Location):
+    def get_neighbor_or_generate_zone(self, current_zone: Zone, current_location: Location, target_location: Location) -> Zone:
+        """ Check if the target location is on the edge of the current zone. If not, will return the current zone.
+        If it is, will check if there is a neighbor zone in the direction of the target location. If not, will
+        generate a new zone in that direction."""
+
         direction = target_location.world_location.subtract(current_location.world_location)
         on_edge = current_zone.on_edge(current_location.world_location, direction)
         if on_edge:
             neighbor = current_zone.get_neighbor(direction)
             if neighbor:
-                return neighbor.get_info()
+                return neighbor
             else:
-                json_result = self.generate_zone(location=target_location, 
-                                    exit_location_name=current_location.name, 
-                                    current_zone_info=current_zone.get_info())
-                zone = self.validate_zone(json_result, 
-                                          target_location.world_location.add(
-                                              direction.multiply(json_result.get('size', 5))))
-                return zone.get_info()
-        return current_zone.get_info()
+                for i in range(5):
+                    json_result = self.generate_zone(location=target_location, 
+                                        exit_location_name=current_location.name, 
+                                        current_zone_info=current_zone.get_info(),
+                                        direction=parse_utils.direction_from_coordinates(direction))
+                    if json_result:
+                        zone = self.validate_zone(json_result, 
+                                                  target_location.world_location.add(
+                                                      direction.multiply(json_result.get('size', 5))))
+                        if zone:
+                            if self.__story.add_zone(zone):
+                                return zone
+        return current_zone
 
     def build_location(self, location: Location, exit_location_name: str, zone_info: dict):
         """ Generate a location based on the current story context"""
@@ -230,16 +241,25 @@ class LlmUtil():
         spawn_chance = 0.25
         spawn = random.random() < spawn_chance
         if spawn:
-            mood = zone_info.get('mood', 0) + random.randint(-5, 5)
-            level = math_utils.normpdf(mean=zone_info.get('level', 1), sd=3, x=0)
-            spawn_prompt = self.spawn_prompt.format(alignment=mood > 0 and 'friendly' or 'hostile', level=level)
+            
+            mood = zone_info.get('mood', 0)
+            if mood == 'friendly':
+                num_mood = 2
+            elif mood == 'neutral':
+                num_mood = 0
+            else:
+                num_mood = -1
+            num_mood = num_mood + random.randint(-5, 5)
+            level = (int) (math_utils.normpdf(mean=zone_info.get('level', 1), sd=3, x=0) + 1)
+            spawn_prompt = self.spawn_prompt.format(alignment=num_mood > 0 and 'friendly' or 'hostile', level= level)
 
         items_prompt = ''
-        item_amount = random.randint(0, 3)
+        item_amount = random.randint(0, 2)
         if item_amount > 0:
             items_prompt = self.items_prompt.format(items=item_amount)
 
-        prompt = self.location_prompt.format(
+        prompt = self.pre_json_prompt
+        prompt += self.location_prompt.format(
             story_type=self.__story.config.type,
             zone_info=zone_info,
             story_context=self.__story.config.context,
@@ -260,7 +280,9 @@ class LlmUtil():
             return self.validate_location(json_result, location, exit_location_name)
         except JSONDecodeError as exc:
             print(exc)
-            return None
+            return None, None
+        except Exception as exc:
+            return None, None
         
     def validate_location(self, json_result: dict, location_to_build: Location, exit_location_name: str):
         """Validate the location generated by LLM and update the location object."""
@@ -286,19 +308,20 @@ class LlmUtil():
                                                                      exit_location_name, 
                                                                      location_to_build)
             location_to_build.built = True
-            location_to_build.add_exits(exits)
-            return new_locations
+            return new_locations, exits
         except Exception as exc:
             print(f'Exception while parsing location {json_result} ')
             print(exc)
-            return None
+            return None, None
         
-    def generate_zone(self, location: Location, exit_location_name: str, current_zone_info: dict) -> dict:
+    def generate_zone(self, location: Location, exit_location_name: str, current_zone_info: dict, direction: str) -> dict:
         """ Generate a zone based on the current story context"""
-        prompt = self.zone_prompt.format(
+        prompt = self.pre_json_prompt
+        prompt += self.zone_prompt.format(
             world_info=self.__story.config.world_info,
             story_type=self.__story.config.type,
-            zone_info=current_zone_info,
+            direction=direction,
+            zone_info=json.dumps(current_zone_info),
             story_context=self.__story.config.context,
             exit_location=location.name,
             location_name=location.name)
@@ -309,6 +332,7 @@ class LlmUtil():
             request_body['prompt'] = prompt
         elif self.backend == 'openai':
             request_body['messages'][1]['content'] = prompt
+        request_body['max_length'] = 750
         result = self.io_util.synchronous_request(request_body)
         try:
             json_result = json.loads(parse_utils.sanitize_json(result))
@@ -339,11 +363,11 @@ class LlmUtil():
 
     def _kobold_generation_prompt(self, request_body: dict) -> dict:
         """ changes some parameters for better generation of locations in kobold_cpp"""
-        request_body['stop_sequence'] = ['\n\n']
+        #request_body['stop_sequence'] = ['\n\n']
         request_body['temperature'] = 0.5
         request_body['top_p'] = 0.6
         request_body['top_k'] = 0
         request_body['rep_pen'] = 1.0
-        request_body['banned_tokens'] = ['```']
+        #request_body['banned_tokens'] = ['```']
         return request_body
 

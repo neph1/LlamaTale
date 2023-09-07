@@ -21,9 +21,6 @@ class LivingNpc(Living):
         self.known_locations = dict()
         self.sentiments = {}
         
-    def init(self) -> None:
-        self.aliases = {"Npc"}
-        
     def notify_action(self, parsed: ParseResult, actor: Living) -> None:
         if actor is self or parsed.verb in self.verbs:
             return  # avoid reacting to ourselves, or reacting to verbs we already have a handler for
@@ -120,13 +117,19 @@ class LivingNpc(Living):
 
 class DynamicStory(StoryBase):
 
+    def __init__(self) -> None:
+        self._zones = dict() # type: dict[str, Zone]
+
     def get_zone(self, name: str) -> Zone:
         """ Find a zone by name."""
         return self._zones[name]
     
-    def add_zone(self, zone: Zone) -> None:
+    def add_zone(self, zone: Zone) -> bool:
         """ Add a zone to the story. """
+        if zone.name in self._zones:
+            return False
         self._zones[zone.name] = zone
+        return True
 
     
     def get_location(self, zone: str, name: str) -> Location:
@@ -147,16 +150,14 @@ class DynamicStory(StoryBase):
                 return zone
         return None
     
-    def add_location(self, location: Location, zone: str = '') -> None:
+    def add_location(self, location: Location, zone: str = '') -> bool:
         """ Add a location to the story. 
         If zone is specified, add to that zone, otherwise add to first zone.
         """
         if zone:
-            self._zones[zone].add_location(location)
-            return
+            return self._zones[zone].add_location(location)
         for zone in self._zones:
-            self._zones[zone].add_location(location)
-            break
+            return self._zones[zone].add_location(location)
 
     def races_for_zone(self, zone: str) -> [str]:
         return self._zones[zone].races
