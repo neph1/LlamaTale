@@ -259,7 +259,7 @@ def parse_generated_exits(json_result: dict, exit_location_name: str, location: 
     for exit in json_result.get('exits', []):
         if exit['name'] != exit_location_name:
             # create location
-            new_location = Location(exit['name'].replace('the ', ''))
+            new_location = Location(exit['name'].replace('the ', '').replace('The ', ''))
             
             directions_to = [new_location.name]
             directions_from = [location.name]
@@ -277,7 +277,7 @@ def parse_generated_exits(json_result: dict, exit_location_name: str, location: 
                     short_descr=from_description)
             new_location.add_exits([exit_back])
 
-            to_description = f'To the {directions_to[1]}, ' + exit.get('short_descr', '') if len(directions_from) > 1 else exit.get('short_descr', '')
+            to_description = f'To the {directions_to[1]}, ' + exit.get('short_descr', '').lower() if len(directions_from) > 1 else exit.get('short_descr', '')
             exit_to = Exit(directions=directions_to, 
                             target_location=new_location, 
                             short_descr=to_description, 

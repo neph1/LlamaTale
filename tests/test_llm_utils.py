@@ -97,15 +97,16 @@ class TestLlmUtils():
     def test_validate_location(self):
         location = Location(name='Outside')
         location.built = False
-        locations = self.llm_util.validate_location(json.loads(self.generated_location), location_to_build=location, exit_location_name='Entrance')
+        locations, exits = self.llm_util.validate_location(json.loads(self.generated_location), location_to_build=location, exit_location_name='Entrance')
+        location.add_exits(exits)
         assert(location.description.startswith('A barren wasteland'))
         assert(len(location.exits) == 2)
         assert(location.exits['north pass'])
         assert(location.exits['south peak'])
         assert(len(location.items) == 1) # woolly gloves
         assert(len(locations) == 2)
-        assert(locations[0].name == 'north pass')
-        assert(locations[1].name == 'south peak')
+        assert(locations[0].name == 'North Pass')
+        assert(locations[1].name == 'South Peak')
 
     def test_evoke(self):
         evoke_string = 'test response'

@@ -115,9 +115,9 @@ class TestParseUtils():
                                                                         exit_location_name=exit_location_name, 
                                                                         location=location)
         assert(len(new_locations) == 3)
-        assert(new_locations[0].name == 'glacier')
-        assert(new_locations[1].name == 'cave')
-        assert(new_locations[2].name == 'forest')
+        assert(new_locations[0].name == 'Glacier')
+        assert(new_locations[1].name == 'Cave')
+        assert(new_locations[2].name == 'Forest')
         assert(len(parsed_exits) == 3)
         assert(parsed_exits[0].name == 'glacier')
         assert(parsed_exits[1].name == 'cave')
@@ -136,9 +136,9 @@ class TestParseUtils():
                                                                         location=location)
         assert(len(parsed_exits) == 2)
         assert(parsed_exits[0].names == ['glacier', 'north'])
-        assert(parsed_exits[0].short_description == 'To the north, A treacherous path.')
+        assert(parsed_exits[0].short_description == 'To the north, a treacherous path.')
         assert(parsed_exits[1].names == ['cave', 'south'])
-        assert(parsed_exits[1].short_description == 'To the south, A dark opening.')
+        assert(parsed_exits[1].short_description == 'To the south, a dark opening.')
 
     def test_coordinates_from_direction(self):
         coord = Coord(0,0,0)
