@@ -47,6 +47,8 @@ from textwrap import dedent
 from types import ModuleType
 from typing import Iterable, Any, Sequence, Optional, Set, Dict, Union, FrozenSet, Tuple, List, Type, no_type_check
 
+from tale.coord import Coord
+
 from . import lang
 from . import mud_context
 from . import pubsub
@@ -620,6 +622,7 @@ class Location(MudObject):
         self.name = name      # make sure we preserve the case; base object overwrites it in lowercase
         self.built = True     # has this location been built yet? If not, LLM will describe it.
         self.generated = False # whether this location is LLM generated or not
+        self.world_location = Coord() # the world location of this location
 
     def __contains__(self, obj: Union['Living', Item]) -> bool:
         return obj in self.livings or obj in self.items
@@ -960,7 +963,10 @@ class Living(MudObject):
     def __init__(self, name: str, gender: str, *, race: str="human",
                  title: str="", descr: str="", short_descr: str="") -> None:
         if race:
-            self.stats = Stats.from_race(race, gender=gender)
+            try:
+                self.stats = Stats.from_race(race, gender=gender)
+            except KeyError:
+                self.stats = Stats.from_race('human', gender=gender)
         else:
             self.stats = Stats()
         self.alive = True
@@ -2430,31 +2436,5 @@ class Soul:
             pass
         return None, "", 0
     
-class Zone():
-
-    def __init__(self, name: str, description: str = '') -> None:
-        self.description = description
-        self.locations = dict()  # type: Dict[str, Location]
-        self.level = 1 # average level of the zone
-        self.races = [] # common races to be encountered in the zone
-        self.items = [] # common items to find in the zone
-        self.mood = 0 # defines friendliness or hostility of the zone. > 0 is friendly
-        
-        self.name = name
-
-    def add_location(self, location: Location) -> None:
-        self.locations[location.name] = location
-
-    def get_location(self, name: str) -> Location:
-        return self.locations[name]
-    
-    def info(self) -> dict():
-        return {"description":self.description,
-                "level":self.level,
-                "mood":self.mood,
-                "races": self.races,
-                "items":self.items}
-
-
 _limbo = Location("Limbo", "The intermediate or transitional place or state. There's only nothingness. "
                            "Living beings end up here if they're not in a proper location yet.")

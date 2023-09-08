@@ -88,13 +88,20 @@ class UnarmedAttack(enum.Enum):
     HORN =  "horn"
     HOOVES = "hooves"
     BEAK = "beak"
-    FANGS = "fangs"
     TALONS = "talons"
-    BITE = "tite"
+    BITE = "bite"
 
 # mass is in KG.
 
 _races = {
+    'abomination': {
+        'body': BodyType.HUMANOID,
+        'language': 'English',
+        'mass': 80.0,
+        'size': BodySize.HUMAN_SIZED,
+        'hp' : 5,
+        'unarmed_attack': UnarmedAttack.TENTACLES
+    },
     'amphibian': {
         'body': BodyType.QUADRUPED,
         'language': 'Batrachian',
@@ -125,7 +132,7 @@ _races = {
         'mass': 0.2,
         'size': BodySize.TINY,
         'hp' : 1,
-        'unarmed_attack': UnarmedAttack.FANGS
+        'unarmed_attack': UnarmedAttack.BITE
     },
     'artrell': {
         'body': BodyType.INSECTOID,
@@ -165,7 +172,7 @@ _races = {
         'mass': 160.0,
         'size': BodySize.LARGE,
         'hp' : 5,
-        'unarmed_attack': UnarmedAttack.FANGS
+        'unarmed_attack': UnarmedAttack.BITE
     },
     'bird': {
         'body': BodyType.AVIAN,
@@ -205,7 +212,7 @@ _races = {
         'mass': 4.0,
         'size': BodySize.SMALL,
         'hp' : 5,
-        'unarmed_attack': UnarmedAttack.FANGS
+        'unarmed_attack': UnarmedAttack.BITE
     },
     'centaur': {
         'body': BodyType.SEMI_BIPEDAL,
@@ -221,7 +228,7 @@ _races = {
         'mass': 20.0,
         'size': BodySize.LARGE,
         'hp' : 5,
-        'unarmed_attack': UnarmedAttack.FANGS
+        'unarmed_attack': UnarmedAttack.BITE
     },
     'cow': {
         'body': BodyType.QUADRUPED,
@@ -230,6 +237,14 @@ _races = {
         'size': BodySize.LARGE,
         'hp' : 5,
         'unarmed_attack': UnarmedAttack.HOOVES
+    },
+    'crocodile': {
+        'body': BodyType.QUADRUPED,
+        'language': 'Reptilian',
+        'mass': 160.0,
+        'size': BodySize.LARGE,
+        'hp' : 5,
+        'unarmed_attack': UnarmedAttack.BITE
     },
     'dark-elf': {
         'body': BodyType.HUMANOID,
@@ -269,7 +284,7 @@ _races = {
         'mass': 20.0,
         'size': BodySize.SOMEWHAT_SMALL,
         'hp' : 5,
-        'unarmed_attack': UnarmedAttack.FANGS
+        'unarmed_attack': UnarmedAttack.BITE
     },
     'dragon': {
         'body': BodyType.SEMI_BIPEDAL,
@@ -351,6 +366,14 @@ _races = {
         'hp' : 5,
         'unarmed_attack': UnarmedAttack.CLAWS
     },
+    'ghoul': {
+        'body': BodyType.HUMANOID,
+        'language': 'Ghoulish',
+        'mass': 70.0,
+        'size': BodySize.HUMAN_SIZED,
+        'hp' : 5,
+        'unarmed_attack': UnarmedAttack.FISTS
+    },
     'giant': {
         'body': BodyType.HUMANOID,
         'language': 'Loyavenku',
@@ -358,6 +381,22 @@ _races = {
         'size': BodySize.HUGE,
         'hp' : 5,
         'unarmed_attack': UnarmedAttack.FISTS
+    },
+    'giant bat': {
+        'body': BodyType.CHIROPTEROID,
+        'language': 'Murcielago',
+        'mass': 40.0,
+        'size': BodySize.SOMEWHAT_SMALL,
+        'hp' : 5,
+        'unarmed_attack': UnarmedAttack.BITE
+    },
+    'giant ant': {
+        'body': BodyType.INSECTOID,
+        'language': 'Antish',
+        'mass': 10.0,
+        'size': BodySize.SMALL,
+        'hp' : 5,
+        'unarmed_attack': UnarmedAttack.BITE
     },
     'giant rat': {
         'body': BodyType.QUADRUPED,
@@ -471,6 +510,14 @@ _races = {
         'hp' : 5,
         'unarmed_attack': UnarmedAttack.BITE
     },
+    'irradiated coyote': {
+        'body': BodyType.QUADRUPED,
+        'language': 'Coyote',
+        'mass': 40.0,
+        'size': BodySize.SOMEWHAT_SMALL,
+        'hp' : 5,
+        'unarmed_attack': UnarmedAttack.BITE
+    },
     'kender': {
         'body': BodyType.HUMANOID,
         'language': 'Kendrall',
@@ -500,6 +547,14 @@ _races = {
         'language': 'Reptilian',
         'mass': 0.4,
         'size': BodySize.VERY_SMALL,
+        'hp' : 5,
+        'unarmed_attack': UnarmedAttack.BITE
+    },
+    'lurker': {
+        'body': BodyType.HUMANOID,
+        'language': 'Lurker',
+        'mass': 120.0,
+        'size': BodySize.SOMEWHAT_LARGE,
         'hp' : 5,
         'unarmed_attack': UnarmedAttack.BITE
     },
@@ -564,6 +619,14 @@ _races = {
         'language': 'Proto',
         'mass': 60.0,
         'size': BodySize.SMALL,
+        'hp' : 5,
+        'unarmed_attack': UnarmedAttack.FISTS
+    },
+    'rad-zombie': {
+        'body': BodyType.HUMANOID,
+        'language': 'English',
+        'mass': 60.0,
+        'size': BodySize.HUMAN_SIZED,
         'hp' : 5,
         'unarmed_attack': UnarmedAttack.FISTS
     },

@@ -5,6 +5,7 @@ from tale.llm_ext import DynamicStory
 from tale.player import Player
 from tale.story import StoryBase, StoryConfig
 import tale.parse_utils as parse_utils
+from tale.zone import Zone
 
 class JsonStory(DynamicStory):
     
@@ -39,63 +40,4 @@ class JsonStory(DynamicStory):
     def goodbye(self, player: Player) -> None:
         player.tell("Thanks for trying out Tale!")
 
-    def get_location(self, zone: str, name: str) -> Location:
-        """ Find a location by name in a zone."""
-        return self._zones[zone].get_location(name)
-    
-    def find_location(self, name: str) -> Location:
-        """ Find a location by name in any zone."""
-        for zone in self._zones.values():
-            location = zone.get_location(name)
-            if location:
-                return location
-    
-    def find_zone(self, location: str) -> str:
-        """ Find a zone by location."""
-        for zone in self._zones.values():
-            if zone.get_location(location):
-                return zone
-        return None
-                
-    def add_location(self, location: Location, zone: str = '') -> None:
-        """ Add a location to the story. 
-        If zone is specified, add to that zone, otherwise add to first zone.
-        """
-        if zone:
-            self._zones[zone].add_location(location)
-            return
-        for zone in self._zones:
-            self._zones[zone].add_location(location)
-            break
-
-    def races_for_zone(self, zone: str) -> [str]:
-        return self._zones[zone].races
-   
-    def items_for_zone(self, zone: str) -> [str]:
-        return self._zones[zone].items
-
-    def zone_info(self, zone_name: str = '', location: str = '') -> dict():
-        if not zone_name and location:
-            zone = self.find_zone(location)
-        else:
-            zone = self._zones[zone_name]
-        return zone.info()
-
-    def get_npc(self, npc: str) -> Living:
-        return self._npcs[npc]
-    
-    def get_item(self, item: str) -> Item:
-        return self._items[item]
-
-    @property
-    def locations(self) -> dict:
-        return self._locations
-
-    @property
-    def npcs(self) -> dict:
-        return self._npcs
-
-    @property
-    def items(self) -> dict:
-        return self._items
 

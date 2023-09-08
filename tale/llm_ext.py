@@ -1,9 +1,11 @@
 from tale import mud_context
-from tale.base import ContainingType, Living, Location, ParseResult
+from tale.base import ContainingType, Item, Living, Location, ParseResult
 from tale.errors import TaleError
 from tale.player import Player
 from tale.story import StoryBase
 from typing import Sequence
+
+from tale.zone import Zone
 
 class LivingNpc(Living):
     """An NPC with extra fields to define personality and help LLM generate dialogue"""
@@ -18,9 +20,6 @@ class LivingNpc(Living):
         self.memory_size = 1024
         self.known_locations = dict()
         self.sentiments = {}
-        
-    def init(self) -> None:
-        self.aliases = {"Npc"}
         
     def notify_action(self, parsed: ParseResult, actor: Living) -> None:
         if actor is self or parsed.verb in self.verbs:
@@ -118,20 +117,75 @@ class LivingNpc(Living):
 
 class DynamicStory(StoryBase):
 
-    def add_location(self, location: Location, zone: str = '') -> None:
+    def __init__(self) -> None:
+        self._zones = dict() # type: dict[str, Zone]
+
+    def get_zone(self, name: str) -> Zone:
+        """ Find a zone by name."""
+        return self._zones[name]
+    
+    def add_zone(self, zone: Zone) -> bool:
+        """ Add a zone to the story. """
+        if zone.name in self._zones:
+            return False
+        self._zones[zone.name] = zone
+        return True
+
+    
+    def get_location(self, zone: str, name: str) -> Location:
+        """ Find a location by name in a zone."""
+        return self._zones[zone].get_location(name)
+    
+    def find_location(self, name: str) -> Location:
+        """ Find a location by name in any zone."""
+        for zone in self._zones.values():
+            location = zone.get_location(name)
+            if location:
+                return location
+    
+    def find_zone(self, location: str) -> Zone:
+        """ Find a zone by location."""
+        for zone in self._zones.values():
+            if zone.get_location(location):
+                return zone
+        return None
+    
+    def add_location(self, location: Location, zone: str = '') -> bool:
         """ Add a location to the story. 
         If zone is specified, add to that zone, otherwise add to first zone.
         """
-        pass
+        if zone:
+            return self._zones[zone].add_location(location)
+        for zone in self._zones:
+            return self._zones[zone].add_location(location)
 
     def races_for_zone(self, zone: str) -> [str]:
-        """ Returns a list of races available to meet in the specified zone. """
-        pass
+        return self._zones[zone].races
    
-    def drops_for_zone(self, zone: str) -> [str]:
-        """ Returns a list of items available to find in the specified zone. """
-        pass
+    def items_for_zone(self, zone: str) -> [str]:
+        return self._zones[zone].items
 
-    def zone_info(self, zone_name: str, location: str) -> dict():
-        """ Returns a description of the specified zone. """
-        pass
+    def zone_info(self, zone_name: str = '', location: str = '') -> dict():
+        if not zone_name and location:
+            zone = self.find_zone(location)
+        else:
+            zone = self._zones[zone_name]
+        return zone.get_info()
+
+    def get_npc(self, npc: str) -> Living:
+        return self._npcs[npc]
+    
+    def get_item(self, item: str) -> Item:
+        return self._items[item]
+
+    @property
+    def locations(self) -> dict:
+        return self._locations
+
+    @property
+    def npcs(self) -> dict:
+        return self._npcs
+
+    @property
+    def items(self) -> dict:
+        return self._items
