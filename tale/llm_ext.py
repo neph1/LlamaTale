@@ -20,6 +20,7 @@ class LivingNpc(Living):
         self.memory_size = 1024
         self.known_locations = dict()
         self.sentiments = {}
+        self.action_history = [] # type: list[str]
         
     def notify_action(self, parsed: ParseResult, actor: Living) -> None:
         if actor is self or parsed.verb in self.verbs:

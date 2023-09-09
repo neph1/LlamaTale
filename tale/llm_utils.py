@@ -355,10 +355,11 @@ class LlmUtil():
         zone.items = json_result.get('items', [])
         return zone
 
-    def perform_idle_action(self, character_name: str, location: Location, character_card: str = '', sentiments: dict = {}):
+    def perform_idle_action(self, character_name: str, location: Location, character_card: str = '', sentiments: dict = {}, last_action: str = ''):
         characters = {}
         for living in location.livings:
-            characters[living.name] = living.short_description
+            if living.name != character_name:
+                characters[living.name] = living.short_description
         items=location.items,
         prompt = self.idle_action_prompt.format(
             last_action='',
@@ -371,14 +372,15 @@ class LlmUtil():
             sentiments=json.dumps(sentiments))
         request_body = self.default_body
         if self.backend == 'kobold_cpp':
-            request_body = self._kobold_generation_prompt(request_body)
             request_body['prompt'] = prompt
             request_body['seed'] = random.randint(0, 2147483647)
+            request_body['banned_tokens'] = ['You']
         elif self.backend == 'openai':
             request_body['messages'][1]['content'] = prompt
 
-        text = self.io_util.synchronous_request(request_body)
+        text = self.io_util.stream_request(request_body, wait=True)
         location.tell(text, evoke=False)
+        return text
         
     def _store_hash(self, text_hash_value: int, text: str):
         """ Store the generated text in a hash table."""
