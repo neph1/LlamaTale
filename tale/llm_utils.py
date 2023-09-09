@@ -26,19 +26,20 @@ class LlmUtil():
         self.default_body = json.loads(config_file['DEFAULT_BODY']) if self.backend == 'kobold_cpp' else json.loads(config_file['OPENAI_BODY'])
         self.analysis_body = json.loads(config_file['ANALYSIS_BODY'])
         self.memory_size = config_file['MEMORY_SIZE']
-        self.pre_prompt = config_file['PRE_PROMPT']
-        self.pre_json_prompt = config_file['PRE_JSON_PROMPT']
-        self.base_prompt = config_file['BASE_PROMPT']
-        self.dialogue_prompt = config_file['DIALOGUE_PROMPT']
-        self.action_prompt = config_file['ACTION_PROMPT']
-        self.combat_prompt = config_file['COMBAT_PROMPT']
-        self.character_prompt = config_file['CREATE_CHARACTER_PROMPT']
-        self.location_prompt = config_file['CREATE_LOCATION_PROMPT']
-        self.item_prompt = config_file['ITEM_PROMPT']
+        self.pre_prompt = config_file['PRE_PROMPT'] # type: str
+        self.pre_json_prompt = config_file['PRE_JSON_PROMPT'] # type: str
+        self.base_prompt = config_file['BASE_PROMPT'] # type: str
+        self.dialogue_prompt = config_file['DIALOGUE_PROMPT'] # type: str
+        self.action_prompt = config_file['ACTION_PROMPT'] # type: str
+        self.combat_prompt = config_file['COMBAT_PROMPT'] # type: str
+        self.character_prompt = config_file['CREATE_CHARACTER_PROMPT'] # type: str
+        self.location_prompt = config_file['CREATE_LOCATION_PROMPT'] # type: str
+        self.item_prompt = config_file['ITEM_PROMPT'] # type: str
         self.word_limit = config_file['WORD_LIMIT']
-        self.spawn_prompt = config_file['SPAWN_PROMPT']
-        self.items_prompt = config_file['ITEMS_PROMPT']
-        self.zone_prompt = config_file['CREATE_ZONE_PROMPT']
+        self.spawn_prompt = config_file['SPAWN_PROMPT'] # type: str
+        self.items_prompt = config_file['ITEMS_PROMPT'] # type: str
+        self.zone_prompt = config_file['CREATE_ZONE_PROMPT'] # type: str
+        self.idle_action_prompt = config_file['IDLE_ACTION_PROMPT'] # type: str
         self.__story = None # type: DynamicStory
         self.io_util = IoUtil(config=config_file)
         self.stream = config_file['STREAM']
@@ -353,6 +354,31 @@ class LlmUtil():
         zone.races = json_result.get('races', [])
         zone.items = json_result.get('items', [])
         return zone
+
+    def perform_idle_action(self, character_name: str, location: Location, character_card: str = '', sentiments: dict = {}):
+        characters = {}
+        for living in location.livings:
+            characters[living.name] = living.short_description
+        items=location.items,
+        prompt = self.idle_action_prompt.format(
+            last_action='',
+            location=": ".join([location.title, location.short_description]),
+            story_context=self.__story.config.context,
+            character_name=character_name,
+            character=character_card,
+            items=items,
+            characters=json.dumps(characters),
+            sentiments=json.dumps(sentiments))
+        request_body = self.default_body
+        if self.backend == 'kobold_cpp':
+            request_body = self._kobold_generation_prompt(request_body)
+            request_body['prompt'] = prompt
+            request_body['seed'] = random.randint(0, 2147483647)
+        elif self.backend == 'openai':
+            request_body['messages'][1]['content'] = prompt
+
+        text = self.io_util.synchronous_request(request_body)
+        location.tell(text, evoke=False)
         
     def _store_hash(self, text_hash_value: int, text: str):
         """ Store the generated text in a hash table."""
@@ -372,4 +398,6 @@ class LlmUtil():
         request_body['rep_pen'] = 1.0
         #request_body['banned_tokens'] = ['```']
         return request_body
+    
+
 

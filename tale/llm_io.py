@@ -35,12 +35,12 @@ class IoUtil():
             parsed_response = self._parse_kobold_result(response.text)
         return parse_utils.trim_response(parsed_response)
 
-    def stream_request(self, request_body: dict, player_io: TextBuffer, io) -> str:
+    def stream_request(self, request_body: dict, player_io: TextBuffer = None, io = None, wait: bool = False) -> str:
         if self.backend == 'openai':
             raise NotImplementedError("Currently does not support streaming requests for OpenAI")
         result = asyncio.run(self._do_stream_request(self.url + self.stream_endpoint, request_body))
         if result:
-            return self._do_process_result(self.url + self.data_endpoint, player_io, io)
+            return self._do_process_result(self.url + self.data_endpoint, player_io, io, wait)
         return ''
 
     async def _do_stream_request(self, url: str, request_body: dict,) -> bool:
@@ -53,7 +53,7 @@ class IoUtil():
                     # Handle errors
                     print("Error occurred:", response.status)
 
-    def _do_process_result(self, url, player_io: TextBuffer, io) -> str:
+    def _do_process_result(self, url, player_io: TextBuffer = None, io = None, wait: bool = False) -> str:
         """ Process the result from the stream endpoint """
         tries = 0
         old_text = ''
@@ -65,9 +65,10 @@ class IoUtil():
             if len(text) == len(old_text):
                 tries += 1
                 continue
-            new_text = text[len(old_text):]
-            player_io.print(new_text, end=False, format=True, line_breaks=False)
-            io.write_output()
+            if not wait:
+                new_text = text[len(old_text):]
+                player_io.print(new_text, end=False, format=True, line_breaks=False)
+                io.write_output()
             old_text = text
 
         return old_text
