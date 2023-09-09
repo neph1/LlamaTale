@@ -56,7 +56,30 @@ class Maid(LivingNpc):
         self.location.tell(f"{lang.capital(self.title)} wipes a table and picks up dishes.", evoke=False, max_length=True)
 
 
-class RoamingPatron(LivingNpc):
+class Patron(LivingNpc):
+    
+    def __init__(self, name: str, gender: str, *,
+                 title: str="", descr: str="", short_descr: str="", age: int, personality: str):
+        super(Patron, self).__init__(name=name, gender=gender,
+                 title=title, descr=descr, short_descr=short_descr, age=age, personality=personality, occupation='')
+        
+    def init(self) -> None:
+        self.aliases = {"patron"}
+
+    @call_periodically(75, 180)
+    def do_idle_action(self, ctx: Context) -> None:
+        """ Perform an idle action if a player is in the same location."""
+        player_names = ctx.driver.all_players.keys()
+        player_in_location = any(name == living.name for name in player_names for living in self.location.livings)
+        if player_in_location:
+            action = ctx.driver.llm_util.perform_idle_action(character_card=self.character_card,
+                                                character_name=self.title,
+                                                location=self.location,
+                                                last_action=self.action_history[:-1] if self.action_history else None,
+                                                sentiments=self.sentiments)
+            self.action_history.append(action)
+
+class RoamingPatron(Patron):
 
 
     def __init__(self, name: str, gender: str, *,
@@ -65,7 +88,7 @@ class RoamingPatron(LivingNpc):
                  title=title, descr=descr, short_descr=short_descr, age=age, personality=personality, occupation='')
         self.sitting = False
         
-    @call_periodically(45, 120)
+    @call_periodically(75, 120)
     def do_random_move(self, ctx: Context) -> None:
         if not self.sitting:
             if random.random() < 0.25:
@@ -78,18 +101,7 @@ class RoamingPatron(LivingNpc):
         elif random.random() < 0.5:
             self.sitting = False
             self.tell_others("{Actor} stands up.", evoke=False, max_length=True)
-
-    
-class Patron(LivingNpc):
-    
-    def __init__(self, name: str, gender: str, *,
-                 title: str="", descr: str="", short_descr: str="", age: int, personality: str):
-        super(Patron, self).__init__(name=name, gender=gender,
-                 title=title, descr=descr, short_descr=short_descr, age=age, personality=personality, occupation='')
-        
-    def init(self) -> None:
-        self.aliases = {"patron"}
-
+   
 class Shanda(Patron):
 
     def allow_give_item(self, item: Item, actor: Optional[Living]) -> None:
