@@ -67,3 +67,6 @@ class FakeIoUtil(IoUtil):
 
     def synchronous_request(self, request_body: dict) -> str:
         return self.response
+    
+    def asynchronous_request(self, request_body: dict):
+        return self.response

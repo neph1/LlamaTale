@@ -21,8 +21,10 @@ class LivingNpc(Living):
         self.known_locations = dict()
         self.sentiments = {}
         self.action_history = [] # type: list[str]
+        self.planned_actions = [] # type: list[str]
         
     def notify_action(self, parsed: ParseResult, actor: Living) -> None:
+        print(f"{self.title} notified of action {parsed.verb} {parsed.unparsed} by {actor.title}")
         if actor is self or parsed.verb in self.verbs:
             return  # avoid reacting to ourselves, or reacting to verbs we already have a handler for
         greet = False
@@ -30,22 +32,45 @@ class LivingNpc(Living):
         for alias in self.aliases:
             if alias in parsed.unparsed:
                 targeted = True
-        if self.name in parsed.unparsed:
+        if self.name in parsed.unparsed or self in parsed.who_info:
                 targeted = True
-        if parsed.verb in ("hi", "hello") and self in parsed.who_info:
+        if parsed.verb in ("hi", "hello"):
             greet = True
-            targeted = True
-        elif parsed.verb == "greet" and self in parsed.who_info:
+        elif parsed.verb == "greet":
             greet = True
-            targeted = True
         if greet and targeted:
             self.tell_others("{Actor} says: \"Hi.\"", evoke=True)
             self.update_conversation(f"{self.title} says: \"Hi.\"")
         elif parsed.verb == "say" and targeted:
             self.do_say(parsed.unparsed, actor)
-        elif self in parsed.who_info:
-            # store actions against npc
-            pass
+        elif targeted:
+            action = mud_context.driver.llm_util.perform_reaction(action=parsed.unparsed, 
+                                            character_card=self.character_card,
+                                            character_name=self.title,
+                                            location=self.location,
+                                            acting_character_name=actor.title,
+                                            sentiment=self.sentiments.get(actor.name, ''))
+            if action:
+                self.action_history.append(action)
+                result = ParseResult(verb='action', unparsed=action, who_info=None)
+                self.location.notify_action(result, actor=self)
+                self.tell_others(action)
+
+    def tell(self, message: str, *, end: bool = False, format: bool = True, evoke: bool = False, max_length: bool = False, alt_prompt: str = '') -> Living:
+        pass
+        # if self.name.capitalize() in message:
+        #     # something has been done to the npc, it may react
+        #     action = mud_context.driver.llm_util.perform_reaction(action=message, 
+        #                                                           character_card=self.character_card,
+        #                                                           character_name=self.title,
+        #                                                           location=self.location,
+        #                                                           acting_character_name='',
+        #                                                           sentiment='')
+        #     if action:
+        #         self.action_history.append(action)
+        #         result = ParseResult(verb='action', unparsed=action, who_info=None)
+        #         self.location.notify_action(result, actor=self)
+        #         self.tell_others(action)
 
     def do_say(self, what_happened: str, actor: Living) -> None:
         self.update_conversation(f'{actor.title}:{what_happened}\n')
@@ -99,8 +124,38 @@ class LivingNpc(Living):
     def move(self, target: ContainingType, actor: Living=None,
              *, silent: bool=False, is_player: bool=False, verb: str="move", direction_names: Sequence[str]=None) -> None:
         self.known_locations[self.location.name] = f"description: {self.location.description}. " + ". ".join(self.location.look(exclude_living=self, short=True))
-
         super().move(target, actor, silent=silent, is_player=is_player, verb=verb, direction_names=direction_names)
+
+    def idle_action(self):
+        """ Plan and perform idle actions. 
+            Currently handles planning several actions in advance, and then performing them in reverse order.
+        """
+        if not self.planned_actions:
+            actions = mud_context.driver.llm_util.perform_idle_action(character_card=self.character_card,
+                                                character_name=self.title,
+                                                location=self.location,
+                                                last_action=self.action_history[-1] if self.action_history else None,
+                                                sentiments=self.sentiments)
+            if actions:
+                actions.reverse()
+                self.planned_actions.extend(actions)
+        if len(self.planned_actions) > 0:
+            action = self.planned_actions.pop()
+            self.action_history.append(action)
+            result = ParseResult(verb='action', unparsed=action, who_info=None)
+            self.location.notify_action(result, actor=self)
+            self.tell_others(action)
+
+    def travel(self):
+        result = mud_context.driver.llm_util.perform_travel_action(character_card=self.character_card,
+                                            character_name=self.title,
+                                            location=self.location,
+                                            locations=', '.join(self.location.exits.keys()),
+                                            directions=[])
+        if result:
+            exit = self.location.exits.get(result)
+            if exit:
+                self.move(target=exit.target, actor=self)
             
     @property
     def character_card(self) -> str:

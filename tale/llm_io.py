@@ -34,6 +34,11 @@ class IoUtil():
         else:
             parsed_response = self._parse_kobold_result(response.text)
         return parse_utils.trim_response(parsed_response)
+    
+    def asynchronous_request(self, request_body: dict):
+        if self.backend == 'openai':
+            return self.synchronous_request(request_body)
+        return self.stream_request(request_body, wait=True)
 
     def stream_request(self, request_body: dict, player_io: TextBuffer = None, io = None, wait: bool = False) -> str:
         if self.backend == 'openai':
