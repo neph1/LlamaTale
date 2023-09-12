@@ -10,6 +10,7 @@ from tale.main import run_from_cmdline
 from tale.player import Player, PlayerConnection
 from tale.charbuilder import PlayerNaming
 from tale.story import *
+from tale.zone import Zone
 
 class Story(DynamicStory):
 
@@ -29,15 +30,18 @@ class Story(DynamicStory):
     config.startlocation_player = "prancingllama.entrance"
     config.startlocation_wizard = "prancingllama.entrance"
     config.zones = ["prancingllama"]
-    config.context = "The Prancing Llama is the final outpost high up in a cold, craggy mountain range. It's frequented by adventurers and those looking to avoid attention."
+    config.context = "The final outpost high up in a cold, craggy mountain range. It's frequented by adventurers and those looking to avoid attention."
     config.type = "A low level fantasy adventure with focus of character building and interaction."
     
     
     def init(self, driver: Driver) -> None:
         """Called by the game driver when it is done with its initial initialization."""
         self.driver = driver
-        self._dynamic_locations = dict() # type: dict(str, [])
-        self._dynamic_locations["prancingllama"] = []
+        self._zones = dict() # type: dict(str, Zone)
+        self._zones["The Prancing Llama"] = Zone("The Prancing Llama", description="A cold, craggy mountain range. Snow covered peaks and uncharted valleys hide and attract all manners of creatures.")
+        import zones.prancingllama
+        for location in zones.prancingllama.all_locations:
+            self._zones["The Prancing Llama"].add_location(location)
 
     def init_player(self, player: Player) -> None:
         """
@@ -81,9 +85,6 @@ class Story(DynamicStory):
         player.tell("Goodbye, %s. Please come back again soon." % player.title)
         player.tell("\n")
 
-    def add_location(self, location: Location, zone: str = '') -> None:
-        self._dynamic_locations["prancingllama"].append(location)
-
     def races_for_zone(self, zone: str) -> [str]:
         return ["human", "giant rat", "bat", "balrog", "dwarf", "elf", "gnome", "halfling", "hobbit", "kobold", "orc", "troll", "vampire", "werewolf", "zombie"]
 
@@ -91,9 +92,10 @@ class Story(DynamicStory):
         return ["woolly gloves", "ice pick", "fur cap", "rusty sword", "lantern", "food rations"]
 
     def zone_info(self, zone_name: str, location: str) -> dict():
-        return {"description": "A cold, craggy mountain range. Snow covered peaks and uncharted valleys hide and attract all manners of creatures.", 
-                "races": self.races_for_zone(''), 
-                "drop_items": self.items_for_zone('')}
+        zone_info = super.zone_info(zone_name, location)
+        zone_info['races'] = self.races_for_zone(zone_name)
+        zone_info['items'] = self.items_for_zone(zone_name)
+        return zone_info
 
 if __name__ == "__main__":
     # story is invoked as a script, start it in the Tale Driver.
