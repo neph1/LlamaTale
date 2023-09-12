@@ -26,19 +26,22 @@ class LlmUtil():
         self.default_body = json.loads(config_file['DEFAULT_BODY']) if self.backend == 'kobold_cpp' else json.loads(config_file['OPENAI_BODY'])
         self.analysis_body = json.loads(config_file['ANALYSIS_BODY'])
         self.memory_size = config_file['MEMORY_SIZE']
-        self.pre_prompt = config_file['PRE_PROMPT']
-        self.pre_json_prompt = config_file['PRE_JSON_PROMPT']
-        self.base_prompt = config_file['BASE_PROMPT']
-        self.dialogue_prompt = config_file['DIALOGUE_PROMPT']
-        self.action_prompt = config_file['ACTION_PROMPT']
-        self.combat_prompt = config_file['COMBAT_PROMPT']
-        self.character_prompt = config_file['CREATE_CHARACTER_PROMPT']
-        self.location_prompt = config_file['CREATE_LOCATION_PROMPT']
-        self.item_prompt = config_file['ITEM_PROMPT']
+        self.pre_prompt = config_file['PRE_PROMPT'] # type: str
+        self.pre_json_prompt = config_file['PRE_JSON_PROMPT'] # type: str
+        self.base_prompt = config_file['BASE_PROMPT'] # type: str
+        self.dialogue_prompt = config_file['DIALOGUE_PROMPT'] # type: str
+        self.action_prompt = config_file['ACTION_PROMPT'] # type: str
+        self.combat_prompt = config_file['COMBAT_PROMPT'] # type: str
+        self.character_prompt = config_file['CREATE_CHARACTER_PROMPT'] # type: str
+        self.location_prompt = config_file['CREATE_LOCATION_PROMPT'] # type: str
+        self.item_prompt = config_file['ITEM_PROMPT'] # type: str
         self.word_limit = config_file['WORD_LIMIT']
-        self.spawn_prompt = config_file['SPAWN_PROMPT']
-        self.items_prompt = config_file['ITEMS_PROMPT']
-        self.zone_prompt = config_file['CREATE_ZONE_PROMPT']
+        self.spawn_prompt = config_file['SPAWN_PROMPT'] # type: str
+        self.items_prompt = config_file['ITEMS_PROMPT'] # type: str
+        self.zone_prompt = config_file['CREATE_ZONE_PROMPT'] # type: str
+        self.idle_action_prompt = config_file['IDLE_ACTION_PROMPT'] # type: str
+        self.travel_prompt = config_file['TRAVEL_PROMPT'] # type: str
+        self.reaction_prompt = config_file['REACTION_PROMPT'] # type: str
         self.__story = None # type: DynamicStory
         self.io_util = IoUtil(config=config_file)
         self.stream = config_file['STREAM']
@@ -181,9 +184,9 @@ class LlmUtil():
             rolling_prompt = rolling_prompt[len(rolling_prompt) - self.memory_size + 1:]
         return rolling_prompt
     
-    def generate_character(self, story_context: str = '', keywords: list = []):
+    def generate_character(self, story_context: str = '', keywords: list = [], story_type: str = ''):
         """ Generate a character card based on the current story context"""
-        prompt = self.character_prompt.format(story_type=mud_context.config.type,
+        prompt = self.character_prompt.format(story_type=story_type if story_type else mud_context.config.type,
                                               story_context=story_context, 
                                               keywords=', '.join(keywords))
         request_body = self.default_body
@@ -353,6 +356,68 @@ class LlmUtil():
         zone.races = json_result.get('races', [])
         zone.items = json_result.get('items', [])
         return zone
+
+    def perform_idle_action(self, character_name: str, location: Location, character_card: str = '', sentiments: dict = {}, last_action: str = '') -> list:
+        characters = {}
+        for living in location.livings:
+            if living.name != character_name.lower():
+                characters[living.name] = living.short_description
+        items=location.items,
+        prompt = self.idle_action_prompt.format(
+            last_action=last_action if last_action else f"{character_name} arrives in {location.name}",
+            location=": ".join([location.title, location.short_description]),
+            story_context=self.__story.config.context,
+            character_name=character_name,
+            character=character_card,
+            items=items,
+            characters=json.dumps(characters),
+            sentiments=json.dumps(sentiments))
+        request_body = self.default_body
+        if self.backend == 'kobold_cpp':
+            request_body['prompt'] = prompt
+            request_body['seed'] = random.randint(0, 2147483647)
+            request_body['banned_tokens'] = ['You']
+        elif self.backend == 'openai':
+            request_body['messages'][1]['content'] = prompt
+
+        text = self.io_util.asynchronous_request(request_body)
+        return text.split(';')
+    
+    def perform_travel_action(self, character_name: str, location: Location, locations: list, directions: list, character_card: str = ''):
+        if location.name in locations:
+            locations.remove(location.name)
+
+        prompt = self.pre_prompt
+        prompt += self.travel_prompt.format(
+            location_name=location.name,
+            locations=locations,
+            directions=directions,
+            character=character_card,
+            character_name=character_name)
+        request_body = self.default_body
+        if self.backend == 'kobold_cpp':
+            request_body['prompt'] = prompt
+        elif self.backend == 'openai':
+            request_body['messages'][1]['content'] = prompt
+        text = self.io_util.asynchronous_request(request_body)
+        return text
+    
+    def perform_reaction(self, action: str, character_name: str, acting_character_name: str, location: Location, character_card: str = '', sentiment: str = ''):
+        prompt = self.pre_prompt
+        prompt += self.reaction_prompt.format(
+            action=action,
+            location_name=location.name,
+            character_name=character_name,
+            character=character_card,
+            acting_character_name=acting_character_name,
+            sentiment=sentiment)
+        request_body = self.default_body
+        if self.backend == 'kobold_cpp':
+            request_body['prompt'] = prompt
+        elif self.backend == 'openai':
+            request_body['messages'][1]['content'] = prompt
+        text = self.io_util.asynchronous_request(request_body)
+        return text
         
     def _store_hash(self, text_hash_value: int, text: str):
         """ Store the generated text in a hash table."""
@@ -372,4 +437,6 @@ class LlmUtil():
         request_body['rep_pen'] = 1.0
         #request_body['banned_tokens'] = ['```']
         return request_body
+    
+
 

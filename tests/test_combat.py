@@ -12,6 +12,23 @@ class TestCombat():
 
         text, damage_to_attacker, damage_to_defender = combat.resolve_attack(attacker, defender)
 
+        self._assert_combat(attacker, defender, text, damage_to_attacker, damage_to_defender)
+        
+        attacker.stats.level = 10
+
+        text, damage_to_attacker, damage_to_defender = combat.resolve_attack(attacker, defender)
+        assert('defender is injured' in text)
+        assert('defender dies' in text)
+
+    def test_produce_remains(self):
+        ctx = util.Context(driver=FakeDriver(), clock=None, config=None, player_connection=None)
+        rat = LivingNpc(name='Giant Rat', gender='m', age=4, personality='Sneaky and nasty')
+        remains = combat.produce_remains(ctx, rat)
+        assert(remains)
+        remains.location.remove(remains, None)
+
+
+    def _assert_combat(self, attacker, defender, text, damage_to_attacker, damage_to_defender):
         assert(damage_to_attacker >= 0)
         assert(damage_to_defender >= 0)
 
@@ -23,11 +40,4 @@ class TestCombat():
             assert('attacker dies' in text)
         if defender.stats.hp < 1:
             assert('defender dies' in text)
-
-    def test_produce_remains(self):
-        ctx = util.Context(driver=FakeDriver(), clock=None, config=None, player_connection=None)
-        rat = LivingNpc(name='Giant Rat', gender='m', age=4, personality='Sneaky and nasty')
-        remains = combat.produce_remains(ctx, rat)
-        assert(remains)
-        remains.location.remove(remains, None)
 

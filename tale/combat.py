@@ -25,10 +25,10 @@ def resolve_attack(attacker, victim):
 
 def combat(actor1: 'base.Living', actor2: 'base.Living'):
     """ Simple combat, but rather complex logic. Credit to ChatGPT."""
-    
+
     def calculate_attack(actor: 'base.Living'):
         # The attack strength depends on the level and strength of the actor
-        return actor.stats.level
+        return actor.stats.level * actor.stats.dexterity
 
     def calculate_defense(actor: 'base.Living'):
         # The defense strength depends on the level and dexterity of the actor

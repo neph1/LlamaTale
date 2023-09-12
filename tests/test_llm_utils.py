@@ -119,7 +119,7 @@ class TestLlmUtils():
     def test_generate_character(self):
         character_string = json.dumps(parse_utils.load_json('tests/files/test_character.json'))
         self.llm_util.io_util = FakeIoUtil(response=character_string)
-        result = self.llm_util.generate_character()
+        result = self.llm_util.generate_character(story_type='a test story')
         assert(result)
 
     def test_build_location(self):
@@ -194,4 +194,19 @@ class TestLlmUtils():
         zone_info = self.llm_util.get_neighbor_or_generate_zone(zone, current_location, target_location).get_info()
         assert(zone_info['description'] == 'This is the current zone')
 
+    def test_perform_idle_action(self):
+        # mostly testing that prompt works
+        self.llm_util.set_story(self.story)
+        self.llm_util.io_util = FakeIoUtil(response='Walk to the left;Walk to the right;Jump up and down')
+        location = Location(name='Test Location')
+        actions = self.llm_util.perform_idle_action(character_name='Norhardt', location = location, character_card= '{}', sentiments= {}, last_action= '')
+        assert(len(actions) == 3)
+        assert(actions[0] == 'Walk to the left')
+        assert(actions[1] == 'Walk to the right')
+        assert(actions[2] == 'Jump up and down')
 
+    def test_perform_travel_action(self):
+        # mostly testing that prompt works
+        self.llm_util.io_util = FakeIoUtil(response='West')
+        result = self.llm_util.perform_travel_action(character_name='Norhardt', location = Location(name='Test Location'), character_card= '{}', locations= [], directions= [])
+        assert(result == 'West')
