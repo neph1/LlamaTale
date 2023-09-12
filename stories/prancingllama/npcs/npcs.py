@@ -45,16 +45,11 @@ class InnKeeper(LivingNpc):
 
 class Maid(LivingNpc):
 
-    @call_periodically(10, 20)
+    @call_periodically(45, 60)
     def do_random_move(self, ctx: Context) -> None:
         direction = self.select_random_move()
         if direction:
             self.move(direction.target, self, direction_names=direction.names)
-
-    @call_periodically(30, 60)
-    def do_pick_up_dishes(self, ctx: Context) -> None:
-        self.location.tell(f"{lang.capital(self.title)} wipes a table and picks up dishes.", evoke=False, max_length=True)
-
 
 class Patron(LivingNpc):
     
@@ -72,12 +67,7 @@ class Patron(LivingNpc):
         player_names = ctx.driver.all_players.keys()
         player_in_location = any(name == living.name for name in player_names for living in self.location.livings)
         if player_in_location:
-            action = ctx.driver.llm_util.perform_idle_action(character_card=self.character_card,
-                                                character_name=self.title,
-                                                location=self.location,
-                                                last_action=self.action_history[:-1] if self.action_history else None,
-                                                sentiments=self.sentiments)
-            self.action_history.append(action)
+            self.idle_action()
 
 class RoamingPatron(Patron):
 
