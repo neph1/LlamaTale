@@ -24,7 +24,6 @@ class LivingNpc(Living):
         self.planned_actions = [] # type: list[str]
         
     def notify_action(self, parsed: ParseResult, actor: Living) -> None:
-        print(f"{self.title} notified of action {parsed.verb} {parsed.unparsed} by {actor.title}")
         if actor is self or parsed.verb in self.verbs:
             return  # avoid reacting to ourselves, or reacting to verbs we already have a handler for
         greet = False
@@ -32,8 +31,8 @@ class LivingNpc(Living):
         for alias in self.aliases:
             if alias in parsed.unparsed:
                 targeted = True
-        if self.name in parsed.unparsed or self in parsed.who_info:
-                targeted = True
+        if self.name in parsed.unparsed or self in parsed.who_info or self.title in parsed.unparsed:
+            targeted = True
         if parsed.verb in ("hi", "hello"):
             greet = True
         elif parsed.verb == "greet":
@@ -43,7 +42,7 @@ class LivingNpc(Living):
             self.update_conversation(f"{self.title} says: \"Hi.\"")
         elif parsed.verb == "say" and targeted:
             self.do_say(parsed.unparsed, actor)
-        elif targeted:
+        elif targeted and parsed.verb == "idle-action":
             action = mud_context.driver.llm_util.perform_reaction(action=parsed.unparsed, 
                                             character_card=self.character_card,
                                             character_name=self.title,
@@ -52,25 +51,10 @@ class LivingNpc(Living):
                                             sentiment=self.sentiments.get(actor.name, ''))
             if action:
                 self.action_history.append(action)
-                result = ParseResult(verb='action', unparsed=action, who_info=None)
-                self.location.notify_action(result, actor=self)
+                result = ParseResult(verb='idle-action', unparsed=action, who_info=None)
                 self.tell_others(action)
-
-    def tell(self, message: str, *, end: bool = False, format: bool = True, evoke: bool = False, max_length: bool = False, alt_prompt: str = '') -> Living:
-        pass
-        # if self.name.capitalize() in message:
-        #     # something has been done to the npc, it may react
-        #     action = mud_context.driver.llm_util.perform_reaction(action=message, 
-        #                                                           character_card=self.character_card,
-        #                                                           character_name=self.title,
-        #                                                           location=self.location,
-        #                                                           acting_character_name='',
-        #                                                           sentiment='')
-        #     if action:
-        #         self.action_history.append(action)
-        #         result = ParseResult(verb='action', unparsed=action, who_info=None)
-        #         self.location.notify_action(result, actor=self)
-        #         self.tell_others(action)
+                self.location.notify_action(result, actor=self)
+                self.location._notify_action_all(result, actor=self)
 
     def do_say(self, what_happened: str, actor: Living) -> None:
         self.update_conversation(f'{actor.title}:{what_happened}\n')
@@ -142,9 +126,10 @@ class LivingNpc(Living):
         if len(self.planned_actions) > 0:
             action = self.planned_actions.pop()
             self.action_history.append(action)
-            result = ParseResult(verb='action', unparsed=action, who_info=None)
-            self.location.notify_action(result, actor=self)
+            result = ParseResult(verb='idle-action', unparsed=action, who_info=None)
             self.tell_others(action)
+            self.location.notify_action(result, actor=self)
+            self.location._notify_action_all(result, actor=self)
 
     def travel(self):
         result = mud_context.driver.llm_util.perform_travel_action(character_card=self.character_card,
