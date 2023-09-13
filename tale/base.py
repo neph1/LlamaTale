@@ -57,8 +57,10 @@ from . import util
 from . import story
 from . import verbdefs
 from . import combat
+
 from .errors import ActionRefused, ParseError, LocationIntegrityError, TaleError, UnknownVerbException, NonSoulVerb
 from tale.races import UnarmedAttack
+from tale.weapon_type import WeaponType
 from . import wearable
 
 __all__ = ["MudObject", "Armour", 'Container', "Door", "Exit", "Item", "Living", "Stats", "Location", "Weapon", "Key", "Soul"]
@@ -425,7 +427,7 @@ class Item(MudObject):
     to check containment.
     """
 
-    def __init__(self, name: str, title: str = "", *, descr: str = "", short_descr: str = "", value: int = 0) -> None:
+    def __init__(self, name: str, title: str = "", *, descr: str = "", short_descr: str = "", value: int = 0, weight: int = 0) -> None:
         self.contained_in = None   # type: Optional[ContainingType]
         self.default_verb = "examine"
         self.value = value   # what the item is worth
@@ -586,9 +588,11 @@ class Weapon(Item):
     An item that can be wielded by a Living (i.e. present in a weapon itemslot),
     and that can be used to attack another Living.
     """
-    def __init__(self, name: str, wc: int = 0, title: str = "", *, descr: str = "", short_descr: str = "") -> None:
-        super().__init__(name, title, descr=descr, short_descr=short_descr)
+    def __init__(self, name: str, wc: int = 0, base_damage: int = 1, weapon_type: WeaponType = WeaponType.ONE_HANDED, title: str = "", *, descr: str = "", short_descr: str = "", weight: int = 0, value: int = 0) -> None:
+        super().__init__(name, title, descr=descr, short_descr=short_descr, weight=weight, value=value)
         self.wc = wc
+        self.base_damage = base_damage
+        self.type = weapon_type # type: WeaponType
 
 
 class Armour(Item):
@@ -602,9 +606,8 @@ class Armour(Item):
 class Wearable(Item):
     
     def __init__(self, name: str, weight: int = 0, value: int = 0, ac: int = 0, wearable_type: str = 'none', title: str = "", *, descr: str = "", short_descr: str = "") -> None:
-        super().__init__(name, title, descr=descr, short_descr=short_descr)
+        super().__init__(name, title, descr=descr, short_descr=short_descr, weight=weight, value=value)
         self.ac = ac
-        self.weight = weight
         self.type = wearable_type
 
 class Location(MudObject):
@@ -926,7 +929,8 @@ class Stats:
         self.race = ""      # the name of the race of this creature
         self.strength = 3
         self.dexterity = 3
-        self.unarmed_attack = Weapon(UnarmedAttack.FISTS.name)
+        self.unarmed_attack = Weapon(UnarmedAttack.FISTS.name, weapon_type=WeaponType.UNARMED)
+        self.weapon_skills = {}  # type: Dict[WeaponType, int]  # weapon type -> skill level
 
     def __repr__(self):
         return "<Stats: %s>" % vars(self)
@@ -952,6 +956,11 @@ class Stats:
         self.hp = r.hp
         self.unarmed_attack = Weapon(name=r.unarmed_attack.name)
 
+    def get_weapon_skill(self, weapon_type: WeaponType) -> int:
+        return self.weapon_skills.get(weapon_type, 0)
+    
+    def set_weapon_skill(self, weapon_type: WeaponType, value: int) -> None:
+        self.weapon_skills[weapon_type] = value
 
 class Living(MudObject):
     """
@@ -1363,7 +1372,8 @@ class Living(MudObject):
         """Starts attacking the given living until death ensues on either side."""
         attacker_name = lang.capital(self.title)
         victim_name = lang.capital(victim.title)
-        result, damage_to_attacker, damage_to_defender = combat.resolve_attack(self, victim)
+        c = combat.Combat(self, victim)
+        result, damage_to_attacker, damage_to_defender = c.resolve_attack()
         
         room_msg = "%s attacks %s! %s" % (attacker_name, victim_name, result)
         victim_msg = "%s attacks you. %s" % (attacker_name, result)
