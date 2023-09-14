@@ -108,6 +108,7 @@ class MudAccounts:
                             alignment integer NOT NULL,
                             strength integer NOT NULL,
                             dexterity integer NOT NULL,
+                            weapon_skills varchar NOT NULL,
                             FOREIGN KEY(account) REFERENCES Account(id)
                         );
                         """)
@@ -159,7 +160,7 @@ class MudAccounts:
         stats = base.Stats()
         for key, value in stats_result.items():
             if hasattr(stats, key):
-                setattr(stats, key, value)
+                setattr(stats, key, json.loads(value) if isinstance(value, str) and value.startswith('{') else value)
             else:
                 raise AttributeError("stats doesn't have attribute: " + key)
         stats.set_stats_from_race()   # initialize static stats from races table
@@ -259,7 +260,7 @@ class MudAccounts:
             del stat_vars[not_stored]    # these are not stored, but always initialized from the races table
         for key, value in stat_vars.items():
             columns.append(key)
-            values.append(value)
+            values.append(json.dumps(value) if isinstance(value, dict) else value)
         sql = "INSERT INTO CharStat(" + ",".join(columns) + ") VALUES (" + ",".join('?' * len(columns)) + ")"
         conn.execute(sql, values)
 

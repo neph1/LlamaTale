@@ -933,7 +933,7 @@ class Stats:
         self.weapon_skills = {}  # type: Dict[WeaponType, int]  # weapon type -> skill level
 
     def __repr__(self):
-        return "<Stats: %s>" % vars(self)
+        return "<Stats: %s>" % self.__dict__
 
     @classmethod
     def from_race(cls: type, race: builtins.str, gender: builtins.str='n') -> 'Stats':
