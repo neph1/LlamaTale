@@ -10,6 +10,8 @@ from tale.util import call_periodically, Context
 from tale import lang
 from typing import Optional
 
+from tale.weapon_type import WeaponType
+
 class InnKeeper(LivingNpc):
     
     drink_price = 5.0
@@ -60,6 +62,7 @@ class Patron(LivingNpc):
         
     def init(self) -> None:
         self.aliases = {"patron"}
+        self.stats.set_weapon_skill(weapon_type=WeaponType.UNARMED, value=35)
 
     @call_periodically(75, 180)
     def do_idle_action(self, ctx: Context) -> None:
@@ -94,6 +97,9 @@ class RoamingPatron(Patron):
    
 class Shanda(Patron):
 
+    def init(self) -> None:
+        self.stats.set_weapon_skill(weapon_type=WeaponType.UNARMED, value=65)
+
     def allow_give_item(self, item: Item, actor: Optional[Living]) -> None:
         if item.name == "rat_skull":
             self.sentiments(actor.title, 'impressed')
@@ -105,6 +111,7 @@ class Rat(Living):
         self.aggressive = False
         self.stats.strength = 1
         self.stats.agility = 5
+        self.stats.set_weapon_skill(weapon_type=WeaponType.UNARMED, value=25)
 
     @call_periodically(10, 25)
     def do_idle_action(self, ctx: Context) -> None:

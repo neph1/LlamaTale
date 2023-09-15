@@ -29,7 +29,7 @@ class TestCombat():
         combat = Combat(attacker, defender)
 
         text, damage_to_attacker, damage_to_defender = combat.resolve_attack()
-        assert('attacker hits' in text)
+        assert('attacker hits' in text or 'attacker performs a critical hit' in text)
         assert('defender is injured' in text)
         assert('defender dies' in text)
 
@@ -46,6 +46,7 @@ class TestCombat():
         combat = Combat(attacker, defender)
 
         text, damage_to_attacker, damage_to_defender = combat.resolve_attack()
+        assert(damage_to_defender > 0)
         assert('defender is injured' in text)
         assert('defender dies' in text)
 
@@ -61,6 +62,7 @@ class TestCombat():
         combat = Combat(attacker, defender)
 
         text, damage_to_attacker, damage_to_defender = combat.resolve_attack()
+        assert(damage_to_defender > 0)
         assert('defender is injured' in text)
         assert('defender dies' in text)
         

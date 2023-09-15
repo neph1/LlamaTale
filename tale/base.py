@@ -588,11 +588,15 @@ class Weapon(Item):
     An item that can be wielded by a Living (i.e. present in a weapon itemslot),
     and that can be used to attack another Living.
     """
-    def __init__(self, name: str, wc: int = 0, base_damage: int = 1, weapon_type: WeaponType = WeaponType.ONE_HANDED, title: str = "", *, descr: str = "", short_descr: str = "", weight: int = 0, value: int = 0) -> None:
+    def __init__(self, name: str, wc: int = 0, base_damage: int = 1, bonus_damage: int = 0, weapon_type: WeaponType = WeaponType.ONE_HANDED, title: str = "", *, descr: str = "", short_descr: str = "", weight: int = 0, value: int = 0) -> None:
         super().__init__(name, title, descr=descr, short_descr=short_descr, weight=weight, value=value)
         self.wc = wc
-        self.base_damage = base_damage
+        self.base_damage = base_damage # type: int # damage is randomized between 1 and base_damage
+        self.bonus_damage = bonus_damage # type: int # bonus damage is added to the damage
         self.type = weapon_type # type: WeaponType
+
+    def __str__(self) -> str:
+        return "<Weapon '%s' #%d @ 0x%x>" % (self.name, self.vnum, id(self))
 
 
 class Armour(Item):
@@ -1383,7 +1387,7 @@ class Living(MudObject):
         combat_prompt = mud_context.driver.prepare_combat_prompt(attacker=self, 
                               victim=victim, 
                               location_title = self.location.title, 
-                              location_description = self.location.short_description,
+                              location_description = self.location.description,
                               attacker_msg = attacker_msg)
         victim.location.tell(room_msg,
                              exclude_living=victim,
