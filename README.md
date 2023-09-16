@@ -2,9 +2,11 @@ This fork uses an LLM backend to describe things in a more vivid way. (LLM not i
 
 The goal is to merge the structure of MU* frameworks with the creative and generative abilities of LLM's for the ultimate immersive roleplaying experience.
 
-I heard discord is a thing. Go there to get help and discuss LlamaTale: https://discord.gg/8SCKjEbU
+There's a discord server. Go there to get help and discuss LlamaTale: https://discord.gg/8SCKjEbU
 
 Check the wiki for some instructions: https://github.com/neph1/LlamaTale/wiki 
+
+I try to test before each release, but I'm just one developer. If something doesn't work, please rasie an Issue, and I'll try to fix it ASAP.
 
 
 Features:
