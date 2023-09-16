@@ -6,7 +6,7 @@ There's a discord server. Go there to get help and discuss LlamaTale: https://di
 
 Check the wiki for some instructions: https://github.com/neph1/LlamaTale/wiki 
 
-I try to test before each release, but I'm just one developer. If something doesn't work, please rasie an Issue, and I'll try to fix it ASAP.
+I try to test before each release, but I'm just one developer. If something doesn't work, please raise an Issue, and I'll try to fix it ASAP.
 
 
 Features:
