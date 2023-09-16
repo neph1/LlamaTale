@@ -10,6 +10,7 @@ from tale.main import run_from_cmdline
 from tale.player import Player, PlayerConnection
 from tale.charbuilder import PlayerNaming
 from tale.story import *
+from tale.weapon_type import WeaponType
 from tale.zone import Zone
 
 class Story(DynamicStory):
@@ -48,7 +49,9 @@ class Story(DynamicStory):
         Called by the game driver when it has created the player object (after successful login).
         You can set the hint texts on the player object, or change the state object, etc.
         """
-        pass
+        player.stats.set_weapon_skill(weapon_type=WeaponType.ONE_HANDED, value=25)
+        player.stats.set_weapon_skill(weapon_type=WeaponType.TWO_HANDED, value=15)
+        player.stats.set_weapon_skill(weapon_type=WeaponType.UNARMED, value=35)
 
     def create_account_dialog(self, playerconnection: PlayerConnection, playernaming: PlayerNaming) -> Generator:
         """

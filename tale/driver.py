@@ -855,9 +855,11 @@ class Driver(pubsub.Listener):
         victim_name = lang.capital(victim.title)
 
         if isinstance(attacker, player.Player):
-            attacker_name += "as 'You'"
+            attacker_name += " (as 'You')"
+            attacker_msg.replace(attacker_name, "you")
         if isinstance(victim, player.Player):
-            victim_name += "as 'You'"
+            victim_name += " (as 'You')"
+            attacker_msg.replace(victim_name, "you")
 
         return self.llm_util.combat_prompt.format(attacker=attacker_name, 
                                                                          victim=victim_name, 
