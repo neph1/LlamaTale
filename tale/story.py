@@ -75,6 +75,7 @@ class StoryConfig:
         self.context = ""                    # context to giving background for the story.
         self.type = ""                       # brief description of the setting and type of story, for LLM context
         self.world_info = ""                 # brief description of the world, for LLM context
+        self.world_mood = 0                  # how safe is the world? 5 is a happy place, -5 is nightmare mode.
         
     def __eq__(self, other: Any) -> bool:
         return isinstance(other, StoryConfig) and vars(self) == vars(other)

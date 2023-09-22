@@ -1,10 +1,11 @@
 import random
 from typing import Union
+from tale import lang
 from tale.base import Location, Exit, Item
 from tale.coord import Coord
 from tale.items.basic import Money, Note
 from tale.story import GameMode, MoneyType, TickMethod, StoryConfig
-from tale.llm_ext import LivingNpc
+from tale.llm.llm_ext import LivingNpc
 from tale.zone import Zone
 import json
 import re
@@ -61,7 +62,6 @@ def load_items(json_file: [], locations = {}):
         Loads and returns a dict of items from a supplied json dict
         Inserts into locations if supplied and has location
     """
-    # TODO: add support for wearables
     items = {}
     for item in json_file:
         item_type = item.get('type', 'Item')
@@ -102,7 +102,7 @@ def load_npcs(json_file: [], locations = {}):
             else:
                 name = npc['name']
             new_npc = LivingNpc(name=name, 
-                                gender=npc.get('gender', 'm').lower(), 
+                                gender=lang.validate_gender(npc.get('gender', 'm')), 
                                 race=npc.get('race', 'human').lower(), 
                                 title=npc.get('title', name), 
                                 descr=npc.get('descr', ''), 
@@ -338,3 +338,19 @@ def direction_from_coordinates(direction: Coord):
     if direction.z == -1:
         return 'down'
     return None
+
+def mood_string_from_int(mood: int):
+    """ Returns a mood string based on the supplied int"""
+
+    base_mood = 'friendly' if mood > 0 else 'hostile' if mood < 0 else 'neutral'
+    
+    if abs(mood) > 4:
+        return f' terrifingly {base_mood}'
+    if abs(mood) > 3:
+        return f' extremely {base_mood}'
+    elif abs(mood) > 2:
+        return f' very {base_mood}'
+    elif abs(mood) > 1:
+        return f' {base_mood}'
+    else:
+        return f' slightly {base_mood}'

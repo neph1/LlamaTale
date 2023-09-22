@@ -1,7 +1,7 @@
 import tale
 from tale.base import Location, Item, Living
 from tale.driver import Driver
-from tale.llm_ext import DynamicStory
+from tale.llm.llm_ext import DynamicStory
 from tale.player import Player
 from tale.story import StoryBase, StoryConfig
 import tale.parse_utils as parse_utils

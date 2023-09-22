@@ -24,15 +24,17 @@ from typing import Sequence, Union, Tuple, Any, Dict, Callable, Iterable, Genera
 
 import appdirs
 
+from tale import story_builder
+
 from . import __version__ as tale_version_str, _check_required_libraries
 from . import mud_context, errors, util, cmds, player, pubsub, charbuilder, lang, verbdefs, vfs, base
 from .story import TickMethod, GameMode, MoneyType, StoryBase
 from .tio import DEFAULT_SCREEN_WIDTH
 from .races import playable_races
-from .errors import StoryCompleted
+from .errors import StoryCompleted, StoryConfigError
 from tale.load_character import CharacterLoader, CharacterV2
-from tale.llm_ext import LivingNpc, DynamicStory
-from tale.llm_utils import LlmUtil
+from tale.llm.llm_ext import LivingNpc, DynamicStory
+from tale.llm.llm_utils import LlmUtil
 
 
 topic_pending_actions = pubsub.topic("driver-pending-actions")
@@ -244,6 +246,8 @@ class Driver(pubsub.Listener):
             raise AttributeError("Story class not found in the story file. It should be called 'Story'.")
         self.story = story.Story()
         self.story._verify(self)
+            
+            
         if self.game_mode not in self.story.config.supported_modes:
             raise ValueError("driver mode '%s' not supported by this story. Valid modes: %s" %
                              (self.game_mode, list(self.story.config.supported_modes)))
@@ -868,3 +872,31 @@ class Driver(pubsub.Listener):
                                                                          attacker_msg=attacker_msg,
                                                                          location=location_title,
                                                                          location_description=location_description)
+
+    def create_anything_story(self) :
+        """Creates a story with a single zone and location. This is the base for a dynamically generated story."""
+        story_build =story_builder.StoryBuilder()
+        story_info = yield from story_build.build() # type: story_builder.StoryInfo
+
+        self.story.config.name = story_info.name
+        self.story.config.type = story_info.type
+        self.story.config.world_info = story_info.world_info
+
+        #generate bg story
+        self.story.config.context = self.llm_util.generate_story_background(self.story.config.world_info, self.story.config.world_mood)
+        # generate zone
+        zone = self.llm_util.generate_start_zone(location_desc=story_info.start_location, 
+                                                    story_type=story_info.type, 
+                                                    story_context=self.story.config.context, 
+                                                    world_mood=story_info.world_mood, 
+                                                    world_info=story_info.world_info)
+        # generate location
+        start_location = self.llm_util.generate_start_location(location_desc=story_info.start_location, 
+                                                                story_type=story_info.type, 
+                                                                story_context=self.story.config.context, 
+                                                                world_mood=story_info.world_mood, 
+                                                                world_info=story_info.world_info)
+        zone.add_location(start_location)
+        self.story.add_zone(zone)
+        self.story.config.startlocation_player = start_location.name
+        self.story.config.startlocation_wizard = start_location.name

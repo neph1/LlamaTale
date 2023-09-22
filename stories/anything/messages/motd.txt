@@ -1,0 +1,5 @@
+This is the Message-of-the-day.
+This game is still under heavy development.
+Please report any problems you may find.
+(the MOTD will only be shown when running in MUD mode,
+Interactive Fiction stories don't have any use for a MOTD message).
