@@ -257,6 +257,13 @@ def parse_generated_exits(json_result: dict, exit_location_name: str, location: 
             exit['direction'] = dir
             
     for exit in json_result.get('exits', []):
+        if exit.get('name', None) is None:
+            # With JSON grammar, exits are sometimes generated without name. So until that is fixed,
+            # we'll do a work-around
+            description = exit.get('description', 'short_descr')
+            if description.startswith('A '):
+                description.replace('A ', '')
+            exit.name = description.split(' ')[:2]
         if exit['name'] != exit_location_name:
             # create location
             new_location = Location(exit['name'].replace('the ', '').replace('The ', ''))
@@ -271,19 +278,20 @@ def parse_generated_exits(json_result: dict, exit_location_name: str, location: 
             
             new_location.built = False
             new_location.generated = True
-            from_description = f'To the {directions_from[1]}, you can see {location.name}' if len(directions_from) > 1 else f'You can see {location.name}'
+            from_description = f'To the {directions_from[1]} you can see {location.name}' if len(directions_from) > 1 else f'You can see {location.name}'
             exit_back = Exit(directions=directions_from, 
                     target_location=location, 
                     short_descr=from_description)
             new_location.add_exits([exit_back])
 
-            to_description = f'To the {directions_to[1]}, ' + exit.get('short_descr', '').lower() if len(directions_from) > 1 else exit.get('short_descr', '')
+            to_description = f'To the {directions_to[1]} ' + exit.get('short_descr', 'description').lower() if len(directions_from) > 1 else exit.get('short_descr', 'description')
             exit_to = Exit(directions=directions_to, 
                             target_location=new_location, 
                             short_descr=to_description, 
                             enter_msg=exit.get('enter_msg', ''))
             exits.append(exit_to)
             new_locations.append(new_location)
+                
     return new_locations, exits
 
 def _select_non_occupied_direction(occupied_directions: [str]):

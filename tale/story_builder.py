@@ -2,6 +2,9 @@
 
 from typing import Generator
 from tale import lang
+from tale.base import Location
+from tale.llm.llm_ext import DynamicStory
+from tale.llm.llm_utils import LlmUtil
 from tale.player import PlayerConnection
 from tale.story import StoryConfig
 
@@ -53,7 +56,7 @@ class StoryBuilder:
         return self.story_info
     
     def validate_mood(self, value: str) -> int:
-        min = -5,
+        min = -5
         max = 5
         try:
             int_value = (int) (value)
@@ -64,4 +67,56 @@ class StoryBuilder:
             return int(value)       
         except ValueError:
             raise ValueError("Not an integer! Try again.")
+        
+
+    def apply_to_story(self, story: DynamicStory, llm_util: LlmUtil):
+        story.config.name = self.story_info.name
+        story.config.type = self.story_info.type
+        story.config.world_info = self.story_info.world_info
+        story.config.world_mood = self.story_info.world_mood
+        #generate bg story
+        print("Generating story background...")
+        story.config.context = llm_util.generate_story_background(world_info=story.config.world_info, 
+                                                                            world_mood=story.config.world_mood)
+        
+        assert(story.config.context)
+
+        # generate zone
+        print("Generating starting zone...")
+        zone = llm_util.generate_start_zone(location_desc=self.story_info.start_location, 
+                                                    story_type=self.story_info.type, 
+                                                    story_context=story.config.context, 
+                                                    world_mood=self.story_info.world_mood, 
+                                                    world_info=self.story_info.world_info)
+        assert(zone)
+
+        story.add_zone(zone)
+        # generate location
+        print("Generating starting location...")
+        start_location = Location(name="", descr=self.story_info.start_location)
+        new_locations, exits = llm_util.generate_start_location(location=start_location, 
+                                                                story_type=self.story_info.type, 
+                                                                story_context=story.config.context,
+                                                                world_info=self.story_info.world_info,
+                                                                zone_info=zone.get_info())
+        
+        assert(new_locations)
+        # fugly copy because a Location needs a name to init properly
+        start_location = Location(name=start_location.name, descr=self.story_info.start_location)
+        zone.add_location(start_location)
+
+        for location in new_locations:
+            # try to add location, and if it fails, remove exit to it
+            result = zone.add_location(location)
+            if not result:
+                for exit in exits:
+                    if exit.name == location.name:
+                        exits.remove(exit)
+        if len(exits) > 0:
+            start_location.add_exits(exits)
+        
+        story.config.startlocation_player = start_location.name
+        story.config.startlocation_wizard = start_location.name
+
+        return start_location
 

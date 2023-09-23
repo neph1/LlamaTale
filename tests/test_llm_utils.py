@@ -3,7 +3,7 @@ import json
 from tale.base import Location
 from tale.coord import Coord
 from tale.json_story import JsonStory
-from tale.llm_utils import LlmUtil
+from tale.llm.llm_utils import LlmUtil
 from tale.zone import Zone
 from tests.supportstuff import FakeIoUtil
 import tale.parse_utils as parse_utils
@@ -11,7 +11,7 @@ from tale.driver_if import IFDriver
 
 class TestLlmUtils():
 
-    llm_util = LlmUtil()
+    llm_util = LlmUtil() # type: LlmUtil
 
     test_text_valid = '{"thoughts": "It seems that an item (the flagon of ale) has been given by the barkeep to the user. The text explicitly states \'the barkeep presents you with a flagon of frothy ale\'. Therefore, the item has been given by the barkeep to the user.", "result": {"item":"ale", "from":"bartender", "to":"user"}, "sentiment":"cheerful"}'
 
@@ -210,3 +210,33 @@ class TestLlmUtils():
         self.llm_util.io_util = FakeIoUtil(response='West')
         result = self.llm_util.perform_travel_action(character_name='Norhardt', location = Location(name='Test Location'), character_card= '{}', locations= [], directions= [])
         assert(result == 'West')
+
+    def test_generate_start_location(self):
+        self.llm_util.io_util = FakeIoUtil(response='{"name": "Greenhaven", "exits": [{"direction": "north", "name": "Misty Meadows", "description": "A lush and misty area filled with rolling hills and sparkling streams. The air is crisp and refreshing, and the gentle chirping of birds can be heard throughout."}, {"direction": "south", "name": "Riverdale", "description": "A bustling town nestled near a winding river. The smell of freshly baked bread and roasting meats fills the air, and the sound of laughter and chatter can be heard from the local tavern."}, {"direction": "east", "name": "Forest of Shadows", "description": "A dark and eerie forest filled with twisted trees and mysterious creatures. The air is thick with an ominous energy, and the rustling of leaves can be heard in the distance."}], "items": [], "npcs": []}')
+        location = Location(name='', descr='on a small road outside a village')
+        new_locations, exits = self.llm_util.generate_start_location(location, 
+                                                       story_type='',
+                                                       story_context='', 
+                                                       zone_info={},
+                                                       world_info='',)
+        location = Location(name=location.name, descr=location.description)
+        assert(location.name == 'Greenhaven')
+        assert(location.title == 'Greenhaven')
+        assert(location.description == 'on a small road outside a village')
+        assert(exits[0].name == 'misty meadows')
+        assert(exits[1].name == 'riverdale')
+        assert(new_locations[0].name == 'Misty Meadows')
+        assert(new_locations[1].name == 'Riverdale')
+
+    def test_generate_start_zone(self):
+        # mostly for coverage
+        self.llm_util.io_util = FakeIoUtil(response=self.generated_zone)
+
+        result = self.llm_util.generate_start_zone(location_desc='',
+                                                   story_type='',
+                                                   story_context='', 
+                                                   world_mood=0,
+                                                   world_info='')
+        assert(result.name == 'Test Zone')
+        assert(result.races == ['human', 'elf', 'dwarf'])
+

@@ -872,31 +872,3 @@ class Driver(pubsub.Listener):
                                                                          attacker_msg=attacker_msg,
                                                                          location=location_title,
                                                                          location_description=location_description)
-
-    def create_anything_story(self) :
-        """Creates a story with a single zone and location. This is the base for a dynamically generated story."""
-        story_build =story_builder.StoryBuilder()
-        story_info = yield from story_build.build() # type: story_builder.StoryInfo
-
-        self.story.config.name = story_info.name
-        self.story.config.type = story_info.type
-        self.story.config.world_info = story_info.world_info
-
-        #generate bg story
-        self.story.config.context = self.llm_util.generate_story_background(self.story.config.world_info, self.story.config.world_mood)
-        # generate zone
-        zone = self.llm_util.generate_start_zone(location_desc=story_info.start_location, 
-                                                    story_type=story_info.type, 
-                                                    story_context=self.story.config.context, 
-                                                    world_mood=story_info.world_mood, 
-                                                    world_info=story_info.world_info)
-        # generate location
-        start_location = self.llm_util.generate_start_location(location_desc=story_info.start_location, 
-                                                                story_type=story_info.type, 
-                                                                story_context=self.story.config.context, 
-                                                                world_mood=story_info.world_mood, 
-                                                                world_info=story_info.world_info)
-        zone.add_location(start_location)
-        self.story.add_zone(zone)
-        self.story.config.startlocation_player = start_location.name
-        self.story.config.startlocation_wizard = start_location.name

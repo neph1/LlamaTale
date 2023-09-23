@@ -4,7 +4,7 @@ from tale import mud_context
 from tale.base import Item, Living, ParseResult
 from tale.errors import ParseError, ActionRefused
 from tale.lang import capital
-from tale.llm_ext import LivingNpc
+from tale.llm.llm_ext import LivingNpc
 from tale.player import Player
 from tale.util import call_periodically, Context
 from tale import lang

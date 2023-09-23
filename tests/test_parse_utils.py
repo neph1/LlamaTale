@@ -136,9 +136,9 @@ class TestParseUtils():
                                                                         location=location)
         assert(len(parsed_exits) == 2)
         assert(parsed_exits[0].names == ['glacier', 'north'])
-        assert(parsed_exits[0].short_description == 'To the north, a treacherous path.')
+        assert(parsed_exits[0].short_description == 'To the north a treacherous path.')
         assert(parsed_exits[1].names == ['cave', 'south'])
-        assert(parsed_exits[1].short_description == 'To the south, a dark opening.')
+        assert(parsed_exits[1].short_description == 'To the south a dark opening.')
 
     def test_coordinates_from_direction(self):
         coord = Coord(0,0,0)
