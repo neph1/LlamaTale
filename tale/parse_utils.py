@@ -1,10 +1,11 @@
 import random
 from typing import Union
+from tale import lang
 from tale.base import Location, Exit, Item
 from tale.coord import Coord
 from tale.items.basic import Money, Note
 from tale.story import GameMode, MoneyType, TickMethod, StoryConfig
-from tale.llm_ext import LivingNpc
+from tale.llm.llm_ext import LivingNpc
 from tale.zone import Zone
 import json
 import re
@@ -61,7 +62,6 @@ def load_items(json_file: [], locations = {}):
         Loads and returns a dict of items from a supplied json dict
         Inserts into locations if supplied and has location
     """
-    # TODO: add support for wearables
     items = {}
     for item in json_file:
         item_type = item.get('type', 'Item')
@@ -102,7 +102,7 @@ def load_npcs(json_file: [], locations = {}):
             else:
                 name = npc['name']
             new_npc = LivingNpc(name=name, 
-                                gender=npc.get('gender', 'm').lower(), 
+                                gender=lang.validate_gender(npc.get('gender', 'm')), 
                                 race=npc.get('race', 'human').lower(), 
                                 title=npc.get('title', name), 
                                 descr=npc.get('descr', ''), 
@@ -257,6 +257,13 @@ def parse_generated_exits(json_result: dict, exit_location_name: str, location: 
             exit['direction'] = dir
             
     for exit in json_result.get('exits', []):
+        if exit.get('name', None) is None:
+            # With JSON grammar, exits are sometimes generated without name. So until that is fixed,
+            # we'll do a work-around
+            description = exit.get('description', 'short_descr')
+            if description.startswith('A '):
+                description.replace('A ', '')
+            exit.name = description.split(' ')[:2]
         if exit['name'] != exit_location_name:
             # create location
             new_location = Location(exit['name'].replace('the ', '').replace('The ', ''))
@@ -271,19 +278,20 @@ def parse_generated_exits(json_result: dict, exit_location_name: str, location: 
             
             new_location.built = False
             new_location.generated = True
-            from_description = f'To the {directions_from[1]}, you can see {location.name}' if len(directions_from) > 1 else f'You can see {location.name}'
+            from_description = f'To the {directions_from[1]} you can see {location.name}' if len(directions_from) > 1 else f'You can see {location.name}'
             exit_back = Exit(directions=directions_from, 
                     target_location=location, 
                     short_descr=from_description)
             new_location.add_exits([exit_back])
 
-            to_description = f'To the {directions_to[1]}, ' + exit.get('short_descr', '').lower() if len(directions_from) > 1 else exit.get('short_descr', '')
+            to_description = f'To the {directions_to[1]} ' + exit.get('short_descr', 'description').lower() if len(directions_from) > 1 else exit.get('short_descr', 'description')
             exit_to = Exit(directions=directions_to, 
                             target_location=new_location, 
                             short_descr=to_description, 
                             enter_msg=exit.get('enter_msg', ''))
             exits.append(exit_to)
             new_locations.append(new_location)
+                
     return new_locations, exits
 
 def _select_non_occupied_direction(occupied_directions: [str]):
@@ -338,3 +346,19 @@ def direction_from_coordinates(direction: Coord):
     if direction.z == -1:
         return 'down'
     return None
+
+def mood_string_from_int(mood: int):
+    """ Returns a mood string based on the supplied int"""
+
+    base_mood = 'friendly' if mood > 0 else 'hostile' if mood < 0 else 'neutral'
+    
+    if abs(mood) > 4:
+        return f' terrifingly {base_mood}'
+    if abs(mood) > 3:
+        return f' extremely {base_mood}'
+    elif abs(mood) > 2:
+        return f' very {base_mood}'
+    elif abs(mood) > 1:
+        return f' {base_mood}'
+    else:
+        return f' slightly {base_mood}'

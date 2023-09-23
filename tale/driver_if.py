@@ -9,6 +9,8 @@ import sys
 import time
 import threading
 from typing import Generator, Optional, Union
+
+from tale import story_builder
 from .story import GameMode, TickMethod, StoryConfig
 from . import base
 from . import charbuilder
@@ -162,7 +164,16 @@ class IFDriver(driver.Driver):
             self.story.init_player(conn.player)
             conn.player.look(short=False)   # force a 'look' command to get our bearings
             return
+        
+        # TODO: not sure if this will be the 'trigger' for generating a story
+        start_location = None
+        if self.story.config.startlocation_player == "start_zone.transit":
+            """Creates a story with a single zone and location. This is the base for a dynamically generated story."""
+            story_build =story_builder.StoryBuilder()
+            story_info = yield from story_build.build() # type: story_builder.StoryInfo
 
+            start_location = story_build.apply_to_story(self.story, self.llm_util)
+            
         if self.loaded_character:
             name_info = charbuilder.PlayerNaming()
             name_info.name = self.loaded_character.get('name')
@@ -197,7 +208,9 @@ class IFDriver(driver.Driver):
         self._rename_player(player, name_info)
         player.tell("\n")
         # move the player to the starting location:
-        if "wizard" in player.privileges:
+        if start_location:
+            player.move(start_location)
+        elif "wizard" in player.privileges:
             player.move(self.lookup_location(self.story.config.startlocation_wizard))
         else:
             player.move(self.lookup_location(self.story.config.startlocation_player))

@@ -9,8 +9,8 @@ import datetime
 from typing import Any, List
 
 from tale import pubsub, util, driver, base, story
-from tale.llm_utils import LlmUtil
-from tale.llm_io import IoUtil
+from tale.llm.llm_utils import LlmUtil
+from tale.llm.llm_io import IoUtil
 
 class Thing:
     def __init__(self) -> None:
@@ -61,12 +61,12 @@ class MsgTraceNPC(base.Living):
         return self
 
 class FakeIoUtil(IoUtil):
-    def __init__(self, response: str = '') -> None:
+    def __init__(self, response: list = []) -> None:
         super().__init__()
-        self.response = response
+        self.response = response # type: list
 
     def synchronous_request(self, request_body: dict) -> str:
-        return self.response
+        return self.response.pop(0) if isinstance(self.response, list) > 0 else self.response
     
     def asynchronous_request(self, request_body: dict):
-        return self.response
+        return self.response.pop(0) if isinstance(self.response, list) > 0 else self.response

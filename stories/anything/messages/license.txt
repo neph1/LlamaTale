@@ -1,0 +1,3 @@
+This is some additional licensing text.
+It has been written down in the messages/license.txt file.
+Games can optionally supply this to add more licensing info.

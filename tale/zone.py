@@ -65,3 +65,15 @@ class Zone():
         if (direction.z != 0 and zone_distance.z > self.size):
             return random.random() < 0.2 * (zone_distance.z - self.size)
         return False
+    
+def from_json(data: dict) -> 'Zone':
+    zone = Zone(data.get("name", "unknown"), data.get("description", "unknown"))
+    # populate zone from a dictionary
+    zone.level = data.get("level", 1)
+    zone.mood = data.get("mood", 0)
+    zone.items = data.get("items", [])
+    zone.races = data.get("races", [])
+    zone.size = data.get("size", 5)
+    if data.get("center", None) is not None:
+        zone.center = data.get("center")
+    return zone

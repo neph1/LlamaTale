@@ -24,15 +24,17 @@ from typing import Sequence, Union, Tuple, Any, Dict, Callable, Iterable, Genera
 
 import appdirs
 
+from tale import story_builder
+
 from . import __version__ as tale_version_str, _check_required_libraries
 from . import mud_context, errors, util, cmds, player, pubsub, charbuilder, lang, verbdefs, vfs, base
 from .story import TickMethod, GameMode, MoneyType, StoryBase
 from .tio import DEFAULT_SCREEN_WIDTH
 from .races import playable_races
-from .errors import StoryCompleted
+from .errors import StoryCompleted, StoryConfigError
 from tale.load_character import CharacterLoader, CharacterV2
-from tale.llm_ext import LivingNpc, DynamicStory
-from tale.llm_utils import LlmUtil
+from tale.llm.llm_ext import LivingNpc, DynamicStory
+from tale.llm.llm_utils import LlmUtil
 
 
 topic_pending_actions = pubsub.topic("driver-pending-actions")
@@ -244,6 +246,8 @@ class Driver(pubsub.Listener):
             raise AttributeError("Story class not found in the story file. It should be called 'Story'.")
         self.story = story.Story()
         self.story._verify(self)
+            
+            
         if self.game_mode not in self.story.config.supported_modes:
             raise ValueError("driver mode '%s' not supported by this story. Valid modes: %s" %
                              (self.game_mode, list(self.story.config.supported_modes)))
