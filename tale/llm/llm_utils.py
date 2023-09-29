@@ -53,29 +53,13 @@ class LlmUtil():
         self.stream = config_file['STREAM']
         self.connection = None
         self._look_hashes = dict() # type: dict[int, str] # location hashes for look command. currently never cleared.
-        self._world_building = WorldBuilding(spawn_prompt=self.spawn_prompt,
-                                             items_prompt=self.items_prompt,
-                                             zone_prompt=self.zone_prompt,
-                                             location_prompt=self.location_prompt,
-                                             pre_json_prompt=self.pre_json_prompt,
-                                             json_grammar=self.json_grammar,
-                                             default_body=self.default_body,
+        self._world_building = WorldBuilding(default_body=self.default_body,
                                              io_util=self.io_util,
-                                             backend=self.backend,
-                                             story_background_prompt=self.story_background_prompt,
-                                             start_location_prompt=self.start_location_prompt)
-        self._character = Character(pre_prompt=self.pre_prompt,
-                                    dialogue_prompt=self.dialogue_prompt,
-                                    item_prompt=self.item_prompt,
-                                    json_grammar=self.json_grammar,
-                                    character_prompt=self.character_prompt,
+                                             backend=self.backend)
+        self._character = Character(
                                     backend=self.backend,
                                     io_util=self.io_util,
-                                    default_body=self.default_body,
-                                    analysis_body=self.analysis_body,
-                                    travel_prompt=self.travel_prompt,
-                                    reaction_prompt=self.reaction_prompt,
-                                    idle_action_prompt=self.idle_action_prompt)
+                                    default_body=self.default_body)
 
     def evoke(self, player_io: TextBuffer, message: str, max_length : bool=False, rolling_prompt='', alt_prompt='', skip_history=True):
         """Evoke a response from LLM. Async if stream is True, otherwise synchronous.
@@ -142,17 +126,19 @@ class LlmUtil():
         return self._character.generate_character(story_context, keywords, story_type)
     
     def get_neighbor_or_generate_zone(self, current_zone: Zone, current_location: Location, target_location: Location) -> Zone:
-        return self._world_building.get_neighbor_or_generate_zone(current_zone, current_location, target_location)
+        return self._world_building.get_neighbor_or_generate_zone(current_zone, current_location, target_location, self.__story)
 
     def build_location(self, location: Location, exit_location_name: str, zone_info: dict):
         """ Generate a location based on the current story context"""
-        return self._world_building.build_location(location, exit_location_name, zone_info)
-        
-    def generate_zone(self, location_desc: str, exit_location_name: str = '', current_zone_info: dict = {}, direction: str = '') -> dict:
-        return self._world_building.generate_zone(location_desc, exit_location_name, current_zone_info, direction)
-
+        return self._world_building.build_location(location, 
+                                                   exit_location_name, 
+                                                   zone_info, 
+                                                   self.__story.config.type, 
+                                                   self.__story.config.context,
+                                                   self.__story.config.world_info)
+     
     def perform_idle_action(self, character_name: str, location: Location, character_card: str = '', sentiments: dict = {}, last_action: str = '') -> list:
-        return self._character.perform_idle_action(character_name, location, character_card, sentiments, last_action)
+        return self._character.perform_idle_action(character_name, location, self.__story.config.context, character_card, sentiments, last_action)
     
     def perform_travel_action(self, character_name: str, location: Location, locations: list, directions: list, character_card: str = ''):
         return self._character.perform_travel_action(character_name, location, locations, directions, character_card)
@@ -160,8 +146,17 @@ class LlmUtil():
     def perform_reaction(self, action: str, character_name: str, acting_character_name: str, location: Location, character_card: str = '', sentiment: str = ''):
         return self._character.perform_reaction(action, character_name, acting_character_name, location, character_card, sentiment)
     
-    def generate_story_background(self, world_mood: int, world_info: str):
-        return self._world_building.generate_story_background(world_mood, world_info)
+    def generate_story_background(self, world_mood: int, world_info: str, story_type: str):
+        prompt = self.story_background_prompt.format(
+            story_type=story_type,
+            world_mood=parse_utils.mood_string_from_int(world_mood),
+            world_info=world_info)
+        request_body = self.default_body
+        if self.backend == 'kobold_cpp':
+            request_body['prompt'] = prompt
+        elif self.backend == 'openai':
+            request_body['messages'][1]['content'] = prompt
+        return self.io_util.synchronous_request(request_body)
         
     def _store_hash(self, text_hash_value: int, text: str):
         """ Store the generated text in a hash table."""
@@ -171,8 +166,6 @@ class LlmUtil():
     def set_story(self, story: DynamicStory):
         """ Set the story object."""
         self.__story = story
-        self._world_building.set_story(story)
-        self._character.set_story(story)
 
     def _kobold_generation_prompt(self, request_body: dict) -> dict:
         """ changes some parameters for better generation of locations in kobold_cpp"""

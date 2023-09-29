@@ -7,7 +7,7 @@ from tale import parse_utils
 from tale.llm.requests.llm_request import LlmRequest
 
 
-class GenerateZone(LlmRequest):
+class StartZone(LlmRequest):
     """
     Generates a zone.
     """
@@ -19,9 +19,6 @@ class GenerateZone(LlmRequest):
         
 
     def build_prompt(self, args: dict) -> str:
-        direction = args['direction']
-        current_zone_info = args['current_zone_info']
-        exit_location_name = args['exit_location_name']
         location_desc = args['location_desc']
         story_type = args['story_type']
         world_info = args['world_info']
@@ -33,9 +30,9 @@ class GenerateZone(LlmRequest):
             world_info=world_info,
             mood = parse_utils.mood_string_from_int(random.gauss(world_mood, 2)),
             story_type=story_type,
-            direction=direction,
-            zone_info=json.dumps(current_zone_info),
+            direction='',
+            zone_info='',
             story_context=story_context,
-            exit_location=exit_location_name,
+            exit_location='',
             location_desc=location_desc)
         return prompt;

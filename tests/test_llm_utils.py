@@ -97,7 +97,7 @@ class TestLlmUtils():
     def test_validate_location(self):
         location = Location(name='Outside')
         location.built = False
-        locations, exits = self.llm_util._world_building.validate_location(json.loads(self.generated_location), location_to_build=location, exit_location_name='Entrance')
+        locations, exits = self.llm_util._world_building._validate_location(json.loads(self.generated_location), location_to_build=location, exit_location_name='Entrance')
         location.add_exits(exits)
         assert(location.description.startswith('A barren wasteland'))
         assert(len(location.exits) == 2)
@@ -128,7 +128,7 @@ class TestLlmUtils():
         self.llm_util._world_building.io_util.response = self.generated_location
         self.llm_util.set_story(self.story)
         
-        locations = self.llm_util._world_building.build_location(location, exit_location_name, zone_info={})
+        locations = self.llm_util.build_location(location, exit_location_name, zone_info={})
         assert(len(locations) == 2)
 
     def test_build_location_extra_json(self):
@@ -136,7 +136,7 @@ class TestLlmUtils():
         exit_location_name = 'Cave entrance'
         self.llm_util._world_building.io_util.response = self.generated_location_extra
         self.llm_util.set_story(self.story)
-        locations = self.llm_util._world_building.build_location(location, exit_location_name, zone_info={})
+        locations = self.llm_util.build_location(location, exit_location_name, zone_info={})
         assert(len(locations) == 2)
 
     def test_validate_zone(self):
@@ -163,13 +163,13 @@ class TestLlmUtils():
         current_location.world_location = Coord(0, 0, 0)
         target_location = Location(name='Target Location')
         target_location.world_location = Coord(1, 0, 0)
-        zone_info = self.llm_util._world_building.get_neighbor_or_generate_zone(zone, current_location, target_location).get_info()
+        zone_info = self.llm_util.get_neighbor_or_generate_zone(zone, current_location, target_location).get_info()
         assert(zone_info['description'] == 'This is the current zone')
         
         # far location, neighbor exists, returning east zone
         current_location.world_location = Coord(10, 0, 0)
         target_location.world_location = Coord(11, 0, 0)
-        zone_info = self.llm_util._world_building.get_neighbor_or_generate_zone(zone, current_location, target_location).get_info()
+        zone_info = self.llm_util.get_neighbor_or_generate_zone(zone, current_location, target_location).get_info()
         assert(zone_info['description'] == 'This is the east zone')
         
         # far location, neighbor does not exist, generating new zone
@@ -177,22 +177,22 @@ class TestLlmUtils():
         self.llm_util.set_story(self.story)
         current_location.world_location = Coord(-10, 0, 0)
         target_location.world_location = Coord(-11, 0, 0)
-        new_zone = self.llm_util._world_building.get_neighbor_or_generate_zone(zone, current_location, target_location)
+        new_zone = self.llm_util.get_neighbor_or_generate_zone(zone, current_location, target_location)
         assert(self.story.get_zone(new_zone.name))
         assert(new_zone.get_info()['description'] == 'A test zone')
 
         # test add a zone with same name
-        zone_info = self.llm_util._world_building.get_neighbor_or_generate_zone(zone, current_location, target_location).get_info()
+        zone_info = self.llm_util.get_neighbor_or_generate_zone(zone, current_location, target_location).get_info()
         assert(zone_info['description'] == 'This is the current zone')
         
         # test with non valid json
         self.llm_util.io_util.response = '{"name":test}'
-        zone_info = self.llm_util._world_building.get_neighbor_or_generate_zone(zone, current_location, target_location).get_info()
+        zone_info = self.llm_util.get_neighbor_or_generate_zone(zone, current_location, target_location).get_info()
         assert(zone_info['description'] == 'This is the current zone')
 
         # test with valid json but not valid zone
         self.llm_util.io_util.response = '{}'
-        zone_info = self.llm_util._world_building.get_neighbor_or_generate_zone(zone, current_location, target_location).get_info()
+        zone_info = self.llm_util.get_neighbor_or_generate_zone(zone, current_location, target_location).get_info()
         assert(zone_info['description'] == 'This is the current zone')
 
     def test_perform_idle_action(self):
@@ -200,7 +200,7 @@ class TestLlmUtils():
         self.llm_util.set_story(self.story)
         self.llm_util._character.io_util.response = 'Walk to the left;Walk to the right;Jump up and down'
         location = Location(name='Test Location')
-        actions = self.llm_util._character.perform_idle_action(character_name='Norhardt', location = location, character_card= '{}', sentiments= {}, last_action= '')
+        actions = self.llm_util.perform_idle_action(character_name='Norhardt', location = location, character_card= '{}', sentiments= {}, last_action= '')
         assert(len(actions) == 3)
         assert(actions[0] == 'Walk to the left')
         assert(actions[1] == 'Walk to the right')
@@ -240,4 +240,3 @@ class TestLlmUtils():
                                                    world_info='')
         assert(result.name == 'Test Zone')
         assert(result.races == ['human', 'elf', 'dwarf'])
-

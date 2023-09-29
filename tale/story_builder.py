@@ -77,7 +77,8 @@ class StoryBuilder:
         #generate bg story
         print("Generating story background...")
         story.config.context = llm_util.generate_story_background(world_info=story.config.world_info, 
-                                                                            world_mood=story.config.world_mood)
+                                                                            world_mood=story.config.world_mood,
+                                                                            story_type=story.config.type)
         
         assert(story.config.context)
 

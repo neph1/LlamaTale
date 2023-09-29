@@ -7,37 +7,27 @@ import random
 
 from tale import _MudContext, parse_utils
 from tale.base import Location
+from tale.llm import llm_config
 from tale.llm.llm_ext import DynamicStory
+from tale.llm.llm_io import IoUtil
 from tale.load_character import CharacterV2
 
 
 class Character():
 
-    def __init__(self, pre_prompt: str, 
-                 dialogue_prompt: str, 
-                 item_prompt: str, 
-                 backend: str, 
-                 io_util, # Type: IOUtil
-                 default_body: dict, 
-                 analysis_body: dict,
-                 travel_prompt: str,
-                 reaction_prompt: str,
-                 idle_action_prompt: str,
-                 character_prompt: str,
-                 json_grammar: dict):
-        self.pre_prompt = pre_prompt
-        self.dialogue_prompt = dialogue_prompt
-        self.character_prompt = character_prompt
-        self.item_prompt = item_prompt
+    def __init__(self, backend: str, io_util: IoUtil, default_body: dict):
+        self.pre_prompt = llm_config.params['PRE_JSON_PROMPT']
+        self.dialogue_prompt = llm_config.params['DIALOGUE_PROMPT']
+        self.character_prompt = llm_config.params['CREATE_CHARACTER_PROMPT']
+        self.item_prompt = llm_config.params['ITEM_PROMPT']
         self.backend = backend
         self.io_util = io_util
         self.default_body = default_body
-        self.analysis_body = analysis_body
-        self.travel_prompt = travel_prompt
-        self.reaction_prompt = reaction_prompt
-        self.idle_action_prompt = idle_action_prompt
-        self.__story = None
-        self.json_grammar = json_grammar
+        self.analysis_body = llm_config.params['ANALYSIS_BODY']
+        self.travel_prompt = llm_config.params['TRAVEL_PROMPT']
+        self.reaction_prompt = llm_config.params['REACTION_PROMPT']
+        self.idle_action_prompt = llm_config.params['IDLE_ACTION_PROMPT']
+        self.json_grammar = llm_config.params['JSON_GRAMMAR']
 
     def generate_dialogue(self, conversation: str, 
                           character_card: str, 
@@ -58,12 +48,9 @@ class Character():
                 character1_description=target_description,
                 sentiment=sentiment)
         request_body = self.default_body
-        if self.backend == 'kobold_cpp':
-            request_body['prompt'] = prompt
-        elif self.backend == 'openai':
-            request_body['messages'][1]['content'] = prompt
+
         #if not self.stream:
-        text = parse_utils.trim_response(self.io_util.synchronous_request(request_body))
+        text = parse_utils.trim_response(self.io_util.synchronous_request(request_body, prompt=prompt))
         #else:
         #    player_io = mud_context.pla
         #    text = self.io_util.stream_request(self.url + self.stream_endpoint, self.url + self.data_endpoint, request_body, player_io, self.connection)
@@ -153,7 +140,7 @@ class Character():
             print(f'Exception while parsing character {json_result}')
             return None
     
-    def perform_idle_action(self, character_name: str, location: Location, character_card: str = '', sentiments: dict = {}, last_action: str = '') -> list:
+    def perform_idle_action(self, character_name: str, location: Location, story_context: str, character_card: str = '', sentiments: dict = {}, last_action: str = '') -> list:
         characters = {}
         for living in location.livings:
             if living.name != character_name.lower():
@@ -162,7 +149,7 @@ class Character():
         prompt = self.idle_action_prompt.format(
             last_action=last_action if last_action else f"{character_name} arrives in {location.name}",
             location=": ".join([location.title, location.short_description]),
-            story_context=self.__story.config.context,
+            story_context=story_context,
             character_name=character_name,
             character=character_card,
             items=items,
@@ -215,5 +202,3 @@ class Character():
         text = self.io_util.asynchronous_request(request_body)
         return text
     
-    def set_story(self, story: DynamicStory):
-        self.__story = story
