@@ -345,9 +345,10 @@ class LlmUtil():
         if self.backend == 'kobold_cpp':
             request_body = self._kobold_generation_prompt(request_body)
             request_body['prompt'] = prompt
+            request_body['max_length'] = 750
         elif self.backend == 'openai':
             request_body['messages'][1]['content'] = prompt
-        request_body['max_length'] = 750
+            request_body['max_tokens'] = 750
         result = self.io_util.synchronous_request(request_body)
         try:
             json_result = json.loads(parse_utils.sanitize_json(result))
