@@ -73,11 +73,9 @@ def load_items(json_file: [], locations = {}):
             try:
                 clazz = getattr(module, item_type)
             except AttributeError:
-                if item_type == 'Wearable':
-                    clazz = getattr(sys.modules['tale.base'], 'Wearable')
-                elif item_type == 'Weapon':
-                    clazz = getattr(sys.modules['tale.base'], 'Weapon')
-                else:
+                try:
+                    clazz = getattr(sys.modules['tale.base'], item_type)
+                except AttributeError:
                     clazz = getattr(sys.modules['tale.base'], 'Item')
             new_item = clazz(name=item['name'], title=item.get('title', item['name']), descr=item.get('descr', ''), short_descr=item.get('short_descr', ''))
             if isinstance(new_item, Note):

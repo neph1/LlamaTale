@@ -22,6 +22,7 @@ class LivingNpc(Living):
         self.sentiments = {}
         self.action_history = [] # type: list[str]
         self.planned_actions = [] # type: list[str]
+        self.goal = None # type: str # a free form string describing the goal of the NPC
         
     def notify_action(self, parsed: ParseResult, actor: Living) -> None:
         if actor is self or parsed.verb in self.verbs:

@@ -70,9 +70,8 @@ class TestStoryBuilder():
 
         story = DynamicStory()
 
-        llm_util = LlmUtil()
+        llm_util = LlmUtil(io_util=FakeIoUtil(response=responses))
         llm_util.set_story(story)
-        llm_util.io_util = FakeIoUtil(response=responses)
         
         start_location = builder.apply_to_story(story, llm_util)
 

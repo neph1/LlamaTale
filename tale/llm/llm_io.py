@@ -26,8 +26,10 @@ class IoUtil():
             self.headers = {}
         self.stream = config['STREAM']
 
-    def synchronous_request(self, request_body: dict):
+    def synchronous_request(self, request_body: dict, prompt: str = None) -> str:
         """ Send request to backend and return the result """
+        if prompt:
+            self._set_prompt(request_body, prompt)
         response = requests.post(self.url + self.endpoint, headers=self.headers, data=json.dumps(request_body))
         if self.backend == 'openai':
             parsed_response = self._parse_openai_result(response.text)
@@ -90,3 +92,8 @@ class IoUtil():
             print("Error parsing result from OpenAI")
             print(result)
 
+    def _set_prompt(self, request_body: dict, prompt: str):
+        if self.backend == 'kobold_cpp':
+            request_body['prompt'] = prompt
+        elif self.backend == 'openai':
+            request_body['messages'][1]['content'] = prompt
