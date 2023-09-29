@@ -10,4 +10,8 @@ def load_config() -> dict:
             print(exc)
         return params
 
-params = load_config()
+__params = load_config()
+
+@property
+def params() -> dict:
+    return __params

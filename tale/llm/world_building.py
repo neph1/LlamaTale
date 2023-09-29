@@ -24,6 +24,8 @@ class WorldBuilding():
         self.io_util = io_util
         self.default_body = default_body
         self.json_grammar = llm_config.params['JSON_GRAMMAR'] # Type: str
+        self.world_items_prompt = llm_config.params['WORLD_ITEMS'] # Type: str
+        self.world_creatures_prompt = llm_config.params['WORLD_CREATURES'] # Type: str
 
 
     def build_location(self, location: Location, exit_location_name: str, zone_info: dict, story_type: str, story_context: str, world_info: str):
@@ -186,7 +188,9 @@ class WorldBuilding():
         request_body = self.default_body
         if self.backend == 'kobold_cpp':
             request_body = self._kobold_generation_prompt(request_body)
-        request_body['max_length'] = 750
+            request_body['max_length'] = 750
+        elif self.backend == 'openai':
+            request_body['max_tokens'] = 750
         result = self.io_util.synchronous_request(request_body, prompt=prompt)
         try:
             json_result = json.loads(parse_utils.sanitize_json(result))
@@ -194,6 +198,24 @@ class WorldBuilding():
         except json.JSONDecodeError as exc:
             print(exc)
             return None
+        
+
+    def generate_world_items(self, story_context: str, story_type: str, world_info: str, world_mood: int):
+        prompt = self.world_items_prompt.format(story_context=story_context,
+                                                story_type=story_type,
+                                                world_info=world_info,
+                                                world_mood=parse_utils.mood_string_from_int(world_mood))
+        request_body = self.default_body
+        result = self.io_util.synchronous_request(request_body, prompt=prompt)
+    
+    def generate_world_creatures(self, story_context: str, story_type: str, world_info: str, world_mood: int):
+        prompt = self.world_creatures_prompt.format(story_context=story_context,
+                                                story_type=story_type,
+                                                world_info=world_info,
+                                                world_mood=parse_utils.mood_string_from_int(world_mood))
+        request_body = self.default_body
+        result = self.io_util.synchronous_request(request_body, prompt=prompt)
+    
         
     def _kobold_generation_prompt(self, request_body: dict) -> dict:
         """ changes some parameters for better generation of locations in kobold_cpp"""

@@ -24,7 +24,7 @@ class StoryBuilder:
         self.story_info = StoryInfo()
         
     def ask_story_type(self) -> Generator:
-        self.story_info.type = yield "input", ("What genre would you like your story to be? Ie, 'A post apocalyptic scifi survival adventure', or 'Cozy social simulation with deep characters'")
+        self.story_info.type = yield "input", ("What genre would you like your story to be? Ie, 'A post apocalyptic scifi survival adventure', or 'Cosy social simulation with deep characters'")
         
     def ask_world_info(self) -> Generator:
         self.story_info.world_info = yield "input", ("Describe what the world is like. Use one to two paragraphs to outline the world and what it's like.")
@@ -74,7 +74,6 @@ class StoryBuilder:
         story.config.type = self.story_info.type
         story.config.world_info = self.story_info.world_info
         story.config.world_mood = self.story_info.world_mood
-        #generate bg story
         print("Generating story background...")
         story.config.context = llm_util.generate_story_background(world_info=story.config.world_info, 
                                                                             world_mood=story.config.world_mood,
@@ -82,7 +81,10 @@ class StoryBuilder:
         
         assert(story.config.context)
 
-        # generate zone
+        # Generate items in the world
+        
+        # Generate races in the world
+
         print("Generating starting zone...")
         zone = llm_util.generate_start_zone(location_desc=self.story_info.start_location, 
                                                     story_type=self.story_info.type, 
@@ -92,7 +94,6 @@ class StoryBuilder:
         assert(zone)
 
         story.add_zone(zone)
-        # generate location
         print("Generating starting location...")
         start_location = Location(name="", descr=self.story_info.start_location)
         new_locations, exits = llm_util.generate_start_location(location=start_location, 
@@ -107,7 +108,7 @@ class StoryBuilder:
         zone.add_location(start_location)
 
         for location in new_locations:
-            # try to add location, and if it fails, remove exit to it
+            # try to add location, and if it fails, remove exit to it. but should it be possible to fail now?
             result = zone.add_location(location)
             if not result:
                 for exit in exits:

@@ -10,6 +10,7 @@ from tale.coord import Coord
 from tale.llm.character import Character
 from tale.llm.llm_ext import DynamicStory
 from tale.llm.llm_io import IoUtil
+from tale.llm.story_building import StoryBuilding
 from tale.llm.world_building import WorldBuilding
 from tale.load_character import CharacterV2
 from tale.player_utils import TextBuffer
@@ -27,26 +28,12 @@ class LlmUtil():
                 print(exc)
         self.backend = config_file['BACKEND']
         self.default_body = json.loads(config_file['DEFAULT_BODY']) if self.backend == 'kobold_cpp' else json.loads(config_file['OPENAI_BODY'])
-        self.analysis_body = json.loads(config_file['ANALYSIS_BODY'])
         self.memory_size = config_file['MEMORY_SIZE']
         self.pre_prompt = config_file['PRE_PROMPT'] # type: str
-        self.pre_json_prompt = config_file['PRE_JSON_PROMPT'] # type: str
         self.base_prompt = config_file['BASE_PROMPT'] # type: str
-        self.dialogue_prompt = config_file['DIALOGUE_PROMPT'] # type: str
-        self.action_prompt = config_file['ACTION_PROMPT'] # type: str
         self.combat_prompt = config_file['COMBAT_PROMPT'] # type: str
-        self.character_prompt = config_file['CREATE_CHARACTER_PROMPT'] # type: str
-        self.location_prompt = config_file['CREATE_LOCATION_PROMPT'] # type: str
-        self.item_prompt = config_file['ITEM_PROMPT'] # type: str
         self.word_limit = config_file['WORD_LIMIT']
-        self.spawn_prompt = config_file['SPAWN_PROMPT'] # type: str
-        self.items_prompt = config_file['ITEMS_PROMPT'] # type: str
-        self.zone_prompt = config_file['CREATE_ZONE_PROMPT'] # type: str
-        self.idle_action_prompt = config_file['IDLE_ACTION_PROMPT'] # type: str
-        self.travel_prompt = config_file['TRAVEL_PROMPT'] # type: str
-        self.reaction_prompt = config_file['REACTION_PROMPT'] # type: str
         self.story_background_prompt = config_file['STORY_BACKGROUND_PROMPT'] # type: str
-        self.start_location_prompt = config_file['START_LOCATION_PROMPT'] # type: str
         self.json_grammar = config_file['JSON_GRAMMAR'] # type: str
         self.__story = None # type: DynamicStory
         self.io_util = io_util or IoUtil(config=config_file)
@@ -60,6 +47,9 @@ class LlmUtil():
                                     backend=self.backend,
                                     io_util=self.io_util,
                                     default_body=self.default_body)
+        self._story_building = StoryBuilding(default_body=self.default_body,
+                                             io_util=self.io_util,
+                                             backend=self.backend)
 
     def evoke(self, player_io: TextBuffer, message: str, max_length : bool=False, rolling_prompt='', alt_prompt='', skip_history=True):
         """Evoke a response from LLM. Async if stream is True, otherwise synchronous.
@@ -147,16 +137,19 @@ class LlmUtil():
         return self._character.perform_reaction(action, character_name, acting_character_name, location, character_card, sentiment)
     
     def generate_story_background(self, world_mood: int, world_info: str, story_type: str):
-        prompt = self.story_background_prompt.format(
-            story_type=story_type,
-            world_mood=parse_utils.mood_string_from_int(world_mood),
-            world_info=world_info)
-        request_body = self.default_body
-        if self.backend == 'kobold_cpp':
-            request_body['prompt'] = prompt
-        elif self.backend == 'openai':
-            request_body['messages'][1]['content'] = prompt
-        return self.io_util.synchronous_request(request_body)
+        return self._story_building.generate_story_background(world_mood, world_info, story_type)
+    
+    def generate_start_location(self, location: Location, zone_info: dict, story_type: str, story_context: str, world_info: str):
+        return self._world_building.generate_start_location(location, zone_info, story_type, story_context, world_info)
+        
+    def generate_start_zone(self, location_desc: str, story_type: str, story_context: str, world_mood: int, world_info: str) -> Zone:
+        return self._world_building.generate_start_zone(location_desc, story_type, story_context, world_mood, world_info)
+    
+    def generate_world_items(self, story_context: str, story_type: str, world_info: str, world_mood: int):
+        return self._world_building.generate_world_items(story_context, story_type, world_info, world_mood)
+    
+    def generate_world_creatures(self, story_context: str, story_type: str, world_info: str, world_mood: int):
+        return self._world_building.generate_world_creatures(story_context, story_type, world_info, world_mood)
         
     def _store_hash(self, text_hash_value: int, text: str):
         """ Store the generated text in a hash table."""
@@ -179,11 +172,6 @@ class LlmUtil():
         #request_body['banned_tokens'] = ['```']
         return request_body
     
-    def generate_start_location(self, location: Location, zone_info: dict, story_type: str, story_context: str, world_info: str):
-        return self._world_building.generate_start_location(location, zone_info, story_type, story_context, world_info)
-        
-    def generate_start_zone(self, location_desc: str, story_type: str, story_context: str, world_mood: int, world_info: str) -> Zone:
-        return self._world_building.generate_start_zone(location_desc, story_type, story_context, world_mood, world_info)
     
 
 
