@@ -1,6 +1,5 @@
 
 import json
-import random
 from tale import parse_utils, races
 from tale import zone
 from tale.base import Location

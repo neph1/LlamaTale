@@ -1,3 +1,9 @@
+
+<p align="center">
+  <img src="https://github.com/neph1/LlamaTale/assets/7988802/35f5924c-77bb-4686-9127-07a3251f6873?raw=true" alt="A prancing Llama"/>
+</p>
+<p align="center"> Welcome to LlamaTale! </p>
+
 This fork uses an LLM backend to describe things in a more vivid way. (LLM not included)
 
 The goal is to merge the structure of MU* frameworks with the creative and generative abilities of LLM's for the ultimate immersive roleplaying experience.

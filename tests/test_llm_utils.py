@@ -195,8 +195,7 @@ class TestWorldBuilding():
         result = self.llm_util._world_building.generate_start_zone(location_desc='',
                                                    story_type='',
                                                    story_context='',
-                                                   world_mood=0,
-                                                   world_info={"info":"", "mood":0})
+                                                   world_info={"info":"", "world_mood":0})
         assert(result.name == 'Test Zone')
         assert(result.races == ['human', 'elf', 'dwarf'])
 
