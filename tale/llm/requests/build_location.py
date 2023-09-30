@@ -1,5 +1,6 @@
 
 import random
+from tale import parse_utils
 from tale.llm import llm_config
 from tale.llm.requests.llm_request import LlmRequest
 
@@ -33,13 +34,14 @@ class BuildLocation(LlmRequest):
             elif mood == 'neutral':
                 num_mood = 0
             else:
-                num_mood = -1
+                num_mood = -2
             num_mood = (int) (random.gauss(num_mood, 2))
             level = (int) (random.gauss(zone_info.get('level', 1), 2))
-            spawn_prompt = self.spawn_prompt.format(alignment=num_mood > 0 and 'friendly' or 'hostile', level= level)
+            mood_string = parse_utils.mood_string_from_int(num_mood)
+            spawn_prompt = self.spawn_prompt.format(alignment=mood_string, level=level)
 
         items_prompt = ''
-        item_amount = random.randint(0, 2)
+        item_amount = random.gauss(1, 2)
         if item_amount > 0:
             items_prompt = self.items_prompt.format(items=item_amount)
 

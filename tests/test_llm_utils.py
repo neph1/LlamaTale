@@ -1,9 +1,12 @@
 import pytest
 import json
+from tale import weapon_type
 from tale.base import Location
 from tale.coord import Coord
 from tale.json_story import JsonStory
 from tale.llm.llm_utils import LlmUtil
+from tale.npc_defs import StationaryMob
+from tale.races import UnarmedAttack
 from tale.zone import Zone
 from tests.supportstuff import FakeIoUtil
 import tale.parse_utils as parse_utils
@@ -24,12 +27,6 @@ class TestLlmUtils():
     actual_response_empty_result = '{   "thoughts": "No items were given, taken, dropped or put.",  "results": {}  }\n'
 
     actual_response_3 = '{\n    "thoughts": "\ud83d\ude0d Norhardt feels that he is close to finding something important after a long and dangerous journey through rough terrain and harsh weather, and it consumes him fully.",\n    "result": {\n        "item": "map",\n        "from": "Norhardt",\t\n        "to": "Arto"\n    }\n}'
-
-    generated_location = '{"name": "Outside", "description": "A barren wasteland of snow and ice stretches as far as the eye can see. The wind howls through the mountains like a chorus of banshees, threatening to sweep away any unfortunate soul caught outside without shelter.", "exits": [{"name": "North Pass","short_desc": "The North Pass is treacherous mountain pass that leads deeper into the heart of the range","enter_msg":"You shuffle your feet through knee-deep drifts of snow, trying to keep your balance on the narrow path."}, {"name": "South Peak","short_Desc": "The South Peak offers breathtaking views of the surrounding landscape from its summit, but it\'s guarded by a pack of fierce winter wolves.","Enter_msg":"You must face off against the snarling beasts if you wish to reach the peak."}] ,"items": [{"name":"Woolly gloves", "type":"Wearable"}],"npcs": []}'
-    
-    generated_location_extra = '{"Outside": { "description": "A barren wasteland of snow and ice stretches", "exits": [{"name": "North Pass","short_desc": "The North Pass is treacherous mountain pass that leads deeper into the heart of the range","enter_msg":"You shuffle your feet through knee-deep drifts of snow, trying to keep your balance on the narrow path."}, {"name": "South Peak","short_Desc": "The South Peak offers breathtaking views of the surrounding landscape from its summit, but it\'s guarded by a pack of fierce winter wolves.","Enter_msg":"You must face off against the snarling beasts if you wish to reach the peak."}] ,"items": [{"name":"Woolly gloves", "type":"Wearable"}],"npcs": []}}'
-    
-    generated_zone = '{"name":"Test Zone", "description":"A test zone", "level":10, "mood":-2, "races":["human", "elf", "dwarf"], "items":["sword", "shield"]}'
     
     story = JsonStory('tests/files/test_story/', parse_utils.load_story_config(parse_utils.load_json('tests/files/test_story/test_story_config.json')))
     
@@ -94,20 +91,6 @@ class TestLlmUtils():
         sentiment = self.llm_util._character.validate_sentiment(json.loads(self.test_text_valid))
         assert(sentiment == 'cheerful')
 
-    def test_validate_location(self):
-        location = Location(name='Outside')
-        location.built = False
-        locations, exits = self.llm_util._world_building._validate_location(json.loads(self.generated_location), location_to_build=location, exit_location_name='Entrance')
-        location.add_exits(exits)
-        assert(location.description.startswith('A barren wasteland'))
-        assert(len(location.exits) == 2)
-        assert(location.exits['north pass'])
-        assert(location.exits['south peak'])
-        assert(len(location.items) == 1) # woolly gloves
-        assert(len(locations) == 2)
-        assert(locations[0].name == 'North Pass')
-        assert(locations[1].name == 'South Peak')
-
     def test_evoke(self):
         evoke_string = 'test response'
         self.llm_util.io_util = FakeIoUtil(response=evoke_string)
@@ -122,34 +105,128 @@ class TestLlmUtils():
         result = self.llm_util._character.generate_character(story_type='a test story')
         assert(result)
 
-    def test_build_location(self):
-        location = Location(name='Outside')
-        exit_location_name = 'Cave entrance'
-        self.llm_util._world_building.io_util.response = self.generated_location
-        self.llm_util.set_story(self.story)
-        
-        locations = self.llm_util.build_location(location, exit_location_name, zone_info={})
-        assert(len(locations) == 2)
 
-    def test_build_location_extra_json(self):
-        location = Location(name='Outside')
-        exit_location_name = 'Cave entrance'
-        self.llm_util._world_building.io_util.response = self.generated_location_extra
+    def test_perform_idle_action(self):
+        # mostly testing that prompt works
         self.llm_util.set_story(self.story)
-        locations = self.llm_util.build_location(location, exit_location_name, zone_info={})
-        assert(len(locations) == 2)
+        self.llm_util._character.io_util.response = 'Walk to the left;Walk to the right;Jump up and down'
+        location = Location(name='Test Location')
+        actions = self.llm_util.perform_idle_action(character_name='Norhardt', location = location, character_card= '{}', sentiments= {}, last_action= '')
+        assert(len(actions) == 3)
+        assert(actions[0] == 'Walk to the left')
+        assert(actions[1] == 'Walk to the right')
+        assert(actions[2] == 'Jump up and down')
 
-    def test_validate_zone(self):
-        center = Coord(5, 0, 0)
-        zone = self.llm_util._world_building.validate_zone(json.loads(self.generated_zone), center=center)
-        assert(zone)
-        assert(zone.name == 'Test Zone')
-        assert(zone.description == 'A test zone')
-        assert(zone.races == ['human', 'elf', 'dwarf'])
-        assert(zone.items == ['sword', 'shield'])
-        assert(zone.center == center)
-        assert(zone.level == 10)
-        assert(zone.mood == -2)
+    def test_perform_travel_action(self):
+        # mostly testing that prompt works
+        self.llm_util._character.io_util.response = 'West'
+        result = self.llm_util._character.perform_travel_action(character_name='Norhardt', location = Location(name='Test Location'), character_card= '{}', locations= [], directions= [])
+        assert(result == 'West')
+
+
+
+class TestWorldBuilding():
+
+    llm_util = LlmUtil(FakeIoUtil()) # type: LlmUtil
+
+    generated_location = '{"name": "Outside", "description": "A barren wasteland of snow and ice stretches as far as the eye can see. The wind howls through the mountains like a chorus of banshees, threatening to sweep away any unfortunate soul caught outside without shelter.", "exits": [{"name": "North Pass","short_desc": "The North Pass is treacherous mountain pass that leads deeper into the heart of the range","enter_msg":"You shuffle your feet through knee-deep drifts of snow, trying to keep your balance on the narrow path."}, {"name": "South Peak","short_Desc": "The South Peak offers breathtaking views of the surrounding landscape from its summit, but it\'s guarded by a pack of fierce winter wolves.","Enter_msg":"You must face off against the snarling beasts if you wish to reach the peak."}] ,"items": [{"name":"Woolly gloves", "type":"Wearable"}],"npcs": [{"name":"wolf", "body":"Creature", "unarmed_attack":"BITE", "hp":10, "level":10}]}'
+    
+    generated_location_extra = '{"Outside": { "description": "A barren wasteland of snow and ice stretches", "exits": [{"name": "North Pass","short_desc": "The North Pass is treacherous mountain pass that leads deeper into the heart of the range","enter_msg":"You shuffle your feet through knee-deep drifts of snow, trying to keep your balance on the narrow path."}, {"name": "South Peak","short_Desc": "The South Peak offers breathtaking views of the surrounding landscape from its summit, but it\'s guarded by a pack of fierce winter wolves.","Enter_msg":"You must face off against the snarling beasts if you wish to reach the peak."}] ,"items": [{"name":"Woolly gloves", "type":"Wearable"}],"npcs": []}}'
+    
+    generated_zone = '{"name":"Test Zone", "description":"A test zone", "level":10, "mood":-2, "races":["human", "elf", "dwarf"], "items":["sword", "shield"]}'
+    
+    story = JsonStory('tests/files/test_story/', parse_utils.load_story_config(parse_utils.load_json('tests/files/test_story/test_story_config.json')))
+    story.init(IFDriver())
+
+    def test_validate_location(self):
+        location = Location(name='Outside')
+        location.built = False
+        locations, exits = self.llm_util._world_building._validate_location(json.loads(self.generated_location), location_to_build=location, exit_location_name='Entrance')
+        location.add_exits(exits)
+        assert(location.description.startswith('A barren wasteland'))
+        assert(len(location.exits) == 2)
+        assert(location.exits['north pass'])
+        assert(location.exits['south peak'])
+        assert(len(location.items) == 1) # woolly gloves
+        assert(len(location.livings) == 1) # wolf
+        assert(len(locations) == 2)
+        assert(locations[0].name == 'North Pass')
+        assert(locations[1].name == 'South Peak')
+
+    def test_validate_location_with_world_objects(self):
+        location = Location(name='Outside')
+        location.built = False
+        loc = json.loads(self.generated_location)
+        loc["npcs"] = ["wolf"]
+        world_creatures = {"wolf": {"name": "wolf", "body": "Creature", "unarmed_attack": "BITE", "hp":10, "level":10}}
+        locations, exits = self.llm_util._world_building._validate_location(loc, location_to_build=location, exit_location_name='Entrance', world_creatures=world_creatures)
+        location.add_exits(exits)
+        assert(location.description.startswith('A barren wasteland'))
+        assert(len(location.exits) == 2)
+        assert(location.exits['north pass'])
+        assert(location.exits['south peak'])
+        assert(len(location.items) == 1) # woolly gloves
+        assert(len(location.livings) == 1) # wolf
+        assert(len(locations) == 2)
+        assert(locations[0].name == 'North Pass')
+        assert(locations[1].name == 'South Peak')
+
+    def test_generate_start_location(self):
+        self.llm_util._world_building.io_util.response='{"name": "Greenhaven", "exits": [{"direction": "north", "name": "Misty Meadows", "description": "A lush and misty area filled with rolling hills and sparkling streams. The air is crisp and refreshing, and the gentle chirping of birds can be heard throughout."}, {"direction": "south", "name": "Riverdale", "description": "A bustling town nestled near a winding river. The smell of freshly baked bread and roasting meats fills the air, and the sound of laughter and chatter can be heard from the local tavern."}, {"direction": "east", "name": "Forest of Shadows", "description": "A dark and eerie forest filled with twisted trees and mysterious creatures. The air is thick with an ominous energy, and the rustling of leaves can be heard in the distance."}], "items": [], "npcs": []}'
+        location = Location(name='', descr='on a small road outside a village')
+        new_locations, exits = self.llm_util._world_building.generate_start_location(location, 
+                                                       story_type='',
+                                                       story_context='', 
+                                                       zone_info={},
+                                                       world_info='',)
+        location = Location(name=location.name, descr=location.description)
+        assert(location.name == 'Greenhaven')
+        assert(location.title == 'Greenhaven')
+        assert(location.description == 'on a small road outside a village')
+        assert(exits[0].name == 'misty meadows')
+        assert(exits[1].name == 'riverdale')
+        assert(new_locations[0].name == 'Misty Meadows')
+        assert(new_locations[1].name == 'Riverdale')
+
+    def test_generate_start_zone(self):
+        # mostly for coverage
+        self.llm_util._world_building.io_util.response = self.generated_zone
+
+        result = self.llm_util._world_building.generate_start_zone(location_desc='',
+                                                   story_type='',
+                                                   story_context='',
+                                                   world_mood=0,
+                                                   world_info={"info":"", "mood":0})
+        assert(result.name == 'Test Zone')
+        assert(result.races == ['human', 'elf', 'dwarf'])
+
+    def test_generate_world_items(self):
+        self.llm_util._world_building.io_util.response = '{"items":[{"name": "sword", "type": "Weapon", "value": 100}, {"name": "shield", "type": "Armor", "value": 60}]}'
+        result = self.llm_util._world_building.generate_world_items(story_context='', 
+                                                   story_type='',
+                                                   world_mood=0,
+                                                   world_info='')
+        assert(len(result) == 2)
+        sword = result.get('sword')
+        assert(sword.name == 'sword')
+        assert(sword.type == weapon_type.WeaponType.ONE_HANDED)
+        shield = result.get('shield')
+        assert(shield.name == 'shield')
+
+    def test_generate_world_creatures(self):
+        # mostly for coverage
+        self.llm_util._world_building.io_util.response = '{"creatures":[{"name": "dragon", "body": "Creature", "unarmed_attack": "BITE", "hp":100, "level":10}]}'
+        result = self.llm_util._world_building.generate_world_creatures(story_context='', 
+                                                   story_type='',
+                                                   world_mood=0,
+                                                   world_info='')
+        assert(len(result) == 1)
+        dragon = result.get('dragon')
+        assert(dragon["name"] == 'dragon')
+        assert(dragon["hp"] == 100)
+        assert(dragon["level"] == 10)
+        assert(dragon["unarmed_attack"] == UnarmedAttack.BITE)
+
 
     def test_get_neighbor_or_generate_zone(self):
         """ Tests the get_neighbor_or_generate_zone method of llm_utils.
@@ -195,48 +272,45 @@ class TestLlmUtils():
         zone_info = self.llm_util.get_neighbor_or_generate_zone(zone, current_location, target_location).get_info()
         assert(zone_info['description'] == 'This is the current zone')
 
-    def test_perform_idle_action(self):
-        # mostly testing that prompt works
+
+    def test_build_location(self):
+        location = Location(name='Outside')
+        exit_location_name = 'Cave entrance'
+        self.llm_util._world_building.io_util.response = self.generated_location
         self.llm_util.set_story(self.story)
-        self.llm_util._character.io_util.response = 'Walk to the left;Walk to the right;Jump up and down'
-        location = Location(name='Test Location')
-        actions = self.llm_util.perform_idle_action(character_name='Norhardt', location = location, character_card= '{}', sentiments= {}, last_action= '')
-        assert(len(actions) == 3)
-        assert(actions[0] == 'Walk to the left')
-        assert(actions[1] == 'Walk to the right')
-        assert(actions[2] == 'Jump up and down')
+        
+        locations = self.llm_util.build_location(location, exit_location_name, zone_info={})
+        assert(len(locations) == 2)
 
-    def test_perform_travel_action(self):
-        # mostly testing that prompt works
-        self.llm_util._character.io_util.response = 'West'
-        result = self.llm_util._character.perform_travel_action(character_name='Norhardt', location = Location(name='Test Location'), character_card= '{}', locations= [], directions= [])
-        assert(result == 'West')
+    def test_build_location_extra_json(self):
+        location = Location(name='Outside')
+        exit_location_name = 'Cave entrance'
+        self.llm_util._world_building.io_util.response = self.generated_location_extra
+        self.llm_util.set_story(self.story)
+        locations = self.llm_util.build_location(location, exit_location_name, zone_info={})
+        assert(len(locations) == 2)
 
-    def test_generate_start_location(self):
-        self.llm_util._world_building.io_util.response='{"name": "Greenhaven", "exits": [{"direction": "north", "name": "Misty Meadows", "description": "A lush and misty area filled with rolling hills and sparkling streams. The air is crisp and refreshing, and the gentle chirping of birds can be heard throughout."}, {"direction": "south", "name": "Riverdale", "description": "A bustling town nestled near a winding river. The smell of freshly baked bread and roasting meats fills the air, and the sound of laughter and chatter can be heard from the local tavern."}, {"direction": "east", "name": "Forest of Shadows", "description": "A dark and eerie forest filled with twisted trees and mysterious creatures. The air is thick with an ominous energy, and the rustling of leaves can be heard in the distance."}], "items": [], "npcs": []}'
-        location = Location(name='', descr='on a small road outside a village')
-        new_locations, exits = self.llm_util._world_building.generate_start_location(location, 
-                                                       story_type='',
-                                                       story_context='', 
-                                                       zone_info={},
-                                                       world_info='',)
-        location = Location(name=location.name, descr=location.description)
-        assert(location.name == 'Greenhaven')
-        assert(location.title == 'Greenhaven')
-        assert(location.description == 'on a small road outside a village')
-        assert(exits[0].name == 'misty meadows')
-        assert(exits[1].name == 'riverdale')
-        assert(new_locations[0].name == 'Misty Meadows')
-        assert(new_locations[1].name == 'Riverdale')
+    def test_validate_zone(self):
+        center = Coord(5, 0, 0)
+        zone = self.llm_util._world_building.validate_zone(json.loads(self.generated_zone), center=center)
+        assert(zone)
+        assert(zone.name == 'Test Zone')
+        assert(zone.description == 'A test zone')
+        assert(zone.races == ['human', 'elf', 'dwarf'])
+        assert(zone.items == ['sword', 'shield'])
+        assert(zone.center == center)
+        assert(zone.level == 10)
+        assert(zone.mood == -2)
 
-    def test_generate_start_zone(self):
-        # mostly for coverage
-        self.llm_util._world_building.io_util.response = self.generated_zone
-
-        result = self.llm_util._world_building.generate_start_zone(location_desc='',
-                                                   story_type='',
-                                                   story_context='', 
-                                                   world_mood=0,
-                                                   world_info='')
-        assert(result.name == 'Test Zone')
-        assert(result.races == ['human', 'elf', 'dwarf'])
+    def test_validate_items(self):
+        items = [{"name": "sword", "type": "Weapon", "value": 100}, {"type": "Armor", "value": 60}, {"name": "boots"}]
+        valid = self.llm_util._world_building._validate_items(items)
+        assert(len(valid) == 2)
+        sword = valid[0]
+        assert(sword['name'])
+        assert(sword['name'] == 'sword')
+        assert(sword['type'] == 'Weapon')
+        boots = valid[1]
+        assert(boots['name'] == 'boots')
+        assert(boots['type'] == 'Other')
+        

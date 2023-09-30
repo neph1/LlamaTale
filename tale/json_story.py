@@ -10,6 +10,7 @@ from tale.zone import Zone
 class JsonStory(DynamicStory):
     
     def __init__(self, path: str, config: StoryConfig):
+        super(JsonStory, self).__init__()
         self.config = config
         self.path = path
         locs = {}
@@ -21,9 +22,9 @@ class JsonStory(DynamicStory):
                 locs[loc.name] = loc
         self._locations = locs
         self._zones = zones # type: dict(str, dict)
-        self._npcs = parse_utils.load_npcs(parse_utils.load_json(self.path +'npcs/'+self.config.npcs + '.json'), self._zones)
-        self._items = parse_utils.load_items(parse_utils.load_json(self.path + self.config.items + '.json'), self._zones)
-        
+        self._world["creatures"] = parse_utils.load_npcs(parse_utils.load_json(self.path +'npcs/'+self.config.npcs + '.json'), self._zones)
+        self._world["items"] = parse_utils.load_items(parse_utils.load_json(self.path + self.config.items + '.json'), self._zones)
+    
     def init(self, driver) -> None:
         pass
         

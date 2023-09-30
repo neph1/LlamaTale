@@ -4,8 +4,10 @@ from tale import lang
 from tale.base import Location, Exit, Item
 from tale.coord import Coord
 from tale.items.basic import Money, Note
+from tale.npc_defs import StationaryMob
 from tale.story import GameMode, MoneyType, TickMethod, StoryConfig
 from tale.llm.llm_ext import LivingNpc
+from tale.weapon_type import WeaponType
 from tale.zone import Zone
 import json
 import re
@@ -57,7 +59,7 @@ def load_locations(json_file: dict):
 def location_from_json(json_object: dict):
     return Location(name=json_object['name'], descr=json_object.get('descr', ''))
 
-def load_items(json_file: [], locations = {}):
+def load_items(json_file: [], locations = {}) -> dict:
     """
         Loads and returns a dict of items from a supplied json dict
         Inserts into locations if supplied and has location
@@ -85,7 +87,7 @@ def load_items(json_file: [], locations = {}):
             _insert(new_item, locations, item['location'])
     return items
 
-def load_npcs(json_file: [], locations = {}):
+def load_npcs(json_file: [], locations = {}) -> dict:
     """
         Loads npcs and returns a dict from a supplied json dict
         May be custom classes, but be sure the class is available
@@ -109,6 +111,18 @@ def load_npcs(json_file: [], locations = {}):
                                 personality=npc.get('personality', ''), 
                                 occupation=npc.get('occupation', ''))
             new_npc.aliases.add(name.split(' ')[0].lower())
+            new_npc.stats.set_weapon_skill(WeaponType.UNARMED, random.randint(10, 30))
+            new_npc.stats.level = npc.get('level', 1)
+        elif npc_type == 'Mob':
+            new_npc = StationaryMob(name=npc['name'], 
+                                gender=lang.validate_gender(npc.get('gender', 'm')), 
+                                race=npc.get('race', 'human').lower(), 
+                                title=npc.get('title', npc['name']), 
+                                descr=npc.get('descr', ''), 
+                                short_descr=npc.get('short_descr', npc.get('description', '')))
+            new_npc.aliases.add(name.split(' ')[0].lower())
+            new_npc.stats.set_weapon_skill(WeaponType.UNARMED, random.randint(10, 30))
+            new_npc.stats.level = npc.get('level', 1)
         # else:
         #     module = sys.modules['tale.items.basic']
         #     clazz = getattr(module, npc_type)
@@ -351,7 +365,7 @@ def mood_string_from_int(mood: int):
     base_mood = 'friendly' if mood > 0 else 'hostile' if mood < 0 else 'neutral'
     
     if abs(mood) > 4:
-        return f' terrifingly {base_mood}'
+        return f' uttermost {base_mood}'
     if abs(mood) > 3:
         return f' extremely {base_mood}'
     elif abs(mood) > 2:
@@ -360,3 +374,23 @@ def mood_string_from_int(mood: int):
         return f' {base_mood}'
     else:
         return f' slightly {base_mood}'
+    
+def replace_items_with_world_items(items: list, world_items: dict) -> list:
+    """ Replaces items in a list with world items"""
+    new_items = []
+    for item in items:
+        if item in world_items:
+            new_items.append(world_items[item])
+        else:
+            new_items.append(item)
+    return new_items
+
+def replace_creature_with_world_creature(creatures: list, world_creatures: dict) -> list:
+    """ Replaces creature with world creature"""
+    new_creatures = []
+    for creature in creatures:
+        if creature in world_creatures:
+            new_creatures.append(world_creatures[creature])
+        else:
+            new_creatures.append(creature)
+    return new_creatures

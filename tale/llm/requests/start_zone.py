@@ -22,13 +22,12 @@ class StartZone(LlmRequest):
         location_desc = args['location_desc']
         story_type = args['story_type']
         world_info = args['world_info']
-        world_mood = args['world_mood']
         story_context = args['story_context']
 
         prompt = self.pre_json_prompt
         prompt += self.zone_prompt.format(
             world_info=world_info,
-            mood = parse_utils.mood_string_from_int(random.gauss(world_mood, 2)),
+            mood = parse_utils.mood_string_from_int(random.gauss(world_info["world_mood"], 2)),
             story_type=story_type,
             direction='',
             zone_info='',

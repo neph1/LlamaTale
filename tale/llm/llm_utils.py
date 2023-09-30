@@ -118,14 +118,16 @@ class LlmUtil():
     def get_neighbor_or_generate_zone(self, current_zone: Zone, current_location: Location, target_location: Location) -> Zone:
         return self._world_building.get_neighbor_or_generate_zone(current_zone, current_location, target_location, self.__story)
 
-    def build_location(self, location: Location, exit_location_name: str, zone_info: dict):
+    def build_location(self, location: Location, exit_location_name: str, zone_info: dict, world_items: dict = {}, world_creatures: dict = {}):
         """ Generate a location based on the current story context"""
         return self._world_building.build_location(location, 
                                                    exit_location_name, 
                                                    zone_info, 
                                                    self.__story.config.type, 
                                                    self.__story.config.context,
-                                                   self.__story.config.world_info)
+                                                   self.__story.config.world_info,
+                                                   world_creatures=world_creatures,
+                                                   world_items=world_items)
      
     def perform_idle_action(self, character_name: str, location: Location, character_card: str = '', sentiments: dict = {}, last_action: str = '') -> list:
         return self._character.perform_idle_action(character_name, location, self.__story.config.context, character_card, sentiments, last_action)
@@ -142,13 +144,13 @@ class LlmUtil():
     def generate_start_location(self, location: Location, zone_info: dict, story_type: str, story_context: str, world_info: str):
         return self._world_building.generate_start_location(location, zone_info, story_type, story_context, world_info)
         
-    def generate_start_zone(self, location_desc: str, story_type: str, story_context: str, world_mood: int, world_info: str) -> Zone:
-        return self._world_building.generate_start_zone(location_desc, story_type, story_context, world_mood, world_info)
+    def generate_start_zone(self, location_desc: str, story_type: str, story_context: str, world_info: str) -> Zone:
+        return self._world_building.generate_start_zone(location_desc, story_type, story_context, world_info)
     
-    def generate_world_items(self, story_context: str, story_type: str, world_info: str, world_mood: int):
+    def generate_world_items(self, story_context: str, story_type: str, world_info: str, world_mood: int) -> dict:
         return self._world_building.generate_world_items(story_context, story_type, world_info, world_mood)
     
-    def generate_world_creatures(self, story_context: str, story_type: str, world_info: str, world_mood: int):
+    def generate_world_creatures(self, story_context: str, story_type: str, world_info: str, world_mood: int) -> dict:
         return self._world_building.generate_world_creatures(story_context, story_type, world_info, world_mood)
         
     def _store_hash(self, text_hash_value: int, text: str):

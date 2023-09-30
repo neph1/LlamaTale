@@ -1,5 +1,6 @@
 
 
+import json
 from typing import Generator
 from tale import lang
 from tale.base import Location
@@ -81,19 +82,32 @@ class StoryBuilder:
         
         assert(story.config.context)
 
-        # Generate items in the world
+        print("Generate world items...")
+        items = llm_util.generate_world_items(story_context=story.config.context, 
+                                                    story_type=self.story_info.type, 
+                                                    world_info=self.story_info.world_info, 
+                                                    world_mood=self.story_info.world_mood)
+        story.world_items = items
         
-        # Generate races in the world
+        # Generate creatures in the world
+        print("Generate world creatures...")
+        creatures = llm_util.generate_world_creatures(story_context=story.config.context,
+                                                            story_type=self.story_info.type,
+                                                            world_info=self.story_info.world_info,
+                                                            world_mood=self.story_info.world_mood)
+        story.world_creatures = creatures
+
 
         print("Generating starting zone...")
+        world_info = {'world_description': self.story_info.world_info, 'world_mood': self.story_info.world_mood, 'world_items': items, 'world_creatures': creatures}
         zone = llm_util.generate_start_zone(location_desc=self.story_info.start_location, 
                                                     story_type=self.story_info.type, 
-                                                    story_context=story.config.context, 
-                                                    world_mood=self.story_info.world_mood, 
-                                                    world_info=self.story_info.world_info)
+                                                    story_context=story.config.context,
+                                                    world_info=world_info)
         assert(zone)
 
         story.add_zone(zone)
+
         print("Generating starting location...")
         start_location = Location(name="", descr=self.story_info.start_location)
         new_locations, exits = llm_util.generate_start_location(location=start_location, 
