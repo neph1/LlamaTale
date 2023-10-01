@@ -1,3 +1,4 @@
+import json
 from tale import mud_context
 from tale.base import ContainingType, Item, Living, Location, ParseResult
 from tale.errors import TaleError
@@ -237,3 +238,16 @@ class DynamicStory(StoryBase):
     @world_items.setter
     def world_items(self, value: dict):
         self._world["items"] = value
+
+    def save(self) -> None:
+        """ Save the story to disk."""
+        story = dict()
+        story["zones"] = dict()
+        story["world"] = self._world
+        for zone in self._zones.values():
+            story["zones"][zone.name] = zone.get_info()
+
+        with open(self.config.name, "w") as fp:
+            json.dump(story , fp) 
+        
+

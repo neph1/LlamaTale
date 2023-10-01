@@ -4,7 +4,7 @@ from tale import lang
 from tale.base import Location, Exit, Item
 from tale.coord import Coord
 from tale.items.basic import Money, Note
-from tale.npc_defs import StationaryMob
+from tale.npc_defs import StationaryMob, StationaryNpc
 from tale.story import GameMode, MoneyType, TickMethod, StoryConfig
 from tale.llm.llm_ext import LivingNpc
 from tale.weapon_type import WeaponType
@@ -96,13 +96,13 @@ def load_npcs(json_file: [], locations = {}) -> dict:
     npcs = {}
     for npc in json_file:
         npc_type = npc.get('type', 'LivingNpc')
-        if npc_type == 'LivingNpc':
+        if 'npc' in npc_type.lower():
             if npc['name'].startswith('the') or npc['name'].startswith('The'):
                 name = npc['name'].replace('the','').replace('The','').strip()
             else:
                 name = npc['name']
-            new_npc = LivingNpc(name=name, 
-                                gender=lang.validate_gender(npc.get('gender', 'm')), 
+            new_npc = StationaryNpc(name=name, 
+                                gender=lang.validate_gender_mf(npc.get('gender', 'm')[0]), 
                                 race=npc.get('race', 'human').lower(), 
                                 title=npc.get('title', name), 
                                 descr=npc.get('descr', ''), 
@@ -115,7 +115,7 @@ def load_npcs(json_file: [], locations = {}) -> dict:
             new_npc.stats.level = npc.get('level', 1)
         elif npc_type == 'Mob':
             new_npc = StationaryMob(name=npc['name'], 
-                                gender=lang.validate_gender(npc.get('gender', 'm')), 
+                                gender=lang.validate_gender_mf(npc.get('gender', 'm')[0]), 
                                 race=npc.get('race', 'human').lower(), 
                                 title=npc.get('title', npc['name']), 
                                 descr=npc.get('descr', ''), 
@@ -198,7 +198,7 @@ def sanitize_json(result: str):
     """ Removes special chars from json string. Some common, and some 'creative' ones. """
     # .replace('}}', '}')
     # .replace('""', '"')
-    result = result.replace('```json', '').replace('\\"', '"').replace('"\\n"', '","').replace('\\n', '').replace('}\n{', '},{').replace('}{', '},{').replace('\\r', '').replace('\\t', '').replace('"{', '{').replace('}"', '}').replace('"\\', '"').replace('\\”', '"').replace('" "', '","').replace(':,',':').replace('},]', '}]').replace('},}', '}}')
+    result = result.replace('```json', '') #.replace('\\"', '"').replace('"\\n"', '","').replace('\\n', '').replace('}\n{', '},{').replace('}{', '},{').replace('\\r', '').replace('\\t', '').replace('"{', '{').replace('}"', '}').replace('"\\', '"').replace('\\”', '"').replace('" "', '","').replace(':,',':').replace('},]', '}]').replace('},}', '}}')
     result = result.split('```')[0]
     print('sanitized json: ' + result)
     return result

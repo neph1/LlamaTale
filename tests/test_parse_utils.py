@@ -68,6 +68,14 @@ class TestParseUtils():
         npc3 = npcs['name']
         assert(npc3.name == 'name')
 
+    def test_load_npcs_generated(self):
+        npcs_string = '{"npcs": [{"name": "Rosewood Fairy", "sentiment": "friendly", "race": "Fae", "gender": "female", "level": 5, "description": "A delicate creature with wings as soft as rose petals, offering quests and guidance."}]}'
+        npcs = json.loads(npcs_string)
+        assert(len(npcs) == 1)
+        loaded_npcs = parse_utils.load_npcs(npcs['npcs'])
+        assert(len(loaded_npcs) == 1)
+        assert(loaded_npcs['Rosewood Fairy'])
+
 
     def test_load_story_config(self):
         config_json = parse_utils.load_json("tests/files/test_story_config.json")

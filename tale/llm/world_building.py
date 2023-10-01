@@ -234,6 +234,9 @@ class WorldBuilding():
                                                 world_info=world_info,
                                                 world_mood=parse_utils.mood_string_from_int(world_mood))
         request_body = self.default_body
+        if self.backend == 'kobold_cpp':
+            request_body = self._kobold_generation_prompt(request_body)
+
         result = self.io_util.synchronous_request(request_body, prompt=prompt)
         try:
             json_result = json.loads(parse_utils.sanitize_json(result))
@@ -248,6 +251,9 @@ class WorldBuilding():
                                                 world_info=world_info,
                                                 world_mood=parse_utils.mood_string_from_int(world_mood))
         request_body = self.default_body
+        if self.backend == 'kobold_cpp':
+            request_body = self._kobold_generation_prompt(request_body)
+            
         result = self.io_util.synchronous_request(request_body, prompt=prompt)
         try:
             json_result = json.loads(parse_utils.sanitize_json(result))

@@ -80,6 +80,7 @@ class Character():
         if self.backend == 'kobold_cpp':
             request_body = self.analysis_body
             request_body['prompt'] = prompt
+            request_body['grammar'] = self.json_grammar
         elif self.backend == 'openai':
             request_body = self.default_body
             request_body['messages'][1]['content'] = prompt

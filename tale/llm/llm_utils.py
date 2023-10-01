@@ -37,8 +37,7 @@ class LlmUtil():
         self._world_building = WorldBuilding(default_body=self.default_body,
                                              io_util=self.io_util,
                                              backend=self.backend)
-        self._character = Character(
-                                    backend=self.backend,
+        self._character = Character(backend=self.backend,
                                     io_util=self.io_util,
                                     default_body=self.default_body)
         self._story_building = StoryBuilding(default_body=self.default_body,
