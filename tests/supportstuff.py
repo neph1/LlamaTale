@@ -65,8 +65,11 @@ class FakeIoUtil(IoUtil):
         super().__init__()
         self.response = response # type: list
 
-    def synchronous_request(self, request_body: dict) -> str:
+    def synchronous_request(self, request_body: dict, prompt: str = None) -> str:
         return self.response.pop(0) if isinstance(self.response, list) > 0 else self.response
     
     def asynchronous_request(self, request_body: dict):
         return self.response.pop(0) if isinstance(self.response, list) > 0 else self.response
+    
+    def set_response(self, response: any):
+        self.response = response

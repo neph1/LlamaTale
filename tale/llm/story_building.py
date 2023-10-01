@@ -1,0 +1,33 @@
+# This file contains the StoryBuilding class, which is responsible for generating the story background
+from tale import parse_utils
+from tale.llm import llm_config
+from tale.llm.llm_io import IoUtil
+
+
+class StoryBuilding():
+
+    def __init__(self, io_util: IoUtil, default_body: dict, backend: str = 'kobold_cpp'):
+        self.backend = backend
+        self.io_util = io_util
+        self.default_body = default_body
+        self.story_background_prompt = llm_config.params['STORY_BACKGROUND_PROMPT'] # Type: str
+
+    def generate_story_background(self, world_mood: int, world_info: str, story_type: str):
+        prompt = self.story_background_prompt.format(
+            story_type=story_type,
+            world_mood=parse_utils.mood_string_from_int(world_mood),
+            world_info=world_info)
+        request_body = self.default_body
+        return self.io_util.synchronous_request(request_body, prompt=prompt)
+    
+    def _kobold_generation_prompt(self, request_body: dict) -> dict:
+        """ changes some parameters for better generation of locations in kobold_cpp"""
+        request_body = request_body.copy()
+        request_body['stop_sequence'] = ['\n\n']
+        request_body['temperature'] = 0.5
+        request_body['top_p'] = 0.6
+        request_body['top_k'] = 0
+        request_body['rep_pen'] = 1.0
+        request_body['grammar'] = self.json_grammar
+        #request_body['banned_tokens'] = ['```']
+        return request_body

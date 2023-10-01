@@ -22,6 +22,7 @@ class LivingNpc(Living):
         self.sentiments = {}
         self.action_history = [] # type: list[str]
         self.planned_actions = [] # type: list[str]
+        self.goal = None # type: str # a free form string describing the goal of the NPC
         
     def notify_action(self, parsed: ParseResult, actor: Living) -> None:
         if actor is self or parsed.verb in self.verbs:
@@ -146,8 +147,8 @@ class LivingNpc(Living):
     def character_card(self) -> str:
         items = []
         for i in self.inventory:
-            items.append(str(i.name))
-        return '[{name}; gender: {gender}; age: {age}; occupation: {occupation}; personality: {personality}; appearance: {description}; items:{items}]'.format(
+            items.append(f'"{str(i.name)}"')
+        return '{{"name":"{name}", "gender":"{gender}","age":{age},"occupation":"{occupation}","personality":"{personality}","appearance":"{description}","items":[{items}]}}'.format(
                 name=self.title,
                 gender=self.gender,
                 age=self.age,
@@ -160,6 +161,9 @@ class DynamicStory(StoryBase):
 
     def __init__(self) -> None:
         self._zones = dict() # type: dict[str, Zone]
+        self._world = dict() # type: dict[str, any]
+        self._world["creatures"] = dict()
+        self._world["items"] = dict()
 
     def get_zone(self, name: str) -> Zone:
         """ Find a zone by name."""
@@ -172,7 +176,6 @@ class DynamicStory(StoryBase):
         self._zones[zone.name] = zone
         return True
 
-    
     def get_location(self, zone: str, name: str) -> Location:
         """ Find a location by name in a zone."""
         return self._zones[zone].get_location(name)
@@ -214,19 +217,23 @@ class DynamicStory(StoryBase):
         return zone.get_info()
 
     def get_npc(self, npc: str) -> Living:
-        return self._npcs[npc]
+        return self._world["creatures"][npc]
     
     def get_item(self, item: str) -> Item:
-        return self._items[item]
+        return self._world["items"][item]
 
     @property
-    def locations(self) -> dict:
-        return self._locations
+    def world_creatures(self) -> dict:
+        return self._world["creatures"]
+    
+    @world_creatures.setter
+    def world_creatures(self, value: dict):
+        self._world["creatures"] = value
 
     @property
-    def npcs(self) -> dict:
-        return self._npcs
-
-    @property
-    def items(self) -> dict:
-        return self._items
+    def world_items(self) -> dict:
+        return self._world["items"]
+    
+    @world_items.setter
+    def world_items(self, value: dict):
+        self._world["items"] = value

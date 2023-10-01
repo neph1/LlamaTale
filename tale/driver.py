@@ -625,7 +625,9 @@ class Driver(pubsub.Listener):
             for i in range(5):
                 new_locations, exits = self.llm_util.build_location(location=xt.target, 
                                                              exit_location_name=player.location.name, 
-                                                             zone_info=new_zone.get_info())
+                                                             zone_info=new_zone.get_info(),
+                                                             world_creatures=dynamic_story.world_creatures,
+                                                             world_items=dynamic_story.world_items,)
                 if new_locations:
                     break
             if not new_locations:
