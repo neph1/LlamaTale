@@ -81,8 +81,6 @@ class StoryBuilder:
                                                                             world_mood=story.config.world_mood,
                                                                             story_type=story.config.type)
         
-        assert(story.config.context)
-
         self.connection.output("Generating world items...")
         for i in range(3):
             items = llm_util.generate_world_items(story_context=story.config.context, 
@@ -92,7 +90,6 @@ class StoryBuilder:
             if items:
                 story.world_items = items
                 break
-        assert(items, "Failed to generate world items")
         
         self.connection.output("Generate world creatures...")
         for i in range(3):
@@ -103,7 +100,6 @@ class StoryBuilder:
             if creatures:
                 story.world_creatures = creatures
                 break
-        assert(creatures, "Failed to generate world creatures")
 
         self.connection.output("Generating starting zone...")
         world_info = {'world_description': self.story_info.world_info, 'world_mood': self.story_info.world_mood, 'world_items': items, 'world_creatures': creatures}
@@ -111,7 +107,6 @@ class StoryBuilder:
                                                     story_type=self.story_info.type, 
                                                     story_context=story.config.context,
                                                     world_info=world_info)
-        assert(zone, "Failed to generate starting zone")
 
         story.add_zone(zone)
 
@@ -126,7 +121,6 @@ class StoryBuilder:
             if new_locations:
                 break
         
-        assert(new_locations, "Failed to generate starting location")
         # fugly copy because a Location needs a name to init properly
         start_location = Location(name=start_location.name, descr=self.story_info.start_location)
         zone.add_location(start_location)
