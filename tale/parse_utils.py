@@ -379,9 +379,10 @@ def replace_items_with_world_items(items: list, world_items: dict) -> list:
     """ Replaces items in a list with world items"""
     new_items = []
     for item in items:
-        if item in world_items:
-            new_items.append(world_items[item])
-        else:
+        if isinstance(item, str):
+            if item.lower() in world_items.keys():
+                new_items.append(world_items[item])
+        elif isinstance(item, dict):
             new_items.append(item)
     return new_items
 
@@ -389,8 +390,9 @@ def replace_creature_with_world_creature(creatures: list, world_creatures: dict)
     """ Replaces creature with world creature"""
     new_creatures = []
     for creature in creatures:
-        if creature in world_creatures:
-            new_creatures.append(world_creatures[creature])
+        if isinstance(creature, str):
+            if creature.lower() in world_creatures.keys():
+                new_creatures.append(world_creatures[creature])
         else:
             new_creatures.append(creature)
     return new_creatures

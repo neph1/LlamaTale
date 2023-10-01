@@ -169,7 +169,7 @@ class IFDriver(driver.Driver):
         start_location = None
         if self.story.config.startlocation_player == "start_zone.transit":
             """Creates a story with a single zone and location. This is the base for a dynamically generated story."""
-            story_build =story_builder.StoryBuilder()
+            story_build =story_builder.StoryBuilder(conn)
             story_info = yield from story_build.build() # type: story_builder.StoryInfo
 
             start_location = story_build.apply_to_story(self.story, self.llm_util)

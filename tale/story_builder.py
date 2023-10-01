@@ -21,8 +21,9 @@ class StoryInfo():
 
 class StoryBuilder:
 
-    def __init__(self) -> None:
+    def __init__(self, connection: PlayerConnection) -> None:
         self.story_info = StoryInfo()
+        self.connection = connection
         
     def ask_story_type(self) -> Generator:
         self.story_info.type = yield "input", ("What genre would you like your story to be? Ie, 'A post apocalyptic scifi survival adventure', or 'Cosy social simulation with deep characters'")
@@ -75,48 +76,57 @@ class StoryBuilder:
         story.config.type = self.story_info.type
         story.config.world_info = self.story_info.world_info
         story.config.world_mood = self.story_info.world_mood
-        print("Generating story background...")
+        self.connection.output("Generating story background...")
         story.config.context = llm_util.generate_story_background(world_info=story.config.world_info, 
                                                                             world_mood=story.config.world_mood,
                                                                             story_type=story.config.type)
         
         assert(story.config.context)
 
-        print("Generate world items...")
-        items = llm_util.generate_world_items(story_context=story.config.context, 
-                                                    story_type=self.story_info.type, 
-                                                    world_info=self.story_info.world_info, 
-                                                    world_mood=self.story_info.world_mood)
-        story.world_items = items
+        self.connection.output("Generating world items...")
+        for i in range(3):
+            items = llm_util.generate_world_items(story_context=story.config.context, 
+                                                        story_type=self.story_info.type, 
+                                                        world_info=self.story_info.world_info, 
+                                                        world_mood=self.story_info.world_mood)
+            if items:
+                story.world_items = items
+                break
+        assert(items, "Failed to generate world items")
         
-        # Generate creatures in the world
-        print("Generate world creatures...")
-        creatures = llm_util.generate_world_creatures(story_context=story.config.context,
+        self.connection.output("Generate world creatures...")
+        for i in range(3):
+            creatures = llm_util.generate_world_creatures(story_context=story.config.context,
                                                             story_type=self.story_info.type,
                                                             world_info=self.story_info.world_info,
                                                             world_mood=self.story_info.world_mood)
-        story.world_creatures = creatures
+            if creatures:
+                story.world_creatures = creatures
+                break
+        assert(creatures, "Failed to generate world creatures")
 
-
-        print("Generating starting zone...")
+        self.connection.output("Generating starting zone...")
         world_info = {'world_description': self.story_info.world_info, 'world_mood': self.story_info.world_mood, 'world_items': items, 'world_creatures': creatures}
         zone = llm_util.generate_start_zone(location_desc=self.story_info.start_location, 
                                                     story_type=self.story_info.type, 
                                                     story_context=story.config.context,
                                                     world_info=world_info)
-        assert(zone)
+        assert(zone, "Failed to generate starting zone")
 
         story.add_zone(zone)
 
-        print("Generating starting location...")
+        self.connection.output("Generating starting location...")
         start_location = Location(name="", descr=self.story_info.start_location)
-        new_locations, exits = llm_util.generate_start_location(location=start_location, 
+        for i in range(3):
+            new_locations, exits = llm_util.generate_start_location(location=start_location, 
                                                                 story_type=self.story_info.type, 
                                                                 story_context=story.config.context,
                                                                 world_info=self.story_info.world_info,
                                                                 zone_info=zone.get_info())
+            if new_locations:
+                break
         
-        assert(new_locations)
+        assert(new_locations, "Failed to generate starting location")
         # fugly copy because a Location needs a name to init properly
         start_location = Location(name=start_location.name, descr=self.story_info.start_location)
         zone.add_location(start_location)

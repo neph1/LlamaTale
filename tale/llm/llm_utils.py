@@ -97,7 +97,15 @@ class LlmUtil():
                           sentiment = '', 
                           location_description = '',
                           max_length : bool=False):
-        return self._character.generate_dialogue(conversation, character_card, character_name, target, target_description, sentiment, location_description, max_length)
+        return self._character.generate_dialogue(conversation, 
+                                                 character_card=character_card, 
+                                                 character_name=character_name, 
+                                                 target=target, 
+                                                 target_description=target_description, 
+                                                 sentiment=sentiment, 
+                                                 location_description=location_description, 
+                                                 story_context=self.__story.config.context, 
+                                                 max_length=max_length)
     
     def update_memory(self, rolling_prompt: str, response_text: str):
         """ Keeps a history of the last couple of events"""
@@ -138,7 +146,7 @@ class LlmUtil():
     def generate_start_location(self, location: Location, zone_info: dict, story_type: str, story_context: str, world_info: str):
         return self._world_building.generate_start_location(location, zone_info, story_type, story_context, world_info)
         
-    def generate_start_zone(self, location_desc: str, story_type: str, story_context: str, world_info: str) -> Zone:
+    def generate_start_zone(self, location_desc: str, story_type: str, story_context: str, world_info: dict) -> Zone:
         return self._world_building.generate_start_zone(location_desc, story_type, story_context, world_info)
     
     def generate_world_items(self, story_context: str, story_type: str, world_info: str, world_mood: int) -> dict:

@@ -172,20 +172,19 @@ class TestParseUtils():
         world_items = {"sword": {"name": "sword", "type": "weapon", "value": 100}, "shield": {"name": "shield", "type": "armor", "value": 60}, "boots": {"name": "boots", "type": "armor", "value": 50}}
 
         replaced_items = parse_utils.replace_items_with_world_items(items, world_items)
-        assert(len(replaced_items) == 3)
+        assert(len(replaced_items) == 2)
         assert(replaced_items[0]["name"] == "sword")
         assert(replaced_items[0]["value"] == 100)
         assert(replaced_items[1]["name"] == "shield")
         assert(replaced_items[1]["value"] == 60)
-        assert(replaced_items[2] == "helmet")
         
 
     def test_replace_creature_with_world_creature(self):
-        creatures = ["kobold", "goblin", "orc"]
+        creatures = ["kobold", "goblin", {"name":"urgokh", "race":"orc"}]
         # creatures have the following format: {"name":"", "body":"", "mass":int(kg), "hp":int, "level":int, "unarmed_attack":One of [FISTS, CLAWS, BITE, TAIL, HOOVES, HORN, TUSKS, BEAK, TALON], "short_descr":""}
         world_creatures = {"kobold": {"name": "kobold", "body":"Humanoid", "mass":40, "hp":5, "level":1, "unarmed_attack": "FISTS", "short_descr":"A typical kobold"} }
         replaced_creatures = parse_utils.replace_creature_with_world_creature(creatures, world_creatures)
-        assert(len(replaced_creatures) == 3)
+        assert(len(replaced_creatures) == 2)
         assert(replaced_creatures[0]["name"] == "kobold")
         assert(replaced_creatures[0]["body"] == "Humanoid")
         assert(replaced_creatures[0]["mass"] == 40)
@@ -193,6 +192,5 @@ class TestParseUtils():
         assert(replaced_creatures[0]["level"] == 1)
         assert(replaced_creatures[0]["unarmed_attack"] == "FISTS")
         assert(replaced_creatures[0]["short_descr"] == "A typical kobold")
-        assert(replaced_creatures[1] == "goblin")
-        assert(replaced_creatures[2] == "orc")
+        assert(replaced_creatures[1] == {'name': 'urgokh', 'race': 'orc'})
           

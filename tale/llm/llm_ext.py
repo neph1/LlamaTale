@@ -147,8 +147,8 @@ class LivingNpc(Living):
     def character_card(self) -> str:
         items = []
         for i in self.inventory:
-            items.append(str(i.name))
-        return '[{name}; gender: {gender}; age: {age}; occupation: {occupation}; personality: {personality}; appearance: {description}; items:{items}]'.format(
+            items.append(f'"{str(i.name)}"')
+        return '{{"name":"{name}", "gender":"{gender}","age":{age},"occupation":"{occupation}","personality":"{personality}","appearance":"{description}","items":[{items}]}}'.format(
                 name=self.title,
                 gender=self.gender,
                 age=self.age,

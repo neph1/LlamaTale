@@ -36,10 +36,11 @@ class Character():
                           target_description: str='', 
                           sentiment = '', 
                           location_description = '',
+                          story_context = '',
                           max_length : bool=False):
         prompt = self.pre_prompt
         prompt += self.dialogue_prompt.format(
-                story_context=self.__story.config.context,
+                story_context=story_context,
                 location=location_description,
                 previous_conversation=conversation, 
                 character2_description=character_card,
@@ -51,17 +52,29 @@ class Character():
 
         #if not self.stream:
         text = parse_utils.trim_response(self.io_util.synchronous_request(request_body, prompt=prompt))
+
+        try:
+            # this is a hack in case the model responds in json
+            json_result = json.loads(parse_utils.sanitize_json(text))
+            if isinstance(json_result, dict):
+                text = list(json_result.values())[0]
+            else:
+                text = json_result
+        except JSONDecodeError as exc:
+            # this is ok, we don't want json
+            pass
         #else:
         #    player_io = mud_context.pla
         #    text = self.io_util.stream_request(self.url + self.stream_endpoint, self.url + self.data_endpoint, request_body, player_io, self.connection)
 
         item_handling_result, new_sentiment = self.dialogue_analysis(text, character_card, character_name, target)
         
-        return f'{text}', item_handling_result, new_sentiment
+        return text, item_handling_result, new_sentiment
     
     def dialogue_analysis(self, text: str, character_card: str, character_name: str, target: str):
         """Parse the response from LLM and determine if there are any items to be handled."""
-        items = character_card.split('items:')[1].split(']')[0]
+        card = json.loads(character_card)
+        items = card.get('items', [])
         prompt = self.generate_item_prompt(text, items, character_name, target)
         
         if self.backend == 'kobold_cpp':

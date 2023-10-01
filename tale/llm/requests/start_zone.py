@@ -21,7 +21,7 @@ class StartZone(LlmRequest):
     def build_prompt(self, args: dict) -> str:
         location_desc = args['location_desc']
         story_type = args['story_type']
-        world_info = args['world_info']
+        world_info = args['world_info'] # Type dict
         story_context = args['story_context']
 
         prompt = self.pre_json_prompt

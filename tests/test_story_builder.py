@@ -10,7 +10,7 @@ from tests.supportstuff import FakeIoUtil
 
 
 class TestStoryBuilder():
-    story_builder = StoryBuilder()
+    story_builder = StoryBuilder(PlayerConnection())
 
     def test_build(self):
         
@@ -55,7 +55,7 @@ class TestStoryBuilder():
 
     def test_apply_to_story(self):
 
-        builder = StoryBuilder()
+        builder = StoryBuilder(PlayerConnection())
 
         builder.story_info.name = "A Tale of Anything"
         builder.story_info.type = "a cozy farming simulator set in a fantasy world"

@@ -96,7 +96,8 @@ class WorldBuilding():
             generated_items = parse_utils.replace_items_with_world_items(generated_items, world_items)
         # the loading function works differently and will not insert the items into the location
         # since the item doesn't have the location
-        items = parse_utils.load_items(generated_items)
+        items = self._validate_items(generated_items)
+        items = parse_utils.load_items(items)
         for item in items.values():
             location.insert(item, None)
         return location
@@ -203,7 +204,7 @@ class WorldBuilding():
         except Exception as exc:
             return None, None
         
-    def generate_start_zone(self, location_desc: str, story_type: str, story_context: str, world_info: str) -> Zone:
+    def generate_start_zone(self, location_desc: str, story_type: str, story_context: str, world_info: dict) -> Zone:
         """ Generate a zone based on the current story context"""
         prompt = StartZone().build_prompt({
             'location_desc': location_desc,
@@ -271,6 +272,10 @@ class WorldBuilding():
     def _validate_items(self, items: dict) -> list:
         new_items = []
         for item in items:
+            if isinstance(item, str):
+                # TODO: decide what to do with later
+                new_items.append({"name":item, "type":"Other"})
+                continue
             if not item.get("name", ""):
                 continue
             item["name"] = item["name"].lower()
