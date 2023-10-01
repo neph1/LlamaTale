@@ -26,7 +26,7 @@ class StoryBuilder:
         self.connection = connection
         
     def ask_story_type(self) -> Generator:
-        self.story_info.type = yield "input", ("What genre would you like your story to be? Ie, 'A post apocalyptic scifi survival adventure', or 'Cosy social simulation with deep characters'")
+        self.story_info.type = yield "input", ("What genre would you like your story to be? Ie, 'A post apocalyptic scifi survival adventure', or 'Cozy social simulation with deep characters'")
         
     def ask_world_info(self) -> Generator:
         self.story_info.world_info = yield "input", ("Describe what the world is like. Use one to two paragraphs to outline the world and what it's like.")
@@ -35,7 +35,7 @@ class StoryBuilder:
         self.story_info.world_mood = yield "input", ("How safe is the world? 5 is a happy place, -5 is nightmare mode.", self.validate_mood)
 
     def ask_start_location(self) -> Generator:
-        self.story_info.start_location = yield "input", ("Where does the story start? Describe the starting area.")
+        self.story_info.start_location = yield "input", ("Where does the story start? Describe the starting location.")
 
     def ask_name(self) -> Generator:
         self.story_info.name = yield "input", ("Would you like to name the story?")

@@ -18,33 +18,33 @@ class TestStoryBuilder():
 
         input, prompt = next(builder)
 
-        assert(input, "input")
-        assert(prompt, "What genre would you like your story to be? Ie, 'A post apocalyptic scifi survival adventure', or 'Cozy social simulation with deep characters'")
+        assert(input == "input")
+        assert(prompt == "What genre would you like your story to be? Ie, 'A post apocalyptic scifi survival adventure', or 'Cozy social simulation with deep characters'")
 
         input, prompt = builder.send("A post apocalyptic scifi survival adventure")
 
-        assert(input, "input")
-        assert(prompt, "Describe what the world is like. Use one to two paragraphs to outline the world and what it's like.")
+        assert(input == "input")
+        assert(prompt == "Describe what the world is like. Use one to two paragraphs to outline the world and what it's like.")
 
         input, prompt = builder.send("The world is a post apocalyptic world where the machines have taken over.")
 
-        assert(input, "input")
-        assert(prompt, "How safe is the world? 5 is a happy place, -5 is nightmare mode.")
+        assert(input == "input")
+        assert(prompt == "How safe is the world? 5 is a happy place, -5 is nightmare mode.", self.story_builder.validate_mood)
 
         input, prompt = builder.send(5)
 
-        assert(input, "input")
-        assert(prompt, "Where does the story start? Describe the starting location.")
+        assert(input == "input")
+        assert(prompt == "Where does the story start? Describe the starting location.")
 
         # story_info = builder.
         # assert(isinstance(story_info, StoryInfo))
 
     def test_validate_mood(self):
-        assert(self.story_builder.validate_mood(5), 5)
+        assert(self.story_builder.validate_mood(5) == 5)
 
-        assert(self.story_builder.validate_mood(-5), -5)
+        assert(self.story_builder.validate_mood(-5) == -5)
 
-        assert(self.story_builder.validate_mood("0"), 0)
+        assert(self.story_builder.validate_mood("0") == 0)
 
         with pytest.raises(ValueError):
             self.story_builder.validate_mood(10)
@@ -77,7 +77,7 @@ class TestStoryBuilder():
         
         start_location = builder.apply_to_story(story, llm_util)
 
-        assert(start_location.name, "Greenhaven")
+        assert(start_location.name == "Greenhaven")
         assert(start_location.exits["moonflower meadow"])
         assert(start_location.exits["shadowy woods"])
         assert(len(story.world_creatures) == 5)

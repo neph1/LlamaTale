@@ -23,7 +23,7 @@ class Character():
         self.backend = backend
         self.io_util = io_util
         self.default_body = default_body
-        self.analysis_body = llm_config.params['ANALYSIS_BODY']
+        self.analysis_body = json.loads(llm_config.params['ANALYSIS_BODY'])
         self.travel_prompt = llm_config.params['TRAVEL_PROMPT']
         self.reaction_prompt = llm_config.params['REACTION_PROMPT']
         self.idle_action_prompt = llm_config.params['IDLE_ACTION_PROMPT']
