@@ -103,10 +103,13 @@ class StoryBuilder:
 
         self.connection.output("Generating starting zone...")
         world_info = {'world_description': self.story_info.world_info, 'world_mood': self.story_info.world_mood, 'world_items': items, 'world_creatures': creatures}
-        zone = llm_util.generate_start_zone(location_desc=self.story_info.start_location, 
+        for i in range(3):
+            zone = llm_util.generate_start_zone(location_desc=self.story_info.start_location, 
                                                     story_type=self.story_info.type, 
                                                     story_context=story.config.context,
                                                     world_info=world_info)
+            if zone:
+                break
 
         story.add_zone(zone)
 

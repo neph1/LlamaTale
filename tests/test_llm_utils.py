@@ -1,7 +1,9 @@
+import datetime
 import pytest
 import json
 from tale import mud_context, weapon_type
 from tale import zone
+from tale import util
 from tale.base import Location
 from tale.coord import Coord
 from tale.json_story import JsonStory
@@ -16,6 +18,7 @@ from tale.driver_if import IFDriver
 
 class TestLlmUtils():
 
+    driver = IFDriver()
     llm_util = LlmUtil(FakeIoUtil()) # type: LlmUtil
 
     test_text_valid = '{"thoughts": "It seems that an item (the flagon of ale) has been given by the barkeep to the user. The text explicitly states \'the barkeep presents you with a flagon of frothy ale\'. Therefore, the item has been given by the barkeep to the user.", "result": {"item":"ale", "from":"bartender", "to":"user"}, "sentiment":"cheerful"}'
@@ -30,9 +33,9 @@ class TestLlmUtils():
 
     actual_response_3 = '{\n    "thoughts": "\ud83d\ude0d Norhardt feels that he is close to finding something important after a long and dangerous journey through rough terrain and harsh weather, and it consumes him fully.",\n    "result": {\n        "item": "map",\n        "from": "Norhardt",\t\n        "to": "Arto"\n    }\n}'
     
-    story = JsonStory('tests/files/test_story/', parse_utils.load_story_config(parse_utils.load_json('tests/files/test_story/test_story_config.json')))
+    story = JsonStory('tests/files/test_story/', parse_utils.load_story_config(parse_utils.load_json('tests/files/test_story_config_empty.json')))
     
-    story.init(IFDriver())
+    story.init(driver)
 
     def test_validate_item_response_valid(self):
         items = json.loads('["ale"]')
@@ -155,6 +158,8 @@ class TestLlmUtils():
 
 class TestWorldBuilding():
 
+    driver = IFDriver(screen_delay=99, gui=False, web=True, wizard_override=True)
+    driver.game_clock = util.GameDateTime(datetime.datetime(year=2023, month=1, day=1), 1)
     llm_util = LlmUtil(FakeIoUtil()) # type: LlmUtil
 
     generated_location = '{"name": "Outside", "description": "A barren wasteland of snow and ice stretches as far as the eye can see. The wind howls through the mountains like a chorus of banshees, threatening to sweep away any unfortunate soul caught outside without shelter.", "exits": [{"name": "North Pass","short_desc": "The North Pass is treacherous mountain pass that leads deeper into the heart of the range","enter_msg":"You shuffle your feet through knee-deep drifts of snow, trying to keep your balance on the narrow path."}, {"name": "South Peak","short_Desc": "The South Peak offers breathtaking views of the surrounding landscape from its summit, but it\'s guarded by a pack of fierce winter wolves.","Enter_msg":"You must face off against the snarling beasts if you wish to reach the peak."}] ,"items": [{"name":"Woolly gloves", "type":"Wearable"}],"npcs": [{"name":"wolf", "body":"Creature", "unarmed_attack":"BITE", "hp":10, "level":10}]}'
@@ -163,8 +168,8 @@ class TestWorldBuilding():
     
     generated_zone = '{"name":"Test Zone", "description":"A test zone", "level":10, "mood":-2, "races":["human", "elf", "dwarf"], "items":["sword", "shield"]}'
     
-    story = JsonStory('tests/files/test_story/', parse_utils.load_story_config(parse_utils.load_json('tests/files/test_story/test_story_config.json')))
-    story.init(IFDriver())
+    story = JsonStory('tests/files/test_story/', parse_utils.load_story_config(parse_utils.load_json('tests/files/test_story_config_empty.json')))
+    story.init(driver)
 
     def test_validate_location(self):
         location = Location(name='Outside')

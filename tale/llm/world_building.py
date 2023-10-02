@@ -108,9 +108,12 @@ class WorldBuilding():
             return location
         if world_creatures:
             generated_npcs = parse_utils.replace_creature_with_world_creature(generated_npcs, world_creatures)
-        generated_npcs = parse_utils.load_npcs(generated_npcs)
-        for npc in generated_npcs.values():
-            location.insert(npc, None)
+        try:
+            generated_npcs = parse_utils.load_npcs(generated_npcs)
+            for npc in generated_npcs.values():
+                location.insert(npc, None)
+        except Exception as exc:
+            print(exc)
         return location
 
     
@@ -234,6 +237,9 @@ class WorldBuilding():
                                                 world_info=world_info,
                                                 world_mood=parse_utils.mood_string_from_int(world_mood))
         request_body = self.default_body
+        if self.backend == 'kobold_cpp':
+            request_body = self._kobold_generation_prompt(request_body)
+
         result = self.io_util.synchronous_request(request_body, prompt=prompt)
         try:
             json_result = json.loads(parse_utils.sanitize_json(result))
@@ -248,6 +254,9 @@ class WorldBuilding():
                                                 world_info=world_info,
                                                 world_mood=parse_utils.mood_string_from_int(world_mood))
         request_body = self.default_body
+        if self.backend == 'kobold_cpp':
+            request_body = self._kobold_generation_prompt(request_body)
+            
         result = self.io_util.synchronous_request(request_body, prompt=prompt)
         try:
             json_result = json.loads(parse_utils.sanitize_json(result))

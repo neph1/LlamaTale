@@ -16,7 +16,7 @@ from tale.load_character import CharacterV2
 class Character():
 
     def __init__(self, backend: str, io_util: IoUtil, default_body: dict):
-        self.pre_prompt = llm_config.params['PRE_JSON_PROMPT']
+        self.pre_prompt = llm_config.params['PRE_PROMPT']
         self.dialogue_prompt = llm_config.params['DIALOGUE_PROMPT']
         self.character_prompt = llm_config.params['CREATE_CHARACTER_PROMPT']
         self.item_prompt = llm_config.params['ITEM_PROMPT']
@@ -80,6 +80,7 @@ class Character():
         if self.backend == 'kobold_cpp':
             request_body = self.analysis_body
             request_body['prompt'] = prompt
+            request_body['grammar'] = self.json_grammar
         elif self.backend == 'openai':
             request_body = self.default_body
             request_body['messages'][1]['content'] = prompt
