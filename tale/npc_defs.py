@@ -22,12 +22,12 @@ class StationaryNpc(LivingNpc):
         if player_in_location:
             self.idle_action()
 
-class StationaryMob(Living):
+class StationaryMob(LivingNpc):
     
     def __init__(self, name: str, gender: str, *,
                  title: str="", descr: str="", short_descr: str="", race: str=""):
         super(StationaryMob, self).__init__(name=name, gender=gender,
-                 title=title, descr=descr, short_descr=short_descr, race=race)
+                 title=title, descr=descr, short_descr=short_descr, race=race, age=0, personality='', occupation='')
 
     @call_periodically(15, 60)
     def do_idle_action(self, ctx: Context) -> None:
