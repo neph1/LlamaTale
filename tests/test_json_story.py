@@ -1,15 +1,17 @@
 
+import datetime
 import tale.parse_utils as parse_utils
-from tale import mud_context
+from tale import mud_context, util
 from tale.base import Location
 from tale.driver_if import IFDriver
 from tale.json_story import JsonStory
 from tests.files.test_story.story import Story
 
 class TestJsonStory():
-
+    driver = IFDriver(screen_delay=99, gui=False, web=True, wizard_override=True)
+    driver.game_clock = util.GameDateTime(datetime.datetime(year=2023, month=1, day=1), 1)
     story = JsonStory('tests/files/test_story/', parse_utils.load_story_config(parse_utils.load_json('tests/files/test_story/test_story_config.json')))
-    story.init(IFDriver())
+    story.init(driver)
 
     def test_load_story(self):
         assert(self.story)

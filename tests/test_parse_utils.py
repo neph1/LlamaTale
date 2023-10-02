@@ -1,5 +1,6 @@
+import datetime
 import json
-from tale import mud_context, util
+from tale import json_story, mud_context, util
 from tale.base import Exit, Location
 from tale.coord import Coord
 from tale.driver_if import IFDriver
@@ -9,6 +10,7 @@ import tale.parse_utils as parse_utils
 
 
 class TestParseUtils():
+
     
     def test_load_json(self):
         assert(parse_utils.load_json("tests/files/test.json"))
@@ -51,6 +53,11 @@ class TestParseUtils():
 
         
     def test_load_npcs(self):
+
+        driver = IFDriver(screen_delay=99, gui=False, web=True, wizard_override=True)
+        driver.game_clock = util.GameDateTime(datetime.datetime(year=2023, month=1, day=1), 1)
+        mud_context.driver = driver
+        
         locations = {}
         locations['Royal grotto'] = Location('Royal grotto', 'A small grotto, fit for a kobold king')
         npcs_json = parse_utils.load_json("tests/files/test_npcs.json")
@@ -69,6 +76,9 @@ class TestParseUtils():
         assert(npc3.name == 'name')
 
     def test_load_npcs_generated(self):
+        driver = IFDriver(screen_delay=99, gui=False, web=True, wizard_override=True)
+        driver.game_clock = util.GameDateTime(datetime.datetime(year=2023, month=1, day=1), 1)
+        mud_context.driver = driver
         npcs_string = '{"npcs": [{"name": "Rosewood Fairy", "sentiment": "friendly", "race": "Fae", "gender": "female", "level": 5, "description": "A delicate creature with wings as soft as rose petals, offering quests and guidance."}]}'
         npcs = json.loads(npcs_string)
         assert(len(npcs) == 1)

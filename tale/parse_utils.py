@@ -95,12 +95,15 @@ def load_npcs(json_file: [], locations = {}) -> dict:
     """
     npcs = {}
     for npc in json_file:
-        npc_type = npc.get('type', 'LivingNpc')
-        if 'npc' in npc_type.lower():
-            if npc['name'].startswith('the') or npc['name'].startswith('The'):
+        npc_type = npc.get('type', 'Mob')
+        if npc_type == 'ignore':
+            continue
+        if npc['name'].startswith('the') or npc['name'].startswith('The'):
                 name = npc['name'].replace('the','').replace('The','').strip()
-            else:
-                name = npc['name']
+        else:
+            name = npc['name']
+        if 'npc' in npc_type.lower():
+            
             new_npc = StationaryNpc(name=name, 
                                 gender=lang.validate_gender_mf(npc.get('gender', 'm')[0]), 
                                 race=npc.get('race', 'human').lower(), 
@@ -114,6 +117,7 @@ def load_npcs(json_file: [], locations = {}) -> dict:
             new_npc.stats.set_weapon_skill(WeaponType.UNARMED, random.randint(10, 30))
             new_npc.stats.level = npc.get('level', 1)
         elif npc_type == 'Mob':
+
             new_npc = StationaryMob(name=npc['name'], 
                                 gender=lang.validate_gender_mf(npc.get('gender', 'm')[0]), 
                                 race=npc.get('race', 'human').lower(), 
