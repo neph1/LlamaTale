@@ -48,6 +48,7 @@ class LlmUtil():
         """Evoke a response from LLM. Async if stream is True, otherwise synchronous.
         Update the rolling prompt with the latest message.
         Will put generated text in _look_hashes, and reuse it if same hash is passed in."""
+        output_template = 'Original:[ {message} ] <b>Generated</>:{text}'
 
         if not message or str(message) == "\n":
             str(message), rolling_prompt
@@ -58,7 +59,7 @@ class LlmUtil():
         if text_hash_value in self._look_hashes:
             text = self._look_hashes[text_hash_value]
             
-            return f'Original:[ {message} ]\nGenerated:\n{text}', rolling_prompt
+            return output_template.format(message=message, text=text), rolling_prompt
 
         trimmed_message = parse_utils.remove_special_chars(str(message))
 
@@ -80,9 +81,9 @@ class LlmUtil():
         if not self.stream:
             text = self.io_util.synchronous_request(request_body)
             self._store_hash(text_hash_value, text)
-            return f'Original:[ {message} ]\n\nGenerated:\n{text}', rolling_prompt
+            return output_template.format(message=message, text=text), rolling_prompt
 
-        player_io.print(f'Original:[ {message} ]\nGenerated:\n', end=False, format=True, line_breaks=False)
+        player_io.print(output_template.format(message=message, text=text), end=False, format=True, line_breaks=False)
         text = self.io_util.stream_request(request_body, player_io, self.connection)
         self._store_hash(text_hash_value, text)
         
@@ -154,6 +155,15 @@ class LlmUtil():
     def generate_world_creatures(self, story_context: str, story_type: str, world_info: str, world_mood: int) -> dict:
         return self._world_building.generate_world_creatures(story_context, story_type, world_info, world_mood)
         
+    def generate_random_spawn(self, location: Location, zone_info: dict):
+        return self._world_building.generate_random_spawn(location=location, 
+                                                          zone_info=zone_info, 
+                                                          story_type=self.__story.config.type, 
+                                                          story_context=self.__story.config.context,
+                                                          world_info=self.__story.config.world_info,
+                                                          world_creatures=self.__story.world_creatures,
+                                                          world_items=self.__story.world_items)
+    
     def _store_hash(self, text_hash_value: int, text: str):
         """ Store the generated text in a hash table."""
         if text_hash_value != -1:

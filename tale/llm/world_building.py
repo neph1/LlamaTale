@@ -4,6 +4,7 @@ from tale import parse_utils, races
 from tale import zone
 from tale.base import Location
 from tale.coord import Coord
+from tale.items import generic
 from tale.llm import llm_config
 from tale.llm.llm_ext import DynamicStory
 from tale.llm.llm_io import IoUtil
@@ -25,6 +26,8 @@ class WorldBuilding():
         self.json_grammar = llm_config.params['JSON_GRAMMAR'] # Type: str
         self.world_items_prompt = llm_config.params['WORLD_ITEMS'] # Type: str
         self.world_creatures_prompt = llm_config.params['WORLD_CREATURES'] # Type: str
+        self.player_enter_prompt = llm_config.params['PLAYER_ENTER_PROMPT'] # Type: str
+        self.item_types = ["Weapon", "Wearable", "Health", "Money", "Trash", "Food", "Drink", "Key"]
 
 
     def build_location(self, location: Location, 
@@ -35,6 +38,12 @@ class WorldBuilding():
                        world_info: str, 
                        world_items: dict = {}, 
                        world_creatures: dict = {}):
+        
+        extra_items = generic.generic_items.get(self._check_setting(story_type), {})
+        if extra_items:
+            zone_info['items'].extend(extra_items.keys())
+            world_items = {**world_items, **extra_items}
+
         prompt = BuildLocation().build_prompt({
             'zone_info': zone_info,
             'location': location,
@@ -42,6 +51,7 @@ class WorldBuilding():
             'story_type': story_type,
             'world_info': world_info,
             'story_context': story_context,
+            
         })
 
         request_body = self.default_body
@@ -139,9 +149,8 @@ class WorldBuilding():
                         zone = self.validate_zone(json_result, 
                                                   target_location.world_location.add(
                                                       direction.multiply(json_result.get('size', 5))))
-                        if zone:
-                            if story.add_zone(zone):
-                                return zone
+                        if zone and story.add_zone(zone):
+                            return zone
         return current_zone
 
         
@@ -201,10 +210,8 @@ class WorldBuilding():
             json_result = json.loads(parse_utils.sanitize_json(result))
             location.name=json_result['name']
             return self._validate_location(json_result, location, '')
-        except json.JSONDecodeError as exc:
-            print(exc)
-            return None, None
         except Exception as exc:
+            print(exc)
             return None, None
         
     def generate_start_zone(self, location_desc: str, story_type: str, story_context: str, world_info: dict) -> Zone:
@@ -235,7 +242,8 @@ class WorldBuilding():
         prompt = self.world_items_prompt.format(story_context=story_context,
                                                 story_type=story_type,
                                                 world_info=world_info,
-                                                world_mood=parse_utils.mood_string_from_int(world_mood))
+                                                world_mood=parse_utils.mood_string_from_int(world_mood),
+                                                item_types=self.item_types)
         request_body = self.default_body
         if self.backend == 'kobold_cpp':
             request_body = self._kobold_generation_prompt(request_body)
@@ -265,6 +273,38 @@ class WorldBuilding():
             print(exc)
             return None
     
+    def generate_random_spawn(self, location: Location, story_context: str, story_type: str, world_info: str, zone_info: dict, world_creatures: dict, world_items: dict):
+        location_info = {'name': location.title, 'description': location.look(short=True), 'exits': location.exits}
+        extra_items = generic.generic_items.get(self._check_setting(story_type), {})
+        if extra_items:
+            zone_info['items'].extend(extra_items.keys())
+            world_items = {**world_items, **extra_items}
+        prompt = self.player_enter_prompt.format(story_context=story_context,
+                                                story_type=story_type,
+                                                world_info=world_info,
+                                                zone_info=zone_info,
+                                                location_info=location_info)
+        request_body = self.default_body
+        if self.backend == 'kobold_cpp':
+            request_body = self._kobold_generation_prompt(request_body)
+            
+        result = self.io_util.synchronous_request(request_body, prompt=prompt)
+        try:
+            json_result = json.loads(parse_utils.sanitize_json(result))
+            creatures = json_result["npcs"]
+            creatures.extend(json_result["mobs"])
+            creatures = parse_utils.replace_creature_with_world_creature(creatures, world_creatures)
+            creatures = parse_utils.load_npcs(creatures)
+            for c in creatures.values():
+                location.insert(c)
+            items = json_result["items"]
+            items = parse_utils.replace_items_with_world_items(items, world_items)
+            items = parse_utils.load_items(items)
+            for i in items.values():
+                location.insert(i)
+        except Exception as exc:
+            print(exc)
+            return None
         
     def _kobold_generation_prompt(self, request_body: dict) -> dict:
         """ changes some parameters for better generation of locations in kobold_cpp"""
@@ -289,7 +329,7 @@ class WorldBuilding():
                 continue
             item["name"] = item["name"].lower()
             type = item.get("type", "Other")
-            if type not in ["Weapon", "Wearable", "Health", "Money"]:
+            if type not in self.item_types:
                 item["type"] = "Other"
             new_items.append(item)
         return new_items
@@ -313,3 +353,15 @@ class WorldBuilding():
             creature["type"] = "Mob"
             new_creatures[creature["name"]] = creature
         return new_creatures
+    
+    def _check_setting(self, story_type: str):
+        if 'fantasy' in story_type:
+            return 'fantasy'
+        if 'modern' in story_type or 'contemporary' in story_type:
+            return 'modern'
+        if 'scifi' in story_type or 'sci-fi' in story_type:
+            return 'scifi'
+        if 'postapoc' in story_type or 'post-apoc' in story_type:
+            return 'postapoc'
+        return ''
+        

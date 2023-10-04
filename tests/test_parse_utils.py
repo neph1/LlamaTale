@@ -1,10 +1,12 @@
 import datetime
 import json
 from tale import json_story, mud_context, util
-from tale.base import Exit, Location
+from tale.base import Exit, Location, Weapon, Wearable
 from tale.coord import Coord
 from tale.driver_if import IFDriver
+from tale.items.basic import Boxlike, Drink, Food, Health, Money
 from tale.story import GameMode, MoneyType
+from tale.wearable import WearLocation
 from tale.zone import Zone
 import tale.parse_utils as parse_utils
 
@@ -44,14 +46,24 @@ class TestParseUtils():
         assert(items['Hoodie'])
 
     def test_load_generated_items(self):
-        items_string = '{"items": [{"name":"Woolly gloves", "type":"Wearable"}]}'
-        items = json.loads(items_string)
+        items_string_no_loc = '{"items": [{"name":"Woolly gloves", "type":"Wearable"}]}'
+        items = json.loads(items_string_no_loc)
         assert(len(items) == 1)
         loaded_items = parse_utils.load_items(items['items'])
         assert(len(loaded_items) == 1)
         assert(loaded_items['Woolly gloves'])
+        assert(loaded_items['Woolly gloves'].wear_location == None)
 
-        
+        items_string_with_loc = '{"items": [{"name":"Woolly gloves", "type":"Wearable", "wear_location":"HANDS"}]}'
+
+        items = json.loads(items_string_with_loc)
+        assert(len(items) == 1)
+        loaded_items = parse_utils.load_items(items['items'])
+        assert(len(loaded_items) == 1)
+        assert(loaded_items['Woolly gloves'])
+        assert(loaded_items['Woolly gloves'].wear_location == WearLocation.HANDS)
+
+
     def test_load_npcs(self):
 
         driver = IFDriver(screen_delay=99, gui=False, web=True, wizard_override=True)
@@ -212,3 +224,21 @@ class TestParseUtils():
         assert(replaced_creatures[0]["short_descr"] == "A typical kobold")
         assert(replaced_creatures[1] == {'name': 'urgokh', 'race': 'orc'})
           
+    def test_parse_basic_items(self):
+        items = json.loads('{"items": [{"name": "sword", "type": "Weapon", "value": 100}, {"name": "boots", "type": "Wearable", "value": 50, "ac": 2, "wear_location": "FEET"}, {"name": "ration", "type": "Food", "value": 10, "affects_fullness":10}, {"name": "health_potion", "type": "Health", "value": 10}, {"name":"Bottle of beer", "type":"Drink", "value":10}, {"name":"box", "type":"Container", "value":10}]}')
+        parsed_items = parse_utils.load_items(items['items'])
+
+        assert(len(parsed_items) == 6)
+        assert(isinstance(parsed_items["sword"], Weapon))
+        assert(parsed_items["sword"])
+        assert(isinstance(parsed_items["boots"], Wearable))
+        assert(parsed_items["boots"].wear_location == WearLocation.FEET)
+        assert(isinstance(parsed_items["ration"], Food))
+        assert(parsed_items["ration"].affect_fullness == 10)
+        assert(isinstance(parsed_items["health_potion"], Health))
+        assert(parsed_items["health_potion"].healing_effect == 10)
+        # assert(isinstance(parsed_items[4], Money))
+        # assert(parsed_items[4].value == 10)
+        # assert(parsed_items[4].name == "10$ bill")
+        assert(isinstance(parsed_items["Bottle of beer"], Drink))
+        assert(isinstance(parsed_items["box"], Boxlike))

@@ -609,10 +609,10 @@ class Armour(Item):
 
 class Wearable(Item):
     
-    def __init__(self, name: str, weight: int = 0, value: int = 0, ac: int = 0, wearable_type: str = 'none', title: str = "", *, descr: str = "", short_descr: str = "") -> None:
+    def __init__(self, name: str, weight: int = 0, value: int = 0, ac: int = 0, wear_location: wearable.WearLocation = wearable.WearLocation.TORSO, title: str = "", *, descr: str = "", short_descr: str = "") -> None:
         super().__init__(name, title, descr=descr, short_descr=short_descr, weight=weight, value=value)
         self.ac = ac
-        self.type = wearable_type
+        self.wear_location = wear_location
 
 class Location(MudObject):
     """
@@ -677,9 +677,9 @@ class Location(MudObject):
             if living == exclude_living:
                 continue
             if living in targets:
-                living.tell(specific_target_msg, evoke=evoke, max_length=max_length, alt_prompt=alt_prompt)
+                living.tell(specific_target_msg, evoke=evoke, short_len=max_length, alt_prompt=alt_prompt)
             else:
-                living.tell(room_msg, evoke=evoke, max_length=max_length, alt_prompt=alt_prompt)
+                living.tell(room_msg, evoke=evoke, short_len=max_length, alt_prompt=alt_prompt)
         if room_msg:
             tap = self.get_wiretap()
             tap.send((self.name, room_msg))
@@ -793,7 +793,7 @@ class Location(MudObject):
             result = [living for living in self.livings if name in living.aliases or living.title.lower() == name]
         return result[0] if result else None
 
-    def insert(self, obj: Union['Living', Item], actor: Optional['Living']) -> None:
+    def insert(self, obj: Union['Living', Item], actor: Optional['Living'] = None) -> None:
         """Add item to the contents of the location (either a Living or an Item)"""
         assert obj is not None
         if isinstance(obj, Living):
@@ -1105,7 +1105,7 @@ class Living(MudObject):
         """get a wiretap for this living"""
         return pubsub.topic(("wiretap-living", "%s#%d" % (self.name, self.vnum)))
 
-    def tell(self, message: str, *, end: bool=False, format: bool=True, evoke: bool=False, max_length : bool=False, alt_prompt : str='') -> 'Living':
+    def tell(self, message: str, *, end: bool=False, format: bool=True, evoke: bool=False, short_len : bool=False, alt_prompt : str='') -> 'Living':
         """
         Every living thing in the mud can receive an action message.
         Message will be converted to str if required.
@@ -1125,7 +1125,7 @@ class Living(MudObject):
 
     def tell_later(self, message: str) -> None:
         """Tell something to this creature, but do it after all other messages."""
-        pending_tells.send(lambda: self.tell(message, evoke=True, max_length=False))
+        pending_tells.send(lambda: self.tell(message, evoke=True, short_len=False))
 
     def tell_others(self, message: str, target: Optional['Living']=None, evoke: bool=False, max_length : bool=True, alt_prompt='') -> None:
         """
@@ -1221,7 +1221,7 @@ class Living(MudObject):
         """
         attacking = parsed.verb == 'attack'
         who, actor_message, room_message, target_message = self.soul.process_verb_parsed(self, parsed)
-        self.tell(actor_message, evoke=not attacking, max_length=False)
+        self.tell(actor_message, evoke=not attacking, short_len=False)
         self.location.tell(room_message, self, who, target_message, evoke=not attacking, max_length=False)
         pending_actions.send(lambda actor=self: actor.location._notify_action_all(parsed, actor))
         if attacking:
@@ -1382,7 +1382,7 @@ class Living(MudObject):
         room_msg = "%s attacks %s! %s" % (attacker_name, victim_name, result)
         victim_msg = "%s attacks you. %s" % (attacker_name, result)
         attacker_msg = "You attack %s! %s" % (victim_name, result)
-        victim.tell(victim_msg, evoke=True, max_length=False)
+        victim.tell(victim_msg, evoke=True, short_len=False)
         
         combat_prompt = mud_context.driver.prepare_combat_prompt(attacker=self, 
                               victim=victim, 
@@ -1497,13 +1497,13 @@ class Living(MudObject):
         self.__wielding = weapon
         self.stats.wc = weapon.wc if self.__wielding else 0
 
-    def set_wearable(self, wearable: Optional[Wearable], location: Optional[wearable.WearLocation]) -> None:
+    def set_wearable(self, wearable: Optional[Wearable], wear_location: Optional[wearable.WearLocation]) -> None:
         """ Wear an item if item is not None, else unwear location"""
         if wearable:
-            loc = location if location else wearable.location
+            loc = wear_location if wear_location else wearable.wear_location
             self.__wearing[loc] = wearable
-        elif location:
-            self.__wearing.pop(location, None)
+        elif wear_location:
+            self.__wearing.pop(wear_location, None)
 
     def get_wearable(self, location: wearable.WearLocation) -> Optional[Wearable]:
         """Return the wearable item at the given location, or None if no item is worn there."""
@@ -1754,7 +1754,7 @@ class Door(Exit):
             raise ActionRefused("You try to open it, but it's locked.")
         else:
             self.opened = True
-            actor.tell("You open it.", evoke=False, max_length=True)
+            actor.tell("You open it.", evoke=False, short_len=True)
             actor.tell_others("{Actor} opens the %s." % self.name, evoke=False, max_length=True)
             if self.linked_door:
                 self.linked_door.opened = True
@@ -1765,7 +1765,7 @@ class Door(Exit):
         if not self.opened:
             raise ActionRefused("It's already closed.")
         self.opened = False
-        actor.tell("You close it.", evoke=False, max_length=True)
+        actor.tell("You close it.", evoke=False, short_len=True)
         actor.tell_others("{Actor} closes the %s." % self.name, evoke=False, max_length=True)
         if self.linked_door:
             self.linked_door.opened = False
@@ -1789,7 +1789,7 @@ class Door(Exit):
             if not key:
                 raise ActionRefused("You don't seem to have the means to lock it.")
         self.locked = True
-        actor.tell("Your %s fits, the %s is now locked." % (key.title, self.name), evoke=False, max_length=True)
+        actor.tell("Your %s fits, the %s is now locked." % (key.title, self.name), evoke=False, short_len=True)
         actor.tell_others("{Actor} locks the %s with %s." % (self.name, lang.a(key.title)), evoke=False, max_length=True)
         if self.linked_door:
             self.linked_door.locked = True
@@ -1814,7 +1814,7 @@ class Door(Exit):
                 raise ActionRefused("You don't seem to have the means to unlock it.")
         self.locked = False
         self.opened = True
-        actor.tell("Your %s fits! You unlock the %s and open it." % (key.title, self.name), evoke=False, max_length=True)
+        actor.tell("Your %s fits! You unlock the %s and open it." % (key.title, self.name), evoke=False, short_len=True)
         actor.tell_others("{Actor} unlocks the %s with %s %s, and opens it." % (self.name, actor.possessive, key.title), evoke=False, max_length=True)
         if self.linked_door:
             self.linked_door.locked = False

@@ -1726,7 +1726,7 @@ def do_wear(player: Player, parsed: base.ParseResult, ctx: util.Context) -> None
     if len(parsed.args) == 2:
         try:
             parsed_loc = str(parsed.args[1])
-            location = WearLocation[parsed_loc.upper()]
+            wear_location = WearLocation[parsed_loc.upper()]
         except ValueError:
             raise ActionRefused("Invalid location")
         
@@ -1734,4 +1734,4 @@ def do_wear(player: Player, parsed: base.ParseResult, ctx: util.Context) -> None
     result = player.locate_item(item, include_location=False)
     if not result:
         raise ActionRefused("You don't have that item")
-    player.set_wearable(result[0], location=location)
+    player.set_wearable(result[0], wear_location=wear_location)

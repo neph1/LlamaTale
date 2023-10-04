@@ -399,4 +399,34 @@ class TestWorldBuilding():
         assert(len(new_locations) > 0)
         assert(len(exits) > 0)
 
+    def test_check_setting(self):
+        check_setting = self.llm_util._world_building._check_setting
+        assert(check_setting('fantasy') == 'fantasy')
+        assert(check_setting('modern') == 'modern')
+        assert(check_setting('sci-fi') == 'scifi')
+        assert(check_setting('steampunk') == '')
+        assert(check_setting('cyberpunk') == '')
+        assert(check_setting('western') == '')
+
+
+    def test_generate_random_spawn(self):
+        location = Location(name='Outside')
+        self.llm_util._world_building.io_util.response = '{"items":["sword"], "npcs":[{"name": "grumpy dwarf", "level":10, "race": "dwarf"}], "mobs":["wolf"]}'
+
+        world_items = {'sword': {'name':'sword', 'type': 'Weapon', 'value': 100}}
+        world_creatures = {'wolf': {'name': 'wolf', 'body': 'Creature', 'unarmed_attack': 'BITE', 'hp':10, 'level':10}}
+        zone_info = zone.from_json(json.loads(self.generated_zone)).get_info()
+
+        self.llm_util._world_building.generate_random_spawn(location, 
+                                                            zone_info=zone_info,
+                                                            story_context=self.story.config.context,
+                                                            story_type=self.story.config.type,
+                                                            world_info='',
+                                                            world_creatures=world_creatures,
+                                                            world_items=world_items)
+        assert(location.items.pop().name == 'sword')
+        assert(location.search_living('grumpy') is not None)
+        assert(location.search_living('wolf') is not None)
+
+
         

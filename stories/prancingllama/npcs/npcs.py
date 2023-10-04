@@ -42,7 +42,7 @@ class InnKeeper(LivingNpc):
         self.money += price
         drink.move(actor, self)
         price_str = mud_context.driver.moneyfmt.display(price)
-        actor.tell("After handing %s the %s, %s gives you the %s." % (self.objective, price_str, self.subjective, drink.title), evoke=True, max_length=True)
+        actor.tell("After handing %s the %s, %s gives you the %s." % (self.objective, price_str, self.subjective, drink.title), evoke=True, short_len=True)
         self.tell_others("{Actor} says: \"Here's your drink, enjoy it!\"", evoke=True, max_length=True)
 
 class Maid(LivingNpc):
