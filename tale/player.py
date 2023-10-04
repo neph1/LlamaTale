@@ -66,7 +66,7 @@ class Player(base.Living, pubsub.Listener):
         self.screen_indent = indent
         self.screen_width = width
 
-    def tell(self, message: str, *, end: bool=False, format: bool=True, evoke: bool=False, max_length : bool=False, alt_prompt : str='') -> base.Living:
+    def tell(self, message: str, *, end: bool=False, format: bool=True, evoke: bool=False, short_len : bool=False, alt_prompt : str='') -> base.Living:
         """
         Sends a message to a player, meant to be printed on the screen.
         Message will be converted to str if required.
@@ -80,7 +80,7 @@ class Player(base.Living, pubsub.Listener):
                 message = message.replace(self.title, 'you')
             msg, rolling_prompt = mud_context.driver.llm_util.evoke(self._output, 
                                                                     message, 
-                                                                    max_length = max_length, 
+                                                                    short_len = short_len, 
                                                                     rolling_prompt = self.rolling_prompt, 
                                                                     alt_prompt = alt_prompt)
             self.rolling_prompt = rolling_prompt

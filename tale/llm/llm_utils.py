@@ -44,7 +44,7 @@ class LlmUtil():
                                              io_util=self.io_util,
                                              backend=self.backend)
 
-    def evoke(self, player_io: TextBuffer, message: str, max_length : bool=False, rolling_prompt='', alt_prompt='', skip_history=True):
+    def evoke(self, player_io: TextBuffer, message: str, short_len : bool=False, rolling_prompt='', alt_prompt='', skip_history=True):
         """Evoke a response from LLM. Async if stream is True, otherwise synchronous.
         Update the rolling prompt with the latest message.
         Will put generated text in _look_hashes, and reuse it if same hash is passed in."""
@@ -69,7 +69,7 @@ class LlmUtil():
         prompt += base_prompt.format(
             story_context=self.__story.config.context,
             history=rolling_prompt if not skip_history or alt_prompt else '',
-            max_words=self.word_limit if not max_length else amount,
+            max_words=self.word_limit if not short_len else amount,
             input_text=str(trimmed_message))
         
         request_body = self.default_body
@@ -96,7 +96,7 @@ class LlmUtil():
                           target_description: str='', 
                           sentiment = '', 
                           location_description = '',
-                          max_length : bool=False):
+                          short_len : bool=False):
         return self._character.generate_dialogue(conversation, 
                                                  character_card=character_card, 
                                                  character_name=character_name, 
@@ -105,7 +105,7 @@ class LlmUtil():
                                                  sentiment=sentiment, 
                                                  location_description=location_description, 
                                                  story_context=self.__story.config.context, 
-                                                 max_length=max_length)
+                                                 short_len=short_len)
     
     def update_memory(self, rolling_prompt: str, response_text: str):
         """ Keeps a history of the last couple of events"""

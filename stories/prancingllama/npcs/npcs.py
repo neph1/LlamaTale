@@ -43,7 +43,7 @@ class InnKeeper(LivingNpc):
         drink.move(actor, self)
         price_str = mud_context.driver.moneyfmt.display(price)
         actor.tell("After handing %s the %s, %s gives you the %s." % (self.objective, price_str, self.subjective, drink.title), evoke=True, short_len=True)
-        self.tell_others("{Actor} says: \"Here's your drink, enjoy it!\"", evoke=True, max_length=True)
+        self.tell_others("{Actor} says: \"Here's your drink, enjoy it!\"", evoke=True, short_len=True)
 
 class Maid(LivingNpc):
 
@@ -86,14 +86,14 @@ class RoamingPatron(Patron):
         if not self.sitting:
             if random.random() < 0.25:
                 self.sitting = True
-                self.tell_others("{Actor} sits down.", evoke=False, max_length=True)
+                self.tell_others("{Actor} sits down.", evoke=False, short_len=True)
             else:
                 direction = self.select_random_move()
                 if direction:
                     self.move(direction.target, self, direction_names=direction.names)
         elif random.random() < 0.5:
             self.sitting = False
-            self.tell_others("{Actor} stands up.", evoke=False, max_length=True)
+            self.tell_others("{Actor} stands up.", evoke=False, short_len=True)
    
 class Shanda(Patron):
 
@@ -116,9 +116,9 @@ class Rat(Living):
     @call_periodically(10, 25)
     def do_idle_action(self, ctx: Context) -> None:
         if random.random() < 0.5:
-            self.tell_others("{Actor} hisses.", evoke=False, max_length=True)
+            self.tell_others("{Actor} hisses.", evoke=False, short_len=True)
         else:
-            self.tell_others("{Actor} sniffs around.", evoke=False, max_length=True)
+            self.tell_others("{Actor} sniffs around.", evoke=False, short_len=True)
 
 
 norhardt = Patron("Norhardt", "m", age=56, descr="A grizzled old man, with parchment-like skin and sunken eyes. He\'s wearing ragged clothing and big leather boots. He\'s a formidable presence, commanding yet somber.", personality="An experienced explorer who is obsessed with finding the mythological Yeti which supposedly haunts these mountains. He won\'t stop talking about it.", short_descr="An old grizzled man sitting by the bar.")

@@ -645,12 +645,13 @@ class Driver(pubsub.Listener):
                 except errors.LocationIntegrityError:
                     # fail silently
                     pass
-        elif random.random() < 0.2:
-            zone = dynamic_story.find_zone(location=xt.target)
+        elif random.random() < 1:
+            dynamic_story = typing.cast(DynamicStory, self.story)
+            zone = dynamic_story.find_zone(location=xt.target.name)
             self.llm_util.generate_random_spawn(xt.target, zone.get_info())
                     
         if xt.enter_msg:
-            player.tell(xt.enter_msg, end=True, evoke=False, max_length=True)
+            player.tell(xt.enter_msg, end=True, evoke=False, short_len=True)
             player.tell("\n")
         player.move(xt.target, direction_names=[xt.name] + list(xt.aliases))
         player.look(evoke=evoke)

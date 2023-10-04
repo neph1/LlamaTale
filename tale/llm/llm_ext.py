@@ -60,7 +60,7 @@ class LivingNpc(Living):
 
     def do_say(self, what_happened: str, actor: Living) -> None:
         self.update_conversation(f'{actor.title}:{what_happened}\n')
-        max_length = False if isinstance(actor, Player) else True
+        short_len = False if isinstance(actor, Player) else True
         
         response, item_result, sentiment = mud_context.driver.llm_util.generate_dialogue(
             conversation=self.conversation, 
@@ -70,13 +70,13 @@ class LivingNpc(Living):
             target_description = actor.short_description,
             sentiment = self.sentiments.get(actor.title, ''),
             location_description=self.location.look(exclude_living=self),
-            max_length=max_length)
+            short_len=short_len)
             
         self.update_conversation(f"{self.title} says: \"{response}\"")
         if len(self.conversation) > self.memory_size:
             self.conversation = self.conversation[self.memory_size+1:]
         
-        self.tell_others(f"{self.title} says: \"{response}\"", evoke=False, max_length=True)
+        self.tell_others(f"{self.title} says: \"{response}\"", evoke=False, short_len=True)
         if item_result:
             self.handle_item_result(item_result, actor)
         
