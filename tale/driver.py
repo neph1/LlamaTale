@@ -645,7 +645,7 @@ class Driver(pubsub.Listener):
                 except errors.LocationIntegrityError:
                     # fail silently
                     pass
-        elif random.random() < 1:
+        elif random.random() < 0.2 and isinstance(self.story, DynamicStory):
             dynamic_story = typing.cast(DynamicStory, self.story)
             zone = dynamic_story.find_zone(location=xt.target.name)
             self.llm_util.generate_random_spawn(xt.target, zone.get_info())

@@ -27,6 +27,11 @@ class BuildLocation(LlmRequest):
         spawn_chance = 0.25
         spawn = random.random() < spawn_chance
         if spawn:
+            mood = zone_info.get('mood', 0)
+            if isinstance(mood, str):
+                num_mood = parse_utils.mood_int_from_string(mood)
+            else:
+                num_mood = mood
             num_mood = (int) (random.gauss(zone_info.get('mood', 0), 2))
             level = (int) (random.gauss(zone_info.get('level', 1), 2))
             mood_string = parse_utils.mood_string_from_int(num_mood)

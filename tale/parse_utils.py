@@ -220,7 +220,7 @@ def _init_weapon(item: dict):
                     short_descr=item.get('short_descr', ''),
                     descr=item.get('descr', ''),
                     wc=item.get('wc', 1),
-                    weapon_type=item.get('type', WeaponType.UNARMED),
+                    weapon_type=WeaponType[item.get('weapon_type', WeaponType.UNARMED.name)],
                     base_damage=item.get('base_damage', random.randint(1,3)),
                     bonus_damage=item.get('bonus_damage', 0),
                     weight=item.get('weight', 1),
@@ -448,6 +448,22 @@ def mood_string_from_int(mood: int):
         return f' {base_mood}'
     else:
         return f' slightly {base_mood}'
+    
+def mood_string_to_int(mood: str):
+    """ Returns an int from a mood description"""
+    if mood.startswith('uttermost'):
+        return 5 if mood.endswith('friendly') else -5
+    if mood.startswith('extremely'):
+        return 4 if mood.endswith('friendly') else -4
+    if mood.startswith('very'):
+        return 3 if mood.endswith('friendly') else -3
+    if mood.startswith('friendly'):
+        return 2
+    if mood.startswith('hostile'):
+        return -2
+    if mood.startswith('neutral'):
+        return 0
+    return 1 if mood.endswith('friendly') else -1
     
 def replace_items_with_world_items(items: list, world_items: dict) -> list:
     """ Replaces items in a list with world items"""

@@ -4,7 +4,7 @@ import json
 from tale import mud_context, weapon_type
 from tale import zone
 from tale import util
-from tale.base import Location
+from tale.base import Item, Location, Weapon
 from tale.coord import Coord
 from tale.json_story import JsonStory
 from tale.llm.llm_utils import LlmUtil
@@ -233,7 +233,7 @@ class TestWorldBuilding():
         assert(result.races == ['human', 'elf', 'dwarf'])
 
     def test_generate_world_items(self):
-        self.llm_util._world_building.io_util.response = '{"items":[{"name": "sword", "type": "Weapon", "value": 100}, {"name": "shield", "type": "Armor", "value": 60}]}'
+        self.llm_util._world_building.io_util.response = '{"items":[{"name": "sword", "type": "Weapon","value": 100}, {"name": "shield", "type": "Armor", "value": 60}]}'
         result = self.llm_util._world_building.generate_world_items(story_context='', 
                                                    story_type='',
                                                    world_mood=0,
@@ -241,9 +241,10 @@ class TestWorldBuilding():
         assert(len(result) == 2)
         sword = result.get('sword')
         assert(sword.name == 'sword')
-        assert(sword.type == weapon_type.WeaponType.ONE_HANDED)
+        assert(isinstance(sword, Weapon))
         shield = result.get('shield')
         assert(shield.name == 'shield')
+        assert(isinstance(shield, Item))
 
     def test_generate_world_creatures(self):
         # mostly for coverage
