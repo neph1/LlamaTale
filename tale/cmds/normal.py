@@ -710,14 +710,14 @@ def do_examine(player: Player, parsed: base.ParseResult, ctx: util.Context) -> N
         if living is player:
             # player examines him/herself
             p("You are %s. But you knew that already." % lang.capital(living.title))
-            player.tell_others("{Actor} is looking at %sself." % living.objective, evoke=True, max_length=False)
+            player.tell_others("{Actor} is looking at %sself." % living.objective, evoke=True, short_len=False)
             return
         # if "wizard" in player.privileges:
         #     tell(repr(living), end=True)
         if living.description:
-            p(living.description, evoke=True, max_length=False)
+            p(living.description, evoke=True, short_len=False)
         else:
-            p("This is %s." % living.title, evoke=True, max_length=False)
+            p("This is %s." % living.title, evoke=True, short_len=False)
         if ctx.config.display_race and living.stats.race != "human":
             # only print this race related info when dealing with creatures other than humans
             if living.stats.bodytype and living.stats.size:
@@ -726,22 +726,22 @@ def do_examine(player: Player, parsed: base.ParseResult, ctx: util.Context) -> N
                     size=living.stats.size.text,
                     btype=living.stats.bodytype.value,
                     race=living.stats.race or "creature"
-                ), evoke=True, max_length=False)
+                ), evoke=True, short_len=False)
         if name in living.extra_desc:
-            p(living.extra_desc[name], evoke=True, max_length=False)   # print the extra description, rather than a generic message
+            p(living.extra_desc[name], evoke=True, short_len=False)   # print the extra description, rather than a generic message
         if name in player.location.extra_desc:
-            p(player.location.extra_desc[name], evoke=True, max_length=False)   # print the extra description, rather than a generic message
+            p(player.location.extra_desc[name], evoke=True, short_len=False)   # print the extra description, rather than a generic message
         if living.following:
             if living.is_pet:
                 if living.following is player:
-                    p("%s's your loyal pet." % lang.capital(living.subjective), evoke=True, max_length=False)
+                    p("%s's your loyal pet." % lang.capital(living.subjective), evoke=True, short_len=False)
                 else:
-                    p("%s's a pet of %s." % (lang.capital(living.subjective), living.following.title), evoke=True, max_length=False)
+                    p("%s's a pet of %s." % (lang.capital(living.subjective), living.following.title), evoke=True, short_len=False)
             else:
                 if living.following is player:
                     p("%s's following you." % lang.capital(living.subjective))
                 else:
-                    p("It seems that %s's following %s." % (living.subjective, living.following.title), evoke=True, max_length=False)
+                    p("It seems that %s's following %s." % (living.subjective, living.following.title), evoke=True, short_len=False)
         return
     item, container = player.locate_item(name)
     if item:
@@ -836,7 +836,7 @@ def do_tell(player: Player, parsed: base.ParseResult, ctx: util.Context) -> None
         unparsed = parsed.unparsed[len(name):].lstrip()
         if unparsed:
             living.tell("%s tells you: %s" % (player.name, unparsed), evoke=True, max_length=False)
-            player.tell("You told %s." % name, evoke=True, max_length=False)
+            player.tell("You told %s." % name, evoke=True, short_len=False)
         else:
             player.tell("Tell %s what?" % living.objective)
 
@@ -850,8 +850,8 @@ def do_emote(player: Player, parsed: base.ParseResult, ctx: util.Context) -> Non
     emote_msg = lang.capital(player.title) + " " + parsed.unparsed
     if not parsed.unparsed.endswith(("!", "?", ".")):
         emote_msg += "."
-    player.tell("You emote: %s" % emote_msg, evoke=True, max_length=False)
-    player.tell_others(emote_msg, evoke=True, max_length=False)
+    player.tell("You emote: %s" % emote_msg, evoke=True, short_len=False)
+    player.tell_others(emote_msg, evoke=True, short_len=False)
 
 
 @cmd("yell", "shout", "scream")
@@ -862,8 +862,8 @@ def do_yell(player: Player, parsed: base.ParseResult, ctx: util.Context) -> None
     message = parsed.unparsed
     if not parsed.unparsed.endswith((".", "!", "?")):
         message += "!"
-    player.tell("You %s: %s" % (parsed.verb, message), evoke=True, max_length=False)
-    player.tell_others("{Actor} %ss: %s" % (parsed.verb, message), evoke=True, max_length=False)
+    player.tell("You %s: %s" % (parsed.verb, message), evoke=True, short_len=False)
+    player.tell_others("{Actor} %ss: %s" % (parsed.verb, message), evoke=True, short_len=False)
     # send this to nearby locations as well:
     player.location.message_nearby_locations("Someone nearby is %s: %s" % (lang.fullverb(parsed.verb), message))
 
@@ -885,8 +885,8 @@ def do_say(player: Player, parsed: base.ParseResult, ctx: util.Context) -> None:
                 target = " to " + possible_target.title
                 _, _, message = message.partition(parsed.args[0])
                 message = message.lstrip()
-    player.tell("You say%s: %s" % (target, message), evoke=False, max_length=False)
-    player.tell_others("{Actor} says%s: %s" % (target, message), evoke=True, max_length=False)
+    player.tell("You say%s: %s" % (target, message), evoke=False, short_len=False)
+    player.tell_others("{Actor} says%s: %s" % (target, message), evoke=True, short_len=False)
 
 
 @cmd("wait")
@@ -1276,10 +1276,10 @@ def do_dice(player: Player, parsed: base.ParseResult, ctx: util.Context) -> None
     die = "a die"
     if (number, sides) != (1, 6):
         die = "%dd%d" % (number, sides)
-    player.tell("You roll %s. The result is: %d." % (die, total), evoke=True, max_length=True)
-    player.tell_others("{Actor} rolls %s. The result is: %d." % (die, total), evoke=True, max_length=True)
+    player.tell("You roll %s. The result is: %d." % (die, total), evoke=True, short_len=True)
+    player.tell_others("{Actor} rolls %s. The result is: %d." % (die, total), evoke=True, short_len=True)
     if number > 1:
-        player.location.tell("The individual rolls were: %s" % values, evoke=True, max_length=True)
+        player.location.tell("The individual rolls were: %s" % values, evoke=True, short_len=True)
 
 
 @cmd("coin")
@@ -1287,8 +1287,8 @@ def do_coin(player: Player, parsed: base.ParseResult, ctx: util.Context) -> None
     """Toss a coin."""
     number, _ = util.roll_dice(sides=2)
     result = ["heads", "tails"][number - 1]
-    player.tell("You toss a coin. The result is: %s!" % result, evoke=True, max_length=True)
-    player.tell_others("{Actor} tosses a coin. The result is: %s!" % result, evoke=True, max_length=True)
+    player.tell("You toss a coin. The result is: %s!" % result, evoke=True, short_len=True)
+    player.tell_others("{Actor} tosses a coin. The result is: %s!" % result, evoke=True, short_len=True)
 
 
 @cmd("motd")
@@ -1323,7 +1323,7 @@ def do_flee(player: Player, parsed: base.ParseResult, ctx: util.Context) -> None
     for exit in exits_to_try:
         try:
             exit.allow_passage(player)
-            player.tell("You run away in a random direction!" if random_direction else "You run away!", end=True, evoke=True, max_length=True)
+            player.tell("You run away in a random direction!" if random_direction else "You run away!", end=True, evoke=True, short_len=True)
             player.tell("\n")
             # @todo stop combat
             for liv in player.location.livings:
@@ -1384,12 +1384,12 @@ def do_show(player: Player, parsed: base.ParseResult, ctx: util.Context) -> None
     if shown not in player:
         raise ActionRefused("You don't have %s." % lang.a(shown.title))
     if target is player:
-        player.tell("You show the %s to yourself. Well, that was interesting." % shown.title, evoke=True, max_length=True)
+        player.tell("You show the %s to yourself. Well, that was interesting." % shown.title, evoke=True, short_len=True)
     else:
-        player.tell("You show the %s to %s." % (shown.title, target.title), evoke=True, max_length=True)
+        player.tell("You show the %s to %s." % (shown.title, target.title), evoke=True, short_len=True)
     room_msg = "%s shows %s to %s." % (lang.capital(player.title), lang.a(shown.title), target.title)
     target_msg = "%s shows you %s." % (lang.capital(player.title), lang.a(shown.title))
-    player.location.tell(room_msg, exclude_living=player, specific_target_msg=target_msg, specific_targets={target}, evoke=True, max_length=True)
+    player.location.tell(room_msg, exclude_living=player, specific_target_msg=target_msg, specific_targets={target}, evoke=True, short_len=True)
 
 
 @cmd("time", "date")
@@ -1452,9 +1452,9 @@ def do_activate(player: Player, parsed: base.ParseResult, ctx: util.Context) -> 
         except ActionRefused as ex:
             msg = str(ex)
             if parsed.who_count > 1:
-                player.tell("%s: %s" % (what.name, msg), evoke=True, max_length=True)
+                player.tell("%s: %s" % (what.name, msg), evoke=True, short_len=True)
             else:
-                player.tell(msg, evoke=True, max_length=True)
+                player.tell(msg, evoke=True, short_len=True)
 
 
 @cmd("deactivate")
@@ -1468,9 +1468,9 @@ def do_deactivate(player: Player, parsed: base.ParseResult, ctx: util.Context) -
         except ActionRefused as ex:
             msg = str(ex)
             if parsed.who_count > 1:
-                player.tell("%s: %s" % (what.name, msg), evoke=True, max_length=True)
+                player.tell("%s: %s" % (what.name, msg), evoke=True, short_len=True)
             else:
-                player.tell(msg, evoke=True, max_length=True)
+                player.tell(msg, evoke=True, short_len=True)
 
 
 @cmd("switch")
@@ -1726,7 +1726,7 @@ def do_wear(player: Player, parsed: base.ParseResult, ctx: util.Context) -> None
     if len(parsed.args) == 2:
         try:
             parsed_loc = str(parsed.args[1])
-            location = WearLocation[parsed_loc.upper()]
+            wear_location = WearLocation[parsed_loc.upper()]
         except ValueError:
             raise ActionRefused("Invalid location")
         
@@ -1734,4 +1734,4 @@ def do_wear(player: Player, parsed: base.ParseResult, ctx: util.Context) -> None
     result = player.locate_item(item, include_location=False)
     if not result:
         raise ActionRefused("You don't have that item")
-    player.set_wearable(result[0], location=location)
+    player.set_wearable(result[0], wear_location=wear_location)

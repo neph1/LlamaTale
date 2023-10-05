@@ -68,7 +68,6 @@ class Zone():
     
 def from_json(data: dict) -> 'Zone':
     zone = Zone(data.get("name", "unknown"), data.get("description", "unknown"))
-    # populate zone from a dictionary
     zone.level = data.get("level", 1)
     zone.mood = data.get("mood", 0)
     zone.items = data.get("items", [])

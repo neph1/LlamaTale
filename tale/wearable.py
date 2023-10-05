@@ -1,5 +1,4 @@
 import enum
-import tale.base as base
 
 class WearLocation(enum.Enum):
     FULL_BODY = 0 # robes etc, covers TORSO, ARMS, LEGS
@@ -14,6 +13,10 @@ class WearLocation(enum.Enum):
     WAIST = 9 # belts etc
     BACK = 10 # backpacks etc
     UNDER_GARMENTS = 11 # underwear etc
+
+    @classmethod
+    def has_value(cls, value):
+        return value in cls._member_names_
 
 # Mostly 'copilot' generated wearable types
 wearables_fantasy = {

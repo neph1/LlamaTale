@@ -609,10 +609,10 @@ class Armour(Item):
 
 class Wearable(Item):
     
-    def __init__(self, name: str, weight: int = 0, value: int = 0, ac: int = 0, wearable_type: str = 'none', title: str = "", *, descr: str = "", short_descr: str = "") -> None:
+    def __init__(self, name: str, weight: int = 0, value: int = 0, ac: int = 0, wear_location: wearable.WearLocation = wearable.WearLocation.TORSO, title: str = "", *, descr: str = "", short_descr: str = "") -> None:
         super().__init__(name, title, descr=descr, short_descr=short_descr, weight=weight, value=value)
         self.ac = ac
-        self.type = wearable_type
+        self.wear_location = wear_location
 
 class Location(MudObject):
     """
@@ -662,7 +662,7 @@ class Location(MudObject):
         return pubsub.topic(("wiretap-location", "%s#%d" % (self.name, self.vnum)))
 
     def tell(self, room_msg: str, exclude_living: 'Living'=None, specific_targets: Set[Union[ParsedWhoType, 'Living']]=None,
-             specific_target_msg: str="", evoke : bool=True, max_length : bool=False, alt_prompt: str='') -> None:
+             specific_target_msg: str="", evoke : bool=True, short_len : bool=False, alt_prompt: str='') -> None:
         """
         Tells something to the livings in the room (excluding the living from exclude_living).
         This is just the message string! If you want to react on events, consider not doing
@@ -677,9 +677,9 @@ class Location(MudObject):
             if living == exclude_living:
                 continue
             if living in targets:
-                living.tell(specific_target_msg, evoke=evoke, max_length=max_length, alt_prompt=alt_prompt)
+                living.tell(specific_target_msg, evoke=evoke, short_len=short_len, alt_prompt=alt_prompt)
             else:
-                living.tell(room_msg, evoke=evoke, max_length=max_length, alt_prompt=alt_prompt)
+                living.tell(room_msg, evoke=evoke, short_len=short_len, alt_prompt=alt_prompt)
         if room_msg:
             tap = self.get_wiretap()
             tap.send((self.name, room_msg))
@@ -697,7 +697,7 @@ class Location(MudObject):
                 if exit.target in yelled_locations:
                     continue   # skip double locations (possible because there can be multiple exits to the same location)
                 if exit.target is not self:
-                    exit.target.tell(message, evoke=False, max_length=True)
+                    exit.target.tell(message, evoke=False, short_len=True)
                     yelled_locations.add(exit.target)
                     for direction, return_exit in exit.target.exits.items():
                         if return_exit.target is self:
@@ -712,7 +712,7 @@ class Location(MudObject):
                                 direction = "below"
                             else:
                                 continue  # no direction description possible for this exit
-                            exit.target.tell("The sound is coming from %s." % direction, evoke=False, max_length=True)
+                            exit.target.tell("The sound is coming from %s." % direction, evoke=False, short_len=True)
                             break
 
     def nearby(self, no_traps: bool=True) -> Iterable['Location']:
@@ -793,7 +793,7 @@ class Location(MudObject):
             result = [living for living in self.livings if name in living.aliases or living.title.lower() == name]
         return result[0] if result else None
 
-    def insert(self, obj: Union['Living', Item], actor: Optional['Living']) -> None:
+    def insert(self, obj: Union['Living', Item], actor: Optional['Living'] = None) -> None:
         """Add item to the contents of the location (either a Living or an Item)"""
         assert obj is not None
         if isinstance(obj, Living):
@@ -1079,7 +1079,7 @@ class Living(MudObject):
         actor.tell("Cloned into: " + repr(duplicate) + " (spawned in current location)")
         actor.tell_others("{Actor} summons %s..." % lang.a(duplicate.title))
         actor.location.insert(duplicate, actor)
-        actor.location.tell("%s appears." % lang.capital(duplicate.title), evoke=False, max_length=True)
+        actor.location.tell("%s appears." % lang.capital(duplicate.title), evoke=False, short_len=True)
         return duplicate
 
     @util.authorized("wizard")
@@ -1105,7 +1105,7 @@ class Living(MudObject):
         """get a wiretap for this living"""
         return pubsub.topic(("wiretap-living", "%s#%d" % (self.name, self.vnum)))
 
-    def tell(self, message: str, *, end: bool=False, format: bool=True, evoke: bool=False, max_length : bool=False, alt_prompt : str='') -> 'Living':
+    def tell(self, message: str, *, end: bool=False, format: bool=True, evoke: bool=False, short_len : bool=False, alt_prompt : str='') -> 'Living':
         """
         Every living thing in the mud can receive an action message.
         Message will be converted to str if required.
@@ -1125,9 +1125,9 @@ class Living(MudObject):
 
     def tell_later(self, message: str) -> None:
         """Tell something to this creature, but do it after all other messages."""
-        pending_tells.send(lambda: self.tell(message, evoke=True, max_length=False))
+        pending_tells.send(lambda: self.tell(message, evoke=True, short_len=False))
 
-    def tell_others(self, message: str, target: Optional['Living']=None, evoke: bool=False, max_length : bool=True, alt_prompt='') -> None:
+    def tell_others(self, message: str, target: Optional['Living']=None, evoke: bool=False, short_len : bool=True, alt_prompt='') -> None:
         """
         Send a message to the other livings in the location, but not to self.
         There are a few formatting strings for easy shorthands:
@@ -1137,12 +1137,12 @@ class Living(MudObject):
         """
         if target is None:
             room_msg = message.format(actor=self.title, Actor=lang.capital(self.title))
-            self.location.tell(room_msg, exclude_living=self, evoke=evoke, max_length=max_length)
+            self.location.tell(room_msg, exclude_living=self, evoke=evoke, short_len=short_len)
         else:
             room_msg = message.format(actor=self.title, Actor=lang.capital(self.title),
                                       target=target.title, Target=lang.capital(target.title))
             spec_msg = message.format(actor=self.title, Actor=lang.capital(self.title), target="you", Target="You")
-            self.location.tell(room_msg, exclude_living=self, specific_targets={target}, specific_target_msg=spec_msg, evoke=evoke, max_length=max_length, alt_prompt=alt_prompt)
+            self.location.tell(room_msg, exclude_living=self, specific_targets={target}, specific_target_msg=spec_msg, evoke=evoke, short_len=short_len, alt_prompt=alt_prompt)
 
     def parse(self, commandline: str, external_verbs: Set[str]=set()) -> ParseResult:
         """Parse the commandline into something that can be processed by the soul (ParseResult)"""
@@ -1221,8 +1221,8 @@ class Living(MudObject):
         """
         attacking = parsed.verb == 'attack'
         who, actor_message, room_message, target_message = self.soul.process_verb_parsed(self, parsed)
-        self.tell(actor_message, evoke=not attacking, max_length=False)
-        self.location.tell(room_message, self, who, target_message, evoke=not attacking, max_length=False)
+        self.tell(actor_message, evoke=not attacking, short_len=False)
+        self.location.tell(room_message, self, who, target_message, evoke=not attacking, short_len=False)
         pending_actions.send(lambda actor=self: actor.location._notify_action_all(parsed, actor))
         if attacking:
             for thing in who:
@@ -1319,7 +1319,7 @@ class Living(MudObject):
                     message = f"{lang.capital(self.title)} leaves {direction_txt}."
                 else:
                     message = f"{lang.capital(self.title)} leaves towards {target.title}."
-                original_location.tell(message, exclude_living=self, evoke=False, max_length=True)
+                original_location.tell(message, exclude_living=self, evoke=False, short_len=True)
             # queue event
             if is_player:
                 pending_actions.send(lambda who=self, where=target: original_location.notify_player_left(who, where))
@@ -1328,7 +1328,7 @@ class Living(MudObject):
         else:
             target.insert(self, actor)
         if not silent:
-            target.tell(f"{lang.capital(self.title)} arrives from {original_location.title}." , exclude_living=self, evoke=False, max_length=True)
+            target.tell(f"{lang.capital(self.title)} arrives from {original_location.title}." , exclude_living=self, evoke=False, short_len=True)
         # queue event
         if is_player:
             pending_actions.send(lambda who=self, where=original_location: target.notify_player_arrived(who, where))
@@ -1382,7 +1382,7 @@ class Living(MudObject):
         room_msg = "%s attacks %s! %s" % (attacker_name, victim_name, result)
         victim_msg = "%s attacks you. %s" % (attacker_name, result)
         attacker_msg = "You attack %s! %s" % (victim_name, result)
-        victim.tell(victim_msg, evoke=True, max_length=False)
+        victim.tell(victim_msg, evoke=True, short_len=False)
         
         combat_prompt = mud_context.driver.prepare_combat_prompt(attacker=self, 
                               victim=victim, 
@@ -1394,7 +1394,7 @@ class Living(MudObject):
                              specific_targets={self},
                              specific_target_msg=attacker_msg,
                              evoke=True,
-                             max_length=False,
+                             short_len=False,
                              alt_prompt=combat_prompt)
         self.stats.hp -= damage_to_attacker
         victim.stats.hp -= damage_to_defender
@@ -1497,13 +1497,13 @@ class Living(MudObject):
         self.__wielding = weapon
         self.stats.wc = weapon.wc if self.__wielding else 0
 
-    def set_wearable(self, wearable: Optional[Wearable], location: Optional[wearable.WearLocation]) -> None:
+    def set_wearable(self, wearable: Optional[Wearable], wear_location: Optional[wearable.WearLocation]) -> None:
         """ Wear an item if item is not None, else unwear location"""
         if wearable:
-            loc = location if location else wearable.location
+            loc = wear_location if wear_location else wearable.wear_location
             self.__wearing[loc] = wearable
-        elif location:
-            self.__wearing.pop(location, None)
+        elif wear_location:
+            self.__wearing.pop(wear_location, None)
 
     def get_wearable(self, location: wearable.WearLocation) -> Optional[Wearable]:
         """Return the wearable item at the given location, or None if no item is worn there."""
@@ -1754,22 +1754,22 @@ class Door(Exit):
             raise ActionRefused("You try to open it, but it's locked.")
         else:
             self.opened = True
-            actor.tell("You open it.", evoke=False, max_length=True)
-            actor.tell_others("{Actor} opens the %s." % self.name, evoke=False, max_length=True)
+            actor.tell("You open it.", evoke=False, short_len=True)
+            actor.tell_others("{Actor} opens the %s." % self.name, evoke=False, short_len=True)
             if self.linked_door:
                 self.linked_door.opened = True
-                self.target.tell("The %s is opened from the other side." % self.linked_door.name, evoke=False, max_length=True)
+                self.target.tell("The %s is opened from the other side." % self.linked_door.name, evoke=False, short_len=True)
 
     def close(self, actor: Living, item: Item=None) -> None:
         """Close the door with optional item. Notifies actor and room of this event."""
         if not self.opened:
             raise ActionRefused("It's already closed.")
         self.opened = False
-        actor.tell("You close it.", evoke=False, max_length=True)
-        actor.tell_others("{Actor} closes the %s." % self.name, evoke=False, max_length=True)
+        actor.tell("You close it.", evoke=False, short_len=True)
+        actor.tell_others("{Actor} closes the %s." % self.name, evoke=False, short_len=True)
         if self.linked_door:
             self.linked_door.opened = False
-            self.target.tell("The %s is closed from the other side." % self.linked_door.name, evoke=False, max_length=True)
+            self.target.tell("The %s is closed from the other side." % self.linked_door.name, evoke=False, short_len=True)
 
     def lock(self, actor: Living, item: Item=None) -> None:
         """Lock the door with the proper key (optional)."""
@@ -1789,11 +1789,11 @@ class Door(Exit):
             if not key:
                 raise ActionRefused("You don't seem to have the means to lock it.")
         self.locked = True
-        actor.tell("Your %s fits, the %s is now locked." % (key.title, self.name), evoke=False, max_length=True)
-        actor.tell_others("{Actor} locks the %s with %s." % (self.name, lang.a(key.title)), evoke=False, max_length=True)
+        actor.tell("Your %s fits, the %s is now locked." % (key.title, self.name), evoke=False, short_len=True)
+        actor.tell_others("{Actor} locks the %s with %s." % (self.name, lang.a(key.title)), evoke=False, short_len=True)
         if self.linked_door:
             self.linked_door.locked = True
-            self.target.tell("The %s is locked from the other side." % self.linked_door.name, evoke=False, max_length=True)
+            self.target.tell("The %s is locked from the other side." % self.linked_door.name, evoke=False, short_len=True)
 
     def unlock(self, actor: Living, item: Item=None) -> None:
         """Unlock the door with the proper key (optional)."""
@@ -1814,12 +1814,12 @@ class Door(Exit):
                 raise ActionRefused("You don't seem to have the means to unlock it.")
         self.locked = False
         self.opened = True
-        actor.tell("Your %s fits! You unlock the %s and open it." % (key.title, self.name), evoke=False, max_length=True)
-        actor.tell_others("{Actor} unlocks the %s with %s %s, and opens it." % (self.name, actor.possessive, key.title), evoke=False, max_length=True)
+        actor.tell("Your %s fits! You unlock the %s and open it." % (key.title, self.name), evoke=False, short_len=True)
+        actor.tell_others("{Actor} unlocks the %s with %s %s, and opens it." % (self.name, actor.possessive, key.title), evoke=False, short_len=True)
         if self.linked_door:
             self.linked_door.locked = False
             self.linked_door.opened = True
-            self.target.tell("The %s is unlocked and opened from the other side." % self.linked_door.name, evoke=False, max_length=True)
+            self.target.tell("The %s is unlocked and opened from the other side." % self.linked_door.name, evoke=False, short_len=True)
 
     def check_key(self, item: Item) -> bool:
         """Check if the item is a proper key for this door (based on key_code)"""

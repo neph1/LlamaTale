@@ -37,7 +37,7 @@ class Character():
                           sentiment = '', 
                           location_description = '',
                           story_context = '',
-                          max_length : bool=False):
+                          short_len : bool=False):
         prompt = self.pre_prompt
         prompt += self.dialogue_prompt.format(
                 story_context=story_context,

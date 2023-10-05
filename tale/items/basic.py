@@ -15,7 +15,7 @@ from ..errors import ActionRefused, TaleError
 
 
 __all__ = ["Boxlike", "Drink", "Food", "GameClock", "Light", "MagicItem", "Money",
-           "Note", "Potion", "Scroll", "Trash", "Boat", "Fountain"]
+           "Note", "Potion", "Scroll", "Trash", "Boat", "Fountain", "Health"]
 
 
 class Boxlike(Container):
@@ -217,6 +217,14 @@ class Drink(Item):
         self.affect_thirst = 0
         self.poisoned = False
 
+    def notify_action(self, parsed: ParseResult, actor: Living) -> None:
+        if self not in actor.inventory:
+            raise ActionRefused("You don't have that.")
+        if 'drink' in parsed.verb:
+            actor.tell("You drink the %s." % (self.title), evoke=True, short_len=True)
+            actor.tell_others("{Actor} drinks the %s." % (self.title))
+            self.destroy(util.Context.from_global())
+
 
 class Potion(Item):
     def init(self) -> None:
@@ -228,8 +236,18 @@ class Potion(Item):
 class Food(Item):
     def init(self) -> None:
         super().init()
-        self.affect_fullness = 0
+        self.affect_fullness = 1
         self.poisoned = False
+
+    def notify_action(self, parsed: ParseResult, actor: Living) -> None:
+        if self not in actor.inventory:
+            raise ActionRefused("You don't have that.")
+        if 'eat' in parsed.verb:
+            actor.stats.hp += self.healing
+            actor.tell("You eat the %s." % (self.title), evoke=True, short_len=True)
+            actor.tell_others("{Actor} eats the %s." % (self.title))
+            self.destroy(util.Context.from_global())
+            return
 
 
 class Money(Item):
@@ -402,3 +420,27 @@ elastic_band = ElasticBand("band", "large elastic band",
 elastic_band.value = 2.2
 elastic_band.aliases.add("elastic")
 elastic_band.aliases.add("elastic band")
+
+class Health(Item):
+    """ A health item that can be eaten or drank."""
+
+    def init(self, healing_effect = 0) -> None:
+        super().init()
+        self.healing_effect = healing_effect
+
+    def notify_action(self, parsed: ParseResult, actor: Living) -> None:
+        if self not in actor.inventory:
+            raise ActionRefused("You don't have that.")
+        if 'eat' in parsed.verb:
+            actor.stats.hp += self.healing_effect
+            actor.tell("You eat the %s and feel better." % (self.title), evoke=True, short_len=True)
+            actor.tell_others("{Actor} eats the %s." % (self.title))
+            self.destroy(util.Context.from_global())
+            return
+        if 'drink' in parsed.verb:
+            actor.stats.hp += self.healing_effect
+            actor.tell("You drink the %s and feel better." % (self.title), evoke=True, short_len=True)
+            actor.tell_others("{Actor} drinks the %s." % (self.title))
+            self.destroy(util.Context.from_global())
+            return
+        
