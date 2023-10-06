@@ -364,13 +364,13 @@ def parse_generated_exits(json_result: dict, exit_location_name: str, location: 
             
             new_location.built = False
             new_location.generated = True
-            from_description = f'To the {directions_from[1]} you can see {location.name}' if len(directions_from) > 1 else f'You can see {location.name}'
+            from_description = f'To the {directions_from[1]} you see {location.name}.' if len(directions_from) > 1 else f'You see {location.name}.'
             exit_back = Exit(directions=directions_from, 
                     target_location=location, 
                     short_descr=from_description)
             new_location.add_exits([exit_back])
 
-            to_description = f'To the {directions_to[1]} ' + exit.get('short_descr', 'description').lower() if len(directions_from) > 1 else exit.get('short_descr', 'description')
+            to_description = 'To the {direction} you see {location}.'.format(direction=directions_to[1], location=exit.get('short_descr', 'description').lower()) if len(directions_to) > 1 else exit.get('short_descr', 'description')
             exit_to = Exit(directions=directions_to, 
                             target_location=new_location, 
                             short_descr=to_description, 

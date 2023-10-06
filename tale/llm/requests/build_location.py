@@ -38,7 +38,7 @@ class BuildLocation(LlmRequest):
             spawn_prompt = self.spawn_prompt.format(alignment=mood_string, level=level)
 
         items_prompt = ''
-        item_amount = random.gauss(1, 2)
+        item_amount = (int) (random.gauss(1, 2))
         if item_amount > 0:
             items_prompt = self.items_prompt.format(items=item_amount)
 

@@ -164,11 +164,21 @@ class TestParseUtils():
         new_locations, parsed_exits = parse_utils.parse_generated_exits(json_result=exits, 
                                                                         exit_location_name=exit_location_name, 
                                                                         location=location)
+        location.add_exits(parsed_exits)
         assert(len(parsed_exits) == 2)
         assert(parsed_exits[0].names == ['glacier', 'north'])
-        assert(parsed_exits[0].short_description == 'To the north a treacherous path.')
+        assert(parsed_exits[0].short_description == 'To the north you see a treacherous path.')
         assert(parsed_exits[1].names == ['cave', 'south'])
-        assert(parsed_exits[1].short_description == 'To the south a dark opening.')
+        assert(parsed_exits[1].short_description == 'To the south you see a dark opening.')
+        
+        exits2 = json.loads('{"exits": [{"name": "The Ice Cliff", "direction": "north", "short_descr": "A steep fall."}, {"name": "The Icicle Forest", "direction": "east", "short_descr": "A forest of ice."}]}')
+
+        new_locations, parsed_exits = parse_utils.parse_generated_exits(json_result=exits2,
+                                                                        exit_location_name='cave',
+                                                                        location=new_locations[1])
+
+        assert(parsed_exits[0].names == ['ice cliff', 'south'])
+        assert(parsed_exits[1].names == ['icicle forest', 'east'])
 
     def test_coordinates_from_direction(self):
         coord = Coord(0,0,0)
