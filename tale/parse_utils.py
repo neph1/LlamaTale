@@ -134,7 +134,7 @@ def load_npcs(json_file: [], locations = {}) -> dict:
             new_npc.aliases.add(name.split(' ')[0].lower())
             new_npc.stats.set_weapon_skill(WeaponType.UNARMED, random.randint(10, 30))
             new_npc.stats.level = npc.get('level', 1)
-        elif npc_type == 'Mob':
+        else:
 
             new_npc = StationaryMob(name=npc['name'], 
                                 gender=lang.validate_gender_mf(npc.get('gender', 'm')[0]), 
@@ -370,7 +370,7 @@ def parse_generated_exits(json_result: dict, exit_location_name: str, location: 
                     short_descr=from_description)
             new_location.add_exits([exit_back])
 
-            to_description = 'To the {direction} you see {location}.'.format(direction=directions_to[1], location=exit.get('short_descr', 'description').lower()) if len(directions_to) > 1 else exit.get('short_descr', 'description')
+            to_description = 'To the {direction} you see {location}'.format(direction=directions_to[1], location=exit.get('short_descr', 'description').lower()) if len(directions_to) > 1 else exit.get('short_descr', 'description')
             exit_to = Exit(directions=directions_to, 
                             target_location=new_location, 
                             short_descr=to_description, 

@@ -668,7 +668,11 @@ class Driver(pubsub.Listener):
                     module = importlib.import_module(modulename)
                     location = module
                 except ImportError:
-                    raise errors.TaleError("Location not found: " + location_name)
+                    if isinstance(self.story, DynamicStory):
+                        dynamic_story = typing.cast(DynamicStory, self.story)
+                        location = dynamic_story.find_location(location_name.split('.')[-1])
+                    if not location:
+                        raise errors.TaleError("Location not found: " + location_name)
         return location     # type: ignore
 
     def _load_zones(self, zone_names: Sequence[str]) -> ModuleType:
@@ -679,6 +683,8 @@ class Driver(pubsub.Listener):
             try:
                 module = importlib.import_module("zones." + zone)
             except ImportError:
+                if isinstance(self.story, DynamicStory):
+                    return []
                 raise errors.TaleError("zone not found: " + zone)
             if hasattr(module, "init"):
                 # call the zone module initialization function

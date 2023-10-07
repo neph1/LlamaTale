@@ -174,7 +174,7 @@ class DynamicStory(StoryBase):
         return self._zones[name]
     
     def add_zone(self, zone: Zone) -> bool:
-        """ Add a zone to the story. """
+        
         if zone.name in self._zones:
             return False
         self._zones[zone.name] = zone

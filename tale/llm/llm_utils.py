@@ -1,3 +1,4 @@
+from copy import deepcopy
 import json
 import os
 import yaml
@@ -48,7 +49,7 @@ class LlmUtil():
         """Evoke a response from LLM. Async if stream is True, otherwise synchronous.
         Update the rolling prompt with the latest message.
         Will put generated text in _look_hashes, and reuse it if same hash is passed in."""
-        output_template = 'Original:[ {message} ] <b>Generated</>:{text}'
+        output_template = 'Original:[ {message} ] <b>Generated<b>:{text}'
 
         if not message or str(message) == "\n":
             str(message), rolling_prompt
@@ -72,7 +73,7 @@ class LlmUtil():
             max_words=self.word_limit if not short_len else amount,
             input_text=str(trimmed_message))
         
-        request_body = self.default_body
+        request_body = deepcopy(self.default_body)
 
         if not self.stream:
             text = self.io_util.synchronous_request(request_body, prompt=prompt)

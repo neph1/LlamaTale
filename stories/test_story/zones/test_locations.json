@@ -1,6 +1,7 @@
 {
     "name":"Cave",
-    "rooms":[
+    "description": "This is a cave. It's dark and damp.",
+    "locations":[
         {
             "name": "Cave entrance",
 		    "descr": "This cave entrance gives shelter from the wind and rain.",
@@ -11,5 +12,7 @@
 		    "descr": "This is Kobbo the Kings throne room. It's a dark, damp place with a log in one end",
             "exits": [{"name" : "Cave entrance", "short_desc":"exit to Cave entrance", "long_desc":"", "enter_msg":""}]
         }
-    ]
+    ],
+    "races": [],
+    "items": []
 }

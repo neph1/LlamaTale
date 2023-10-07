@@ -1,6 +1,6 @@
 
 
-
+from copy import deepcopy
 from json import JSONDecodeError
 import json
 import random
@@ -48,8 +48,7 @@ class Character():
                 character1=target,
                 character1_description=target_description,
                 sentiment=sentiment)
-        request_body = self.default_body
-
+        request_body = deepcopy(self.default_body)
         #if not self.stream:
         text = parse_utils.trim_response(self.io_util.synchronous_request(request_body, prompt=prompt))
 
@@ -67,9 +66,9 @@ class Character():
         #    player_io = mud_context.pla
         #    text = self.io_util.stream_request(self.url + self.stream_endpoint, self.url + self.data_endpoint, request_body, player_io, self.connection)
 
-        item_handling_result, new_sentiment = self.dialogue_analysis(text, character_card, character_name, target)
-        
-        return text, item_handling_result, new_sentiment
+        item_handling_result, new_sentiment, summary = self.dialogue_analysis(text, character_card, character_name, target)
+
+        return text, item_handling_result, new_sentiment, summary
     
     def dialogue_analysis(self, text: str, character_card: str, character_name: str, target: str):
         """Parse the response from LLM and determine if there are any items to be handled."""
@@ -78,26 +77,28 @@ class Character():
         prompt = self.generate_item_prompt(text, items, character_name, target)
         
         if self.backend == 'kobold_cpp':
-            request_body = self.analysis_body
+            request_body = deepcopy(self.analysis_body)
             request_body['grammar'] = self.json_grammar
         elif self.backend == 'openai':
-            request_body = self.default_body
+            request_body = deepcopy(self.default_body)
         text = parse_utils.trim_response(self.io_util.synchronous_request(request_body, prompt=prompt))
         try:
             json_result = json.loads(parse_utils.sanitize_json(text))
         except JSONDecodeError as exc:
             print(exc)
-            return None, None
+            return None, None, None
         
         valid, item_result = self.validate_item_response(json_result, character_name, target, items)
         
         sentiment = self.validate_sentiment(json_result)
+
+        summary = json_result.get('summary', '')
         
-        return item_result, sentiment
+        return item_result, sentiment, summary
     
     def validate_sentiment(self, json: dict):
         try:
-            return json.get('sentiment')
+            return json.get('sentiment', '')
         except:
             print(f'Exception while parsing sentiment {json}')
             return ''
@@ -113,22 +114,22 @@ class Character():
      
     def validate_item_response(self, json_result: dict, character1: str, character2: str, items: str) -> bool:
         if 'result' not in json_result or not json_result.get('result'):
-            return False, None
+            return False, ''
         result = json_result['result']
         if 'item' not in result or not result['item']:
-            return False, None
+            return False, ''
         if not result['from']:
-            return False, None
+            return False, ''
         if result['item'] in items:
             return True, result
-        return False, None
+        return False, ''
     
     def generate_character(self, story_context: str = '', keywords: list = [], story_type: str = ''):
         """ Generate a character card based on the current story context"""
         prompt = self.character_prompt.format(story_type=story_type if story_type else _MudContext.config.type,
                                               story_context=story_context, 
                                               keywords=', '.join(keywords))
-        request_body = self.default_body
+        request_body = deepcopy(self.default_body)
         if self.backend == 'kobold_cpp':
             # do some parameter tweaking for kobold_cpp
             request_body['stop_sequence'] = ['\n\n'] # to avoid text after the character card
@@ -164,7 +165,7 @@ class Character():
             items=items,
             characters=json.dumps(characters),
             sentiments=json.dumps(sentiments))
-        request_body = self.default_body
+        request_body = deepcopy(self.default_body)
         if self.backend == 'kobold_cpp':
             request_body['seed'] = random.randint(0, 2147483647)
             request_body['banned_tokens'] = ['You']
@@ -183,7 +184,7 @@ class Character():
             directions=directions,
             character=character_card,
             character_name=character_name)
-        request_body = self.default_body
+        request_body = deepcopy(self.default_body)
         text = self.io_util.asynchronous_request(request_body, prompt=prompt)
         return text
     
@@ -196,7 +197,7 @@ class Character():
             character=character_card,
             acting_character_name=acting_character_name,
             sentiment=sentiment)
-        request_body = self.default_body
+        request_body = deepcopy(self.default_body)
         text = self.io_util.asynchronous_request(request_body, prompt=prompt)
         return text
     

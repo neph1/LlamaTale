@@ -13,6 +13,10 @@ class JsonStory(DynamicStory):
         super(JsonStory, self).__init__()
         self.config = config
         self.path = path
+        
+    
+    def init(self, driver) -> None:
+        self.driver = driver
         locs = {}
         zones = []
         for zone in self.config.zones:
@@ -24,15 +28,13 @@ class JsonStory(DynamicStory):
             zone = zones[name]
             for loc in zone.locations.values():
                 locs[loc.name] = loc
+            self.add_zone(zone)
         self._locations = locs
-        self._zones = zones # type: dict(str, dict)
+        
         if self.config.npcs:
             self._world["creatures"] = parse_utils.load_npcs(parse_utils.load_json(self.path +'npcs/'+self.config.npcs + '.json'), self._zones)
         if self.config.items:
             self._world["items"] = parse_utils.load_items(parse_utils.load_json(self.path + self.config.items + '.json'), self._zones)
-    
-    def init(self, driver) -> None:
-        pass
         
 
     def welcome(self, player: Player) -> str:
