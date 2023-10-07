@@ -25,11 +25,12 @@ class IoUtil():
         else:
             self.headers = {}
         self.stream = config['STREAM']
+        self.user_start_prompt = config['USER_START']
+        self.user_end_prompt = config['USER_END']
 
-    def synchronous_request(self, request_body: dict, prompt: str = None) -> str:
+    def synchronous_request(self, request_body: dict, prompt: str) -> str:
         """ Send request to backend and return the result """
-        if prompt:
-            self._set_prompt(request_body, prompt)
+        self._set_prompt(request_body, prompt)
         response = requests.post(self.url + self.endpoint, headers=self.headers, data=json.dumps(request_body))
         if self.backend == 'openai':
             parsed_response = self._parse_openai_result(response.text)
@@ -37,14 +38,15 @@ class IoUtil():
             parsed_response = self._parse_kobold_result(response.text)
         return parse_utils.trim_response(parsed_response)
     
-    def asynchronous_request(self, request_body: dict):
+    def asynchronous_request(self, request_body: dict, prompt: str) -> str:
         if self.backend == 'openai':
-            return self.synchronous_request(request_body)
-        return self.stream_request(request_body, wait=True)
+            return self.synchronous_request(request_body, prompt)
+        return self.stream_request(request_body, wait=True, prompt=prompt)
 
-    def stream_request(self, request_body: dict, player_io: TextBuffer = None, io = None, wait: bool = False) -> str:
+    def stream_request(self, request_body: dict, prompt: str, player_io: TextBuffer = None, io = None, wait: bool = False) -> str:
         if self.backend == 'openai':
             raise NotImplementedError("Currently does not support streaming requests for OpenAI")
+        self._set_prompt(request_body, prompt)
         result = asyncio.run(self._do_stream_request(self.url + self.stream_endpoint, request_body))
         if result:
             return self._do_process_result(self.url + self.data_endpoint, player_io, io, wait)
@@ -92,8 +94,13 @@ class IoUtil():
             print("Error parsing result from OpenAI")
             print(result)
 
-    def _set_prompt(self, request_body: dict, prompt: str):
+    def _set_prompt(self, request_body: dict, prompt: str) -> dict:
+        if self.user_start_prompt:
+            prompt = prompt.replace('[USER_START]', self.user_start_prompt)
+        if self.user_end_prompt:
+            prompt = prompt + self.user_end_prompt
         if self.backend == 'kobold_cpp':
             request_body['prompt'] = prompt
         elif self.backend == 'openai':
             request_body['messages'][1]['content'] = prompt
+        return request_body

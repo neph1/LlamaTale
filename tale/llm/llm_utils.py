@@ -73,18 +73,14 @@ class LlmUtil():
             input_text=str(trimmed_message))
         
         request_body = self.default_body
-        if self.backend == 'kobold_cpp':
-            request_body['prompt'] = prompt
-        elif self.backend == 'openai':
-            request_body['messages'][1]['content'] = prompt
 
         if not self.stream:
-            text = self.io_util.synchronous_request(request_body)
+            text = self.io_util.synchronous_request(request_body, prompt=prompt)
             self._store_hash(text_hash_value, text)
             return output_template.format(message=message, text=text), rolling_prompt
 
         player_io.print(output_template.format(message=message, text=text), end=False, format=True, line_breaks=False)
-        text = self.io_util.stream_request(request_body, player_io, self.connection)
+        text = self.io_util.stream_request(request_body, player_io, self.connection, prompt=prompt)
         self._store_hash(text_hash_value, text)
         
         return '\n', rolling_prompt

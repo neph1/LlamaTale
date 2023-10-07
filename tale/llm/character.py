@@ -79,12 +79,10 @@ class Character():
         
         if self.backend == 'kobold_cpp':
             request_body = self.analysis_body
-            request_body['prompt'] = prompt
             request_body['grammar'] = self.json_grammar
         elif self.backend == 'openai':
             request_body = self.default_body
-            request_body['messages'][1]['content'] = prompt
-        text = parse_utils.trim_response(self.io_util.synchronous_request(request_body))
+        text = parse_utils.trim_response(self.io_util.synchronous_request(request_body, prompt=prompt))
         try:
             json_result = json.loads(parse_utils.sanitize_json(text))
         except JSONDecodeError as exc:
@@ -139,10 +137,7 @@ class Character():
             request_body['rep_pen'] = 1.0
             request_body['banned_tokens'] = ['```']
             request_body['grammar'] = self.json_grammar
-            request_body['prompt'] = prompt
-        elif self.backend == 'openai':
-            request_body['messages'][1]['content'] = prompt
-        result = self.io_util.synchronous_request(request_body)
+        result = self.io_util.synchronous_request(request_body, prompt=prompt)
         try:
             json_result = json.loads(parse_utils.sanitize_json(result))
         except JSONDecodeError as exc:
@@ -171,13 +166,10 @@ class Character():
             sentiments=json.dumps(sentiments))
         request_body = self.default_body
         if self.backend == 'kobold_cpp':
-            request_body['prompt'] = prompt
             request_body['seed'] = random.randint(0, 2147483647)
             request_body['banned_tokens'] = ['You']
-        elif self.backend == 'openai':
-            request_body['messages'][1]['content'] = prompt
 
-        text = self.io_util.asynchronous_request(request_body)
+        text = self.io_util.asynchronous_request(request_body, prompt=prompt)
         return text.split(';')
     
     def perform_travel_action(self, character_name: str, location: Location, locations: list, directions: list, character_card: str = ''):
@@ -192,11 +184,7 @@ class Character():
             character=character_card,
             character_name=character_name)
         request_body = self.default_body
-        if self.backend == 'kobold_cpp':
-            request_body['prompt'] = prompt
-        elif self.backend == 'openai':
-            request_body['messages'][1]['content'] = prompt
-        text = self.io_util.asynchronous_request(request_body)
+        text = self.io_util.asynchronous_request(request_body, prompt=prompt)
         return text
     
     def perform_reaction(self, action: str, character_name: str, acting_character_name: str, location: Location, character_card: str = '', sentiment: str = ''):
@@ -209,10 +197,6 @@ class Character():
             acting_character_name=acting_character_name,
             sentiment=sentiment)
         request_body = self.default_body
-        if self.backend == 'kobold_cpp':
-            request_body['prompt'] = prompt
-        elif self.backend == 'openai':
-            request_body['messages'][1]['content'] = prompt
-        text = self.io_util.asynchronous_request(request_body)
+        text = self.io_util.asynchronous_request(request_body, prompt=prompt)
         return text
     
