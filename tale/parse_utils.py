@@ -181,6 +181,10 @@ def load_story_config(json_file: dict):
         config.server_mode = GameMode[json_file['server_mode']]
         config.npcs = json_file.get('npcs', '')
         config.items = json_file.get('items', '')
+        config.context = json_file.get('context', '')
+        config.type = json_file.get('story_type', '')
+        config.world_info = json_file.get('world_info', '')
+        config.world_mood = json_file.get('world_mood', '')
         return config
 
 
