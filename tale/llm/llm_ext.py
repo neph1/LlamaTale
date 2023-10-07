@@ -62,7 +62,7 @@ class LivingNpc(Living):
         self.update_conversation(f'{actor.title}:{what_happened}\n')
         short_len = False if isinstance(actor, Player) else True
         
-        response, item_result, sentiment = mud_context.driver.llm_util.generate_dialogue(
+        response, item_result, sentiment, summary = mud_context.driver.llm_util.generate_dialogue(
             conversation=self.conversation, 
             character_card = self.character_card, 
             character_name = self.title, 
@@ -71,8 +71,11 @@ class LivingNpc(Living):
             sentiment = self.sentiments.get(actor.title, ''),
             location_description=self.location.look(exclude_living=self),
             short_len=short_len)
-            
-        self.update_conversation(f"{self.title} says: \"{response}\"")
+        
+        if summary:
+            self.update_conversation(f"{self.title} says: \"{summary}\"")
+        else:
+            self.update_conversation(f"{self.title} says: \"{response}\"")
         if len(self.conversation) > self.memory_size:
             self.conversation = self.conversation[self.memory_size+1:]
         
