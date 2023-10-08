@@ -13,7 +13,7 @@ from tale.llm.llm_io import IoUtil
 from tale.load_character import CharacterV2
 
 
-class Character():
+class CharacterBuilding():
 
     def __init__(self, backend: str, io_util: IoUtil, default_body: dict):
         self.pre_prompt = llm_config.params['PRE_PROMPT']
@@ -37,6 +37,7 @@ class Character():
                           sentiment = '', 
                           location_description = '',
                           story_context = '',
+                          event_history = '',
                           short_len : bool=False):
         prompt = self.pre_prompt
         prompt += self.dialogue_prompt.format(
@@ -47,10 +48,11 @@ class Character():
                 character2=character_name,
                 character1=target,
                 character1_description=target_description,
+                history=event_history,
                 sentiment=sentiment)
         request_body = deepcopy(self.default_body)
         #if not self.stream:
-        text = parse_utils.trim_response(self.io_util.synchronous_request(request_body, prompt=prompt))
+        text = self.io_util.synchronous_request(request_body, prompt=prompt)
 
         try:
             # this is a hack in case the model responds in json
@@ -62,6 +64,7 @@ class Character():
         except JSONDecodeError as exc:
             # this is ok, we don't want json
             pass
+        text = parse_utils.trim_response(text)
         #else:
         #    player_io = mud_context.pla
         #    text = self.io_util.stream_request(self.url + self.stream_endpoint, self.url + self.data_endpoint, request_body, player_io, self.connection)
@@ -81,7 +84,7 @@ class Character():
             request_body['grammar'] = self.json_grammar
         elif self.backend == 'openai':
             request_body = deepcopy(self.default_body)
-        text = parse_utils.trim_response(self.io_util.synchronous_request(request_body, prompt=prompt))
+        text = self.io_util.synchronous_request(request_body, prompt=prompt)
         try:
             json_result = json.loads(parse_utils.sanitize_json(text))
         except JSONDecodeError as exc:
@@ -150,7 +153,7 @@ class Character():
             print(f'Exception while parsing character {json_result}')
             return None
     
-    def perform_idle_action(self, character_name: str, location: Location, story_context: str, character_card: str = '', sentiments: dict = {}, last_action: str = '') -> list:
+    def perform_idle_action(self, character_name: str, location: Location, story_context: str, character_card: str = '', sentiments: dict = {}, last_action: str = '', event_history: str = '') -> list:
         characters = {}
         for living in location.livings:
             if living.name != character_name.lower():
@@ -164,6 +167,7 @@ class Character():
             character=character_card,
             items=items,
             characters=json.dumps(characters),
+            history=event_history,
             sentiments=json.dumps(sentiments))
         request_body = deepcopy(self.default_body)
         if self.backend == 'kobold_cpp':
@@ -185,10 +189,10 @@ class Character():
             character=character_card,
             character_name=character_name)
         request_body = deepcopy(self.default_body)
-        text = self.io_util.asynchronous_request(request_body, prompt=prompt)
+        text = self.io_util.synchronous_request(request_body, prompt=prompt)
         return text
     
-    def perform_reaction(self, action: str, character_name: str, acting_character_name: str, location: Location, character_card: str = '', sentiment: str = ''):
+    def perform_reaction(self, action: str, character_name: str, acting_character_name: str, location: Location, character_card: str = '', sentiment: str = '', event_history: str = ''):
         prompt = self.pre_prompt
         prompt += self.reaction_prompt.format(
             action=action,
@@ -196,8 +200,9 @@ class Character():
             character_name=character_name,
             character=character_card,
             acting_character_name=acting_character_name,
+            history=event_history,
             sentiment=sentiment)
         request_body = deepcopy(self.default_body)
-        text = self.io_util.asynchronous_request(request_body, prompt=prompt)
+        text = self.io_util.synchronous_request(request_body, prompt=prompt)
         return text
     

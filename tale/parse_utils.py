@@ -1,12 +1,10 @@
 import random
-from typing import Union
 from tale import lang
 from tale.base import Location, Exit, Item, Weapon, Wearable
 from tale.coord import Coord
 from tale.items.basic import Boxlike, Drink, Food, Health, Money, Note
 from tale.npc_defs import StationaryMob, StationaryNpc
 from tale.story import GameMode, MoneyType, TickMethod, StoryConfig
-from tale.llm.llm_ext import LivingNpc
 from tale.weapon_type import WeaponType
 from tale.wearable import WearLocation
 from tale.zone import Zone
@@ -264,13 +262,17 @@ def remove_special_chars(message: str):
     return message
         
 def trim_response(message: str):
-    enders = ['.', '!', '?', '`', '*', '"', ')', '}', '`', ']']
-    lastChar = 0
-    for c in enders:
-        last = message.rfind(c)
-        if last > lastChar:
-            lastChar = last
-    return message[:lastChar+1]
+    """ Removes special chars from response"""
+    enders = [' ', '!', '?', '`', '*', '"', ')', '}', '`', ']', '\n']
+    starters = [' ', '`', '*', '"', '(', '{', '`', '[']
+
+    while message[0] in starters:
+        message = message[1:]
+
+    while message[-1] in enders:
+        message = message[:-1]
+    
+    return message
 
 def sanitize_json(result: str):
     """ Removes special chars from json string. Some common, and some 'creative' ones. """

@@ -3,13 +3,14 @@ import json
 import os
 import yaml
 from tale.base import Location
-from tale.llm.character import Character
+from tale.llm.character import CharacterBuilding
 from tale.llm.llm_ext import DynamicStory
 from tale.llm.llm_io import IoUtil
 from tale.llm.story_building import StoryBuilding
 from tale.llm.world_building import WorldBuilding
 from tale.player_utils import TextBuffer
 import tale.parse_utils as parse_utils
+import tale.llm.llm_cache as llm_cache
 from tale.zone import Zone
 
 class LlmUtil():
@@ -34,11 +35,11 @@ class LlmUtil():
         self.io_util = io_util or IoUtil(config=config_file)
         self.stream = config_file['STREAM']
         self.connection = None
-        self._look_hashes = dict() # type: dict[int, str] # location hashes for look command. currently never cleared.
+        #self._look_hashes = dict() # type: dict[int, str] # location hashes for look command. currently never cleared.
         self._world_building = WorldBuilding(default_body=self.default_body,
                                              io_util=self.io_util,
                                              backend=self.backend)
-        self._character = Character(backend=self.backend,
+        self._character = CharacterBuilding(backend=self.backend,
                                     io_util=self.io_util,
                                     default_body=self.default_body)
         self._story_building = StoryBuilding(default_body=self.default_body,
@@ -56,11 +57,11 @@ class LlmUtil():
 
         rolling_prompt = self.update_memory(rolling_prompt, message)
 
-        text_hash_value = hash(message)
-        if text_hash_value in self._look_hashes:
-            text = self._look_hashes[text_hash_value]
-            
-            return output_template.format(message=message, text=text), rolling_prompt
+        text_hash_value = llm_cache.generate_hash(message)
+
+        cached_look = llm_cache.get_looks([text_hash_value])
+        if cached_look:
+            return output_template.format(message=message, text=cached_look), rolling_prompt
 
         trimmed_message = parse_utils.remove_special_chars(str(message))
 
@@ -77,12 +78,12 @@ class LlmUtil():
 
         if not self.stream:
             text = self.io_util.synchronous_request(request_body, prompt=prompt)
-            self._store_hash(text_hash_value, text)
+            llm_cache.cache_look(text, text_hash_value)
             return output_template.format(message=message, text=text), rolling_prompt
 
         player_io.print(output_template.format(message=message, text=text), end=False, format=True, line_breaks=False)
         text = self.io_util.stream_request(request_body, player_io, self.connection, prompt=prompt)
-        self._store_hash(text_hash_value, text)
+        llm_cache.cache_look(text, text_hash_value)
         
         return '\n', rolling_prompt
     
@@ -93,6 +94,7 @@ class LlmUtil():
                           target_description: str='', 
                           sentiment = '', 
                           location_description = '',
+                          event_history='',
                           short_len : bool=False):
         return self._character.generate_dialogue(conversation, 
                                                  character_card=character_card, 
@@ -102,6 +104,7 @@ class LlmUtil():
                                                  sentiment=sentiment, 
                                                  location_description=location_description, 
                                                  story_context=self.__story.config.context, 
+                                                 event_history=event_history,
                                                  short_len=short_len)
     
     def update_memory(self, rolling_prompt: str, response_text: str):
@@ -128,14 +131,14 @@ class LlmUtil():
                                                    world_creatures=world_creatures,
                                                    world_items=world_items)
      
-    def perform_idle_action(self, character_name: str, location: Location, character_card: str = '', sentiments: dict = {}, last_action: str = '') -> list:
-        return self._character.perform_idle_action(character_name, location, self.__story.config.context, character_card, sentiments, last_action)
+    def perform_idle_action(self, character_name: str, location: Location, character_card: str = '', sentiments: dict = {}, last_action: str = '', event_history: str = '') -> list:
+        return self._character.perform_idle_action(character_name, location, self.__story.config.context, character_card, sentiments, last_action, event_history=event_history)
     
     def perform_travel_action(self, character_name: str, location: Location, locations: list, directions: list, character_card: str = ''):
         return self._character.perform_travel_action(character_name, location, locations, directions, character_card)
     
-    def perform_reaction(self, action: str, character_name: str, acting_character_name: str, location: Location, character_card: str = '', sentiment: str = ''):
-        return self._character.perform_reaction(action, character_name, acting_character_name, location, character_card, sentiment)
+    def perform_reaction(self, action: str, character_name: str, acting_character_name: str, location: Location, character_card: str = '', sentiment: str = '', event_history: str = ''):
+        return self._character.perform_reaction(action, character_name, acting_character_name, location, character_card, sentiment, event_history=event_history)
     
     def generate_story_background(self, world_mood: int, world_info: str, story_type: str):
         return self._story_building.generate_story_background(world_mood, world_info, story_type)
@@ -160,12 +163,7 @@ class LlmUtil():
                                                           world_info=self.__story.config.world_info,
                                                           world_creatures=self.__story.world_creatures,
                                                           world_items=self.__story.world_items)
-    
-    def _store_hash(self, text_hash_value: int, text: str):
-        """ Store the generated text in a hash table."""
-        if text_hash_value != -1:
-            self._look_hashes[text_hash_value] = text
-
+  
     def set_story(self, story: DynamicStory):
         """ Set the story object."""
         self.__story = story

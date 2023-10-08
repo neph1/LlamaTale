@@ -36,7 +36,7 @@ class IoUtil():
             parsed_response = self._parse_openai_result(response.text)
         else:
             parsed_response = self._parse_kobold_result(response.text)
-        return parse_utils.trim_response(parsed_response)
+        return parsed_response
     
     def asynchronous_request(self, request_body: dict, prompt: str) -> str:
         if self.backend == 'openai':

@@ -1,6 +1,6 @@
 import datetime
-import pytest
 import json
+import tale.llm.llm_cache as llm_cache
 from tale import mud_context, weapon_type
 from tale import zone
 from tale import util
@@ -79,7 +79,7 @@ class TestLlmUtils():
 
     def test_handle_response_no_result(self):
         response = '{"thoughts":"The character Norhardt did not give anything listed. The character Arto took nothing. But the author mentioned that they saw something big and fury near where they were walking so likely this creature got dropped there."}'
-        result = json.loads(parse_utils.trim_response(json.dumps(json.loads(response))))
+        result = json.loads(response)
         assert(result)
 
     def test_validate_response_empty_result(self):
@@ -102,7 +102,7 @@ class TestLlmUtils():
         self.llm_util.set_story(self.story)
         result = self.llm_util.evoke(message='test evoke', player_io=None)
         assert(result)
-        assert(self.llm_util._look_hashes[hash('test evoke')] == evoke_string)
+        assert(llm_cache.get_looks([hash('test evoke')]) == evoke_string)
 
     def test_generate_character(self):
         character_string = json.dumps(parse_utils.load_json('tests/files/test_character.json'))
@@ -138,7 +138,7 @@ class TestLlmUtils():
                                                             target_description='{}', 
                                                             sentiment='cheerful', 
                                                             location_description='{}')
-        assert(result == 'H')
+        assert(result == 'Hello there')
 
         
     def test_generate_dialogue_json(self):

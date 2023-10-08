@@ -1,5 +1,5 @@
 from tale.base import Weapon
-from tale.llm.llm_ext import LivingNpc
+from tale.llm.LivingNpc import LivingNpc
 from tale.combat import Combat
 from tale.weapon_type import WeaponType
 from tests.supportstuff import FakeDriver
