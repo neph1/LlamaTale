@@ -175,7 +175,7 @@ class CharacterBuilding():
             request_body['banned_tokens'] = ['You']
 
         text = self.io_util.synchronous_request(request_body, prompt=prompt)
-        return text.split(';')
+        return parse_utils.trim_response(text) + "\n"
     
     def perform_travel_action(self, character_name: str, location: Location, locations: list, directions: list, character_card: str = ''):
         if location.name in locations:
@@ -192,7 +192,7 @@ class CharacterBuilding():
         text = self.io_util.synchronous_request(request_body, prompt=prompt)
         return text
     
-    def perform_reaction(self, action: str, character_name: str, acting_character_name: str, location: Location, character_card: str = '', sentiment: str = '', event_history: str = ''):
+    def perform_reaction(self, action: str, character_name: str, acting_character_name: str, location: Location, story_context: str, character_card: str = '', sentiment: str = '', event_history: str = ''):
         prompt = self.pre_prompt
         prompt += self.reaction_prompt.format(
             action=action,
@@ -200,9 +200,10 @@ class CharacterBuilding():
             character_name=character_name,
             character=character_card,
             acting_character_name=acting_character_name,
+            story_context=story_context,
             history=event_history,
             sentiment=sentiment)
         request_body = deepcopy(self.default_body)
         text = self.io_util.synchronous_request(request_body, prompt=prompt)
-        return text
+        return parse_utils.trim_response(text) + "\n"
     

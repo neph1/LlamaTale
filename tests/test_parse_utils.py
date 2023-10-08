@@ -259,6 +259,6 @@ class TestParseUtils():
         trimmed = parse_utils.trim_response(response)
         assert(trimmed == 'The Duchess takes a seat next to him.')
 
-        response = ' Duchess gently nuzzles the back of your hand."\\n" }]\n'
+        response = ' Duchess gently nuzzles the back of your hand."\n" }]\n'
         trimmed = parse_utils.trim_response(response)
         assert(trimmed == 'Duchess gently nuzzles the back of your hand.')
