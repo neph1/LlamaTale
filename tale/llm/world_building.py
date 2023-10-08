@@ -1,4 +1,5 @@
 
+from copy import deepcopy
 import json
 from tale import parse_utils, races
 from tale import zone
@@ -54,7 +55,7 @@ class WorldBuilding():
             
         })
 
-        request_body = self.default_body
+        request_body = deepcopy(self.default_body)
         if self.backend == 'kobold_cpp':
             request_body = self._kobold_generation_prompt(request_body)
 
@@ -167,7 +168,7 @@ class WorldBuilding():
             'story_context': story_config.context,
         })
         
-        request_body = self.default_body
+        request_body = deepcopy(self.default_body)
         if self.backend == 'kobold_cpp':
             request_body['max_length'] = 750
         elif self.backend == 'openai':
@@ -202,7 +203,7 @@ class WorldBuilding():
             'story_context': story_context,
         })
         
-        request_body = self.default_body
+        request_body = deepcopy(self.default_body)
         if self.backend == 'kobold_cpp':
             request_body = self._kobold_generation_prompt(request_body)
         result = self.io_util.synchronous_request(request_body, prompt=prompt)
@@ -223,7 +224,7 @@ class WorldBuilding():
             'story_context': story_context,
         })
         
-        request_body = self.default_body
+        request_body = deepcopy(self.default_body)
         if self.backend == 'kobold_cpp':
             request_body = self._kobold_generation_prompt(request_body)
             request_body['max_length'] = 750
@@ -244,7 +245,7 @@ class WorldBuilding():
                                                 world_info=world_info,
                                                 world_mood=parse_utils.mood_string_from_int(world_mood),
                                                 item_types=self.item_types)
-        request_body = self.default_body
+        request_body = deepcopy(self.default_body)
         if self.backend == 'kobold_cpp':
             request_body = self._kobold_generation_prompt(request_body)
 
@@ -261,7 +262,7 @@ class WorldBuilding():
                                                 story_type=story_type,
                                                 world_info=world_info,
                                                 world_mood=parse_utils.mood_string_from_int(world_mood))
-        request_body = self.default_body
+        request_body = deepcopy(self.default_body)
         if self.backend == 'kobold_cpp':
             request_body = self._kobold_generation_prompt(request_body)
             
@@ -284,7 +285,7 @@ class WorldBuilding():
                                                 world_info=world_info,
                                                 zone_info=zone_info,
                                                 location_info=location_info)
-        request_body = self.default_body
+        request_body = deepcopy(self.default_body)
         if self.backend == 'kobold_cpp':
             request_body = self._kobold_generation_prompt(request_body)
             

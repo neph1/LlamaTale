@@ -35,9 +35,7 @@ class LivingNpc(Living):
                 targeted = True
         if self.name in parsed.unparsed or self in parsed.who_info or self.title in parsed.unparsed:
             targeted = True
-        if parsed.verb in ("hi", "hello"):
-            greet = True
-        elif parsed.verb == "greet":
+        if parsed.verb in ("hi", "hello") or parsed.verb == "greet":
             greet = True
         if greet and targeted:
             self.tell_others("{Actor} says: \"Hi.\"", evoke=True)
@@ -45,18 +43,7 @@ class LivingNpc(Living):
         elif parsed.verb == "say" and targeted:
             self.do_say(parsed.unparsed, actor)
         elif targeted and parsed.verb == "idle-action":
-            action = mud_context.driver.llm_util.perform_reaction(action=parsed.unparsed, 
-                                            character_card=self.character_card,
-                                            character_name=self.title,
-                                            location=self.location,
-                                            acting_character_name=actor.title,
-                                            sentiment=self.sentiments.get(actor.name, ''))
-            if action:
-                self.action_history.append(action)
-                result = ParseResult(verb='idle-action', unparsed=action, who_info=None)
-                self.tell_others(action)
-                self.location.notify_action(result, actor=self)
-                self.location._notify_action_all(result, actor=self)
+            self._do_react(parsed, actor)
 
     def do_say(self, what_happened: str, actor: Living) -> None:
         self.update_conversation(f'{actor.title}:{what_happened}\n')
@@ -71,7 +58,10 @@ class LivingNpc(Living):
             sentiment = self.sentiments.get(actor.title, ''),
             location_description=self.location.look(exclude_living=self),
             short_len=short_len)
-            
+        
+        # if summary:
+        #     self.update_conversation(f"{self.title} says: \"{summary}\"")
+        # else:
         self.update_conversation(f"{self.title} says: \"{response}\"")
         if len(self.conversation) > self.memory_size:
             self.conversation = self.conversation[self.memory_size+1:]
@@ -82,6 +72,19 @@ class LivingNpc(Living):
         
         if sentiment:
             self.sentiments[actor.title] = sentiment
+
+    def _do_react(self, parsed: ParseResult, actor: Living) -> None:
+        action = mud_context.driver.llm_util.perform_reaction(action=parsed.unparsed, 
+                                            character_card=self.character_card,
+                                            character_name=self.title,
+                                            location=self.location,
+                                            acting_character_name=actor.title,
+                                            sentiment=self.sentiments.get(actor.name, ''))
+        if action:
+            self.action_history.append(action)
+            result = ParseResult(verb='idle-action', unparsed=action, who_info=None)
+            self.tell_others(action)
+            self.location._notify_action_all(result, actor=self)
     
     def handle_item_result(self, result: str, actor: Living):
         
@@ -117,10 +120,15 @@ class LivingNpc(Living):
             Currently handles planning several actions in advance, and then performing them in reverse order.
         """
         if not self.planned_actions:
+            if self.action_history:
+                history_length = len(self.action_history)
+                previous_actions = self.action_history[-5:] if history_length > 4 else self.action_history[-history_length:]
+            else:
+                previous_actions = []
             actions = mud_context.driver.llm_util.perform_idle_action(character_card=self.character_card,
                                                 character_name=self.title,
                                                 location=self.location,
-                                                last_action=self.action_history[-1] if self.action_history else None,
+                                                last_action=previous_actions,
                                                 sentiments=self.sentiments)
             if actions:
                 actions.reverse()
@@ -157,6 +165,7 @@ class LivingNpc(Living):
                 description=self.description,
                 occupation=self.occupation,
                 items=','.join(items))
+    
 
 class DynamicStory(StoryBase):
 
@@ -171,7 +180,7 @@ class DynamicStory(StoryBase):
         return self._zones[name]
     
     def add_zone(self, zone: Zone) -> bool:
-        """ Add a zone to the story. """
+        
         if zone.name in self._zones:
             return False
         self._zones[zone.name] = zone

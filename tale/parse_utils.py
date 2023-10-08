@@ -134,7 +134,7 @@ def load_npcs(json_file: [], locations = {}) -> dict:
             new_npc.aliases.add(name.split(' ')[0].lower())
             new_npc.stats.set_weapon_skill(WeaponType.UNARMED, random.randint(10, 30))
             new_npc.stats.level = npc.get('level', 1)
-        elif npc_type == 'Mob':
+        else:
 
             new_npc = StationaryMob(name=npc['name'], 
                                 gender=lang.validate_gender_mf(npc.get('gender', 'm')[0]), 
@@ -181,6 +181,10 @@ def load_story_config(json_file: dict):
         config.server_mode = GameMode[json_file['server_mode']]
         config.npcs = json_file.get('npcs', '')
         config.items = json_file.get('items', '')
+        config.context = json_file.get('context', '')
+        config.type = json_file.get('story_type', '')
+        config.world_info = json_file.get('world_info', '')
+        config.world_mood = json_file.get('world_mood', '')
         return config
 
 
@@ -364,13 +368,13 @@ def parse_generated_exits(json_result: dict, exit_location_name: str, location: 
             
             new_location.built = False
             new_location.generated = True
-            from_description = f'To the {directions_from[1]} you can see {location.name}' if len(directions_from) > 1 else f'You can see {location.name}'
+            from_description = f'To the {directions_from[1]} you see {location.name}.' if len(directions_from) > 1 else f'You see {location.name}.'
             exit_back = Exit(directions=directions_from, 
                     target_location=location, 
                     short_descr=from_description)
             new_location.add_exits([exit_back])
 
-            to_description = f'To the {directions_to[1]} ' + exit.get('short_descr', 'description').lower() if len(directions_from) > 1 else exit.get('short_descr', 'description')
+            to_description = 'To the {direction} you see {location}'.format(direction=directions_to[1], location=exit.get('short_descr', 'description').lower()) if len(directions_to) > 1 else exit.get('short_descr', 'description')
             exit_to = Exit(directions=directions_to, 
                             target_location=new_location, 
                             short_descr=to_description, 

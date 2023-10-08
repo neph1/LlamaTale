@@ -1,3 +1,4 @@
+from copy import deepcopy
 import json
 import os
 import yaml
@@ -48,7 +49,7 @@ class LlmUtil():
         """Evoke a response from LLM. Async if stream is True, otherwise synchronous.
         Update the rolling prompt with the latest message.
         Will put generated text in _look_hashes, and reuse it if same hash is passed in."""
-        output_template = 'Original:[ {message} ] <b>Generated</>:{text}'
+        output_template = 'Original:[ {message} ] Generated:{text}'
 
         if not message or str(message) == "\n":
             str(message), rolling_prompt
@@ -72,19 +73,15 @@ class LlmUtil():
             max_words=self.word_limit if not short_len else amount,
             input_text=str(trimmed_message))
         
-        request_body = self.default_body
-        if self.backend == 'kobold_cpp':
-            request_body['prompt'] = prompt
-        elif self.backend == 'openai':
-            request_body['messages'][1]['content'] = prompt
+        request_body = deepcopy(self.default_body)
 
         if not self.stream:
-            text = self.io_util.synchronous_request(request_body)
+            text = self.io_util.synchronous_request(request_body, prompt=prompt)
             self._store_hash(text_hash_value, text)
             return output_template.format(message=message, text=text), rolling_prompt
 
         player_io.print(output_template.format(message=message, text=text), end=False, format=True, line_breaks=False)
-        text = self.io_util.stream_request(request_body, player_io, self.connection)
+        text = self.io_util.stream_request(request_body, player_io, self.connection, prompt=prompt)
         self._store_hash(text_hash_value, text)
         
         return '\n', rolling_prompt

@@ -169,6 +169,8 @@ class TestWorldBuilding():
     generated_zone = '{"name":"Test Zone", "description":"A test zone", "level":10, "mood":-2, "races":["human", "elf", "dwarf"], "items":["sword", "shield"]}'
     
     story = JsonStory('tests/files/test_story/', parse_utils.load_story_config(parse_utils.load_json('tests/files/test_story_config_empty.json')))
+    story.config.world_mood = 0
+    story.config.world_info = "A test world"
     story.init(driver)
 
     def test_validate_location(self):
@@ -221,6 +223,7 @@ class TestWorldBuilding():
         assert(new_locations[0].name == 'Misty Meadows')
         assert(new_locations[1].name == 'Riverdale')
 
+    
     def test_generate_start_zone(self):
         # mostly for coverage
         self.llm_util._world_building.io_util.response = self.generated_zone
@@ -428,6 +431,36 @@ class TestWorldBuilding():
         assert(location.items.pop().name == 'sword')
         assert(location.search_living('grumpy') is not None)
         assert(location.search_living('wolf') is not None)
+
+    def test_issue_overwriting_exits(self):
+        """ User walks west and enters Rocky Cliffs, When returning east, the exits are overwritten."""
+        self.llm_util._world_building.io_util.response=['{"name": "Forest Path", "exits": [{"direction": "north", "name": "Mystic Woods", "short_descr": "A dense, misty forest teeming with ancient magic."}, {"direction": "south", "name": "Blooming Meadow", "short_descr": "A lush, vibrant meadow filled with wildflowers and gentle creatures."}, {"direction": "west", "name": "Rocky Cliffs", "short_descr": "A rugged, rocky terrain with breathtaking views of the surrounding landscape."}], "items": [{"name": "enchanted forest amulet", "type": "Wearable", "description": "A shimmering amulet infused with the magic of the forest, granting the wearer a moderate boost to their defense and resistance to harm."}], "npcs": [{"name": "Florabug", "sentiment": "neutral", "race": "florabug", "gender": "m", "level": 5, "description": "A friendly, curious creature who loves to make new friends."}]}',
+                                                        '{"description": "A picturesque beach with soft, golden sand and crystal clear waters. The sun shines bright overhead, casting a warm glow over the area. The air is filled with the sound of gentle waves and the cries of seagulls. A few scattered palm trees provide shade and a sense of tranquility.", "exits": [{"direction": "north", "name": "Coastal Caves", "short_descr": "A network of dark, damp caves hidden behind the sandy shores."}, {"direction": "south", "name": "Rocky Cliffs", "short_descr": "A rugged, rocky coastline with steep drop-offs and hidden sea creatures."}, {"direction": "east", "name": "Mermaid\'s Grotto", "short_descr": "A hidden underwater cave system, rumored to be home to magical sea creatures."}], "items": [], "npcs": []}']
+        location = Location(name='', descr='on a small road outside a forest')
+        new_locations, exits = self.llm_util._world_building.generate_start_location(location, 
+                                                       story_type='',
+                                                       story_context='', 
+                                                       zone_info={},
+                                                       world_info='',)
+        
+        location = Location(name=location.name, descr=location.description)
+        
+        assert((len(exits) == 3))
+        assert((len(new_locations) == 3))
+        location.add_exits(exits)
+        assert((len(location.exits) == 6))
+        rocky_cliffs = new_locations[2] # type: Location
+        assert(rocky_cliffs.name == 'Rocky Cliffs')
+
+        new_locations, exits = self.llm_util._world_building.build_location(rocky_cliffs, 
+                                                                            'Rocky Cliffs', 
+                                                                            story_type='',
+                                                                            story_context='',
+                                                                            world_info='',
+                                                                            zone_info={})
+        rocky_cliffs.add_exits(exits)
+        assert((len(rocky_cliffs.exits) == 6))
+        assert((len(new_locations) == 2))
 
 
         
