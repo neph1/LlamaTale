@@ -112,12 +112,6 @@ class LivingNpc(Living):
                 item.move(self.location, self)
                 self.tell_others("{Actor} drops %s on the floor" % (item.title), evoke=False)
 
-
-    def update_conversation(self, line: str):
-        self.conversation += line
-        if len(self.conversation) > self.memory_size:
-            self.conversation = self.conversation[len(self.conversation) - self.memory_size+1:]
-
     def move(self, target: ContainingType, actor: Living=None,
              *, silent: bool=False, is_player: bool=False, verb: str="move", direction_names: Sequence[str]=None) -> None:
         self.known_locations[self.location.name] = f"description: {self.location.description}. " + ". ".join(self.location.look(exclude_living=self, short=True))

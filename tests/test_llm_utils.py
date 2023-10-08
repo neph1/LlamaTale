@@ -114,13 +114,10 @@ class TestLlmUtils():
     def test_perform_idle_action(self):
         # mostly testing that prompt works
         self.llm_util.set_story(self.story)
-        self.llm_util._character.io_util.response = 'Walk to the left;Walk to the right;Jump up and down'
+        self.llm_util._character.io_util.response = 'Walk to the left'
         location = Location(name='Test Location')
         actions = self.llm_util.perform_idle_action(character_name='Norhardt', location = location, character_card= '{}', sentiments= {}, last_action= '')
-        assert(len(actions) == 3)
-        assert(actions[0] == 'Walk to the left')
-        assert(actions[1] == 'Walk to the right')
-        assert(actions[2] == 'Jump up and down')
+        assert(actions == 'Walk to the left\n')
 
     def test_perform_travel_action(self):
         # mostly testing that prompt works

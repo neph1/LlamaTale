@@ -264,7 +264,7 @@ def remove_special_chars(message: str):
 def trim_response(message: str):
     """ Removes special chars from response"""
     enders = [' ', '!', '?', '`', '*', '"', ')', '}', '`', ']', '\n']
-    starters = [' ', '`', '*', '"', '(', '{', '`', '[']
+    starters = [' ', '`', '*', '"', '(', '{', '`', '[', '\n']
 
     while message[0] in starters:
         message = message[1:]
@@ -278,6 +278,8 @@ def sanitize_json(result: str):
     """ Removes special chars from json string. Some common, and some 'creative' ones. """
     # .replace('}}', '}')
     # .replace('""', '"')
+    if result is None:
+        return ''
     result = result.replace('```json', '') #.replace('\\"', '"').replace('"\\n"', '","').replace('\\n', '').replace('}\n{', '},{').replace('}{', '},{').replace('\\r', '').replace('\\t', '').replace('"{', '{').replace('}"', '}').replace('"\\', '"').replace('\\”', '"').replace('" "', '","').replace(':,',':').replace('},]', '}]').replace('},}', '}}')
     result = result.split('```')[0]
     print('sanitized json: ' + result)
