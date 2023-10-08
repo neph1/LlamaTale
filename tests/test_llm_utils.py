@@ -169,6 +169,8 @@ class TestWorldBuilding():
     generated_zone = '{"name":"Test Zone", "description":"A test zone", "level":10, "mood":-2, "races":["human", "elf", "dwarf"], "items":["sword", "shield"]}'
     
     story = JsonStory('tests/files/test_story/', parse_utils.load_story_config(parse_utils.load_json('tests/files/test_story_config_empty.json')))
+    story.config.world_mood = 0
+    story.config.world_info = "A test world"
     story.init(driver)
 
     def test_validate_location(self):

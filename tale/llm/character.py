@@ -66,9 +66,9 @@ class Character():
         #    player_io = mud_context.pla
         #    text = self.io_util.stream_request(self.url + self.stream_endpoint, self.url + self.data_endpoint, request_body, player_io, self.connection)
 
-        item_handling_result, new_sentiment, summary = self.dialogue_analysis(text, character_card, character_name, target)
+        item_handling_result, new_sentiment = self.dialogue_analysis(text, character_card, character_name, target)
 
-        return text, item_handling_result, new_sentiment, summary
+        return text, item_handling_result, new_sentiment
     
     def dialogue_analysis(self, text: str, character_card: str, character_name: str, target: str):
         """Parse the response from LLM and determine if there are any items to be handled."""
@@ -86,15 +86,15 @@ class Character():
             json_result = json.loads(parse_utils.sanitize_json(text))
         except JSONDecodeError as exc:
             print(exc)
-            return None, None, None
+            return None, None
         
         valid, item_result = self.validate_item_response(json_result, character_name, target, items)
         
         sentiment = self.validate_sentiment(json_result)
 
-        summary = json_result.get('summary', '')
+        # summary = json_result.get('summary', '')
         
-        return item_result, sentiment, summary
+        return item_result, sentiment
     
     def validate_sentiment(self, json: dict):
         try:
@@ -170,7 +170,7 @@ class Character():
             request_body['seed'] = random.randint(0, 2147483647)
             request_body['banned_tokens'] = ['You']
 
-        text = self.io_util.asynchronous_request(request_body, prompt=prompt)
+        text = self.io_util.synchronous_request(request_body, prompt=prompt)
         return text.split(';')
     
     def perform_travel_action(self, character_name: str, location: Location, locations: list, directions: list, character_card: str = ''):

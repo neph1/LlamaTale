@@ -29,10 +29,10 @@ class BuildLocation(LlmRequest):
         if spawn:
             mood = zone_info.get('mood', 0)
             if isinstance(mood, str):
-                num_mood = parse_utils.mood_int_from_string(mood)
+                num_mood = parse_utils.mood_string_to_int(mood)
             else:
                 num_mood = mood
-            num_mood = (int) (random.gauss(zone_info.get('mood', 0), 2))
+            num_mood = (int) (random.gauss(num_mood, 2))
             level = (int) (random.gauss(zone_info.get('level', 1), 2))
             mood_string = parse_utils.mood_string_from_int(num_mood)
             spawn_prompt = self.spawn_prompt.format(alignment=mood_string, level=level)

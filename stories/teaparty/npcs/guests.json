@@ -1,0 +1,35 @@
+[
+    {
+        "name":"Mad Hatter",
+        "gender":"m",
+        "race":"human",
+        "type":"LivingExt",
+        "title":"Mad Hatter",
+        "personality":"The Mad Hatter from Lewis Carrol's Alice in Wonderland. He is a bit crazy and has a strange sense of humor.",
+        "descr":"Wearing a big hat and a colorful costume.",
+        "short_descr":"A man with a big hat and colorful costume.",
+        "location":"Mad Hatters House.Living Room"
+    },
+    {
+        "name":"Duchess",
+        "gender":"f",
+        "race":"human",
+        "type":"LivingExt",
+        "title":"Duchess",
+        "personality":"The Duchess from Lewis Carrol's Alice in Wonderland. Volatile and aggressive personality.",
+        "descr":"Very big head. Tall enough to rest her chin upon Alice’s shoulder, uncomfortably sharp chin.",
+        "short_descr": "Short woman with a very large head.",
+        "location":"Mad Hatters House.Living Room"
+    },
+    {
+        "name":"Ace of Spades",
+        "gender":"m",
+        "race":"human",
+        "type":"LivingExt",
+        "title":"Ace of Spades",
+        "personality":"A drunken ex-rock star. Like a talkative Ozzy Osbourne if he were in Alice in Wonderland.",
+        "descr":"Thin man with eyeliner and a vacant expression. Wearing a black leather jacket and a black top hat.",
+        "short_descr": "A man with leather jacket and a black top hat.",
+        "location":"Mad Hatters House.Living Room"
+    }
+]

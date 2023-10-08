@@ -49,7 +49,7 @@ class LlmUtil():
         """Evoke a response from LLM. Async if stream is True, otherwise synchronous.
         Update the rolling prompt with the latest message.
         Will put generated text in _look_hashes, and reuse it if same hash is passed in."""
-        output_template = 'Original:[ {message} ] <b>Generated<b>:{text}'
+        output_template = 'Original:[ {message} ] Generated:{text}'
 
         if not message or str(message) == "\n":
             str(message), rolling_prompt

@@ -61,8 +61,6 @@ class Story(DynamicStory):
         Ask questions using the yield "input", "question?"  mechanism.
         Return True to declare all is well, and False to abort the player creation process.
         """
-        age = yield "input", "Custom creation question: What is your age?"
-        playernaming.story_data["age"] = int(age)    # will be stored in the database (mud)
         occupation = yield "input", "Custom creation question: What is your trade?"
         playernaming.story_data["occupation"] = str(occupation)    # will be stored in the database (mud)
         return True
