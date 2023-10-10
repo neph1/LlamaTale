@@ -25,6 +25,7 @@ from typing import Sequence, Union, Tuple, Any, Dict, Callable, Iterable, Genera
 import appdirs
 
 from tale import story_builder
+from tale.llm.LivingNpc import LivingNpc
 
 from . import __version__ as tale_version_str, _check_required_libraries
 from . import mud_context, errors, util, cmds, player, pubsub, charbuilder, lang, verbdefs, vfs, base
@@ -33,7 +34,7 @@ from .tio import DEFAULT_SCREEN_WIDTH
 from .races import playable_races
 from .errors import StoryCompleted, StoryConfigError
 from tale.load_character import CharacterLoader, CharacterV2
-from tale.llm.llm_ext import LivingNpc, DynamicStory
+from tale.llm.llm_ext import DynamicStory
 from tale.llm.llm_utils import LlmUtil
 
 

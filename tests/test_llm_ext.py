@@ -1,7 +1,8 @@
 import json
 import pytest
 from tale.base import Item, Location
-from tale.llm.llm_ext import LivingNpc, DynamicStory
+from tale.llm.LivingNpc import LivingNpc
+from tale.llm.llm_ext import DynamicStory
 from tale.player import Player
 
 class TestLlmExt():

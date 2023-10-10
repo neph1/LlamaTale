@@ -380,3 +380,9 @@ def validate_gender_mf(value: str) -> str:
             return value
     raise ValueError("That is not a valid gender.")
 
+def gender_string(value: str) -> str:
+    if value == 'f':
+        return 'female'    
+    if value == 'm':
+        return 'male'
+    return 'non-specified'

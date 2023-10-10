@@ -252,3 +252,13 @@ class TestParseUtils():
         # assert(parsed_items[4].name == "10$ bill")
         assert(isinstance(parsed_items["Bottle of beer"], Drink))
         assert(isinstance(parsed_items["box"], Boxlike))
+
+    def test_trim_response(self):
+        response = ' {The Duchess takes a seat next to him.}'
+
+        trimmed = parse_utils.trim_response(response)
+        assert(trimmed == 'The Duchess takes a seat next to him.')
+
+        response = ' Duchess gently nuzzles the back of your hand."\n" }]\n'
+        trimmed = parse_utils.trim_response(response)
+        assert(trimmed == 'Duchess gently nuzzles the back of your hand.')

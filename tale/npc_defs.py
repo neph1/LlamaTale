@@ -2,7 +2,7 @@
 
 import random
 from tale.base import Living
-from tale.llm.llm_ext import LivingNpc
+from tale.llm.LivingNpc import LivingNpc
 from tale.player import Player
 from tale.util import Context, call_periodically
 
