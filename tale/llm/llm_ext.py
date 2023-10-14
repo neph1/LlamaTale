@@ -1,5 +1,7 @@
 import json
+from tale import parse_utils
 from tale.base import Item, Living, Location
+from tale.coord import Coord
 from tale.story import StoryBase
 
 from tale.zone import Zone
@@ -10,7 +12,8 @@ class DynamicStory(StoryBase):
         self._zones = dict() # type: dict[str, Zone]
         self._world = dict() # type: dict[str, any]
         self._world["creatures"] = dict()
-        self._world["items"] = dict()
+        self._world["items"] = dict() 
+        self._world["locations"] = dict() # type: dict[Coord, Location]
 
     def get_zone(self, name: str) -> Zone:
         """ Find a zone by name."""
@@ -45,6 +48,7 @@ class DynamicStory(StoryBase):
         """ Add a location to the story. 
         If zone is specified, add to that zone, otherwise add to first zone.
         """
+        self._world["locations"][location.world_location] = location
         if zone:
             return self._zones[zone].add_location(location)
         for zone in self._zones:
@@ -68,7 +72,15 @@ class DynamicStory(StoryBase):
     
     def get_item(self, item: str) -> Item:
         return self._world["items"][item]
+    
 
+    def neighbors_for_location(self, location: Location) -> dict:
+        """ Return a dict of neighboring locations for a given location."""
+        neighbors = dict() # type: dict[str, Location]
+        for dir in ['north', 'east', 'south', 'west', 'up', 'down']:
+            neighbors[dir] = self._world["locations"][Coord(location.world_location.add(parse_utils.coordinates_from_direction(dir)))]
+        return neighbors
+    
     @property
     def world_creatures(self) -> dict:
         return self._world["creatures"]

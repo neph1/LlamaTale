@@ -120,7 +120,7 @@ class LlmUtil():
     def get_neighbor_or_generate_zone(self, current_zone: Zone, current_location: Location, target_location: Location) -> Zone:
         return self._world_building.get_neighbor_or_generate_zone(current_zone, current_location, target_location, self.__story)
 
-    def build_location(self, location: Location, exit_location_name: str, zone_info: dict, world_items: dict = {}, world_creatures: dict = {}):
+    def build_location(self, location: Location, exit_location_name: str, zone_info: dict, world_items: dict = {}, world_creatures: dict = {}, neighbors: dict = {}):
         """ Generate a location based on the current story context"""
         return self._world_building.build_location(location, 
                                                    exit_location_name, 
@@ -129,7 +129,8 @@ class LlmUtil():
                                                    self.__story.config.context,
                                                    self.__story.config.world_info,
                                                    world_creatures=world_creatures,
-                                                   world_items=world_items)
+                                                   world_items=world_items,
+                                                   neighbors=neighbors)
      
     def perform_idle_action(self, character_name: str, location: Location, character_card: str = '', sentiments: dict = {}, last_action: str = '', event_history: str = '') -> list:
         return self._character.perform_idle_action(character_name, location, self.__story.config.context, character_card, sentiments, last_action, event_history=event_history)
@@ -180,6 +181,6 @@ class LlmUtil():
         #request_body['banned_tokens'] = ['```']
         return request_body
     
-    
+
 
 

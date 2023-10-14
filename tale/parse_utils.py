@@ -58,13 +58,13 @@ def load_locations(json_file: dict):
 def location_from_json(json_object: dict):
     return Location(name=json_object['name'], descr=json_object.get('descr', ''))
 
-def load_items(json_file: [], locations = {}) -> dict:
+def load_items(json_items: [], locations = {}) -> dict:
     """
         Loads and returns a dict of items from a supplied json dict
         Inserts into locations if supplied and has location
     """
     items = {}
-    for item in json_file:
+    for item in json_items:
         item_type = item.get('type', 'Item')
         
         if item_type == 'Money':
@@ -103,14 +103,14 @@ def load_items(json_file: [], locations = {}) -> dict:
             _insert(new_item, locations, item['location'])
     return items
 
-def load_npcs(json_file: [], locations = {}) -> dict:
+def load_npcs(json_npcs: [], locations = {}) -> dict:
     """
         Loads npcs and returns a dict from a supplied json dict
         May be custom classes, but be sure the class is available
         Inserts into locations if supplied and has location
     """
     npcs = {}
-    for npc in json_file:
+    for npc in json_npcs:
         npc_type = npc.get('type', 'Mob')
         if npc_type == 'ignore':
             continue
@@ -328,18 +328,18 @@ def opposite_direction(direction: str):
         return 'in'
     return None
 
-def parse_generated_exits(json_result: dict, exit_location_name: str, location: Location):
+def parse_generated_exits(exits: list, exit_location_name: str, location: Location, neighbor_locations: dict = {}):
     """
         Parses a json dict for new locations and exits
         Returns list of new locations and exits
     """
     new_locations = []
-    exits = []
+    new_exits = []
     occupied_directions = []
     for exit in location.exits.values():
         for dir in exit.names:
             occupied_directions.append(dir)
-    for exit in json_result.get('exits', []):
+    for exit in exits:
         dir = exit.get('direction', '')
         if not dir:
             continue
@@ -350,7 +350,7 @@ def parse_generated_exits(json_result: dict, exit_location_name: str, location: 
             occupied_directions.append(dir)
             exit['direction'] = dir
             
-    for exit in json_result.get('exits', []):
+    for exit in exits:
         if exit.get('name', None) is None:
             # With JSON grammar, exits are sometimes generated without name. So until that is fixed,
             # we'll do a work-around
@@ -358,7 +358,14 @@ def parse_generated_exits(json_result: dict, exit_location_name: str, location: 
             if description.startswith('A '):
                 description.replace('A ', '')
             exit.name = description.split(' ')[:2]
-        if exit['name'] != exit_location_name:
+        if exit.get('direction', '') in neighbor_locations.keys():
+            # connect to existing location. No new location needed
+            direction = exit['direction']
+            neighbor = neighbor_locations[direction] # type: Location
+            new_exit = Exit(directions=[neighbor.name, direction], target_location=neighbor, short_descr= f'To the {direction} you see {neighbor.name}.')
+            connect_location_to_exit(neighbor_locations[direction], location, new_exit)
+            new_exits.append(new_exit)
+        elif exit['name'] != exit_location_name:
             # create location
             new_location = Location(exit['name'].replace('the ', '').replace('The ', ''))
             
@@ -383,10 +390,10 @@ def parse_generated_exits(json_result: dict, exit_location_name: str, location: 
                             target_location=new_location, 
                             short_descr=to_description, 
                             enter_msg=exit.get('enter_msg', ''))
-            exits.append(exit_to)
+            new_exits.append(exit_to)
             new_locations.append(new_location)
                 
-    return new_locations, exits
+    return new_locations, new_exits
 
 def _select_non_occupied_direction(occupied_directions: [str]):
     """ Selects a direction that is not occupied by an exit"""

@@ -141,7 +141,7 @@ class TestParseUtils():
         exits = json.loads('{"exits": [{"name": "The Glacier", "short_descr": "A treacherous path leads up to the icy expanse, the sound of creaking ice echoing in the distance.", "enter_msg":"You enter the glacier"}, {"name": "The Cave", "short_descr": "A dark opening in the side of the mountain, rumored to be home to a mysterious creature."}, {"name": "The Forest", "short_descr": "A dense thicket of trees looms in the distance, their branches swaying in the wind."}]}')
         exit_location_name = 'Entrance'
         location = Location(name='Outside')
-        new_locations, parsed_exits = parse_utils.parse_generated_exits(json_result=exits, 
+        new_locations, parsed_exits = parse_utils.parse_generated_exits(exits=exits.get('exits'), 
                                                                         exit_location_name=exit_location_name, 
                                                                         location=location)
         assert(len(new_locations) == 3)
@@ -161,7 +161,7 @@ class TestParseUtils():
         exits = json.loads('{"exits": [{"name": "The Glacier", "direction": "north", "short_descr": "A treacherous path."}, {"name": "The Cave", "direction": "north", "short_descr": "A dark opening."}]}')
         exit_location_name = 'Entrance'
         location = Location(name='Outside')
-        new_locations, parsed_exits = parse_utils.parse_generated_exits(json_result=exits, 
+        new_locations, parsed_exits = parse_utils.parse_generated_exits(exits=exits.get('exits'), 
                                                                         exit_location_name=exit_location_name, 
                                                                         location=location)
         location.add_exits(parsed_exits)
@@ -173,12 +173,31 @@ class TestParseUtils():
         
         exits2 = json.loads('{"exits": [{"name": "The Ice Cliff", "direction": "north", "short_descr": "A steep fall."}, {"name": "The Icicle Forest", "direction": "east", "short_descr": "A forest of ice."}]}')
 
-        new_locations, parsed_exits = parse_utils.parse_generated_exits(json_result=exits2,
+        new_locations, parsed_exits = parse_utils.parse_generated_exits(exits=exits2.get('exits'),
                                                                         exit_location_name='cave',
                                                                         location=new_locations[1])
 
         assert(parsed_exits[0].names == ['ice cliff', 'south'])
         assert(parsed_exits[1].names == ['icicle forest', 'east'])
+
+    def test_parse_generated_exits_existing_location(self):
+        exits = json.loads('{"exits": [{"name": "The Glacier", "direction": "north", "short_descr": "A treacherous path leads up to the icy expanse, the sound of creaking ice echoing in the distance.", "enter_msg":"You enter the glacier"}, {"name": "The Cave", "direction": "east", "short_descr": "A dark opening in the side of the mountain, rumored to be home to a mysterious creature."}]}')
+        exit_location_name = 'Entrance'
+        location = Location(name='Outside')
+        existing_location = dict()
+        existing_location["east"] = Location(name='The Forest')
+        new_locations, parsed_exits = parse_utils.parse_generated_exits(exits=exits.get('exits'), 
+                                                                        exit_location_name=exit_location_name, 
+                                                                        location=location, 
+                                                                        neighbor_locations=existing_location)
+        assert(len(new_locations) == 1)
+        assert(new_locations[0].name == 'Glacier')
+        assert(len(parsed_exits) == 2)
+        assert(parsed_exits[0].name == 'glacier')
+        assert(parsed_exits[1].name == 'the forest')
+        assert(parsed_exits[0].short_description == 'To the north you see a treacherous path leads up to the icy expanse, the sound of creaking ice echoing in the distance.')
+        assert(parsed_exits[1].short_description == 'To the east you see The Forest.')
+        assert(parsed_exits[0].enter_msg == 'You enter the glacier')
 
     def test_coordinates_from_direction(self):
         coord = Coord(0,0,0)
@@ -199,7 +218,7 @@ class TestParseUtils():
         exit_location_name = 'Entrance'
         location = Location(name='Outside')
         zone.add_location(location)
-        new_locations, parsed_exits = parse_utils.parse_generated_exits(json_result=exits, 
+        new_locations, parsed_exits = parse_utils.parse_generated_exits(exits=exits.get('exits'), 
                                                                         exit_location_name=exit_location_name, 
                                                                         location=location)
         for loc in new_locations:

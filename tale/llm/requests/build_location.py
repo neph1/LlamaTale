@@ -24,7 +24,7 @@ class BuildLocation(LlmRequest):
         story_context = args['story_context'] # Type: str
 
         spawn_prompt = ''
-        spawn_chance = 0.25
+        spawn_chance = 0.35
         spawn = random.random() < spawn_chance
         if spawn:
             mood = zone_info.get('mood', 0)
