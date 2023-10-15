@@ -263,13 +263,15 @@ def remove_special_chars(message: str):
         
 def trim_response(message: str):
     """ Removes special chars from response"""
+    if not message:
+        return ''
     enders = [' ', '!', '?', '`', '*', '"', ')', '}', '`', ']', '\n']
     starters = [' ', '`', '*', '"', '(', '{', '`', '[', '\n']
 
-    while message[0] in starters:
+    while message and message[0] in starters:
         message = message[1:]
 
-    while message[-1] in enders:
+    while message and message[-1] in enders:
         message = message[:-1]
     
     return message
@@ -363,7 +365,7 @@ def parse_generated_exits(exits: list, exit_location_name: str, location: Locati
             direction = exit['direction']
             neighbor = neighbor_locations[direction] # type: Location
             new_exit = Exit(directions=[neighbor.name, direction], target_location=neighbor, short_descr= f'To the {direction} you see {neighbor.name}.')
-            connect_location_to_exit(neighbor_locations[direction], location, new_exit)
+            connect_location_to_exit(neighbor, location, new_exit)
             new_exits.append(new_exit)
         elif exit['name'] != exit_location_name:
             # create location
