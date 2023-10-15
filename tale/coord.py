@@ -6,6 +6,11 @@ class Coord():
         self.y = y
         self.z = z
 
+    @classmethod
+    def from_coord(self, coord: 'Coord'):
+        return Coord(coord.x, coord.y, coord.z)
+
+
     def distance(self, other) -> float:
         """ Returns the manhattan distance between this and another coordinate."""
         return abs(self.x - other.x) + abs(self.y - other.y) + abs(self.z - other.z)

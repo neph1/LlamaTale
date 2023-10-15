@@ -1,3 +1,4 @@
+from tale import driver
 from tale.base import Weapon
 from tale.llm.LivingNpc import LivingNpc
 from tale.combat import Combat
@@ -88,4 +89,26 @@ class TestCombat():
             assert('attacker dies' in text)
         if defender.stats.hp < 1:
             assert('defender dies' in text)
+
+
+    def test_prepare_combat_prompt(self):
+        driver = tale.driver.Driver()
+        attacker = LivingNpc(name='attacker', gender='f', age=37, personality='A fierce fighter')
+        bow = Weapon(name='Bow', weapon_type=WeaponType.TWO_HANDED_RANGED, base_damage=10, weight=1, value=1)
+        attacker.wielding = bow  
+
+        rat = LivingNpc(name='Giant Rat', gender='m', age=4, personality='Sneaky and nasty')
+
+
+        combat_prompt = driver.prepare_combat_prompt(attacker=attacker, 
+                                                     victim=rat,
+                                                     attacker_msg='attacker hits',
+                                                     location_title='the arena',
+                                                     location_description='A large arena')
+        
+        assert('Bow' in combat_prompt)
+        assert('attacker hits' in combat_prompt)
+        assert('the arena' in combat_prompt)
+        assert('A large arena' in combat_prompt)
+        assert('Giant Rat' in combat_prompt)
 

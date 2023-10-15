@@ -30,6 +30,7 @@ class TestJsonStory():
 
     def test_add_location(self):
         new_location = Location('New Location', 'New Location')
+        new_location.world_location = (0,0,0)
         self.story.add_location(new_location)
 
     def test_find_location(self):

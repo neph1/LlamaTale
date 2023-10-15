@@ -624,11 +624,13 @@ class Driver(pubsub.Listener):
             
             # generate the location if it's not built yet. retry 5 times.
             for i in range(5):
+                neighbor_locations = dynamic_story.neighbors_for_location(xt.target)
                 new_locations, exits = self.llm_util.build_location(location=xt.target, 
                                                              exit_location_name=player.location.name, 
                                                              zone_info=new_zone.get_info(),
                                                              world_creatures=dynamic_story.world_creatures,
-                                                             world_items=dynamic_story.world_items,)
+                                                             world_items=dynamic_story.world_items,
+                                                             neighbors=neighbor_locations,)
                 if new_locations:
                     break
             if not new_locations:
@@ -878,10 +880,16 @@ class Driver(pubsub.Listener):
             victim_name += " (as 'You')"
             attacker_msg.replace(victim_name, "you")
 
-        return self.llm_util.combat_prompt.format(attacker=attacker_name, 
-                                                                         victim=victim_name, 
-                                                                         attacker_weapon=attacker.wielding.name,
-                                                                         victim_weapon=victim.wielding.name,
-                                                                         attacker_msg=attacker_msg,
-                                                                         location=location_title,
-                                                                         location_description=location_description)
+        victim_info = {"name": victim_name, 
+                       "health": victim.stats.hp / victim.stats.max_hp, 
+                       "weapon": victim.wielding.title}
+
+        attacker_info = {"name": attacker_name, 
+                         "health": attacker.stats.hp / attacker.stats.max_hp, 
+                         "weapon": attacker.wielding.title}
+
+        return self.llm_util.combat_prompt.format(attacker=attacker_info, 
+                                                    victim=victim_info,
+                                                    attacker_msg=attacker_msg,
+                                                    location=location_title,
+                                                    location_description=location_description)

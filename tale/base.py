@@ -921,6 +921,7 @@ class Stats:
         self.level = 1
         self.xp = 0
         self.hp = 5
+        self.max_hp = 5
         self.maxhp_dice = ""
         self.ac = 0
         self.wc = 0
@@ -958,6 +959,7 @@ class Stats:
         self.weight = r.mass
         self.size = r.size
         self.hp = r.hp
+        self.max_hp = r.hp
         self.unarmed_attack = Weapon(name=r.unarmed_attack.name)
 
     def get_weapon_skill(self, weapon_type: WeaponType) -> int:
@@ -1373,7 +1375,7 @@ class Living(MudObject):
         return (found, containing_object) if found else (None, None)
 
     def start_attack(self, victim: 'Living') -> None:
-        """Starts attacking the given living until death ensues on either side."""
+        """Starts attacking the given living for one round."""
         attacker_name = lang.capital(self.title)
         victim_name = lang.capital(victim.title)
         c = combat.Combat(self, victim)

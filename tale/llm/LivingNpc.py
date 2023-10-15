@@ -72,7 +72,6 @@ class LivingNpc(Living):
 
         tell_hash = llm_cache.cache_tell('{actor.title}:{response}'.format(actor=self.title, response=response))
         self._conversations.add(tell_hash)
-
         self.tell_others("{response}".format(response=response), evoke=False)
         if item_result:
             self.handle_item_result(item_result, actor)
@@ -134,7 +133,7 @@ class LivingNpc(Living):
                                                 event_history=llm_cache.get_events(self._observed_events),
                                                 sentiments=self.sentiments)
             if actions:
-                self.planned_actions.extend(actions)
+                self.planned_actions.append(actions)
         if len(self.planned_actions) > 0:
             action = self.planned_actions.pop(0)
             self.action_history.append(action)
