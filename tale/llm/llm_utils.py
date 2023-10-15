@@ -139,7 +139,13 @@ class LlmUtil():
         return self._character.perform_travel_action(character_name, location, locations, directions, character_card)
     
     def perform_reaction(self, action: str, character_name: str, acting_character_name: str, location: Location, character_card: str = '', sentiment: str = '', event_history: str = ''):
-        return self._character.perform_reaction(action, character_name, acting_character_name, location, character_card, sentiment, story_context=self.__story.config.context, event_history=event_history)
+        return self._character.perform_reaction(action=action, 
+                                                character_name=character_name, 
+                                                acting_character_name=acting_character_name, 
+                                                location=location, character_card=character_card, 
+                                                sentiment=sentiment, 
+                                                story_context=self.__story.config.context,
+                                                event_history=event_history)
     
     def generate_story_background(self, world_mood: int, world_info: str, story_type: str):
         return self._story_building.generate_story_background(world_mood, world_info, story_type)

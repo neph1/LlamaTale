@@ -101,6 +101,7 @@ class MudAccounts:
                             level integer NOT NULL,
                             xp integer NOT NULL,
                             hp integer NOT NULL,
+                            max_hp integer NOT NULL,
                             ac integer NOT NULL,
                             wc integer NOT NULL,
                             maxhp_dice varchar NULL,
