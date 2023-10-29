@@ -1,0 +1,66 @@
+{
+    "story": {
+        "name": "Test Story Config 1"
+    },
+    "zones": {
+        "Mad Hatters House": {
+            "name": "Mad Hatters House",
+            "description": "The Mad Hatter's house. It's a bit of a mess.",
+            "level": 1,
+            "mood": 3,
+            "locations":[
+                {
+                    "name": "Living Room",
+                    "descr": "The Mad Hatter's cluttered living room. It's set up for a tea party.",
+                    "exits": [],
+                    "world_location": [
+                        "0",
+                        "0",
+                        "0"
+                    ]
+                }
+            ],
+            "races": [],
+            "items": []
+        }
+    },
+    "world": {
+        "creatures": {
+            "Mad Hatter": {
+                "name":"Mad Hatter",
+                "gender":"m",
+                "race":"human",
+                "type":"LivingExt",
+                "title":"Mad Hatter",
+                "personality":"The Mad Hatter from Lewis Carrol's Alice in Wonderland. He is a bit crazy and has a strange sense of humor.",
+                "descr":"Wearing a big hat and a colorful costume.",
+                "short_descr":"A man with a big hat and colorful costume.",
+                "location":"Living Room"
+            },
+            "Duchess": {
+                "name":"Duchess",
+                "gender":"f",
+                "race":"human",
+                "type":"LivingExt",
+                "title":"Duchess",
+                "personality":"The Duchess from Lewis Carrol's Alice in Wonderland. Volatile and aggressive personality.",
+                "descr":"Very big head. Tall enough to rest her chin upon Alice’s shoulder, uncomfortably sharp chin.",
+                "short_descr": "Short woman with a very large head.",
+                "location":"Living Room"
+            },
+            "Ace of Spades": {
+                "name":"Ace of Spades",
+                "gender":"m",
+                "race":"human",
+                "type":"LivingExt",
+                "title":"Ace of Spades",
+                "personality":"A drunken ex-rock star. Like a talkative Ozzy Osbourne if he were in Alice in Wonderland.",
+                "descr":"Thin man with eyeliner and a vacant expression. Wearing a black leather jacket and a black top hat.",
+                "short_descr": "A man with leather jacket and a black top hat.",
+                "location":"Living Room"
+            }
+        },
+        "items": {},
+        "locations": []
+    }
+}

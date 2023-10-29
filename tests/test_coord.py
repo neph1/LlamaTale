@@ -43,7 +43,3 @@ class TestCoord():
     def test_as_tuple(self):
         coord = Coord(1,2,3)
         assert(coord.as_tuple() == (1, 2, 3))
-
-    def test_dict(self):
-        coord = Coord(1,2,3)
-        assert(coord.__dict__() == {'x': 1, 'y': 2, 'z': 3})

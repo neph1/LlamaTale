@@ -19,7 +19,7 @@ class TestJsonStory():
         assert(self.story.config.name == 'Test Story Config 1')
         assert(self.story.get_location('Cave', 'Cave entrance'))
         assert(self.story.get_npc('Kobbo'))
-        assert(self.story.get_npc('Kobbo').location.name == 'Royal Grotto')
+        assert(self.story.get_npc('Kobbo').location.name == 'Royal grotto')
         assert(self.story.get_item('hoodie').location.name == 'Cave entrance')
         zone_info = self.story.zone_info('Cave')
         assert(zone_info['description'] == 'A dark cave')

@@ -31,13 +31,13 @@
                         }
                     ],
                     "world_location": [
-                        "{",
-                        "x",
-                        ":"
+                        "0",
+                        "0",
+                        "0"
                     ]
                 },
                 {
-                    "name": "Royal Grotto",
+                    "name": "Royal grotto",
                     "descr": "This is Kobbo the Kings throne room. It's a dark, damp place with a log in one end",
                     "short_descr": "",
                     "exits": [
@@ -48,9 +48,9 @@
                         }
                     ],
                     "world_location": [
-                        "{",
-                        "x",
-                        ":"
+                        "0",
+                        "1",
+                        "0"
                     ]
                 }
             ]
@@ -59,7 +59,7 @@
     "world": {
         "creatures": {
             "kobbo": {
-                "location": "Royal Grotto",
+                "location": "Royal grotto",
                 "name": "Kobbo",
                 "title": "Kobbo the King",
                 "aliases": [
@@ -77,7 +77,7 @@
                     "max_hp": 5,
                     "level": 1,
                     "weapon_skills": {
-                        "6": 26
+                        "6": 24
                     },
                     "gender": "n",
                     "alignment": 0,
@@ -105,7 +105,7 @@
                 "title": "Royal Sceptre",
                 "short_descr": "A gnarly looking stick",
                 "descr": "This stick is Kobbo the Kings royal sceptre. Looks good for walloping someone with",
-                "location": "Royal Grotto",
+                "location": "Royal grotto",
                 "type": "Weapon",
                 "wc": 1,
                 "weapon_type": "UNARMED",
@@ -123,44 +123,8 @@
                 "type": "Wearable",
                 "weight": 0.0,
                 "value": 1,
-                "wear_location": 4
+                "wear_location": "TORSO"
             }
-        },
-        "locations": [
-            {
-                "name": "Cave entrance",
-                "descr": "This cave entrance gives shelter from the wind and rain.",
-                "short_descr": "",
-                "exits": [
-                    {
-                        "name": "Royal grotto",
-                        "short_descr": "Exit to Grotto",
-                        "long_descr": "There's an opening that leads deeper into the cave'"
-                    }
-                ],
-                "world_location": [
-                    "{",
-                    "x",
-                    ":"
-                ]
-            },
-            {
-                "name": "Royal Grotto",
-                "descr": "This is Kobbo the Kings throne room. It's a dark, damp place with a log in one end",
-                "short_descr": "",
-                "exits": [
-                    {
-                        "name": "Cave entrance",
-                        "short_descr": "exit to Cave entrance",
-                        "long_descr": "exit to Cave entrance"
-                    }
-                ],
-                "world_location": [
-                    "{",
-                    "x",
-                    ":"
-                ]
-            }
-        ]
+        }
     }
 }
