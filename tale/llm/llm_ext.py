@@ -141,5 +141,4 @@ class WorldInfo():
     
     def to_json(self) -> dict:
         return dict(creatures=parse_utils.save_creatures(self._creatures.values()), 
-                    items=parse_utils.save_items(self._items.values()), 
-                    locations=parse_utils.save_locations(self._locations.values()))
+                    items=parse_utils.save_items(self._items.values()))

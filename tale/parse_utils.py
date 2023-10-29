@@ -641,7 +641,7 @@ def save_items(items: [Item]) -> dict:
         elif item_type == 'Wearable':
             json_item['weight'] = item.weight
             json_item['value'] = item.value
-            json_item['wear_location'] = item.wear_location.value
+            json_item['wear_location'] = item.wear_location.name
         json_items[item.name] = json_item
     return json_items
 
