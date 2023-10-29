@@ -219,11 +219,11 @@ def save_story_config(config: StoryConfig) -> dict:
 
 def _insert(new_item: Item, locations, location: str):
     location_parts = location.split('.')
-    if len(location_parts) == 2:
-        zone = locations.get(location_parts[0])
-        loc = zone.get_location(location_parts[1])
-    else:
-        loc = locations.get(location)
+    #if len(location_parts) == 2:
+    #    zone = locations.get(location_parts[0])
+    #    loc = zone.get_location(location_parts[1])
+    #else:
+    loc = locations.get(location)
     if loc:
         loc.insert(new_item, None)
 
