@@ -7,12 +7,12 @@
         {
             "name": "test room",
 		    "descr": "test room description",
-            "exits": [{"name" : "test room 2", "short_desc":"exit to test room 2", "long_desc":"long description exit to test room 2", "enter_msg":"you pass through the portal between test room and enter test room 2"}]
+            "exits": [{"name" : "test room 2", "short_descr":"exit to test room 2", "long_descr":"long description exit to test room 2", "enter_msg":"you pass through the portal between test room and enter test room 2"}]
         }, 
         {
             "name": "test room 2",
 		    "descr": "test room 2 description",
-            "exits": [{"name" : "test room", "short_desc":"exit to test room", "long_desc":"", "enter_msg":"you pass through the portal between test room and enter test room 2"}]
+            "exits": [{"name" : "test room", "short_descr":"exit to test room", "long_descr":"", "enter_msg":"you pass through the portal between test room and enter test room 2"}]
         }
     ]
 }

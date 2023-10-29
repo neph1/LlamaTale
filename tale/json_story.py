@@ -19,22 +19,22 @@ class JsonStory(DynamicStory):
         self.driver = driver
         locs = {}
         zones = []
-        for zone in self.config.zones:
-            zones, exits = parse_utils.load_locations(parse_utils.load_json(self.path +'zones/'+zone + '.json'))
+        world = parse_utils.load_json(self.path +'world.json')
+        for zone in world['zones'].values():
+            zones, exits = parse_utils.load_locations(zone)
         if len(zones) < 1:
             print("No zones found in story config")
             return
         for name in zones.keys():
             zone = zones[name]
-            for loc in zone.locations.values():
-                locs[loc.name] = loc
             self.add_zone(zone)
-        self._locations = locs
+            for loc in zone.locations.values():
+                self.add_location(loc, name)
         
-        if self.config.npcs:
-            self._world["creatures"] = parse_utils.load_npcs(parse_utils.load_json(self.path +'npcs/'+self.config.npcs + '.json'), self._zones)
-        if self.config.items:
-            self._world["items"] = parse_utils.load_items(parse_utils.load_json(self.path + self.config.items + '.json'), self._zones)
+        if world['world']['creatures']:
+            self._world.creatures = parse_utils.load_npcs(world['world']['creatures'].values(), self.locations)
+        if  world['world']['items']:
+            self._world.items = parse_utils.load_items(world['world']['items'].values(), self.locations)
         
 
     def welcome(self, player: Player) -> str:

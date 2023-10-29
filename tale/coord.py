@@ -1,11 +1,19 @@
 
 
 class Coord():
+    """ Represents a coordinate in 3D space."""
+
     def __init__(self, x=0, y=0, z=0):
         self.x = x
         self.y = y
         self.z = z
 
+    #def __dict__(self):
+    #    return {'x': self.x, 'y': self.y, 'z': self.z}
+    
+    def as_tuple(self):
+        return (self.x, self.y, self.z)
+    
     @classmethod
     def from_coord(self, coord: 'Coord'):
         return Coord(coord.x, coord.y, coord.z)
@@ -28,8 +36,11 @@ class Coord():
     
     def multiply(self, value: int) -> 'Coord':
         """ Returns the coordinate resulting from multiplying this coordinate by value."""
-        return Coord(self.x * value, self.y * value, self.z * value)
-        
+        return Coord(self.x * value, self.y * value, self.z * value) 
 
     def __eq__(self, other):
         return self.x == other.x and self.y == other.y and self.z == other.z
+    
+    def valid(self) -> bool:
+        return self.z != 255
+    

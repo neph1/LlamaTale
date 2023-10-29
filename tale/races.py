@@ -11,24 +11,23 @@ from typing import NamedTuple, Dict
 
 
 @total_ordering
-class BodySize(enum.Enum):
+class BodySize(int, enum.Enum):
     # The size of a creature's body. You can compare the sizes.
-    MICROSCOPIC = ("microscopic", 1)
-    MINISCULE = ("miniscule", 2)
-    TINY = ("tiny", 3)
-    VERY_SMALL = ("very small", 4)
-    SMALL = ("small", 5)
-    SOMEWHAT_SMALL = ("somewhat small", 6)
-    HUMAN_SIZED = ("human sized", 7)
-    SOMEWHAT_LARGE = ("somewhat large", 8)
-    LARGE = ("large", 9)
-    HUGE = ("huge", 10)
-    GIGANTIC = ("gigantic", 11)
-    VAST = ("vast", 12)
+    MICROSCOPIC = 1
+    MINISCULE = 2
+    TINY = 3
+    VERY_SMALL = 4
+    SMALL = 5
+    SOMEWHAT_SMALL = 6
+    HUMAN_SIZED = 7
+    SOMEWHAT_LARGE = 8
+    LARGE = 9
+    HUGE = 10
+    GIGANTIC = 11
+    VAST = 12
 
     # noinspection PyInitNewSignature
-    def __init__(self, text, order):
-        self.text = text
+    def __init__(self, order):
         self.order = order
 
     def __lt__(self, other):
@@ -47,9 +46,13 @@ class BodySize(enum.Enum):
             if size.order == order:
                 return size
         raise LookupError("there is no BodySize for the resulting numeric size")
+    
+    @property
+    def text(self) -> str:
+        return self.name.replace("_", " ").capitalize()
 
 
-class BodyType(enum.Enum):
+class BodyType(str, enum.Enum):
     HUMANOID = "humanoid"
     QUADRUPED = "quadruped"
     BIPED = "biped"
@@ -77,7 +80,7 @@ class BodyType(enum.Enum):
     FLAT = "flat"
     GASTROPOD = "gastropod"
 
-class UnarmedAttack(enum.Enum):
+class UnarmedAttack(str, enum.Enum):
     # For now this is mostly for narrative purposes
     # The creature's size will affect the damage potential..
     FISTS = "fists"

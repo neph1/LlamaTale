@@ -1,0 +1,166 @@
+{
+    "story": {
+        "name": "Test Story Config 1"
+    },
+    "zones": {
+        "Cave": {
+            "description": "A dark cave",
+            "level": 1,
+            "mood": -1,
+            "races": [
+                "kobold",
+                "bat",
+                "giant rat"
+            ],
+            "items": [
+                "torch",
+                "sword",
+                "shield"
+            ],
+            "name": "Cave",
+            "locations": [
+                {
+                    "name": "Cave entrance",
+                    "descr": "This cave entrance gives shelter from the wind and rain.",
+                    "short_descr": "",
+                    "exits": [
+                        {
+                            "name": "Royal grotto",
+                            "short_descr": "Exit to Grotto",
+                            "long_descr": "There's an opening that leads deeper into the cave'"
+                        }
+                    ],
+                    "world_location": [
+                        "{",
+                        "x",
+                        ":"
+                    ]
+                },
+                {
+                    "name": "Royal Grotto",
+                    "descr": "This is Kobbo the Kings throne room. It's a dark, damp place with a log in one end",
+                    "short_descr": "",
+                    "exits": [
+                        {
+                            "name": "Cave entrance",
+                            "short_descr": "exit to Cave entrance",
+                            "long_descr": "exit to Cave entrance"
+                        }
+                    ],
+                    "world_location": [
+                        "{",
+                        "x",
+                        ":"
+                    ]
+                }
+            ]
+        }
+    },
+    "world": {
+        "creatures": {
+            "kobbo": {
+                "location": "Royal Grotto",
+                "name": "Kobbo",
+                "title": "Kobbo the King",
+                "aliases": [
+                    "kobbo"
+                ],
+                "short_descr": "A kobold",
+                "descr": "Kobbo has a grace only royal kobolds posses",
+                "type": "Npc",
+                "race": "human",
+                "gender": "m",
+                "level": 1,
+                "stats": {
+                    "ac": 0,
+                    "hp": 5,
+                    "max_hp": 5,
+                    "level": 1,
+                    "weapon_skills": {
+                        "6": 26
+                    },
+                    "gender": "n",
+                    "alignment": 0,
+                    "weight": 72.0,
+                    "xp": 0,
+                    "strength": 3,
+                    "dexterity": 3,
+                    "unarmed_attack": "FISTS"
+                }
+            }
+        },
+        "items": {
+            "box 1": {
+                "name": "box 1",
+                "title": "Box 1",
+                "short_descr": "A small bejewelled box",
+                "descr": "The lid is closed.",
+                "location": "Cave entrance",
+                "type": "Boxlike",
+                "weight": 0.0,
+                "value": 1
+            },
+            "royal sceptre": {
+                "name": "royal sceptre",
+                "title": "Royal Sceptre",
+                "short_descr": "A gnarly looking stick",
+                "descr": "This stick is Kobbo the Kings royal sceptre. Looks good for walloping someone with",
+                "location": "Royal Grotto",
+                "type": "Weapon",
+                "wc": 1,
+                "weapon_type": "UNARMED",
+                "base_damage": 1,
+                "bonus_damage": 0,
+                "weight": 0.0,
+                "value": 1
+            },
+            "hoodie": {
+                "name": "hoodie",
+                "title": "Grey Hoodie",
+                "short_descr": "A grey hoodie",
+                "descr": "A brand new, grey hoodie with a logo of a common brand",
+                "location": "Cave entrance",
+                "type": "Wearable",
+                "weight": 0.0,
+                "value": 1,
+                "wear_location": 4
+            }
+        },
+        "locations": [
+            {
+                "name": "Cave entrance",
+                "descr": "This cave entrance gives shelter from the wind and rain.",
+                "short_descr": "",
+                "exits": [
+                    {
+                        "name": "Royal grotto",
+                        "short_descr": "Exit to Grotto",
+                        "long_descr": "There's an opening that leads deeper into the cave'"
+                    }
+                ],
+                "world_location": [
+                    "{",
+                    "x",
+                    ":"
+                ]
+            },
+            {
+                "name": "Royal Grotto",
+                "descr": "This is Kobbo the Kings throne room. It's a dark, damp place with a log in one end",
+                "short_descr": "",
+                "exits": [
+                    {
+                        "name": "Cave entrance",
+                        "short_descr": "exit to Cave entrance",
+                        "long_descr": "exit to Cave entrance"
+                    }
+                ],
+                "world_location": [
+                    "{",
+                    "x",
+                    ":"
+                ]
+            }
+        ]
+    }
+}

@@ -1,9 +1,11 @@
 import random
 from tale import lang
-from tale.base import Location, Exit, Item, Weapon, Wearable
+from tale import zone
+from tale.base import Location, Exit, Item, Stats, Weapon, Wearable
 from tale.coord import Coord
 from tale.items.basic import Boxlike, Drink, Food, Health, Money, Note
 from tale.npc_defs import StationaryMob, StationaryNpc
+from tale.races import UnarmedAttack
 from tale.story import GameMode, MoneyType, TickMethod, StoryConfig
 from tale.weapon_type import WeaponType
 from tale.wearable import WearLocation
@@ -26,17 +28,15 @@ def load_locations(json_file: dict):
     temp_exits = {}
     parsed_exits = []
     zones = {}
-    zone = Zone(json_file['name'], description=json_file['description'])
-    zone.races = json_file['races']
-    zone.items = json_file['items']
-    zone.mood = json_file.get('mood', 0)
-    zone.level = json_file.get('level', 1)
-    zones[json_file['name']] = zone
+    zone1 = zone.from_json(json_file)
+    zones[json_file['name']] = zone1
     for loc in json_file['locations']:
         name = loc['name']
         location = location_from_json(loc)
+        if loc.get('world_location'):
+            location.world_location = Coord(loc['world_location'][0], loc['world_location'][1], loc['world_location'][2])
         locations[name] = location
-        zone.add_location(location)
+        zone1.add_location(location)
         loc_exits = loc['exits']
         for loc_exit in loc_exits:
             temp_exits.setdefault(name,{})[loc_exit['name']] = loc_exit
@@ -49,8 +49,8 @@ def load_locations(json_file: dict):
             if [exit_from, exit_to] in parsed_exits or [exit_to, exit_from] in parsed_exits:
                 continue
             loc_two = locations[to_name]
-            exits.append(Exit.connect(loc_one, to_name, exit_to['short_desc'], exit_to['long_desc'],
-                 loc_two, from_name, exit_from['short_desc'], exit_from['long_desc']))
+            exits.append(Exit.connect(loc_one, to_name, exit_to['short_descr'], exit_to['long_descr'],
+                 loc_two, from_name, exit_from['short_descr'], exit_from['long_descr']))
             parsed_exits.append([exit_from, exit_to])
     return zones, exits
 
@@ -143,6 +143,8 @@ def load_npcs(json_npcs: [], locations = {}) -> dict:
             new_npc.aliases.add(name.split(' ')[0].lower())
             new_npc.stats.set_weapon_skill(WeaponType.UNARMED, random.randint(10, 30))
             new_npc.stats.level = npc.get('level', 1)
+        if npc.get('stats', None):
+            new_npc.stats = load_stats(npc['stats'])
         # else:
         #     module = sys.modules['tale.items.basic']
         #     clazz = getattr(module, npc_type)
@@ -153,37 +155,66 @@ def load_npcs(json_npcs: [], locations = {}) -> dict:
     return npcs
 
 def load_story_config(json_file: dict):
-    if json_file['type'] == 'StoryConfig':
-        config = StoryConfig()
-        config.name = json_file['name']
-        config.author = json_file['author']
-        config.author_address = json_file['author_address']
-        config.version = "1.0"
-        supported_modes = []
-        for mode in json_file['supported_modes']:
-            supported_modes.append(GameMode[mode])
-        config.supported_modes = set(supported_modes)
-        config.player_name = json_file['player_name']
-        config.player_gender = json_file['player_gender']
-        config.player_race = json_file['player_race']
-        config.playable_races = {"human"}
-        config.player_money = json_file['player_money']
-        config.money_type = MoneyType[json_file['money_type']]
-        config.server_tick_method = TickMethod[json_file['server_tick_method']]
-        config.server_tick_time = json_file['server_tick_time']
-        config.gametime_to_realtime = json_file['gametime_to_realtime']
-        config.display_gametime = json_file['display_gametime']
-        config.startlocation_player = json_file['startlocation_player']
-        config.startlocation_wizard = json_file['startlocation_wizard']
-        config.zones = json_file['zones']
-        config.server_mode = GameMode[json_file['server_mode']]
-        config.npcs = json_file.get('npcs', '')
-        config.items = json_file.get('items', '')
-        config.context = json_file.get('context', '')
-        config.type = json_file.get('story_type', '')
-        config.world_info = json_file.get('world_info', '')
-        config.world_mood = json_file.get('world_mood', '')
-        return config
+    config = StoryConfig()
+    config.name = json_file['name']
+    config.author = json_file['author']
+    config.author_address = json_file['author_address']
+    config.version = "1.0"
+    supported_modes = []
+    for mode in json_file['supported_modes']:
+        supported_modes.append(GameMode[mode])
+    config.supported_modes = set(supported_modes)
+    config.player_name = json_file['player_name']
+    config.player_gender = json_file['player_gender']
+    config.player_race = json_file['player_race']
+    config.playable_races = {"human"}
+    config.player_money = json_file['player_money']
+    config.money_type = MoneyType[json_file['money_type']]
+    config.server_tick_method = TickMethod[json_file['server_tick_method']]
+    config.server_tick_time = json_file['server_tick_time']
+    config.gametime_to_realtime = json_file['gametime_to_realtime']
+    config.display_gametime = json_file['display_gametime']
+    config.startlocation_player = json_file['startlocation_player']
+    config.startlocation_wizard = json_file['startlocation_wizard']
+    config.zones = json_file['zones']
+    config.server_mode = GameMode[json_file['server_mode']]
+    config.npcs = json_file.get('npcs', '')
+    config.items = json_file.get('items', '')
+    config.context = json_file.get('context', '')
+    config.type = json_file.get('story_type', '')
+    config.world_info = json_file.get('world_info', '')
+    config.world_mood = json_file.get('world_mood', '')
+    return config
+
+def save_story_config(config: StoryConfig) -> dict:
+    json_file = {}
+    json_file['name'] = config.name
+    json_file['author'] = config.author
+    json_file['author_address'] = config.author_address
+    json_file['version'] = config.version
+    json_file['supported_modes'] = []
+    for mode in config.supported_modes:
+        json_file['supported_modes'].append(mode.name)
+    json_file['player_name'] = config.player_name
+    json_file['player_gender'] = config.player_gender
+    json_file['player_race'] = config.player_race
+    json_file['player_money'] = config.player_money
+    json_file['money_type'] = config.money_type.name
+    json_file['server_tick_method'] = config.server_tick_method.name
+    json_file['server_tick_time'] = config.server_tick_time
+    json_file['gametime_to_realtime'] = config.gametime_to_realtime
+    json_file['display_gametime'] = config.display_gametime
+    json_file['startlocation_player'] = config.startlocation_player
+    json_file['startlocation_wizard'] = config.startlocation_wizard
+    json_file['zones'] = config.zones
+    json_file['server_mode'] = config.server_mode.name
+    json_file['npcs'] = config.npcs
+    json_file['items'] = config.items
+    json_file['context'] = config.context
+    json_file['story_type'] = config.type
+    json_file['world_info'] = config.world_info
+    json_file['world_mood'] = config.world_mood
+    return json_file
 
 
 def _insert(new_item: Item, locations, location: str):
@@ -503,3 +534,137 @@ def replace_creature_with_world_creature(creatures: list, world_creatures: dict)
         else:
             new_creatures.append(creature)
     return new_creatures
+
+def save_creatures(creatures: []) -> dict:
+    npcs = {}
+    for npc in creatures: # type: LivingNpc
+        stored_npc = {}
+        stored_npc['location'] = npc.location.name
+        stored_npc['name'] = npc.name.capitalize()
+        stored_npc['title'] = npc.title
+        stored_npc['aliases'] = list(npc.aliases)
+        stored_npc['short_descr'] = npc.short_description
+        stored_npc['descr'] = npc.description
+
+        if isinstance(npc, StationaryMob):
+            stored_npc['type'] = 'Npc'
+            
+        elif isinstance(npc, StationaryNpc):
+            stored_npc['type'] = 'Mob'
+        if npc.stats:
+            stored_npc['race'] = npc.stats.race
+            stored_npc['gender'] = npc.gender
+            stored_npc['title'] = npc.title
+            stored_npc['descr'] = npc.description
+            stored_npc['short_descr'] = npc.short_description
+            stored_npc['level'] = npc.stats.level
+            stored_npc['stats'] = save_stats(npc.stats)
+        
+        npcs[npc.name] = stored_npc
+    print(npcs)
+    return npcs
+
+def save_stats(stats: Stats) -> dict:
+    json_stats = {}
+    json_stats['ac'] = stats.ac
+    json_stats['hp'] = stats.hp
+    json_stats['max_hp'] = stats.max_hp
+    json_stats['level'] = stats.level
+    json_stats['weapon_skills'] = save_weaponskills(stats.weapon_skills)
+    json_stats['gender'] = stats.gender = 'n'
+    json_stats['alignment'] = stats.alignment
+    json_stats['weight'] = stats.weight
+    json_stats['level'] = stats.level
+    json_stats['xp'] = stats.xp
+    json_stats['strength'] = stats.strength
+    json_stats['dexterity'] = stats.dexterity
+    json_stats['unarmed_attack'] = stats.unarmed_attack.name.upper()
+    return json_stats
+
+
+def load_stats(json_stats: dict) -> Stats:
+    stats = Stats()
+    stats.ac = json_stats['ac']
+    stats.hp = json_stats['hp']
+    stats.max_hp = json_stats['max_hp']
+    stats.level = json_stats['level']
+    stats.gender = json_stats['gender']
+    stats.alignment = json_stats['alignment']
+    stats.weight = json_stats['weight']
+    stats.level = json_stats['level']
+    stats.xp = json_stats['xp']
+    stats.strength = json_stats['strength']
+    stats.dexterity = json_stats['dexterity']
+    if json_stats.get('unarmed_attack'):
+        stats.unarmed_attack = UnarmedAttack[json_stats['unarmed_attack'].upper()]
+    if json_stats['weapon_skills']:
+        json_skills = json_stats['weapon_skills']
+        stats.weapon_skills = {}
+        for skill in json_skills.keys():
+            int_skill = int(skill)
+
+            stats.weapon_skills[WeaponType(int_skill)] = json_skills[skill]
+    
+
+def save_items(items: [Item]) -> dict:
+    json_items = {}
+    for item in items: 
+        json_item = {}
+        json_item['name'] = item.name
+        json_item['title'] = item.title
+        json_item['short_descr'] = item.short_description
+        json_item['descr'] = item.description
+        json_item['location'] = item.location.name if item.location else ''
+        
+        item_type = item.__class__.__name__
+        json_item['type'] = item_type
+        if item_type == 'Money':
+            json_item['value'] = item.value
+        elif item_type == 'Health':
+            json_item['value'] = item.value
+        elif item_type == 'Food':
+            json_item['value'] = item.value
+            json_item['poisoned'] = item.poisoned
+        elif item_type == 'Weapon':
+            json_item['wc'] = item.wc
+            json_item['weapon_type'] = item.type.name
+            json_item['base_damage'] = item.base_damage
+            json_item['bonus_damage'] = item.bonus_damage
+            json_item['weight'] = item.weight
+            json_item['value'] = item.value
+        elif item_type == 'Drink':
+            json_item['value'] = item.value
+            json_item['poisoned'] = item.poisoned
+        elif item_type == 'Container' or item_type == 'Boxlike':
+            json_item['weight'] = item.weight
+            json_item['value'] = item.value
+        elif item_type == 'Wearable':
+            json_item['weight'] = item.weight
+            json_item['value'] = item.value
+            json_item['wear_location'] = item.wear_location.value
+        json_items[item.name] = json_item
+    return json_items
+
+def save_locations(locations: []) -> dict:
+    json_locations = []
+    for location in locations: # type: Location
+        json_location = {}
+        json_location['name'] = location.name
+        json_location['descr'] = location.description
+        json_location['short_descr'] = location.short_description
+        json_location['exits'] = []
+        json_location['world_location'] = location.world_location.as_tuple()
+        for exit in location.exits.values():
+            json_exit = {}
+            json_exit['name'] = exit.name.capitalize()
+            json_exit['short_descr'] = exit.short_description
+            json_exit['long_descr'] = exit.description
+            json_location['exits'].append(json_exit)
+        json_locations.append(json_location)
+    return json_locations
+
+def save_weaponskills(weaponskills: dict) -> dict:
+    json_skills = {}
+    for skill in weaponskills.keys():
+        json_skills[skill.value] = weaponskills[skill]
+    return json_skills
