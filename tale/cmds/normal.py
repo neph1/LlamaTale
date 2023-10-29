@@ -10,6 +10,8 @@ import itertools
 import random
 from typing import Iterable, List, Dict, Generator, Union, Optional
 
+from tale.llm.llm_ext import DynamicStory
+
 from . import abbreviations, cmd, disabled_in_gamemode, disable_notify_action, overrides_soul, no_soul_parse
 from .. import base
 from .. import lang
@@ -1735,3 +1737,12 @@ def do_wear(player: Player, parsed: base.ParseResult, ctx: util.Context) -> None
     if not result:
         raise ActionRefused("You don't have that item")
     player.set_wearable(result[0], wear_location=wear_location)
+
+@cmd("save_story")
+def do_save(player: Player, parsed: base.ParseResult, ctx: util.Context) -> None:
+    """Save the current story to file."""
+    story = ctx.driver.story
+    if isinstance(story, DynamicStory):
+        story.save()
+    else:
+        raise ActionRefused("Not a dynamic story")

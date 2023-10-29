@@ -604,6 +604,7 @@ def load_stats(json_stats: dict) -> Stats:
             int_skill = int(skill)
 
             stats.weapon_skills[WeaponType(int_skill)] = json_skills[skill]
+    return stats
     
 
 def save_items(items: [Item]) -> dict:
