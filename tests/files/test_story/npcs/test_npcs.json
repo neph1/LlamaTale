@@ -7,6 +7,25 @@
         "title":"Kobbo the King",
         "descr":"Kobbo has a grace only royal kobolds posses",
         "short_descr":"A kobold",
-        "location":"Cave.Royal Grotto"
+        "location":"Cave.Royal Grotto",
+        "stats": {
+            "ac": 0,
+            "hp": 5,
+            "max_hp": 5,
+            "level": 1,
+            "weapon_skills": {
+                "6": 30
+            },
+            "gender": "n",
+            "alignment": 0,
+            "bodytype": "HUMANOID",
+            "language": "Yeik",
+            "weight": 52.0,
+            "size": "SOMEWHAT_SMALL",
+            "xp": 0,
+            "strength": 3,
+            "dexterity": 3,
+            "unarmed_attack": "fists"
+        }
     }
 ]

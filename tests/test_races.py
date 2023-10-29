@@ -28,8 +28,8 @@ class TestRaces(unittest.TestCase):
         self.assertFalse(races.races["plant"].flags.playable)
 
     def test_enum_descriptions(self):
-        self.assertEqual(("somewhat large", 8), races.BodySize.SOMEWHAT_LARGE.value)
-        self.assertEqual("somewhat large", races.BodySize.SOMEWHAT_LARGE.text)
+        self.assertEqual((8), races.BodySize.SOMEWHAT_LARGE.value)
+        self.assertEqual("Somewhat large", races.BodySize.SOMEWHAT_LARGE.text)
         self.assertEqual(8, races.BodySize.SOMEWHAT_LARGE.order)
         self.assertEqual("biped", races.BodyType.BIPED.value)
 

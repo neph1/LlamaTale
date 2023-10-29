@@ -1,4 +1,5 @@
 import json
+import typing
 from tale import parse_utils
 from tale.base import Item, Living, Location
 from tale.coord import Coord
@@ -10,10 +11,7 @@ class DynamicStory(StoryBase):
 
     def __init__(self) -> None:
         self._zones = dict() # type: dict[str, Zone]
-        self._world = dict() # type: dict[str, any]
-        self._world["creatures"] = dict()
-        self._world["items"] = dict() 
-        self._world["locations"] = dict() # type: dict[Coord, Location]
+        self._world = WorldInfo()
 
     def get_zone(self, name: str) -> Zone:
         """ Find a zone by name."""
@@ -48,7 +46,9 @@ class DynamicStory(StoryBase):
         """ Add a location to the story. 
         If zone is specified, add to that zone, otherwise add to first zone.
         """
-        self._world["locations"][location.world_location] = location
+        self._world._locations[location.name] = location
+        coord = location.world_location
+        self._world._grid[coord.as_tuple()] = location
         if zone:
             return self._zones[zone].add_location(location)
         for zone in self._zones:
@@ -68,44 +68,77 @@ class DynamicStory(StoryBase):
         return zone.get_info()
 
     def get_npc(self, npc: str) -> Living:
-        return self._world["creatures"][npc]
+        return self._world.creatures[npc]
     
     def get_item(self, item: str) -> Item:
-        return self._world["items"][item]
+        return self._world.items[item]
+    
+    @property
+    def locations(self) -> dict:
+        return self._world._locations
+    
+    @property
+    def world(self) -> 'WorldInfo':
+        return self._world
     
 
     def neighbors_for_location(self, location: Location) -> dict:
         """ Return a dict of neighboring locations for a given location."""
         neighbors = dict() # type: dict[str, Location]
         for dir in ['north', 'east', 'south', 'west', 'up', 'down']:
-            neighbors[dir] = self._world["locations"][Coord(location.world_location.add(parse_utils.coordinates_from_direction(dir)))]
+            neighbors[dir] = self._world._grid[Coord(location.world_location.add(parse_utils.coordinates_from_direction(dir))).as_tuple()]
         return neighbors
     
-    @property
-    def world_creatures(self) -> dict:
-        return self._world["creatures"]
-    
-    @world_creatures.setter
-    def world_creatures(self, value: dict):
-        self._world["creatures"] = value
-
-    @property
-    def world_items(self) -> dict:
-        return self._world["items"]
-    
-    @world_items.setter
-    def world_items(self, value: dict):
-        self._world["items"] = value
-
     def save(self) -> None:
         """ Save the story to disk."""
         story = dict()
+        story["story"] = dict()
+        story["story"]["name"] = self.config.name
+
         story["zones"] = dict()
-        story["world"] = self._world
+        story["world"] = self._world.to_json()
         for zone in self._zones.values():
             story["zones"][zone.name] = zone.get_info()
+            story["zones"][zone.name]["name"] = zone.name
+            story["zones"][zone.name]["locations"] = parse_utils.save_locations(zone.locations.values())
+        print(story)
+        with open('world.json', "w") as fp:
+            json.dump(story , fp, indent=4)
 
-        with open(self.config.name, "w") as fp:
-            json.dump(story , fp) 
+        with open('story_config.json', "w") as fp:
+            json.dump(parse_utils.save_story_config(self.config) , fp, indent=4)
         
 
+class WorldInfo():
+
+    def __init__(self) -> None:
+        self._creatures = dict()
+        self._items = dict()
+        self._locations = dict() # type: dict[str, Location]
+        self._grid = dict() # type: dict[Coord, Location]
+
+    @property
+    def creatures(self) -> dict:
+        return self._creatures
+    
+    @creatures.setter
+    def creatures(self, value: dict):
+        self._creatures = value
+
+    @property
+    def items(self) -> dict:
+        return self._items
+    
+    @items.setter
+    def items(self, value: dict):
+        self._items = value
+
+    def get_npc(self, npc: str) -> Living:
+        return self._creatures[npc]
+    
+    def get_item(self, item: str) -> Item:
+        return self._items[item]
+    
+    def to_json(self) -> dict:
+        return dict(creatures=parse_utils.save_creatures(self._creatures.values()), 
+                    items=parse_utils.save_items(self._items.values()))
