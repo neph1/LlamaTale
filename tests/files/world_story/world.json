@@ -52,12 +52,23 @@
                         "1",
                         "0"
                     ]
+                },
+                {
+                    "name": "New Location",
+                    "descr": "New Location",
+                    "short_descr": "",
+                    "exits": [],
+                    "world_location": [
+                        0,
+                        0,
+                        0
+                    ]
                 }
             ]
         }
     },
     "world": {
-        "creatures": {
+        "npcs": {
             "kobbo": {
                 "location": "Royal grotto",
                 "name": "Kobbo",
@@ -67,8 +78,8 @@
                 ],
                 "short_descr": "A kobold",
                 "descr": "Kobbo has a grace only royal kobolds posses",
-                "type": "Npc",
-                "race": "human",
+                "type": "Mob",
+                "race": "",
                 "gender": "m",
                 "level": 1,
                 "stats": {
@@ -126,5 +137,9 @@
                 "wear_location": "TORSO"
             }
         }
+    },
+    "catalogue": {
+        "items": {},
+        "creatures": {}
     }
 }

@@ -168,8 +168,8 @@ class LlmUtil():
                                                           story_type=self.__story.config.type, 
                                                           story_context=self.__story.config.context,
                                                           world_info=self.__story.config.world_info,
-                                                          world_creatures=self.__story.world.creatures,
-                                                          world_items=self.__story.world.items)
+                                                          world_creatures=self.__story._catalogue._creatures,
+                                                          world_items=self.__story._catalogue._items)
   
     def set_story(self, story: DynamicStory):
         """ Set the story object."""

@@ -30,9 +30,12 @@ class JsonStory(DynamicStory):
             self.add_zone(zone)
             for loc in zone.locations.values():
                 self.add_location(loc, name)
-        
-        if world['world']['creatures']:
-            self._world.creatures = parse_utils.load_npcs(world['world']['creatures'].values(), self.locations)
+        if world['catalogue']['creatures']:
+            self._catalogue._creatures = world['catalogue']['creatures'].values()
+        if  world['catalogue']['items']:
+            self._catalogue._items = world['catalogue']['items'].values()
+        if world['world']['npcs']:
+            self._world.npcs = parse_utils.load_npcs(world['world']['npcs'].values(), self.locations)
         if  world['world']['items']:
             self._world.items = parse_utils.load_items(world['world']['items'].values(), self.locations)
         

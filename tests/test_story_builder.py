@@ -80,13 +80,13 @@ class TestStoryBuilder():
         assert(start_location.name == "Greenhaven")
         assert(start_location.exits["moonflower meadow"])
         assert(start_location.exits["shadowy woods"])
-        assert(len(story.world.creatures) == 5)
-        assert(story.world.creatures["whimsy woozle"])
-        assert(story.world.creatures["lunar lopster"])
-        creature = story.world.creatures["shadow stag"]
+        assert(len(story._catalogue._creatures) == 5)
+        assert(story._catalogue._creatures["whimsy woozle"])
+        assert(story._catalogue._creatures["lunar lopster"])
+        creature = story._catalogue._creatures["shadow stag"]
         assert(creature["name"] == "shadow stag")
         assert(creature["level"] == 3)
-        assert(len(story.world.items) == 1)
-        assert(story.world.items["enchanted petals"])
+        assert(len(story._catalogue._items) == 1)
+        assert(story._catalogue._items["enchanted petals"])
 
         

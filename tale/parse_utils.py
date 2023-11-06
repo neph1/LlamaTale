@@ -535,9 +535,9 @@ def replace_creature_with_world_creature(creatures: list, world_creatures: dict)
             new_creatures.append(creature)
     return new_creatures
 
-def save_creatures(creatures: []) -> dict:
+def save_npcs(creatures: []) -> dict:
     npcs = {}
-    for npc in creatures: # type: LivingNpc
+    for npc in creatures: # type: Living
         stored_npc = {}
         stored_npc['location'] = npc.location.name
         stored_npc['name'] = npc.name.capitalize()
@@ -561,7 +561,6 @@ def save_creatures(creatures: []) -> dict:
             stored_npc['stats'] = save_stats(npc.stats)
         
         npcs[npc.name] = stored_npc
-    print(npcs)
     return npcs
 
 def save_stats(stats: Stats) -> dict:

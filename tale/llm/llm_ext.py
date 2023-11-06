@@ -12,6 +12,7 @@ class DynamicStory(StoryBase):
     def __init__(self) -> None:
         self._zones = dict() # type: dict[str, Zone]
         self._world = WorldInfo()
+        self._catalogue = Catalogue()
 
     def get_zone(self, name: str) -> Zone:
         """ Find a zone by name."""
@@ -68,10 +69,10 @@ class DynamicStory(StoryBase):
         return zone.get_info()
 
     def get_npc(self, npc: str) -> Living:
-        return self._world.creatures[npc]
+        return self._world.get_npc(npc)
     
     def get_item(self, item: str) -> Item:
-        return self._world.items[item]
+        return self._world.get_item(item)
     
     @property
     def locations(self) -> dict:
@@ -80,7 +81,6 @@ class DynamicStory(StoryBase):
     @property
     def world(self) -> 'WorldInfo':
         return self._world
-    
 
     def neighbors_for_location(self, location: Location) -> dict:
         """ Return a dict of neighboring locations for a given location."""
@@ -97,6 +97,7 @@ class DynamicStory(StoryBase):
 
         story["zones"] = dict()
         story["world"] = self._world.to_json()
+        story["catalogue"] = self._catalogue.to_json()
         for zone in self._zones.values():
             story["zones"][zone.name] = zone.get_info()
             story["zones"][zone.name]["name"] = zone.name
@@ -112,19 +113,22 @@ class DynamicStory(StoryBase):
 class WorldInfo():
 
     def __init__(self) -> None:
-        self._creatures = dict()
-        self._items = dict()
+        self._items = dict() # type: dict[str, Item]
+        self._npcs  = dict() # type: dict[str, Living]
         self._locations = dict() # type: dict[str, Location]
         self._grid = dict() # type: dict[Coord, Location]
 
     @property
-    def creatures(self) -> dict:
-        return self._creatures
-    
-    @creatures.setter
-    def creatures(self, value: dict):
-        self._creatures = value
+    def npcs(self) -> dict:
+        return self._npcs
 
+    @npcs.setter
+    def npcs(self, value: dict):
+        self._npcs = value
+
+    def get_npc(self, npc: str) -> Living:
+        return self._npcs[npc]
+    
     @property
     def items(self) -> dict:
         return self._items
@@ -133,12 +137,39 @@ class WorldInfo():
     def items(self, value: dict):
         self._items = value
 
-    def get_npc(self, npc: str) -> Living:
-        return self._creatures[npc]
-    
     def get_item(self, item: str) -> Item:
         return self._items[item]
     
     def to_json(self) -> dict:
-        return dict(creatures=parse_utils.save_creatures(self._creatures.values()), 
+        return dict(
+                    npcs=parse_utils.save_npcs(self._npcs.values()),
                     items=parse_utils.save_items(self._items.values()))
+    
+class Catalogue():
+    """ A catalogue of all creatures and items in the world. Used by
+    the LLM to generate random creatures and items. All are stored as
+    dicts."""
+    def __init__(self) -> None:
+        self._items = dict() # type: dict[str, dict]
+        self._creatures = dict() # type: dict[str, dict]
+
+    def add_item(self, item: dict) -> bool:
+        if item['name'] in self._items:
+            return False
+        self._items[item['name']] = item
+        return True
+    
+    def add_creature(self, creature: dict) -> bool:
+        if creature['name'] in self._creatures:
+            return False
+        self._creatures[creature['name']] = creature
+        return True
+    
+    def get_creatures(self) -> dict:
+        return self._creatures
+    
+    def get_items(self) -> dict:
+        return self._items
+    
+    def to_json(self) -> dict:
+        return dict(items=self._items, creatures=self._creatures)
