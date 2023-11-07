@@ -49,8 +49,16 @@ def load_locations(json_file: dict):
             if [exit_from, exit_to] in parsed_exits or [exit_to, exit_from] in parsed_exits:
                 continue
             loc_two = locations[to_name]
-            exits.append(Exit.connect(loc_one, to_name, exit_to['short_descr'], exit_to['long_descr'],
-                 loc_two, from_name, exit_from['short_descr'], exit_from['long_descr']))
+            direction = exit_from.get('direction', '')
+
+            exits.append(Exit.connect(from_loc=loc_one,
+                                      directions=direction if direction else to_name,
+                                      short_descr=exit_to['short_descr'], 
+                                      long_descr=exit_to['long_descr'],
+                                      to_loc=loc_two,
+                                      return_short_descr=exit_from['short_descr'], 
+                                      return_long_descr=exit_from['long_descr'],
+                                      return_directions=opposite_direction(direction) if direction else from_name))
             parsed_exits.append([exit_from, exit_to])
     return zones, exits
 
@@ -649,7 +657,7 @@ def save_locations(locations: []) -> dict:
     json_locations = []
     for location in locations: # type: Location
         json_location = {}
-        json_location['name'] = location.name
+        json_location['name'] = location.name.capitalize()
         json_location['descr'] = location.description
         json_location['short_descr'] = location.short_description
         json_location['exits'] = []
@@ -659,6 +667,7 @@ def save_locations(locations: []) -> dict:
             json_exit['name'] = exit.name.capitalize()
             json_exit['short_descr'] = exit.short_description
             json_exit['long_descr'] = exit.description
+            json_exit['direction'] = exit.aliases
             json_location['exits'].append(json_exit)
         json_locations.append(json_location)
     return json_locations

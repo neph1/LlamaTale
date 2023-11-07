@@ -20,8 +20,14 @@ class TestParseUtils():
     def test_load_locations(self):
         room_json = parse_utils.load_json("tests/files/test_locations.json")
         zones, exits = parse_utils.load_locations(room_json)
-        assert(zones['test house'].get_location('test room'))
-        assert(zones['test house'].get_location('test room 2'))
+        room_one = zones['test house'].get_location('test room')
+        assert(room_one.name == 'test room')
+        assert(room_one.description == 'test room description')
+        room_two = zones['test house'].get_location('test room 2')
+        assert(room_two.name == 'test room 2')
+        assert(room_two.description == 'test room 2 description')
+        assert(len(room_two.exits) == 1)
+
         assert(exits[0].__repr__().startswith("(<base.Exit to 'test room 2'"))
 
     def test_load_items(self):

@@ -81,6 +81,10 @@ class DynamicStory(StoryBase):
     @property
     def world(self) -> 'WorldInfo':
         return self._world
+    
+    @property
+    def catalogue(self) -> 'Catalogue':
+        return self._catalogue
 
     def neighbors_for_location(self, location: Location) -> dict:
         """ Return a dict of neighboring locations for a given location."""
@@ -109,6 +113,10 @@ class DynamicStory(StoryBase):
         with open('story_config.json', "w") as fp:
             json.dump(parse_utils.save_story_config(self.config) , fp, indent=4)
         
+    @property
+    def get_catalogue(self) -> 'Catalogue':
+        return self._catalogue
+
 
 class WorldInfo():
 
@@ -150,8 +158,8 @@ class Catalogue():
     the LLM to generate random creatures and items. All are stored as
     dicts."""
     def __init__(self) -> None:
-        self._items = dict() # type: dict[str, dict]
-        self._creatures = dict() # type: dict[str, dict]
+        self._items = [] # type: list[dict]
+        self._creatures =[] # type: list[dict]
 
     def add_item(self, item: dict) -> bool:
         if item['name'] in self._items:

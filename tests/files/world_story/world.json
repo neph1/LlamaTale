@@ -17,6 +17,12 @@
                 "sword",
                 "shield"
             ],
+            "size": 5,
+            "center": [
+                0,
+                0,
+                0
+            ],
             "name": "Cave",
             "locations": [
                 {
@@ -78,7 +84,7 @@
                 ],
                 "short_descr": "A kobold",
                 "descr": "Kobbo has a grace only royal kobolds posses",
-                "type": "Mob",
+                "type": "Npc",
                 "race": "",
                 "gender": "m",
                 "level": 1,
@@ -139,7 +145,7 @@
         }
     },
     "catalogue": {
-        "items": {},
-        "creatures": {}
+        "items": [],
+        "creatures": []
     }
 }

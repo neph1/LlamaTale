@@ -1,0 +1,296 @@
+{
+    "story": {
+        "name": "A Tale of Anything"
+    },
+    "zones": {
+        "The Cursed Swamp": {
+            "description": "A treacherous, mist-shrouded wetland filled with noxious fumes and unspeakable horrors. The air is thick with the stench of death and decay, and the ground is slick with mire and slime. The once-lush vegetation has withered away, leaving only twisted, mutated growths that writhe and twitch in the darkness. The water is toxic, and the creatures that lurk within are just as deadly. This area is teeming with irradiated life, and the glowing Ghoul is said to roam the marshes, drawn to the lingering radiation like a moth to a flame.",
+            "level": 5,
+            "mood": -5,
+            "races": [],
+            "items": [
+                {
+                    "name": "Mutant Spider",
+                    "type": "Drink",
+                    "short_descr": "A venomous arachnid that spins webs of deadly toxin-laced silk. Can be used to poison enemies or heal allies.",
+                    "level": 1,
+                    "value": 5
+                },
+                {
+                    "name": "Irradiated Frog",
+                    "type": "Weapon",
+                    "short_descr": "A toxic amphibian that can be used as a projectile weapon, or cooked for a rare and deadly meal.",
+                    "level": 2,
+                    "value": 10
+                },
+                {
+                    "name": "Rusted Shovel",
+                    "type": "Tool",
+                    "short_descr": "A crude but useful tool for digging and scavenging in the muck and mire. Can be used to uncover hidden items or fight off enemies.",
+                    "level": 1,
+                    "value": 5
+                },
+                {
+                    "name": "Tainted Water",
+                    "type": "Drink",
+                    "short_descr": "A toxic brew that can revive and heal, but also poison and damage. Be careful how you use it.",
+                    "level": 2,
+                    "value": 10
+                },
+                {
+                    "name": "Mutant Toad",
+                    "type": "Wearable",
+                    "short_descr": "A strange, glowing toad that can be worn as a necklace, providing a constant stream of radiation to boost health. But beware, it also drains life force.",
+                    "level": 3,
+                    "value": 15
+                },
+                {
+                    "name": "Radiation Suit",
+                    "type": "Wearable",
+                    "short_descr": "A crude but effective suit that protects against radiation damage. But it's heavy and cumbersome, and can only be worn for short periods.",
+                    "level": 4,
+                    "value": 20
+                }
+            ],
+            "size": 5,
+            "center": [
+                0,
+                0,
+                0
+            ],
+            "name": "The Cursed Swamp",
+            "locations": [
+                {
+                    "name": "Abandoned gas station",
+                    "descr": "an abandoned gas station",
+                    "short_descr": "",
+                    "exits": [
+                        {
+                            "name": "Deserted town",
+                            "direction": "north",
+                            "short_descr": "To the north you see description",
+                            "long_descr": "To the north you see description"
+                        },
+                        {
+                            "name": "Deserted town",
+                            "direction": "north",
+                            "short_descr": "To the north you see description",
+                            "long_descr": "To the north you see description"
+                        },
+                        {
+                            "name": "Toxic swamp",
+                            "direction": "south",
+                            "short_descr": "To the south you see description",
+                            "long_descr": "To the south you see description"
+                        },
+                        {
+                            "name": "Toxic swamp",
+                            "direction": "south",
+                            "short_descr": "To the south you see description",
+                            "long_descr": "To the south you see description"
+                        },
+                        {
+                            "name": "Radiation ridge",
+                            "direction": "west",
+                            "short_descr": "To the west you see description",
+                            "long_descr": "To the west you see description"
+                        },
+                        {
+                            "name": "Radiation ridge",
+                            "direction": "west",
+                            "short_descr": "To the west you see description",
+                            "long_descr": "To the west you see description"
+                        }
+                    ],
+                    "world_location": [
+                        0,
+                        0,
+                        0
+                    ]
+                },
+                {
+                    "name": "Deserted town",
+                    "descr": "",
+                    "short_descr": "",
+                    "exits": [
+                        {
+                            "name": "Abandoned gas station",
+                            "short_descr": "To the south you see Abandoned Gas Station.",
+                            "long_descr": "To the south you see Abandoned Gas Station."
+                        },
+                        {
+                            "name": "Abandoned gas station",
+                            "short_descr": "To the south you see Abandoned Gas Station.",
+                            "long_descr": "To the south you see Abandoned Gas Station."
+                        }
+                    ],
+                    "world_location": [
+                        0,
+                        1,
+                        0
+                    ]
+                },
+                {
+                    "name": "Toxic swamp",
+                    "descr": "",
+                    "short_descr": "",
+                    "exits": [
+                        {
+                            "name": "Abandoned gas station",
+                            "short_descr": "To the north you see Abandoned Gas Station.",
+                            "long_descr": "To the north you see Abandoned Gas Station."
+                        },
+                        {
+                            "name": "Abandoned gas station",
+                            "short_descr": "To the north you see Abandoned Gas Station.",
+                            "long_descr": "To the north you see Abandoned Gas Station."
+                        }
+                    ],
+                    "world_location": [
+                        0,
+                        -1,
+                        0
+                    ]
+                },
+                {
+                    "name": "Radiation ridge",
+                    "descr": "",
+                    "short_descr": "",
+                    "exits": [
+                        {
+                            "name": "Abandoned gas station",
+                            "short_descr": "To the east you see Abandoned Gas Station.",
+                            "long_descr": "To the east you see Abandoned Gas Station."
+                        },
+                        {
+                            "name": "Abandoned gas station",
+                            "short_descr": "To the east you see Abandoned Gas Station.",
+                            "long_descr": "To the east you see Abandoned Gas Station."
+                        }
+                    ],
+                    "world_location": [
+                        -1,
+                        0,
+                        0
+                    ]
+                }
+            ]
+        }
+    },
+    "world": {
+        "npcs": {},
+        "items": {}
+    },
+    "catalogue": {
+        "items": [
+            {
+                "name": "Water Bottle",
+                "type": "Drink",
+                "short_descr": "A refreshing drink that can help keep you hydrated in the harsh wasteland.",
+                "level": 1,
+                "value": 10
+            },
+            {
+                "name": "Rusty Knife",
+                "type": "Weapon",
+                "short_descr": "A crude but serviceable blade for fighting off mutants and scavenging for supplies.",
+                "level": 2,
+                "value": 5
+            },
+            {
+                "name": "Tattered Map",
+                "type": "Trash",
+                "short_descr": "A faded and worn map of the area, with possible locations marked for scavenging and safety.",
+                "level": 1,
+                "value": 5
+            },
+            {
+                "name": "Gas Mask",
+                "type": "Wearable",
+                "short_descr": "A crude mask that filters out radioactive particles, but provides little protection against other hazards.",
+                "level": 3,
+                "value": 10
+            },
+            {
+                "name": "Molotov Cocktail",
+                "type": "Weapon",
+                "short_descr": "A makeshift bomb that can be used to clear out mutants and debris.",
+                "level": 4,
+                "value": 20
+            },
+            {
+                "name": "First Aid Kit",
+                "type": "Health",
+                "short_descr": "A collection of bandages, antiseptic, and painkillers to help heal wounds.",
+                "level": 3,
+                "value": 20
+            },
+            {
+                "name": "Fishing Rod",
+                "type": "Trash",
+                "short_descr": "A rusted and broken fishing rod, but it might still be useful for catching fish in a nearby river.",
+                "level": 1,
+                "value": 5
+            },
+            {
+                "name": "Solar Panel",
+                "type": "Trash",
+                "short_descr": "A broken and faded solar panel, but it could be used to charge electronic devices if repaired.",
+                "level": 2,
+                "value": 10
+            }
+        ],
+        "creatures": [
+            {
+                "name": "Mutant Rat",
+                "body": "A twisted, irradiated rodent with glowing red eyes and razor-sharp teeth, capable of infecting its victims with a deadly poison.",
+                "mass": 0.5,
+                "hp": 10,
+                "type": "Mob",
+                "level": 1,
+                "unarmed_attack": "BITE",
+                "short_descr": "Fast and deadly, these rats are a constant threat to any survivor."
+            },
+            {
+                "name": "Radscorpion",
+                "body": "A massive, mutated insectoid with a deadly stinger and venomous tail, capable of delivering a killing blow with a single strike.",
+                "mass": 50,
+                "hp": 100,
+                "type": "Mob",
+                "level": 2,
+                "unarmed_attack": "STINGER",
+                "short_descr": "These beasts are the apex predators of the wasteland, feared by all who live."
+            },
+            {
+                "name": "Glowing Ghoul",
+                "body": "A spectral undead creature with a glowing aura and the ability to drain life force from its victims.",
+                "mass": 1.5,
+                "hp": 50,
+                "type": "Npc",
+                "level": 3,
+                "unarmed_attack": "BITE",
+                "short_descr": "These ghouls are the remnants of the old world, driven by a insatiable hunger for the living."
+            },
+            {
+                "name": "Irradiated Bear",
+                "body": "A massive, mutated bear with glowing blue fur and the ability to absorb radiation from its surroundings.",
+                "mass": 200,
+                "hp": 150,
+                "type": "Mob",
+                "level": 4,
+                "unarmed_attack": "CLAWS",
+                "short_descr": "These beasts are the guardians of the wasteland, feared and respected by all who live."
+            },
+            {
+                "name": "Mutant Giant",
+                "body": "A towering, humanoid creature with bulging muscles and a grotesque, misshapen face.",
+                "mass": 300,
+                "hp": 200,
+                "type": "Mob",
+                "level": 5,
+                "unarmed_attack": "FISTS",
+                "short_descr": "These giants are the rulers of the wasteland, with the strength and cunning to match their size."
+            }
+        ]
+    }
+}

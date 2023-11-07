@@ -2,11 +2,10 @@
 import datetime
 from tale.coord import Coord
 import tale.parse_utils as parse_utils
-from tale import mud_context, util
+from tale import util
 from tale.base import Location
 from tale.driver_if import IFDriver
 from tale.json_story import JsonStory
-from tests.files.test_story.story import Story
 
 class TestJsonStory():
     driver = IFDriver(screen_delay=99, gui=False, web=True, wizard_override=True)
@@ -46,3 +45,35 @@ class TestJsonStory():
 
     def test_save_story(self):
         self.story.save()
+
+class TestAnythingStory():
+
+    driver = IFDriver(screen_delay=99, gui=False, web=True, wizard_override=True)
+    driver.game_clock = util.GameDateTime(datetime.datetime(year=2023, month=1, day=1), 1)
+
+    def test_load_anything_story(self):
+        story_name = 'anything_story'
+        story = JsonStory(f'tests/files/{story_name}/', parse_utils.load_story_config(parse_utils.load_json(f'tests/files/{story_name}/story_config.json')))
+        story.init(self.driver)
+
+        assert(story)
+        assert(story.config.name == 'A Tale of Anything')
+
+        assert(len(story._zones) == 1)
+        zone = story._zones['The Cursed Swamp']
+        assert(zone)
+        assert(len(zone.locations) == 4)
+
+
+        gas_station = story.get_location('The Cursed Swamp', 'Abandoned gas station')
+        assert(gas_station)
+        assert(gas_station.name == 'Abandoned gas station')
+        assert(gas_station.description == 'an abandoned gas station')
+        assert(gas_station.world_location.as_tuple() == (0,0,0))
+        assert(len(gas_station.exits) == 3)
+        assert(gas_station.exits['toxic swamp'])
+        assert(gas_station.exits['deserted town'])
+        assert(gas_station.exits['radiation ridge'])
+
+        assert(len(story.get_catalogue.get_items()) == 8)
+        assert(len(story.get_catalogue.get_creatures()) == 5)

@@ -27,6 +27,7 @@ class GenerateZone(LlmRequest):
         world_info = args['world_info']
         world_mood = args['world_mood']
         story_context = args['story_context']
+        catalogue = args['catalogue']
 
         prompt = self.pre_json_prompt
         prompt += self.zone_prompt.format(
@@ -37,5 +38,6 @@ class GenerateZone(LlmRequest):
             zone_info=json.dumps(current_zone_info),
             story_context=story_context,
             exit_location=exit_location_name,
-            location_desc=location_desc)
+            location_desc=location_desc,
+            catalogue=catalogue)
         return prompt;

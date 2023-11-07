@@ -9,8 +9,8 @@ class Zone():
         self.description = description
         self.locations = dict()  # type: dict[str, Location]
         self.level = 1 # average level of the zone
-        self.races = [] # common races to be encountered in the zone
-        self.items = [] # common items to find in the zone
+        self.races = [] # type list[str] # common races to be encountered in the zone
+        self.items = [] # type list[str] # common items to find in the zone
         self.mood = 0 # defines friendliness or hostility of the zone. > 0 is friendly
         self.size = 5 # roughly the 'radius' of the zone.
         self.neighbors = dict() # type: dict[str, Zone] # north, east, south or west
@@ -32,7 +32,9 @@ class Zone():
                 "level":self.level,
                 "mood":self.mood,
                 "races":self.races,
-                "items":self.items}
+                "items":self.items,
+                "size":self.size,
+                "center":self.center.as_tuple()}
 
     def get_neighbor(self, direction: str) -> 'Zone':
         return self.neighbors[direction]
