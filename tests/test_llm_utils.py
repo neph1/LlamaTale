@@ -240,12 +240,10 @@ class TestWorldBuilding():
                                                    world_mood=0,
                                                    world_info='')
         assert(len(result) == 2)
-        sword = result.get('sword')
-        assert(sword.name == 'sword')
-        assert(isinstance(sword, Weapon))
-        shield = result.get('shield')
-        assert(shield.name == 'shield')
-        assert(isinstance(shield, Item))
+        sword = result[0]
+        assert(sword['name'] == 'sword')
+        shield = result[1]
+        assert(shield['name'] == 'shield')
 
     def test_generate_world_creatures(self):
         # mostly for coverage
@@ -255,11 +253,11 @@ class TestWorldBuilding():
                                                    world_mood=0,
                                                    world_info='')
         assert(len(result) == 1)
-        dragon = result.get('dragon')
+        dragon = result[0]
         assert(dragon["name"] == 'dragon')
         assert(dragon["hp"] == 100)
         assert(dragon["level"] == 10)
-        assert(dragon["unarmed_attack"] == UnarmedAttack.BITE)
+        assert(dragon["unarmed_attack"] == UnarmedAttack.BITE.name)
 
 
     def test_get_neighbor_or_generate_zone(self):

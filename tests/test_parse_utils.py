@@ -26,7 +26,9 @@ class TestParseUtils():
         room_two = zones['test house'].get_location('test room 2')
         assert(room_two.name == 'test room 2')
         assert(room_two.description == 'test room 2 description')
-        assert(len(room_two.exits) == 1)
+        assert(len(room_two.exits) == 2)
+        assert(room_two.exits['north'].target == room_one)
+        assert(room_two.exits['test room'].target == room_one)
 
         assert(exits[0].__repr__().startswith("(<base.Exit to 'test room 2'"))
 

@@ -40,28 +40,35 @@ def load_locations(json_file: dict):
         loc_exits = loc['exits']
         for loc_exit in loc_exits:
             temp_exits.setdefault(name,{})[loc_exit['name']] = loc_exit
-    for ex in temp_exits:
-        from_name = ex
-        loc_one = locations[from_name]
-        for to_name, value in temp_exits[from_name].items():
-            exit_to = value
+
+    for from_name, exits_dict in temp_exits.items():
+        from_loc = locations[from_name]
+        for to_name, exit_to in exits_dict.items():
             exit_from = temp_exits[to_name][from_name]
             if [exit_from, exit_to] in parsed_exits or [exit_to, exit_from] in parsed_exits:
                 continue
-            loc_two = locations[to_name]
-            direction = exit_from.get('direction', '')
+            to_loc = locations[to_name]
+            
+            directions = [to_name]
+            
+            return_directions = [from_name]
+            direction = exit_to.get('direction', '')
+            return_direction = exit_from.get('direction', '')
+            # doing opposite since exit_to has direction
+            if direction or return_direction:
+                directions.append(direction or opposite_direction(return_direction))
+                return_directions.append(opposite_direction(direction) or return_direction)
 
-            exits.append(Exit.connect(from_loc=loc_one,
-                                      directions=direction if direction else to_name,
+            exits.append(Exit.connect(from_loc=from_loc,
+                                      directions=directions,
                                       short_descr=exit_to['short_descr'], 
                                       long_descr=exit_to['long_descr'],
-                                      to_loc=loc_two,
+                                      to_loc=to_loc,
                                       return_short_descr=exit_from['short_descr'], 
                                       return_long_descr=exit_from['long_descr'],
-                                      return_directions=opposite_direction(direction) if direction else from_name))
+                                      return_directions=return_directions))
             parsed_exits.append([exit_from, exit_to])
     return zones, exits
-
 
 def location_from_json(json_object: dict):
     return Location(name=json_object['name'], descr=json_object.get('descr', ''))
@@ -662,13 +669,15 @@ def save_locations(locations: []) -> dict:
         json_location['short_descr'] = location.short_description
         json_location['exits'] = []
         json_location['world_location'] = location.world_location.as_tuple()
-        for exit in location.exits.values():
+        exits = []
+        for exit in location.exits.values(): # type: Exit
             json_exit = {}
             json_exit['name'] = exit.name.capitalize()
             json_exit['short_descr'] = exit.short_description
             json_exit['long_descr'] = exit.description
-            json_exit['direction'] = exit.aliases
-            json_location['exits'].append(json_exit)
+            json_exit['direction'] = next(iter(exit.aliases)) if exit.aliases else ''
+            exits.append(json_exit)
+        json_location['exits'] = exits
         json_locations.append(json_location)
     return json_locations
 

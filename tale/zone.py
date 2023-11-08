@@ -34,7 +34,8 @@ class Zone():
                 "races":self.races,
                 "items":self.items,
                 "size":self.size,
-                "center":self.center.as_tuple()}
+                "center":self.center.as_tuple()
+                }
 
     def get_neighbor(self, direction: str) -> 'Zone':
         return self.neighbors[direction]
@@ -76,5 +77,6 @@ def from_json(data: dict) -> 'Zone':
     zone.races = data.get("races", [])
     zone.size = data.get("size", 5)
     if data.get("center", None) is not None:
-        zone.center = data.get("center")
+        center = data.get("center")
+        zone.center = Coord(center[0], center[1], center[2])
     return zone

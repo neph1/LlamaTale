@@ -41,7 +41,10 @@ class TestZone():
                                    "level":2, 
                                    "mood":3, 
                                    "races": ['human', 'elf', 'dwarf'],
-                                   "items":['sword', 'shield', 'armor']}
+                                   "items":['sword', 'shield', 'armor'],
+                                   "center":(0, 0, 0),
+                                   "level":2,
+                                   "size":5}
         
     def test_get_neighbor(self):
         zone = Zone('test')
