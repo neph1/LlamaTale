@@ -23,8 +23,8 @@
     "server_mode": "IF",
     "npcs": "",
     "items": "",
-    "context": "\n",
-    "story_type": "a post apocalyptic survival and gathering story",
+    "context": "this is where the story background should go",
+    "type": "a post apocalyptic survival and gathering story",
     "world_info": "a barren landscape devastated by nuclear blasts. populated by zombie like mutants and irradiated animals. scattered with remnants of civilization",
     "world_mood": -1
 }

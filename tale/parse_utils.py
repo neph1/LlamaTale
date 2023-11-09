@@ -196,7 +196,7 @@ def load_story_config(json_file: dict):
     config.npcs = json_file.get('npcs', '')
     config.items = json_file.get('items', '')
     config.context = json_file.get('context', '')
-    config.type = json_file.get('story_type', '')
+    config.type = json_file.get('type', '')
     config.world_info = json_file.get('world_info', '')
     config.world_mood = json_file.get('world_mood', '')
     return config
@@ -226,9 +226,10 @@ def save_story_config(config: StoryConfig) -> dict:
     json_file['npcs'] = config.npcs
     json_file['items'] = config.items
     json_file['context'] = config.context
-    json_file['story_type'] = config.type
+    json_file['type'] = config.type
     json_file['world_info'] = config.world_info
     json_file['world_mood'] = config.world_mood
+    json_file['context'] = config.context
     return json_file
 
 
@@ -675,7 +676,7 @@ def save_locations(locations: []) -> dict:
             json_exit['name'] = exit.name.capitalize()
             json_exit['short_descr'] = exit.short_description
             json_exit['long_descr'] = exit.description
-            json_exit['direction'] = next(iter(exit.aliases)) if exit.aliases else ''
+            json_exit['direction'] = next(iter(exit.aliases)) if exit.aliases else '' # not pretty, but works
             exits.append(json_exit)
         json_location['exits'] = exits
         json_locations.append(json_location)

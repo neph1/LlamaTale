@@ -61,11 +61,20 @@ class TestAnythingStory():
 
         assert(story)
         assert(story.config.name == 'A Tale of Anything')
+        assert(story.config.startlocation_player == 'Abandoned gas station')
+        assert(story.config.type == 'a post apocalyptic survival and gathering story')
+        assert(story.config.world_info == 'a barren landscape devastated by nuclear blasts. populated by zombie like mutants and irradiated animals. scattered with remnants of civilization')
+        assert(story.config.world_mood == -1)
+        assert(story.config.context == 'this is where the story background should go')
 
         assert(len(story._zones) == 1)
         zone = story._zones['The Cursed Swamp']
         assert(zone)
         assert(len(zone.locations) == 4)
+        assert(zone.name == 'The Cursed Swamp')
+        assert(zone.level == 5)
+        assert(zone.mood == -5)
+
 
 
         gas_station = story.get_location('The Cursed Swamp', 'Abandoned gas station')
