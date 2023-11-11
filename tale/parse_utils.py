@@ -44,7 +44,7 @@ def load_locations(json_file: dict):
     for loc in json_file['locations']:
         name = loc['name']
         location = location_from_json(loc)
-        if loc.get('world_location'):
+        if loc.get('world_location', None):
             location.world_location = Coord(loc['world_location'][0], loc['world_location'][1], loc['world_location'][2])
         locations[name] = location
         zone1.add_location(location)
@@ -82,7 +82,9 @@ def load_locations(json_file: dict):
     return zones, exits
 
 def location_from_json(json_object: dict):
-    return Location(name=json_object['name'], descr=json_object.get('descr', ''))
+    location = Location(name=json_object['name'], descr=json_object.get('descr', ''))
+    location.built = json_object.get('built', True)
+    return location
 
 def load_items(json_items: [], locations = {}) -> dict:
     """
@@ -686,6 +688,7 @@ def save_locations(locations: []) -> dict:
         json_location['short_descr'] = location.short_description
         json_location['exits'] = []
         json_location['world_location'] = location.world_location.as_tuple()
+        json_location['built'] = location.built
         exits = []
         for exit in location.exits.values(): # type: Exit
             json_exit = {}
