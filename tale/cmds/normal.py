@@ -1704,6 +1704,8 @@ def do_wield(player: Player, parsed: base.ParseResult, ctx: util.Context) -> Non
     except ValueError as x:
         raise ActionRefused(str(x))
     result = player.locate_item(weapon, include_location=False)
+    if not isinstance(result[0], base.Weapon):
+        raise ActionRefused("That's not a weapon")
     if not result:
         raise ActionRefused("You don't have that weapon")
     

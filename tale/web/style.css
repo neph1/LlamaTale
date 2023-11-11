@@ -4,8 +4,8 @@ html, body {
 body {
     font-family: Georgia, 'Droid Serif', 'DejaVu Serif', serif;
     font-size: 12pt;
-    color: black;
-    background: #f8f8f0;
+    color: white;
+    background: black;
     margin: 1em;
 }
 #tale-page {

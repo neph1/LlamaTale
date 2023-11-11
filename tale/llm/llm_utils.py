@@ -49,7 +49,7 @@ class LlmUtil():
     def evoke(self, player_io: TextBuffer, message: str, short_len : bool=False, rolling_prompt='', alt_prompt='', skip_history=True):
         """Evoke a response from LLM. Async if stream is True, otherwise synchronous.
         Update the rolling prompt with the latest message.
-        Will put generated text in _look_hashes, and reuse it if same hash is passed in."""
+        Will put generated text in lm_cache.look_hashes, and reuse it if same hash is generated."""
         output_template = 'Original:[<it><rev> {message}</>] <bright><rev>Generated:</>{text}'
 
         if not message or str(message) == "\n":

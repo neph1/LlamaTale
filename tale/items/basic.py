@@ -217,13 +217,15 @@ class Drink(Item):
         self.affect_thirst = 0
         self.poisoned = False
 
-    def notify_action(self, parsed: ParseResult, actor: Living) -> None:
+    def handle_verb(self, parsed: ParseResult, actor: Living) -> bool:
         if self not in actor.inventory:
             raise ActionRefused("You don't have that.")
         if 'drink' in parsed.verb:
             actor.tell("You drink the %s." % (self.title), evoke=True, short_len=True)
             actor.tell_others("{Actor} drinks the %s." % (self.title))
             self.destroy(util.Context.from_global())
+            return True
+        return False
 
 
 class Potion(Item):
@@ -239,7 +241,7 @@ class Food(Item):
         self.affect_fullness = 1
         self.poisoned = False
 
-    def notify_action(self, parsed: ParseResult, actor: Living) -> None:
+    def handle_verb(self, parsed: ParseResult, actor: Living) -> bool:
         if self not in actor.inventory:
             raise ActionRefused("You don't have that.")
         if 'eat' in parsed.verb:
@@ -247,7 +249,8 @@ class Food(Item):
             actor.tell("You eat the %s." % (self.title), evoke=True, short_len=True)
             actor.tell_others("{Actor} eats the %s." % (self.title))
             self.destroy(util.Context.from_global())
-            return
+            return True
+        return False
 
 
 class Money(Item):
@@ -428,7 +431,7 @@ class Health(Item):
         super().init()
         self.healing_effect = healing_effect
 
-    def notify_action(self, parsed: ParseResult, actor: Living) -> None:
+    def handle_verb(self, parsed: ParseResult, actor: Living) -> bool:
         if self not in actor.inventory:
             raise ActionRefused("You don't have that.")
         if 'eat' in parsed.verb:
@@ -436,11 +439,12 @@ class Health(Item):
             actor.tell("You eat the %s and feel better." % (self.title), evoke=True, short_len=True)
             actor.tell_others("{Actor} eats the %s." % (self.title))
             self.destroy(util.Context.from_global())
-            return
+            return True
         if 'drink' in parsed.verb:
             actor.stats.hp += self.healing_effect
             actor.tell("You drink the %s and feel better." % (self.title), evoke=True, short_len=True)
             actor.tell_others("{Actor} drinks the %s." % (self.title))
             self.destroy(util.Context.from_global())
-            return
+            return True
+        return False
         
