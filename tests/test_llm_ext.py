@@ -24,7 +24,6 @@ class TestLivingNpc():
         location = Location("test_room")
         npc = LivingNpc(name='test', gender='m', age=42, personality='')
         npc.init_inventory([self.drink])
-        
 
         player = Player(name='player', gender='m')
         location.init_inventory([npc, player])
@@ -69,6 +68,25 @@ class TestLivingNpc():
         json_card = json.loads(card)
         assert(json_card['name'] == 'test')
         assert(json_card['items'][0] == 'ale')
+
+    def test_memory(self):
+        npc = LivingNpc(name='test', gender='m', age=42, personality='')
+        from tale.llm import llm_cache
+        npc._observed_events = set([llm_cache.cache_event('test_event')])
+        npc._conversations = set([llm_cache.cache_tell('test_tell')])
+        npc.sentiments = {'test': 'neutral'}
+        memories_json = npc.dump_memory()
+        memories = json.loads(json.dumps(memories_json))
+
+
+        npc_clean = LivingNpc(name='test', gender='m', age=42, personality='')
+        npc_clean.load_memory(memories)
+
+        assert(memories['known_locations'] == {})
+        assert(memories['observed_events'] == llm_cache.get_events(npc_clean._observed_events))
+        assert(memories['conversations'] == llm_cache.get_tells(npc_clean._conversations))
+        assert(memories['sentiments'] == npc_clean.sentiments)
+
 
 class TestDynamicStory():
 

@@ -116,7 +116,7 @@ class DynamicStory(StoryBase):
             json.dump(parse_utils.save_story_config(self.config), fp, indent=4)
 
         with open('llm_cache.json', "w") as fp:
-            json.dump(llm_cache.save(), fp, indent=4)
+            json.dump(llm_cache.json_dump(), fp, indent=4)
         
     @property
     def get_catalogue(self) -> 'Catalogue':
