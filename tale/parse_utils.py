@@ -491,7 +491,7 @@ def coordinates_from_direction(coord: Coord, direction: str) -> Coord:
     elif direction == 'southwest':
         x = x - 1
         y = y - 1
-    return Coord(x=x, y=y, z=z)
+    return Coord(x, y, z)
 
 def direction_from_coordinates(direction: Coord):
     """ Returns a direction based on the coordinates"""

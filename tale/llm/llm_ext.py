@@ -24,7 +24,7 @@ class DynamicStory(StoryBase):
             return False
         self._zones[zone.name] = zone
         return True
-
+    
     def get_location(self, zone: str, name: str) -> Location:
         """ Find a location by name in a zone."""
         return self._zones[zone].get_location(name)
@@ -90,7 +90,9 @@ class DynamicStory(StoryBase):
         """ Return a dict of neighboring locations for a given location."""
         neighbors = dict() # type: dict[str, Location]
         for dir in ['north', 'east', 'south', 'west', 'up', 'down']:
-            neighbors[dir] = self._world._grid[Coord(location.world_location.add(parse_utils.coordinates_from_direction(dir))).as_tuple()]
+            dir_coord = parse_utils.coordinates_from_direction(location.world_location, dir)
+            coord = location.world_location.add(dir_coord)
+            neighbors[dir] = self._world._grid.get(coord.as_tuple(), None)
         return neighbors
     
     def save(self) -> None:

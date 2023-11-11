@@ -93,12 +93,15 @@ class TestAnythingStory():
         toxic_swamp = story.get_location('The Cursed Swamp', 'Toxic swamp')
         assert(toxic_swamp)
         assert(toxic_swamp.built == False)
+        assert(toxic_swamp.world_location.as_tuple() == (0,-1,0))
         deserted_town = story.get_location('The Cursed Swamp', 'Deserted town')
         assert(deserted_town)
         assert(deserted_town.built == False)
+        assert(deserted_town.world_location.as_tuple() == (0,1,0))
         radiation_ridge = story.get_location('The Cursed Swamp', 'Radiation ridge')
         assert(radiation_ridge)
         assert(radiation_ridge.built == False)
+        assert(radiation_ridge.world_location.as_tuple() == (-1,0,0))
 
 
 
