@@ -524,6 +524,11 @@ class Item(MudObject):
         if other:
             raise ActionRefused("You can't combine those.")
         raise ActionRefused("That makes no sense.")
+    
+    def consume(self, actor: 'Living') -> None:
+        """Consume this item."""
+        raise ActionRefused("You can't consume that.")
+
 
     @util.authorized("wizard")
     def wiz_clone(self, actor: 'Living', make_clone: bool=True) -> 'Item':
