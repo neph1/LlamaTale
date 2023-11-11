@@ -4,6 +4,7 @@ from tale import zone
 from tale.base import Location, Exit, Item, Stats, Weapon, Wearable
 from tale.coord import Coord
 from tale.items.basic import Boxlike, Drink, Food, Health, Money, Note
+from tale.llm.LivingNpc import LivingNpc
 from tale.npc_defs import StationaryMob, StationaryNpc
 from tale.races import UnarmedAttack
 from tale.story import GameMode, MoneyType, TickMethod, StoryConfig
@@ -13,8 +14,18 @@ from tale.zone import Zone
 import json
 import re
 import sys
+import os
+
 
 def load_json(file_path: str):
+    """
+        Loads json from supplied file path
+        Returns dict
+        Fails silently and returns an empty dict if file doesn't exist
+    """
+    if not os.path.isfile(file_path):
+        return {}
+    
     with open(file_path) as f:
         return json.load(f, strict=False)
 
@@ -125,7 +136,7 @@ def load_npcs(json_npcs: [], locations = {}) -> dict:
         Inserts into locations if supplied and has location
     """
     npcs = {}
-    for npc in json_npcs:
+    for npc in json_npcs: # type dict
         npc_type = npc.get('type', 'Mob')
         if npc_type == 'ignore':
             continue
@@ -160,12 +171,13 @@ def load_npcs(json_npcs: [], locations = {}) -> dict:
             new_npc.stats.level = npc.get('level', 1)
         if npc.get('stats', None):
             new_npc.stats = load_stats(npc['stats'])
-        # else:
-        #     module = sys.modules['tale.items.basic']
-        #     clazz = getattr(module, npc_type)
-        #     new_npc = clazz(name=npc['name'], gender=npc['gender'], race=npc['race'], title=npc['title'], descr=npc['descr'], short_descr=npc['short_descr'], args=npc)
+
         if locations and npc['location']:
             _insert(new_npc, locations, npc['location'])
+
+        if npc.get('memory', None):
+            new_npc.load_memory(npc['memory'])
+
         npcs[name] = new_npc
     return npcs
 
@@ -325,13 +337,11 @@ def trim_response(message: str):
 
 def sanitize_json(result: str):
     """ Removes special chars from json string. Some common, and some 'creative' ones. """
-    # .replace('}}', '}')
-    # .replace('""', '"')
     if result is None:
         return ''
     result = result.replace('```json', '') #.replace('\\"', '"').replace('"\\n"', '","').replace('\\n', '').replace('}\n{', '},{').replace('}{', '},{').replace('\\r', '').replace('\\t', '').replace('"{', '{').replace('}"', '}').replace('"\\', '"').replace('\\”', '"').replace('" "', '","').replace(':,',':').replace('},]', '}]').replace('},}', '}}')
     result = result.split('```')[0]
-    print('sanitized json: ' + result)
+    #print('sanitized json: ' + result)
     return result
 
 def _convert_name(name: str):
@@ -561,6 +571,9 @@ def save_npcs(creatures: []) -> dict:
         stored_npc['aliases'] = list(npc.aliases)
         stored_npc['short_descr'] = npc.short_description
         stored_npc['descr'] = npc.description
+        stored_npc['personality'] = npc.personality
+        stored_npc['occupation'] = npc.occupation
+        stored_npc['age'] = npc.age
 
         if isinstance(npc, StationaryMob):
             stored_npc['type'] = 'Npc'
@@ -575,6 +588,9 @@ def save_npcs(creatures: []) -> dict:
             stored_npc['short_descr'] = npc.short_description
             stored_npc['level'] = npc.stats.level
             stored_npc['stats'] = save_stats(npc.stats)
+
+        if isinstance(npc, LivingNpc):
+            stored_npc['memory'] = npc.dump_memory()
         
         npcs[npc.name] = stored_npc
     return npcs

@@ -1,11 +1,8 @@
-import tale
-from tale.base import Location, Item, Living
-from tale.driver import Driver
 from tale.llm.llm_ext import DynamicStory
 from tale.player import Player
-from tale.story import StoryBase, StoryConfig
+from tale.story import StoryConfig
 import tale.parse_utils as parse_utils
-from tale.zone import Zone
+import tale.llm.llm_cache as llm_cache
 
 class JsonStory(DynamicStory):
     
@@ -30,14 +27,18 @@ class JsonStory(DynamicStory):
             self.add_zone(zone)
             for loc in zone.locations.values():
                 self.add_location(loc, name)
-        if world['catalogue']['creatures']:
-            self._catalogue._creatures = world['catalogue']['creatures']
-        if  world['catalogue']['items']:
-            self._catalogue._items = world['catalogue']['items']
-        if world['world']['npcs']:
-            self._world.npcs = parse_utils.load_npcs(world['world']['npcs'].values(), self.locations)
-        if  world['world']['items']:
-            self._world.items = parse_utils.load_items(world['world']['items'].values(), self.locations)
+        if world.get('catalogue', None):
+            if world['catalogue']['creatures']:
+                self._catalogue._creatures = world['catalogue']['creatures']
+            if  world['catalogue']['items']:
+                self._catalogue._items = world['catalogue']['items']
+        if world.get('world', None):
+            if world['world']['npcs']:
+                self._world.npcs = parse_utils.load_npcs(world['world']['npcs'].values(), self.locations)
+            if  world['world']['items']:
+                self._world.items = parse_utils.load_items(world['world']['items'].values(), self.locations)
+
+        llm_cache.load(parse_utils.load_json(self.path +'llm_cache.json'))
         
 
     def welcome(self, player: Player) -> str:

@@ -1,11 +1,11 @@
 import json
-import typing
 from tale import parse_utils
 from tale.base import Item, Living, Location
 from tale.coord import Coord
 from tale.story import StoryBase
 
 from tale.zone import Zone
+import tale.llm.llm_cache as llm_cache
 
 class DynamicStory(StoryBase):
 
@@ -111,7 +111,10 @@ class DynamicStory(StoryBase):
             json.dump(story , fp, indent=4)
 
         with open('story_config.json', "w") as fp:
-            json.dump(parse_utils.save_story_config(self.config) , fp, indent=4)
+            json.dump(parse_utils.save_story_config(self.config), fp, indent=4)
+
+        with open('llm_cache.json', "w") as fp:
+            json.dump(llm_cache.save(), fp, indent=4)
         
     @property
     def get_catalogue(self) -> 'Catalogue':
