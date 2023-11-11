@@ -1,17 +1,20 @@
 {
     "story": {
-        "name": "Test Story Config 1"
+        "name": "The Tea Party"
     },
     "zones": {
         "Mad Hatters House": {
-            "name": "Mad Hatters House",
             "description": "The Mad Hatter's house. It's a bit of a mess.",
             "level": 1,
             "mood": 3,
-            "locations":[
+            "races": [],
+            "items": [],
+            "name": "Mad Hatters House",
+            "locations": [
                 {
                     "name": "Living Room",
                     "descr": "The Mad Hatter's cluttered living room. It's set up for a tea party.",
+                    "short_descr": "",
                     "exits": [],
                     "world_location": [
                         "0",
@@ -19,48 +22,102 @@
                         "0"
                     ]
                 }
-            ],
-            "races": [],
-            "items": []
+            ]
         }
     },
     "world": {
-        "creatures": {
-            "Mad Hatter": {
-                "name":"Mad Hatter",
-                "gender":"m",
-                "race":"human",
-                "type":"LivingExt",
-                "title":"Mad Hatter",
-                "personality":"The Mad Hatter from Lewis Carrol's Alice in Wonderland. He is a bit crazy and has a strange sense of humor.",
-                "descr":"Wearing a big hat and a colorful costume.",
-                "short_descr":"A man with a big hat and colorful costume.",
-                "location":"Living Room"
+        "npcs": {
+            "mad hatter": {
+                "location": "Living Room",
+                "name": "Mad hatter",
+                "title": "Mad Hatter",
+                "aliases": [
+                    "mad"
+                ],
+                "short_descr": "A man with a big hat and colorful costume.",
+                "descr": "Wearing a big hat and a colorful costume.",
+                "type": "Npc",
+                "race": "human",
+                "gender": "m",
+                "level": 1,
+                "stats": {
+                    "ac": 0,
+                    "hp": 5,
+                    "max_hp": 5,
+                    "level": 1,
+                    "weapon_skills": {
+                        "6": 14
+                    },
+                    "gender": "n",
+                    "alignment": 0,
+                    "weight": 72.0,
+                    "xp": 0,
+                    "strength": 3,
+                    "dexterity": 3,
+                    "unarmed_attack": "FISTS"
+                }
             },
-            "Duchess": {
-                "name":"Duchess",
-                "gender":"f",
-                "race":"human",
-                "type":"LivingExt",
-                "title":"Duchess",
-                "personality":"The Duchess from Lewis Carrol's Alice in Wonderland. Volatile and aggressive personality.",
-                "descr":"Very big head. Tall enough to rest her chin upon Alice’s shoulder, uncomfortably sharp chin.",
+            "duchess": {
+                "location": "Living Room",
+                "name": "Duchess",
+                "title": "Duchess",
+                "aliases": [
+                    "duchess"
+                ],
                 "short_descr": "Short woman with a very large head.",
-                "location":"Living Room"
+                "descr": "Very big head. Tall enough to rest her chin upon Alice\u2019s shoulder, uncomfortably sharp chin.",
+                "type": "Npc",
+                "race": "human",
+                "gender": "f",
+                "level": 1,
+                "stats": {
+                    "ac": 0,
+                    "hp": 5,
+                    "max_hp": 5,
+                    "level": 1,
+                    "weapon_skills": {
+                        "6": 11
+                    },
+                    "gender": "n",
+                    "alignment": 0,
+                    "weight": 72.0,
+                    "xp": 0,
+                    "strength": 3,
+                    "dexterity": 3,
+                    "unarmed_attack": "FISTS"
+                }
             },
-            "Ace of Spades": {
-                "name":"Ace of Spades",
-                "gender":"m",
-                "race":"human",
-                "type":"LivingExt",
-                "title":"Ace of Spades",
-                "personality":"A drunken ex-rock star. Like a talkative Ozzy Osbourne if he were in Alice in Wonderland.",
-                "descr":"Thin man with eyeliner and a vacant expression. Wearing a black leather jacket and a black top hat.",
+            "ace of spades": {
+                "location": "Living Room",
+                "name": "Ace of spades",
+                "title": "Ace of Spades",
+                "aliases": [
+                    "ace"
+                ],
                 "short_descr": "A man with leather jacket and a black top hat.",
-                "location":"Living Room"
+                "descr": "Thin man with eyeliner and a vacant expression. Wearing a black leather jacket and a black top hat.",
+                "type": "Npc",
+                "race": "human",
+                "gender": "m",
+                "level": 1,
+                "stats": {
+                    "ac": 0,
+                    "hp": 5,
+                    "max_hp": 5,
+                    "level": 1,
+                    "weapon_skills": {
+                        "6": 20
+                    },
+                    "gender": "n",
+                    "alignment": 0,
+                    "weight": 72.0,
+                    "xp": 0,
+                    "strength": 3,
+                    "dexterity": 3,
+                    "unarmed_attack": "FISTS"
+                }
             }
         },
-        "items": {},
-        "locations": []
+        "items": {}
     }
 }

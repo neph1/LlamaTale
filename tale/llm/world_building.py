@@ -157,7 +157,7 @@ class WorldBuilding():
         return current_zone
 
         
-    def _generate_zone(self, location_desc: str, story_config: StoryConfig, exit_location_name: str = '', current_zone_info: dict = {}, direction: str = '') -> dict:
+    def _generate_zone(self, location_desc: str, story_config: StoryConfig, exit_location_name: str = '', current_zone_info: dict = {}, direction: str = '', catalogue: dict = {}) -> dict:
         """ Generate a zone based on the current story context"""
         prompt = GenerateZone().build_prompt({
             'direction': direction,
@@ -168,6 +168,7 @@ class WorldBuilding():
             'world_info': story_config.world_info,
             'world_mood': story_config.world_mood,
             'story_context': story_config.context,
+            'catalogue': catalogue,
         })
         
         request_body = deepcopy(self.default_body)
@@ -242,6 +243,7 @@ class WorldBuilding():
         
 
     def generate_world_items(self, story_context: str, story_type: str, world_info: str, world_mood: int) -> dict:
+        """ Since 0.16.1 returns a json list, rather than a list of items"""
         prompt = self.world_items_prompt.format(story_context=story_context,
                                                 story_type=story_type,
                                                 world_info=world_info,
@@ -253,13 +255,14 @@ class WorldBuilding():
 
         result = self.io_util.synchronous_request(request_body, prompt=prompt)
         try:
-            json_result = json.loads(parse_utils.sanitize_json(result))
-            return parse_utils.load_items(self._validate_items(json_result["items"]))
+            return json.loads(parse_utils.sanitize_json(result))["items"]
+            #return parse_utils.load_items(self._validate_items(json_result["items"]))
         except json.JSONDecodeError as exc:
             print(exc)
             return None
     
     def generate_world_creatures(self, story_context: str, story_type: str, world_info: str, world_mood: int):
+        """ Since 0.16.1 returns a json list, rather than a list of creatures"""
         prompt = self.world_creatures_prompt.format(story_context=story_context,
                                                 story_type=story_type,
                                                 world_info=world_info,
@@ -270,8 +273,8 @@ class WorldBuilding():
             
         result = self.io_util.synchronous_request(request_body, prompt=prompt)
         try:
-            json_result = json.loads(parse_utils.sanitize_json(result))
-            return self._validate_creatures(json_result["creatures"])
+            return json.loads(parse_utils.sanitize_json(result))["creatures"]
+            #return self._validate_creatures(json_result["creatures"])
         except json.JSONDecodeError as exc:
             print(exc)
             return None

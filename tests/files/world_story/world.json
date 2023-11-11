@@ -17,6 +17,12 @@
                 "sword",
                 "shield"
             ],
+            "size": 5,
+            "center": [
+                0,
+                0,
+                0
+            ],
             "name": "Cave",
             "locations": [
                 {
@@ -27,7 +33,8 @@
                         {
                             "name": "Royal grotto",
                             "short_descr": "Exit to Grotto",
-                            "long_descr": "There's an opening that leads deeper into the cave'"
+                            "long_descr": "There's an opening that leads deeper into the cave'",
+                            "direction": "south"
                         }
                     ],
                     "world_location": [
@@ -44,7 +51,8 @@
                         {
                             "name": "Cave entrance",
                             "short_descr": "exit to Cave entrance",
-                            "long_descr": "exit to Cave entrance"
+                            "long_descr": "exit to Cave entrance",
+                            "direction": "north"
                         }
                     ],
                     "world_location": [
@@ -52,12 +60,23 @@
                         "1",
                         "0"
                     ]
+                },
+                {
+                    "name": "New location",
+                    "descr": "New Location",
+                    "short_descr": "",
+                    "exits": [],
+                    "world_location": [
+                        0,
+                        0,
+                        0
+                    ]
                 }
             ]
         }
     },
     "world": {
-        "creatures": {
+        "npcs": {
             "kobbo": {
                 "location": "Royal grotto",
                 "name": "Kobbo",
@@ -67,8 +86,8 @@
                 ],
                 "short_descr": "A kobold",
                 "descr": "Kobbo has a grace only royal kobolds posses",
-                "type": "Npc",
-                "race": "human",
+                "type": "Mob",
+                "race": "",
                 "gender": "m",
                 "level": 1,
                 "stats": {
@@ -126,5 +145,9 @@
                 "wear_location": "TORSO"
             }
         }
+    },
+    "catalogue": {
+        "items": [],
+        "creatures": []
     }
 }

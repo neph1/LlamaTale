@@ -1,0 +1,30 @@
+{
+    "name": "A Tale of Anything",
+    "author": "Rickard Ed\u00e9n, neph1@github.com",
+    "author_address": "rickard@mindemia.com",
+    "version": "4.7",
+    "supported_modes": [
+        "IF"
+    ],
+    "player_name": "",
+    "player_gender": "",
+    "player_race": "human",
+    "player_money": 0,
+    "money_type": "FANTASY",
+    "server_tick_method": "TIMER",
+    "server_tick_time": 0.5,
+    "gametime_to_realtime": 5,
+    "display_gametime": true,
+    "startlocation_player": "Abandoned gas station",
+    "startlocation_wizard": "Abandoned gas station",
+    "zones": [
+        "start_zone"
+    ],
+    "server_mode": "IF",
+    "npcs": "",
+    "items": "",
+    "context": "\n",
+    "story_type": "a post apocalyptic survival and gathering story",
+    "world_info": "a barren landscape devastated by nuclear blasts. populated by zombie like mutants and irradiated animals. scattered with remnants of civilization",
+    "world_mood": -1
+}
