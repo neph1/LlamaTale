@@ -170,17 +170,18 @@ class LivingNpc(Living):
     def dump_memory(self) -> dict:
         return dict(
                     known_locations=self.known_locations,
-                    observed_events=llm_cache.get_events(self._observed_events),
-                    conversations=llm_cache.get_tells(self._conversations),
+                    observed_events=list(self._observed_events),
+                    conversations=list(self._conversations),
                     sentiments=self.sentiments,
                     action_history=self.action_history,
                     planned_actions=self.planned_actions,
                     goal=self.goal)
+
     
     def load_memory(self, memory: dict):
         self.known_locations = memory.get('known_locations', {})
-        self._observed_events = set([llm_cache.cache_event(event) for event in memory.get('observed_events', [])])
-        self._conversations = set([llm_cache.cache_tell(tell) for tell in memory.get('conversations', [])])
+        self._observed_events = set(memory.get('observed_events', []))
+        self._conversations = set(memory.get('conversations', []))
         self.sentiments = memory.get('sentiments', {})
         self.action_history = memory.get('action_history', [])
         self.planned_actions = memory.get('planned_actions', [])

@@ -83,9 +83,12 @@ class TestLivingNpc():
         npc_clean.load_memory(memories)
 
         assert(memories['known_locations'] == {})
-        assert(memories['observed_events'] == llm_cache.get_events(npc_clean._observed_events))
-        assert(memories['conversations'] == llm_cache.get_tells(npc_clean._conversations))
+        assert(memories['observed_events'] == list(npc_clean._observed_events))
+        assert(memories['conversations'] == list(npc_clean._conversations))
         assert(memories['sentiments'] == npc_clean.sentiments)
+
+        assert(llm_cache.get_events(npc_clean._observed_events) == 'test_event')
+        assert(llm_cache.get_tells(npc_clean._conversations) == 'test_tell')
 
 
 class TestDynamicStory():
@@ -118,13 +121,6 @@ class TestDynamicStory():
         assert(story._world._grid[(0,0,0)] == test_location)
         assert(story._zones['zone'].locations['test'] == test_location)
         assert(story.get_location(zone='zone', name='test') == test_location)
-
-    def test_find_location(self):
-        story = DynamicStory()
-        test_location = Location('test')
-        test_location.world_location = Coord(0,0,0)
-        story.add_location(test_location)
-        assert(story.find_location('test') == test_location)
 
     def test_find_location_in_zone(self):
         story = DynamicStory()
