@@ -49,7 +49,7 @@ class LlmUtil():
     def evoke(self, player_io: TextBuffer, message: str, short_len : bool=False, rolling_prompt='', alt_prompt='', skip_history=True):
         """Evoke a response from LLM. Async if stream is True, otherwise synchronous.
         Update the rolling prompt with the latest message.
-        Will put generated text in _look_hashes, and reuse it if same hash is passed in."""
+        Will put generated text in lm_cache.look_hashes, and reuse it if same hash is generated."""
         output_template = 'Original:[<it><rev> {message}</>] <bright><rev>Generated:</>{text}'
 
         if not message or str(message) == "\n":
@@ -65,14 +65,13 @@ class LlmUtil():
 
         trimmed_message = parse_utils.remove_special_chars(str(message))
 
-        base_prompt = alt_prompt if alt_prompt else self.base_prompt
-        amount = 25 #int(len(trimmed_message) / 2)
+        amount = 25
         prompt = self.pre_prompt
-        prompt += base_prompt.format(
+        prompt += alt_prompt or (self.base_prompt.format(
             story_context=self.__story.config.context,
             history=rolling_prompt if not skip_history or alt_prompt else '',
             max_words=self.word_limit if not short_len else amount,
-            input_text=str(trimmed_message))
+            input_text=str(trimmed_message)))
         
         request_body = deepcopy(self.default_body)
 

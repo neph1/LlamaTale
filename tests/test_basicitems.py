@@ -156,6 +156,25 @@ class TestBasicItems(unittest.TestCase):
             item.move(p, p, verb="frob")
         self.assertEqual("You can't frob item.", str(x.exception))
 
+    def test_consumable(self):
+        p = base.Living("living", "m")
+        food = basic.Food("item")
+        food.move(p, p)
+        food.consume(p)
+
+        drink = basic.Drink("item")
+        drink.move(p, p)
+        drink.consume(p)
+
+        health = basic.Health("health")
+        health.move(p, p)
+        health.consume(p)
+
+        not_consumable = base.Item("not_consumable")
+        not_consumable.move(p, p)
+        with self.assertRaises(ActionRefused) as x:
+            not_consumable.consume(p)
+        self.assertEqual("You can't consume that.", str(x.exception))
 
 if __name__ == '__main__':
     unittest.main()

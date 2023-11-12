@@ -24,7 +24,7 @@ class DynamicStory(StoryBase):
             return False
         self._zones[zone.name] = zone
         return True
-
+    
     def get_location(self, zone: str, name: str) -> Location:
         """ Find a location by name in a zone."""
         return self._zones[zone].get_location(name)
@@ -90,7 +90,9 @@ class DynamicStory(StoryBase):
         """ Return a dict of neighboring locations for a given location."""
         neighbors = dict() # type: dict[str, Location]
         for dir in ['north', 'east', 'south', 'west', 'up', 'down']:
-            neighbors[dir] = self._world._grid[Coord(location.world_location.add(parse_utils.coordinates_from_direction(dir))).as_tuple()]
+            dir_coord = parse_utils.coordinates_from_direction(location.world_location, dir)
+            coord = location.world_location.add(dir_coord)
+            neighbors[dir] = self._world._grid.get(coord.as_tuple(), None)
         return neighbors
     
     def save(self) -> None:
@@ -114,11 +116,23 @@ class DynamicStory(StoryBase):
             json.dump(parse_utils.save_story_config(self.config), fp, indent=4)
 
         with open('llm_cache.json', "w") as fp:
-            json.dump(llm_cache.save(), fp, indent=4)
+            json.dump(llm_cache.json_dump(), fp, indent=4)
         
     @property
     def get_catalogue(self) -> 'Catalogue':
         return self._catalogue
+    
+
+    def check_setting(self, story_type: str):
+        if 'fantasy' in story_type:
+            return 'fantasy'
+        if 'modern' in story_type or 'contemporary' in story_type:
+            return 'modern'
+        if 'scifi' in story_type or 'sci-fi' in story_type:
+            return 'scifi'
+        if 'postapoc' in story_type or 'post-apoc' in story_type:
+            return 'postapoc'
+        return ''
 
 
 class WorldInfo():
@@ -165,15 +179,17 @@ class Catalogue():
         self._creatures =[] # type: list[dict]
 
     def add_item(self, item: dict) -> bool:
-        if item['name'] in self._items:
-            return False
-        self._items[item['name']] = item
+        for world_item in self._items:
+            if item['name'] == world_item['name']:
+                return False
+        self._items.append(item)
         return True
     
     def add_creature(self, creature: dict) -> bool:
-        if creature['name'] in self._creatures:
-            return False
-        self._creatures[creature['name']] = creature
+        for world_creature in self._creatures:
+            if creature['name'] == world_creature['name']:
+                return False
+        self._creatures.append(creature)
         return True
     
     def get_creatures(self) -> dict:

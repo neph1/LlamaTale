@@ -43,6 +43,8 @@ class Story(DynamicStory):
         import zones.prancingllama
         for location in zones.prancingllama.all_locations:
             self._zones["The Prancing Llama"].add_location(location)
+        self._catalogue._creatures = ["human", "giant rat", "bat", "balrog", "dwarf", "elf", "gnome", "halfling", "hobbit", "kobold", "orc", "troll", "vampire", "werewolf", "zombie"]
+        self._catalogue._items = ["woolly gloves", "ice pick", "fur cap", "rusty sword", "lantern", "food rations"]
 
     def init_player(self, player: Player) -> None:
         """
@@ -87,10 +89,10 @@ class Story(DynamicStory):
         player.tell("\n")
 
     def races_for_zone(self, zone: str) -> [str]:
-        return ["human", "giant rat", "bat", "balrog", "dwarf", "elf", "gnome", "halfling", "hobbit", "kobold", "orc", "troll", "vampire", "werewolf", "zombie"]
+        return self._catalogue._creatures
 
     def items_for_zone(self, zone: str) -> [str]:
-        return ["woolly gloves", "ice pick", "fur cap", "rusty sword", "lantern", "food rations"]
+        return self._catalogue._items
 
     def zone_info(self, zone_name: str, location: str) -> dict():
         zone_info = super.zone_info(zone_name, location)

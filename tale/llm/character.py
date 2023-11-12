@@ -134,7 +134,7 @@ class CharacterBuilding():
                                               keywords=', '.join(keywords))
         request_body = deepcopy(self.default_body)
         if self.backend == 'kobold_cpp':
-            # do some parameter tweaking for kobold_cpp
+            # do some parameter tweaking for kobold_cpp. TODO: obsolete because of json grammar?
             request_body['stop_sequence'] = ['\n\n'] # to avoid text after the character card
             request_body['temperature'] = 0.7
             request_body['top_p'] = 0.92

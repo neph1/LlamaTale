@@ -3,15 +3,15 @@
 class Coord():
     """ Represents a coordinate in 3D space."""
 
-    def __init__(self, x=0, y=0, z=0):
+    def __init__(self, x:int = 0, y:int = 0, z:int = 0):
         self.x = x
         self.y = y
         self.z = z
 
     #def __dict__(self):
     #    return {'x': self.x, 'y': self.y, 'z': self.z}
-    
-    def as_tuple(self):
+
+    def as_tuple(self) -> tuple:
         return (self.x, self.y, self.z)
     
     @classmethod
@@ -30,7 +30,7 @@ class Coord():
         """ Returns the coordinate resulting from subtracting other from this coordinate."""
         return Coord(self.x - other.x, self.y - other.y, self.z - other.z)
     
-    def add(self, other) -> 'Coord':
+    def add(self, other: 'Coord') -> 'Coord':
         """ Returns the coordinate resulting from adding other to this coordinate."""
         return Coord(self.x + other.x, self.y + other.y, self.z + other.z)
     

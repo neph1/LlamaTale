@@ -82,6 +82,7 @@ class TestAnythingStory():
         assert(gas_station.name == 'Abandoned gas station')
         assert(gas_station.description == 'an abandoned gas station')
         assert(gas_station.world_location.as_tuple() == (0,0,0))
+        assert(gas_station.built == True)
         assert(len(gas_station.exits) == 6)
         assert(gas_station.exits['toxic swamp'])
         assert(gas_station.exits['south'])
@@ -89,6 +90,20 @@ class TestAnythingStory():
         assert(gas_station.exits['north'])
         assert(gas_station.exits['radiation ridge'])
         assert(gas_station.exits['west'])
+        toxic_swamp = story.get_location('The Cursed Swamp', 'Toxic swamp')
+        assert(toxic_swamp)
+        assert(toxic_swamp.built == False)
+        assert(toxic_swamp.world_location.as_tuple() == (0,-1,0))
+        deserted_town = story.get_location('The Cursed Swamp', 'Deserted town')
+        assert(deserted_town)
+        assert(deserted_town.built == False)
+        assert(deserted_town.world_location.as_tuple() == (0,1,0))
+        radiation_ridge = story.get_location('The Cursed Swamp', 'Radiation ridge')
+        assert(radiation_ridge)
+        assert(radiation_ridge.built == False)
+        assert(radiation_ridge.world_location.as_tuple() == (-1,0,0))
+
+
 
         assert(len(story.get_catalogue.get_items()) == 8)
         assert(len(story.get_catalogue.get_creatures()) == 5)
