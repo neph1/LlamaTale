@@ -350,15 +350,4 @@ class WorldBuilding():
             creature["type"] = "Mob"
             new_creatures[creature["name"]] = creature
         return new_creatures
-    
-    def _check_setting(self, story_type: str):
-        if 'fantasy' in story_type:
-            return 'fantasy'
-        if 'modern' in story_type or 'contemporary' in story_type:
-            return 'modern'
-        if 'scifi' in story_type or 'sci-fi' in story_type:
-            return 'scifi'
-        if 'postapoc' in story_type or 'post-apoc' in story_type:
-            return 'postapoc'
-        return ''
         

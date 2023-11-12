@@ -249,7 +249,7 @@ class TestParseUtils():
 
     def test_replace_items_with_world_items(self):
         items = ["sword", "shield", "helmet"]
-        world_items = {"sword": {"name": "sword", "type": "weapon", "value": 100}, "shield": {"name": "shield", "type": "armor", "value": 60}, "boots": {"name": "boots", "type": "armor", "value": 50}}
+        world_items = [{"name": "sword", "type": "weapon", "value": 100}, {"name": "shield", "type": "armor", "value": 60}, {"name": "boots", "type": "armor", "value": 50}]
 
         replaced_items = parse_utils.replace_items_with_world_items(items, world_items)
         assert(len(replaced_items) == 2)
@@ -262,7 +262,7 @@ class TestParseUtils():
     def test_replace_creature_with_world_creature(self):
         creatures = ["kobold", "goblin", {"name":"urgokh", "race":"orc"}]
         # creatures have the following format: {"name":"", "body":"", "mass":int(kg), "hp":int, "level":int, "unarmed_attack":One of [FISTS, CLAWS, BITE, TAIL, HOOVES, HORN, TUSKS, BEAK, TALON], "short_descr":""}
-        world_creatures = {"kobold": {"name": "kobold", "body":"Humanoid", "mass":40, "hp":5, "level":1, "unarmed_attack": "FISTS", "short_descr":"A typical kobold"} }
+        world_creatures = [{"name": "kobold", "body":"Humanoid", "mass":40, "hp":5, "level":1, "unarmed_attack": "FISTS", "short_descr":"A typical kobold"}]
         replaced_creatures = parse_utils.replace_creature_with_world_creature(creatures, world_creatures)
         assert(len(replaced_creatures) == 2)
         assert(replaced_creatures[0]["name"] == "kobold")

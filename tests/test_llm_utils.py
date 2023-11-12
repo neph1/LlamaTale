@@ -191,7 +191,7 @@ class TestWorldBuilding():
         location.built = False
         loc = json.loads(self.generated_location)
         loc["npcs"] = ["wolf"]
-        world_creatures = {"wolf": {"name": "wolf", "body": "Creature", "unarmed_attack": "BITE", "hp":10, "level":10}}
+        world_creatures = [{"name": "wolf", "body": "Creature", "unarmed_attack": "BITE", "hp":10, "level":10}]
         locations, exits = self.llm_util._world_building._validate_location(loc, location_to_build=location, exit_location_name='Entrance', world_creatures=world_creatures)
         location.add_exits(exits)
         assert(location.description.startswith('A barren wasteland'))
@@ -398,16 +398,6 @@ class TestWorldBuilding():
         new_locations, exits = self.llm_util.build_location(location2, exit_location_name2, zone_info=zone.get_info(), world_creatures=world_creatures, world_items=world_items)
         assert(len(new_locations) > 0)
         assert(len(exits) > 0)
-
-    def test_check_setting(self):
-        check_setting = self.llm_util._world_building._check_setting
-        assert(check_setting('fantasy') == 'fantasy')
-        assert(check_setting('modern') == 'modern')
-        assert(check_setting('sci-fi') == 'scifi')
-        assert(check_setting('steampunk') == '')
-        assert(check_setting('cyberpunk') == '')
-        assert(check_setting('western') == '')
-
 
     def test_generate_random_spawn(self):
         location = Location(name='Outside')
