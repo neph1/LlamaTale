@@ -1,3 +1,4 @@
+from tale.items import generic
 from tale.llm.llm_ext import DynamicStory
 from tale.player import Player
 from tale.story import StoryConfig
@@ -39,7 +40,12 @@ class JsonStory(DynamicStory):
                 self._world.items = parse_utils.load_items(world['world']['items'].values(), self.locations)
 
         llm_cache.load(parse_utils.load_json(self.path +'llm_cache.json'))
-        
+
+        # check if there are predefined items for the setting
+        extra_items = generic.generic_items.get(self.check_setting(self.config.type), {})
+        if extra_items:
+            for item in extra_items:
+                self._catalogue._items.append(item)
 
     def welcome(self, player: Player) -> str:
         player.tell("<bright>Welcome to `%s'.</>" % self.config.name, end=True)

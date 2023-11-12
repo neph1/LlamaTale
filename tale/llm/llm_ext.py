@@ -121,6 +121,18 @@ class DynamicStory(StoryBase):
     @property
     def get_catalogue(self) -> 'Catalogue':
         return self._catalogue
+    
+
+    def check_setting(self, story_type: str):
+        if 'fantasy' in story_type:
+            return 'fantasy'
+        if 'modern' in story_type or 'contemporary' in story_type:
+            return 'modern'
+        if 'scifi' in story_type or 'sci-fi' in story_type:
+            return 'scifi'
+        if 'postapoc' in story_type or 'post-apoc' in story_type:
+            return 'postapoc'
+        return ''
 
 
 class WorldInfo():
@@ -167,15 +179,17 @@ class Catalogue():
         self._creatures =[] # type: list[dict]
 
     def add_item(self, item: dict) -> bool:
-        if item['name'] in self._items:
-            return False
-        self._items[item['name']] = item
+        for world_item in self._items:
+            if item['name'] == world_item['name']:
+                return False
+        self._items.append(item)
         return True
     
     def add_creature(self, creature: dict) -> bool:
-        if creature['name'] in self._creatures:
-            return False
-        self._creatures[creature['name']] = creature
+        for world_creature in self._creatures:
+            if creature['name'] == world_creature['name']:
+                return False
+        self._creatures.append(creature)
         return True
     
     def get_creatures(self) -> dict:

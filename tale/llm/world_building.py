@@ -40,11 +40,6 @@ class WorldBuilding():
                        world_items: dict = {}, 
                        world_creatures: dict = {},
                        neighbors: dict = {}) -> (list, list):
-        
-        extra_items = generic.generic_items.get(self._check_setting(story_type), {})
-        if extra_items:
-            zone_info['items'].extend(extra_items.keys())
-            world_items = {**world_items, **extra_items}
 
         prompt = BuildLocation().build_prompt({
             'zone_info': zone_info,
@@ -279,12 +274,8 @@ class WorldBuilding():
             print(exc)
             return None
     
-    def generate_random_spawn(self, location: Location, story_context: str, story_type: str, world_info: str, zone_info: dict, world_creatures: dict, world_items: dict):
+    def generate_random_spawn(self, location: Location, story_context: str, story_type: str, world_info: str, zone_info: dict, world_creatures: list, world_items: list):
         location_info = {'name': location.title, 'description': location.look(short=True), 'exits': location.exits}
-        extra_items = generic.generic_items.get(self._check_setting(story_type), {})
-        if extra_items:
-            zone_info['items'].extend(extra_items.keys())
-            world_items = {**world_items, **extra_items}
         prompt = self.player_enter_prompt.format(story_context=story_context,
                                                 story_type=story_type,
                                                 world_info=world_info,
@@ -359,15 +350,4 @@ class WorldBuilding():
             creature["type"] = "Mob"
             new_creatures[creature["name"]] = creature
         return new_creatures
-    
-    def _check_setting(self, story_type: str):
-        if 'fantasy' in story_type:
-            return 'fantasy'
-        if 'modern' in story_type or 'contemporary' in story_type:
-            return 'modern'
-        if 'scifi' in story_type or 'sci-fi' in story_type:
-            return 'scifi'
-        if 'postapoc' in story_type or 'post-apoc' in story_type:
-            return 'postapoc'
-        return ''
         

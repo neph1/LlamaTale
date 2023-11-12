@@ -1704,6 +1704,8 @@ def do_wield(player: Player, parsed: base.ParseResult, ctx: util.Context) -> Non
     except ValueError as x:
         raise ActionRefused(str(x))
     result = player.locate_item(weapon, include_location=False)
+    if not isinstance(result[0], base.Weapon):
+        raise ActionRefused("That's not a weapon")
     if not result:
         raise ActionRefused("You don't have that weapon")
     
@@ -1746,3 +1748,17 @@ def do_save(player: Player, parsed: base.ParseResult, ctx: util.Context) -> None
         story.save()
     else:
         raise ActionRefused("Not a dynamic story")
+    
+@cmd("eat", "drink")
+def do_consume(player: Player, parsed: base.ParseResult, ctx: util.Context) -> None:
+    """Eat or drinksomething."""
+    if len(parsed.args) != 1:
+        raise ParseError("You need to specify the item to consume")
+    try:
+        item = str(parsed.args[0])
+    except ValueError as x:
+        raise ActionRefused(str(x))
+    result = player.locate_item(item, include_location=False)
+    if not result:
+        raise ActionRefused("You don't have that item")
+    result[0].consume(player)

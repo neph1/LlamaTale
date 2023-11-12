@@ -217,13 +217,14 @@ class Drink(Item):
         self.affect_thirst = 0
         self.poisoned = False
 
-    def notify_action(self, parsed: ParseResult, actor: Living) -> None:
+    def consume(self, actor: 'Living'):
         if self not in actor.inventory:
             raise ActionRefused("You don't have that.")
-        if 'drink' in parsed.verb:
-            actor.tell("You drink the %s." % (self.title), evoke=True, short_len=True)
-            actor.tell_others("{Actor} drinks the %s." % (self.title))
-            self.destroy(util.Context.from_global())
+        actor.stats.hp += self.affect_thirst
+        actor.tell("You drink the %s." % (self.title), evoke=True, short_len=True)
+        actor.tell_others("{Actor} drinks the %s." % (self.title))
+        self.destroy(util.Context.from_global())
+        return True
 
 
 class Potion(Item):
@@ -239,15 +240,14 @@ class Food(Item):
         self.affect_fullness = 1
         self.poisoned = False
 
-    def notify_action(self, parsed: ParseResult, actor: Living) -> None:
+    def consume(self, actor: 'Living'):
         if self not in actor.inventory:
             raise ActionRefused("You don't have that.")
-        if 'eat' in parsed.verb:
-            actor.stats.hp += self.healing
-            actor.tell("You eat the %s." % (self.title), evoke=True, short_len=True)
-            actor.tell_others("{Actor} eats the %s." % (self.title))
-            self.destroy(util.Context.from_global())
-            return
+        actor.stats.hp += self.affect_fullness
+        actor.tell("You eat the %s." % (self.title), evoke=True, short_len=True)
+        actor.tell_others("{Actor} eats the %s." % (self.title))
+        self.destroy(util.Context.from_global())
+        return True
 
 
 class Money(Item):
@@ -428,19 +428,12 @@ class Health(Item):
         super().init()
         self.healing_effect = healing_effect
 
-    def notify_action(self, parsed: ParseResult, actor: Living) -> None:
+    def consume(self, actor: 'Living'):
         if self not in actor.inventory:
             raise ActionRefused("You don't have that.")
-        if 'eat' in parsed.verb:
-            actor.stats.hp += self.healing_effect
-            actor.tell("You eat the %s and feel better." % (self.title), evoke=True, short_len=True)
-            actor.tell_others("{Actor} eats the %s." % (self.title))
-            self.destroy(util.Context.from_global())
-            return
-        if 'drink' in parsed.verb:
-            actor.stats.hp += self.healing_effect
-            actor.tell("You drink the %s and feel better." % (self.title), evoke=True, short_len=True)
-            actor.tell_others("{Actor} drinks the %s." % (self.title))
-            self.destroy(util.Context.from_global())
-            return
+        actor.stats.hp += self.healing_effect
+        actor.tell("You take the %s and feel better." % (self.title), evoke=True, short_len=True)
+        actor.tell_others("{Actor} takes the %s." % (self.title))
+        self.destroy(util.Context.from_global())
+        return True
         
