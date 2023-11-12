@@ -65,14 +65,13 @@ class LlmUtil():
 
         trimmed_message = parse_utils.remove_special_chars(str(message))
 
-        base_prompt = alt_prompt if alt_prompt else self.base_prompt
-        amount = 25 #int(len(trimmed_message) / 2)
+        amount = 25
         prompt = self.pre_prompt
-        prompt += base_prompt.format(
+        prompt += alt_prompt or (self.base_prompt.format(
             story_context=self.__story.config.context,
             history=rolling_prompt if not skip_history or alt_prompt else '',
             max_words=self.word_limit if not short_len else amount,
-            input_text=str(trimmed_message))
+            input_text=str(trimmed_message)))
         
         request_body = deepcopy(self.default_body)
 
