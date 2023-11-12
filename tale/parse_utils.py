@@ -445,8 +445,8 @@ def parse_generated_exits(exits: list, exit_location_name: str, location: Locati
                     target_location=location, 
                     short_descr=from_description)
             new_location.add_exits([exit_back])
-
-            to_description = 'To the {direction} you see {location}'.format(direction=directions_to[1], location=exit.get('short_descr', 'description').lower()) if len(directions_to) > 1 else exit.get('short_descr', 'description')
+            exit_description = exit.get('short_descr', new_location.name).lower()
+            to_description = 'To the {direction} you see {exit_description}'.format(direction=directions_to[1], exit_description=exit_description)  if len(directions_to) > 1 else f'You see {exit_description}.'
             exit_to = Exit(directions=directions_to, 
                             target_location=new_location, 
                             short_descr=to_description, 
@@ -541,24 +541,26 @@ def mood_string_to_int(mood: str):
         return 0
     return 1 if mood.endswith('friendly') else -1
     
-def replace_items_with_world_items(items: list, world_items: dict) -> list:
+def replace_items_with_world_items(items: list, world_items: list) -> list:
     """ Replaces items in a list with world items"""
     new_items = []
     for item in items:
         if isinstance(item, str):
-            if item.lower() in world_items.keys():
-                new_items.append(world_items[item])
+            for world_item in world_items:
+                if item.lower() == world_item['name'].lower():
+                    new_items.append(world_item)
         elif isinstance(item, dict):
             new_items.append(item)
     return new_items
 
-def replace_creature_with_world_creature(creatures: list, world_creatures: dict) -> list:
+def replace_creature_with_world_creature(creatures: list, world_creatures: list) -> list:
     """ Replaces creature with world creature"""
     new_creatures = []
     for creature in creatures:
         if isinstance(creature, str):
-            if creature.lower() in world_creatures.keys():
-                new_creatures.append(world_creatures[creature])
+            for world_creature in world_creatures:
+                if creature.lower() == world_creature['name'].lower():
+                    new_creatures.append(world_creature)
         else:
             new_creatures.append(creature)
     return new_creatures

@@ -413,8 +413,8 @@ class TestWorldBuilding():
         location = Location(name='Outside')
         self.llm_util._world_building.io_util.response = '{"items":["sword"], "npcs":[{"name": "grumpy dwarf", "level":10, "race": "dwarf"}], "mobs":["wolf"]}'
 
-        world_items = {'sword': {'name':'sword', 'type': 'Weapon', 'value': 100}}
-        world_creatures = {'wolf': {'name': 'wolf', 'body': 'Creature', 'unarmed_attack': 'BITE', 'hp':10, 'level':10}}
+        world_items = [{'name':'sword', 'type': 'Weapon', 'value': 100}]
+        world_creatures = [{'name': 'wolf', 'body': 'Creature', 'unarmed_attack': 'BITE', 'hp':10, 'level':10}]
         zone_info = zone.from_json(json.loads(self.generated_zone)).get_info()
 
         self.llm_util._world_building.generate_random_spawn(location, 
@@ -427,6 +427,26 @@ class TestWorldBuilding():
         assert(location.items.pop().name == 'sword')
         assert(location.search_living('grumpy') is not None)
         assert(location.search_living('wolf') is not None)
+
+    def test_generate_random_spawn_empty_world_lists(self):
+        # will not generate anything if world lists are empty, for now.
+        location = Location(name='Outside')
+        self.llm_util._world_building.io_util.response = '{"items":["sword"], "npcs":[{"name": "grumpy dwarf", "level":10, "race": "dwarf"}], "mobs":["wolf"]}'
+
+        world_items = []
+        world_creatures = []
+        zone_info = zone.from_json(json.loads(self.generated_zone)).get_info()
+
+        self.llm_util._world_building.generate_random_spawn(location, 
+                                                            zone_info=zone_info,
+                                                            story_context=self.story.config.context,
+                                                            story_type=self.story.config.type,
+                                                            world_info='',
+                                                            world_creatures=world_creatures,
+                                                            world_items=world_items)
+        assert(len(location.items) == 0)
+        assert(location.search_living('grumpy') is not None)
+        assert(location.search_living('wolf') is None)
 
     def test_issue_overwriting_exits(self):
         """ User walks west and enters Rocky Cliffs, When returning east, the exits are overwritten."""
