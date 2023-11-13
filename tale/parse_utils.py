@@ -641,47 +641,19 @@ def load_stats(json_stats: dict) -> Stats:
             stats.weapon_skills[WeaponType(int_skill)] = json_skills[skill]
     return stats
     
-
 def save_items(items: [Item]) -> dict:
     json_items = {}
     for item in items: 
-        json_item = {}
-        json_item['name'] = item.name
-        json_item['title'] = item.title
-        json_item['short_descr'] = item.short_description
-        json_item['descr'] = item.description
-        json_item['location'] = item.location.name if item.location else ''
-        
+        json_item = item.to_dict()
         item_type = item.__class__.__name__
         json_item['type'] = item_type
-        if item_type == 'Money':
-            json_item['value'] = item.value
-        elif item_type == 'Health':
-            json_item['value'] = item.value
-        elif item_type == 'Food':
-            json_item['value'] = item.value
+        
+        if item_type == 'Food' or item_type == 'Drink':
             json_item['poisoned'] = item.poisoned
-        elif item_type == 'Weapon':
-            json_item['wc'] = item.wc
-            json_item['weapon_type'] = item.type.name
-            json_item['base_damage'] = item.base_damage
-            json_item['bonus_damage'] = item.bonus_damage
-            json_item['weight'] = item.weight
-            json_item['value'] = item.value
-        elif item_type == 'Drink':
-            json_item['value'] = item.value
-            json_item['poisoned'] = item.poisoned
-        elif item_type == 'Container' or item_type == 'Boxlike':
-            json_item['weight'] = item.weight
-            json_item['value'] = item.value
-        elif item_type == 'Wearable':
-            json_item['weight'] = item.weight
-            json_item['value'] = item.value
-            json_item['wear_location'] = item.wear_location.name
         json_items[item.name] = json_item
     return json_items
 
-def save_locations(locations: []) -> dict:
+def save_locations(locations: [Location]) -> dict:
     json_locations = []
     for location in locations: # type: Location
         json_location = {}

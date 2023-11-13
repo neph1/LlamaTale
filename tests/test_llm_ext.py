@@ -156,3 +156,12 @@ class TestDynamicStory():
         assert(neighbors['south'] == south_location)
         assert(neighbors['east'] == east_location)
         assert(neighbors['west'] == west_location)
+
+    def test_check_setting(self):
+        story = DynamicStory()
+        assert(story.check_setting('fantasy') == 'fantasy')
+        assert(story.check_setting('modern') == 'modern')
+        assert(story.check_setting('sci-fi') == 'scifi')
+        assert(story.check_setting('steampunk') == '')
+        assert(story.check_setting('cyberpunk') == '')
+        assert(story.check_setting('western') == '')

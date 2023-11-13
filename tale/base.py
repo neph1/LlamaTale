@@ -443,6 +443,19 @@ class Item(MudObject):
         """
         pass
 
+    def to_dict(self) -> Dict[str, Any]:
+        return {
+            "name": self.name,
+            "title": self.title,
+            "descr": self.description,
+            "short_descr": self.short_description,
+            "value": self.value,
+            "rent": self.rent,
+            "weight": self.weight,
+            "takeable": self.takeable,
+            "location" : self.location.name if self.location else ''
+        }
+
     def __contains__(self, item: 'Item') -> bool:
         raise ActionRefused("You can't look inside of that.")
 
@@ -602,6 +615,14 @@ class Weapon(Item):
 
     def __str__(self) -> str:
         return "<Weapon '%s' #%d @ 0x%x>" % (self.name, self.vnum, id(self))
+    
+    def to_dict(self) -> Dict[str, Any]:
+        return {**super().to_dict(),**{
+            "wc": self.wc,
+            "base_damage": self.base_damage,
+            "bonus_damage": self.bonus_damage,
+            "weapon_type": self.type.name,
+        }}
 
 
 class Armour(Item):
@@ -618,6 +639,12 @@ class Wearable(Item):
         super().__init__(name, title, descr=descr, short_descr=short_descr, weight=weight, value=value)
         self.ac = ac
         self.wear_location = wear_location
+
+    def to_dict(self) -> Dict[str, Any]:
+        return {**super().to_dict(),**{
+            "ac": self.ac,
+            "wear_location": self.wear_location.name,
+        }}
 
 class Location(MudObject):
     """
@@ -1532,6 +1559,9 @@ class Container(Item):
         self.__inventory = set(items)
         for item in items:
             item.contained_in = self
+    
+    def to_dict(self) -> Dict[str, Any]:
+        return super().to_dict()
 
     @property
     def inventory(self) -> FrozenSet[Item]:
