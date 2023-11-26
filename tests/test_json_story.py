@@ -110,6 +110,6 @@ class TestAnythingStory():
         assert(radiation_ridge.world_location.as_tuple() == (-1,0,0))
 
 
-
-        assert(len(story.get_catalogue.get_items()) == 8)
+        print(story.get_catalogue.get_items())
+        assert(len(story.get_catalogue.get_items()) == 10) # 8 story items + 2 generic items
         assert(len(story.get_catalogue.get_creatures()) == 5)

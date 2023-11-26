@@ -1,12 +1,14 @@
 """ This file stores various caches for LLM related things. """
 
+import hashlib
+
 event_cache = {}
 look_cache = {}
 tell_cache = {}
 
 def generate_hash(item: str) -> int:
     """ Generates a hash for an item. """
-    return hash(item)
+    return int(hashlib.md5(item.encode('utf-8')).hexdigest(), 16)
 
 def cache_event(event: str, event_hash: int = -1) -> int:
     """ Adds an event to the cache. 
@@ -45,7 +47,7 @@ def cache_tell(tell: str, tell_hash: int = -1) -> int:
     return tell_hash
 
 def get_tells(tell_hashes: [int]) -> str:
-    """ Gets tells from the cache. """
+    """ Gets tells from the cache as a string """
     return ", ".join([tell_cache.get(tell_hash, '') for tell_hash in tell_hashes])
 
 

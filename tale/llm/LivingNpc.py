@@ -7,28 +7,31 @@ from tale.player import Player
 
 from typing import Sequence
 
+from tale.quest import Quest
+
 
 class LivingNpc(Living):
     """An NPC with extra fields to define personality and help LLM generate dialogue"""
 
     def __init__(self, name: str, gender: str, *,
-                 title: str="", descr: str="", short_descr: str="", age: int, personality: str, occupation: str="", race: str=""):
+                 title: str="", descr: str="", short_descr: str="", age: int, personality: str="", occupation: str="", race: str=""):
         super(LivingNpc, self).__init__(name=name, gender=gender, title=title, descr=descr, short_descr=short_descr, race=race)
         self.age = age
         self.personality = personality
         self.occupation = occupation
         self.known_locations = dict()
-        self._observed_events = set() # type: set[int] # These are hashed values of action the character has been notified of
-        self._conversations = set() # type: set[str] # These are hashed values of conversations the character has involved in
+        self._observed_events = [] # type: list[int] # These are hashed values of action the character has been notified of
+        self._conversations = [] # type: list[str] # These are hashed values of conversations the character has involved in
         self.sentiments = {}
         self.action_history = [] # type: list[str]
         self.planned_actions = [] # type: list[str]
         self.goal = None # type: str # a free form string describing the goal of the NPC
+        self.quest = None # type: Quest # a quest object
 
     def notify_action(self, parsed: ParseResult, actor: Living) -> None:
         # store even our own events.
         event_hash = llm_cache.cache_event(parsed.unparsed)
-        self._observed_events.add(event_hash)
+        self._observed_events.append(event_hash)
 
         if actor is self or parsed.verb in self.verbs:
             return  # avoid reacting to ourselves, or reacting to verbs we already have a handler for
@@ -43,15 +46,37 @@ class LivingNpc(Living):
             greet = True
         if greet and targeted:
             self.tell_others("{Actor} says: \"Hi.\"", evoke=True)
+            if self.quest:
+                self.quest.check_completion({"npc":self.title})
             #self.update_conversation(f"{self.title} says: \"Hi.\"")
         elif parsed.verb == "say" and targeted:
+            if self.quest:
+                self.quest.check_completion({"npc":self.title})
             self.do_say(parsed.unparsed, actor)
+            
         elif targeted and parsed.verb == "idle-action":
             self._do_react(parsed, actor)
+        elif targeted and parsed.verb == "give":
+            parsed_split = parsed.unparsed.split(" to ")
+            if len(parsed_split) == 2:
+                result = {"item":parsed_split[0], "to":self.title}
+            else:
+                parsed_split = parsed.unparsed.split(self.title)
+                if len(parsed_split[0]) == 0:
+                    result = {"item":parsed_split[1].strip(), "to":self.title}
+                else:
+                    result = {"item":parsed_split[0].strip(), "to":self.title}
+            if self.handle_item_result(result, actor) and self.quest:
+                self.quest.check_completion(result)
+            self.do_say(parsed.unparsed, actor)
+        if self.quest and self.quest.is_completed():
+            # do last to give npc chance to react   
+            self._clear_quest()
+
 
     def do_say(self, what_happened: str, actor: Living) -> None:
         tell_hash = llm_cache.cache_tell('{actor.title}:{what_happened}'.format(actor=actor, what_happened=what_happened))
-        self._conversations.add(tell_hash)
+        self._conversations.append(tell_hash)
         short_len = False if isinstance(actor, Player) else True
 
         response, item_result, sentiment = mud_context.driver.llm_util.generate_dialogue(
@@ -65,12 +90,8 @@ class LivingNpc(Living):
             event_history=llm_cache.get_events(self._observed_events),
             short_len=short_len)
 
-        # if summary:
-        #     self.update_conversation(f"{self.title} says: \"{summary}\"")
-        # else:
-
         tell_hash = llm_cache.cache_tell('{actor.title}:{response}'.format(actor=self.title, response=response))
-        self._conversations.add(tell_hash)
+        self._conversations.append(tell_hash)
         self.tell_others("{response}".format(response=response), evoke=False)
         if item_result:
             self.handle_item_result(item_result, actor)
@@ -92,23 +113,34 @@ class LivingNpc(Living):
             self.tell_others(action)
             self.location._notify_action_all(result, actor=self)
 
-    def handle_item_result(self, result: str, actor: Living):
+    def handle_item_result(self, result: {}, actor: Living) -> bool:
+        if result.get("to") and result["to"] == self.title:
+            item = actor.search_item(result["item"])
+            if not item:
+                raise TaleError("item not found on actor %s " % item)
+            actor.remove(item, actor=actor)
+            item.move(target=self, actor=self)
+            actor.tell_others("{Actor} gives %s to %s" % (item.title, self.title), evoke=False)
+            return True
 
-        if result["from"] == self.title:
+        if result.get("from", None) and result["from"] == self.title:
             item = self.search_item(result["item"])
             if not item:
                 raise TaleError("item not found on actor %s " % item)
+            self.remove(item, actor=self)
             if result["to"]:
-
                 if result["to"] == actor.name or result["to"] == actor.title:
-                    item.move(actor, self)
+                    item.move(target=actor, actor=self)
                 elif result["to"] in ["user", "you", "player"] and isinstance(actor, Player):
-                    item.move(actor, self)
+                    item.move(target=actor, actor=self)
                 actor.tell("%s gives you %s." % (self.subjective, item.title), evoke=False)
                 self.tell_others("{Actor} gives %s to %s" % (item.title, actor.title), evoke=False)
+                return True
             else:
                 item.move(self.location, self)
                 self.tell_others("{Actor} drops %s on the floor" % (item.title), evoke=False)
+                return True
+        return False
 
     def move(self, target: ContainingType, actor: Living=None,
              *, silent: bool=False, is_player: bool=False, verb: str="move", direction_names: Sequence[str]=None) -> None:
@@ -152,12 +184,15 @@ class LivingNpc(Living):
             if exit:
                 self.move(target=exit.target, actor=self)
 
+    def _clear_quest(self):
+        self.quest = None
+
     @property
     def character_card(self) -> str:
         items = []
         for i in self.inventory:
             items.append(f'"{str(i.name)}"')
-        return '{{"name":"{name}", "gender":"{gender}","age":{age},"occupation":"{occupation}","personality":"{personality}","appearance":"{description}","items":[{items}], "race":"{race}"}}'.format(
+        return '{{"name":"{name}", "gender":"{gender}","age":{age},"occupation":"{occupation}","personality":"{personality}","appearance":"{description}","items":[{items}], "race":"{race}", "quest":"{quest}"}}'.format(
                 name=self.title,
                 gender=lang.gender_string(self.gender),
                 age=self.age,
@@ -165,13 +200,14 @@ class LivingNpc(Living):
                 description=self.description,
                 occupation=self.occupation,
                 race=self.stats.race,
+                quest=self.quest,
                 items=','.join(items))
     
     def dump_memory(self) -> dict:
         return dict(
                     known_locations=self.known_locations,
-                    observed_events=list(self._observed_events),
-                    conversations=list(self._conversations),
+                    observed_events=self._observed_events,
+                    conversations=self._conversations,
                     sentiments=self.sentiments,
                     action_history=self.action_history,
                     planned_actions=self.planned_actions,
@@ -180,8 +216,8 @@ class LivingNpc(Living):
     
     def load_memory(self, memory: dict):
         self.known_locations = memory.get('known_locations', {})
-        self._observed_events = set(memory.get('observed_events', []))
-        self._conversations = set(memory.get('conversations', []))
+        self._observed_events = memory.get('observed_events', [])
+        self._conversations = memory.get('conversations', [])
         self.sentiments = memory.get('sentiments', {})
         self.action_history = memory.get('action_history', [])
         self.planned_actions = memory.get('planned_actions', [])

@@ -24,7 +24,7 @@
     "npcs": "test_npcs",
     "items": "test_items",
     "context": "",
-    "story_type": "",
+    "type": "fantasy",
     "world_info": "",
     "world_mood": ""
 }

@@ -1560,9 +1560,6 @@ class Container(Item):
         for item in items:
             item.contained_in = self
     
-    def to_dict(self) -> Dict[str, Any]:
-        return super().to_dict()
-
     @property
     def inventory(self) -> FrozenSet[Item]:
         return frozenset(self.__inventory)

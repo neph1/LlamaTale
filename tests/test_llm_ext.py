@@ -72,8 +72,8 @@ class TestLivingNpc():
     def test_memory(self):
         npc = LivingNpc(name='test', gender='m', age=42, personality='')
         from tale.llm import llm_cache
-        npc._observed_events = set([llm_cache.cache_event('test_event')])
-        npc._conversations = set([llm_cache.cache_tell('test_tell')])
+        npc._observed_events = [llm_cache.cache_event('test_event'), llm_cache.cache_event('test_event 2')]
+        npc._conversations = [llm_cache.cache_tell('test_tell'), llm_cache.cache_tell('test_tell_2'),llm_cache.cache_tell('test_tell_3')]
         npc.sentiments = {'test': 'neutral'}
         memories_json = npc.dump_memory()
         memories = json.loads(json.dumps(memories_json))
@@ -84,11 +84,11 @@ class TestLivingNpc():
 
         assert(memories['known_locations'] == {})
         assert(memories['observed_events'] == list(npc_clean._observed_events))
-        assert(memories['conversations'] == list(npc_clean._conversations))
+        assert(memories['conversations'] == npc_clean._conversations)
         assert(memories['sentiments'] == npc_clean.sentiments)
 
-        assert(llm_cache.get_events(npc_clean._observed_events) == 'test_event')
-        assert(llm_cache.get_tells(npc_clean._conversations) == 'test_tell')
+        assert(llm_cache.get_events(npc_clean._observed_events) == 'test_event, test_event 2')
+        assert(llm_cache.get_tells(npc_clean._conversations) == 'test_tell, test_tell_2, test_tell_3')
 
 
 class TestDynamicStory():
