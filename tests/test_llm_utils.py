@@ -103,7 +103,7 @@ class TestLlmUtils():
         self.llm_util.set_story(self.story)
         result = self.llm_util.evoke(message='test evoke', player_io=None)
         assert(result)
-        assert(llm_cache.get_looks([hash('test evoke')]) == evoke_string)
+        assert(llm_cache.get_looks([llm_cache.generate_hash('test evoke')]) == evoke_string)
 
     def test_generate_character(self):
         character_string = json.dumps(parse_utils.load_json('tests/files/test_character.json'))

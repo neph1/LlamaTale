@@ -5,7 +5,8 @@ from tale.llm.LivingNpc import LivingNpc
 from tale.llm.llm_ext import DynamicStory
 from tale.llm.llm_utils import LlmUtil
 from tale.quest import Quest, QuestStatus, QuestType
-from tests.supportstuff import FakeIoUtil
+from tale.story import StoryConfig
+from tests.supportstuff import FakeDriver, FakeIoUtil
 
 
 class TestGiveQuest():
@@ -13,10 +14,17 @@ class TestGiveQuest():
     testNpc = LivingNpc("TestNpc", "m", age=20)
     testNpc2 = LivingNpc("TestNpc2", "m", age=20)
 
+    
+    tale.mud_context.config = StoryConfig()
+    llm_util = LlmUtil(FakeIoUtil(response=''))
+    llm_util.set_story(DynamicStory())
+    
+
     def test_give_quest(self):
         quest = Quest(name="TestQuest", reason="out of bowling balls", reward=100, giver=self.testNpc.name, type=QuestType.GIVE, target="bowling ball")
         self.testNpc.quest = quest
-
+        tale.mud_context.driver = FakeDriver()
+        tale.mud_context.driver.llm_util = self.llm_util
         item = Item("bowling ball", "bowling ball")
         self.testNpc2.init_inventory([item])
         parse_result = ParseResult(verb="give", unparsed="bowling ball to TestNpc")

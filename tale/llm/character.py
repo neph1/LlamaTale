@@ -131,6 +131,7 @@ class CharacterBuilding():
         """ Generate a character card based on the current story context"""
         prompt = self.character_prompt.format(story_type=story_type if story_type else _MudContext.config.type,
                                               story_context=story_context, 
+                                              world_info='',
                                               keywords=', '.join(keywords))
         request_body = deepcopy(self.default_body)
         if self.backend == 'kobold_cpp':
@@ -203,6 +204,21 @@ class CharacterBuilding():
             story_context=story_context,
             history=event_history,
             sentiment=sentiment)
+        request_body = deepcopy(self.default_body)
+        text = self.io_util.synchronous_request(request_body, prompt=prompt)
+        return parse_utils.trim_response(text) + "\n"
+    
+    def generate_quest(self, base_quest: dict, character_name: str, location: Location, story_context: str, character_card: str = '', story_type: str = '', world_info: str = '', zone_info: str = ''):
+        prompt = self.pre_prompt
+        prompt += self.quest_prompt.format(
+            base_quest=base_quest,
+            location_name=location.name,
+            character_name=character_name,
+            character=character_card,
+            story_context=story_context,
+            story_type=story_type,
+            world_info=world_info,
+            zone_info=zone_info)
         request_body = deepcopy(self.default_body)
         text = self.io_util.synchronous_request(request_body, prompt=prompt)
         return parse_utils.trim_response(text) + "\n"

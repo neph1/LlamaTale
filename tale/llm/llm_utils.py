@@ -169,6 +169,17 @@ class LlmUtil():
                                                           world_info=self.__story.config.world_info,
                                                           world_creatures=self.__story.catalogue._creatures,
                                                           world_items=self.__story.catalogue._items)
+    
+    def generate_quest(self, base_quest: dict, character_name: str, location: Location, character_card: str, zone_info: dict, event_history: str = ''):
+        return self._character.generate_quest(base_quest=base_quest,
+                                              character_name=character_name, 
+                                              character_card=character_card, 
+                                              location=location, 
+                                              story_context=self.__story.config.context, 
+                                              story_type=self.__story.config.type, 
+                                              world_info=self.__story.config.world_info, 
+                                              zone_info=zone_info, 
+                                              event_history=event_history)
   
     def set_story(self, story: DynamicStory):
         """ Set the story object."""
