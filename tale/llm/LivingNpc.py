@@ -79,7 +79,7 @@ class LivingNpc(Living):
         self._conversations.append(tell_hash)
         short_len = False if isinstance(actor, Player) else True
 
-        response, item_result, sentiment = mud_context.driver.llm_util.generate_dialogue(
+        response, item, sentiment = mud_context.driver.llm_util.generate_dialogue(
             conversation=llm_cache.get_tells(self._conversations),
             character_card = self.character_card,
             character_name = self.title,
@@ -93,7 +93,8 @@ class LivingNpc(Living):
         tell_hash = llm_cache.cache_tell('{actor.title}:{response}'.format(actor=self.title, response=response))
         self._conversations.append(tell_hash)
         self.tell_others("{response}".format(response=response), evoke=False)
-        if item_result:
+        if item:
+            item_result = {"item":item, "to":actor.title, "from":self.title if self.title else self.name}
             self.handle_item_result(item_result, actor)
 
         if sentiment:
@@ -113,8 +114,8 @@ class LivingNpc(Living):
             self.tell_others(action)
             self.location._notify_action_all(result, actor=self)
 
-    def handle_item_result(self, result: {}, actor: Living) -> bool:
-        if result.get("to") and result["to"] == self.title:
+    def handle_item_result(self, result: dict, actor: Living) -> bool:
+        if result.get("to", None) and result["to"] == self.title:
             item = actor.search_item(result["item"])
             if not item:
                 raise TaleError("item not found on actor %s " % item)

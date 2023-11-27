@@ -16,7 +16,7 @@ class TestGiveQuest():
 
     
     tale.mud_context.config = StoryConfig()
-    llm_util = LlmUtil(FakeIoUtil(response=''))
+    llm_util = LlmUtil(FakeIoUtil(response='{"response": "ok", "give":"", "sentiment":"pleased"}'))
     llm_util.set_story(DynamicStory())
     
 
@@ -79,7 +79,7 @@ class TestGiveQuest():
 class TestTalkQuest():
 
     d = Driver()
-    llm_util = LlmUtil(FakeIoUtil(response=''))
+    llm_util = LlmUtil(FakeIoUtil(response='{"response": "ok", "give":"", "sentiment":"pleased"}'))
     llm_util.set_story(DynamicStory())
     d.llm_util = llm_util
 

@@ -51,27 +51,20 @@ class CharacterBuilding():
                 history=event_history,
                 sentiment=sentiment)
         request_body = deepcopy(self.default_body)
+        request_body['grammar'] = self.json_grammar
+
         #if not self.stream:
-        text = self.io_util.synchronous_request(request_body, prompt=prompt)
-
+        response = self.io_util.synchronous_request(request_body, prompt=prompt)
         try:
-            # this is a hack in case the model responds in json
-            json_result = json.loads(parse_utils.sanitize_json(text))
-            if isinstance(json_result, dict):
-                text = list(json_result.values())[0]
-            else:
-                text = json_result
+            json_result = json.loads(parse_utils.sanitize_json(response))
         except JSONDecodeError as exc:
-            # this is ok, we don't want json
-            pass
-        text = parse_utils.trim_response(text)
-        #else:
-        #    player_io = mud_context.pla
-        #    text = self.io_util.stream_request(self.url + self.stream_endpoint, self.url + self.data_endpoint, request_body, player_io, self.connection)
+            print(exc)
+            return None, None, None
+        text = json_result["response"]
+        new_sentiment = json_result.get("sentiment", None)
+        item = json_result.get("give", None)
 
-        item_handling_result, new_sentiment = self.dialogue_analysis(text, character_card, character_name, target)
-
-        return text, item_handling_result, new_sentiment
+        return text, item, new_sentiment
     
     def dialogue_analysis(self, text: str, character_card: str, character_name: str, target: str):
         """Parse the response from LLM and determine if there are any items to be handled."""
@@ -79,11 +72,9 @@ class CharacterBuilding():
         items = card.get('items', [])
         prompt = self.generate_item_prompt(text, items, character_name, target)
         
-        if self.backend == 'kobold_cpp':
-            request_body = deepcopy(self.analysis_body)
-            request_body['grammar'] = self.json_grammar
-        elif self.backend == 'openai':
-            request_body = deepcopy(self.default_body)
+        request_body = deepcopy(self.default_body)
+        request_body['grammar'] = self.json_grammar
+
         text = self.io_util.synchronous_request(request_body, prompt=prompt)
         try:
             json_result = json.loads(parse_utils.sanitize_json(text))
@@ -134,14 +125,7 @@ class CharacterBuilding():
                                               world_info='',
                                               keywords=', '.join(keywords))
         request_body = deepcopy(self.default_body)
-        if self.backend == 'kobold_cpp':
-            # do some parameter tweaking for kobold_cpp. TODO: obsolete because of json grammar?
-            request_body['stop_sequence'] = ['\n\n'] # to avoid text after the character card
-            request_body['temperature'] = 0.7
-            request_body['top_p'] = 0.92
-            request_body['rep_pen'] = 1.0
-            request_body['banned_tokens'] = ['```']
-            request_body['grammar'] = self.json_grammar
+        request_body['grammar'] = self.json_grammar
         result = self.io_util.synchronous_request(request_body, prompt=prompt)
         try:
             json_result = json.loads(parse_utils.sanitize_json(result))

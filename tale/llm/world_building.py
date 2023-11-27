@@ -54,7 +54,7 @@ class WorldBuilding():
         request_body = deepcopy(self.default_body)
         if self.backend == 'kobold_cpp':
             request_body = self._kobold_generation_prompt(request_body)
-
+        request_body['grammar'] = self.json_grammar
         result = self.io_util.synchronous_request(request_body, prompt=prompt)
         try:
             json_result = json.loads(parse_utils.sanitize_json(result))
@@ -204,6 +204,7 @@ class WorldBuilding():
         request_body = deepcopy(self.default_body)
         if self.backend == 'kobold_cpp':
             request_body = self._kobold_generation_prompt(request_body)
+        request_body['grammar'] = self.json_grammar
         result = self.io_util.synchronous_request(request_body, prompt=prompt)
         try:
             json_result = json.loads(parse_utils.sanitize_json(result))
@@ -228,6 +229,7 @@ class WorldBuilding():
             request_body['max_length'] = 750
         elif self.backend == 'openai':
             request_body['max_tokens'] = 750
+        request_body['grammar'] = self.json_grammar
         result = self.io_util.synchronous_request(request_body, prompt=prompt)
         try:
             json_result = json.loads(parse_utils.sanitize_json(result))
@@ -247,6 +249,7 @@ class WorldBuilding():
         request_body = deepcopy(self.default_body)
         if self.backend == 'kobold_cpp':
             request_body = self._kobold_generation_prompt(request_body)
+        request_body['grammar'] = self.json_grammar
 
         result = self.io_util.synchronous_request(request_body, prompt=prompt)
         try:
@@ -265,7 +268,8 @@ class WorldBuilding():
         request_body = deepcopy(self.default_body)
         if self.backend == 'kobold_cpp':
             request_body = self._kobold_generation_prompt(request_body)
-            
+        request_body['grammar'] = self.json_grammar
+
         result = self.io_util.synchronous_request(request_body, prompt=prompt)
         try:
             return json.loads(parse_utils.sanitize_json(result))["creatures"]
@@ -284,7 +288,8 @@ class WorldBuilding():
         request_body = deepcopy(self.default_body)
         if self.backend == 'kobold_cpp':
             request_body = self._kobold_generation_prompt(request_body)
-            
+        request_body['grammar'] = self.json_grammar
+        
         result = self.io_util.synchronous_request(request_body, prompt=prompt)
         try:
             json_result = json.loads(parse_utils.sanitize_json(result))
