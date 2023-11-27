@@ -63,7 +63,7 @@ class StoryConfig:
         self.epoch = None                    # type: Optional[datetime.datetime]  # start date/time of the game clock
         self.startlocation_player = ""       # name of the location where a player starts the game in
         self.startlocation_wizard = ""       # name of the location where a wizard player starts the game in
-        self.savegames_enabled = True        # allow savegames?
+        self.savegames_enabled = False        # allow savegames?
         self.show_exits_in_look = True       # with the look command, also show exit descriptions automatically?
         self.license_file = ""               # game license file, if applicable
         self.mud_host = ""                   # for mud mode: hostname to bind the server on. Use "[...]" for IPV6 connectivity.

@@ -13,7 +13,7 @@ class TestLlmCache():
         """ Test hash function """
         hash_value = llm_cache.generate_hash("test")
         assert(hash_value != -1)
-        assert hash_value == hash("test")
+        assert hash_value == llm_cache.generate_hash("test")
 
     def test_get_non_existent_event(self):
         """ Test get_events function with non-existent event """

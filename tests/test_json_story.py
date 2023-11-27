@@ -1,6 +1,7 @@
 
 import datetime
 from tale.coord import Coord
+from tale.items import generic
 import tale.parse_utils as parse_utils
 from tale import util
 from tale.base import Location
@@ -34,6 +35,11 @@ class TestJsonStory():
         assert(zone_info['items'] == ['torch', 'sword', 'shield'])
         assert(zone_info['level'] == 1)
         assert(zone_info['mood'] == -1)
+
+        items = self.story._catalogue.get_items()
+        generic_items = generic.generic_items['fantasy']
+        assert(len(items) == len(generic_items))
+        assert(self.story._catalogue.get_items() == generic.generic_items['fantasy'])
 
 
     def test_add_location(self):
@@ -104,6 +110,6 @@ class TestAnythingStory():
         assert(radiation_ridge.world_location.as_tuple() == (-1,0,0))
 
 
-
-        assert(len(story.get_catalogue.get_items()) == 8)
+        print(story.get_catalogue.get_items())
+        assert(len(story.get_catalogue.get_items()) == 10) # 8 story items + 2 generic items
         assert(len(story.get_catalogue.get_creatures()) == 5)

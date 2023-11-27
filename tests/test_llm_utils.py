@@ -103,7 +103,7 @@ class TestLlmUtils():
         self.llm_util.set_story(self.story)
         result = self.llm_util.evoke(message='test evoke', player_io=None)
         assert(result)
-        assert(llm_cache.get_looks([hash('test evoke')]) == evoke_string)
+        assert(llm_cache.get_looks([llm_cache.generate_hash('test evoke')]) == evoke_string)
 
     def test_generate_character(self):
         character_string = json.dumps(parse_utils.load_json('tests/files/test_character.json'))
@@ -128,7 +128,7 @@ class TestLlmUtils():
 
     def test_generate_dialogue(self):
         # mostly testing that prompt works
-        self.llm_util._character.io_util.response = ['Hello there', '["ale"]', 'cheerful']
+        self.llm_util._character.io_util.response = ['{"response":"Hello there", "sentiment":"cheerful", "give":"ale"}']
         result, item, sentiment = self.llm_util._character.generate_dialogue(conversation='test conversation', 
                                                             character_card='{}', 
                                                             character_name='Norhardt', 
@@ -137,11 +137,13 @@ class TestLlmUtils():
                                                             sentiment='cheerful', 
                                                             location_description='{}')
         assert(result == 'Hello there')
+        assert(item == 'ale')
+        assert(sentiment == 'cheerful')
 
         
     def test_generate_dialogue_json(self):
         # mostly testing that prompt works
-        self.llm_util._character.io_util.response = ["{\n  \"response\": \"Autumn greets Test character with a warm smile, her golden hair shining in the sunlight. She returns the greeting, her voice filled with kindness, \'Hello there, how can I assist you today?\'\"\n}", '["ale"]', 'cheerful']
+        self.llm_util._character.io_util.response = ["{\n  \"response\": \"Autumn greets Test character with a warm smile, her golden hair shining in the sunlight. She returns the greeting, her voice filled with kindness, \'Hello there, how can I assist you today?\'\"\n}"]
         result, item, sentiment = self.llm_util._character.generate_dialogue(conversation='test conversation', 
                                                             character_card='{}', 
                                                             character_name='Norhardt', 
@@ -150,6 +152,8 @@ class TestLlmUtils():
                                                             sentiment='cheerful', 
                                                             location_description='{}')
         assert(result.startswith("Autumn greets Test character")) 
+        assert(item == None)
+        assert(sentiment == None)
 
 
 

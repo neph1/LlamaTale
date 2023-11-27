@@ -42,7 +42,7 @@ class JsonStory(DynamicStory):
         llm_cache.load(parse_utils.load_json(self.path +'llm_cache.json'))
 
         # check if there are predefined items for the setting
-        extra_items = generic.generic_items.get(self.check_setting(self.config.type), {})
+        extra_items = generic.generic_items.get(self.check_setting(self.config.type), [])
         if extra_items:
             for item in extra_items:
                 self._catalogue._items.append(item)
