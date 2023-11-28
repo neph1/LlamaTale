@@ -740,3 +740,25 @@ def do_clone_vnum(player: Player, parsed: base.ParseResult, ctx: util.Context) -
         living.wiz_clone(player)
     else:
         raise ActionRefused("Cloning objects other than items or livings, is not supported.")
+    
+@wizcmd("enrich")
+def do_enrich(player: Player, parsed: base.ParseResult, ctx: util.Context) -> None:
+    """ Call the LLM to create more items or creatures to populate the world. """
+    if len(parsed.args) != 1:
+        raise ParseError("You need to define 'items' or 'creatures'.")
+    
+    if parsed.args[0] == "items":
+        items = ctx.driver.llm_util.generate_world_items()
+        if items:
+            player.tell("(generated: %s, items)" % (len(items)))
+            for item in items:
+                ctx.driver.story._catalogue.add_item(item)
+                return
+    if parsed.args[0] == "creatures":
+        creatures = ctx.driver.llm_util.generate_world_creatures()
+        if creatures:
+            player.tell("(generated: %s, creatures)" % (len(creatures)))
+            for creature in creatures:
+                ctx.driver.story._catalogue.add_living(creature)
+                return
+    

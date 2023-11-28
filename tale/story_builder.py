@@ -88,7 +88,8 @@ class StoryBuilder:
                                                         world_info=self.story_info.world_info, 
                                                         world_mood=self.story_info.world_mood)
             if items:
-                story._catalogue._items = items
+                for item in items:
+                    story._catalogue.add_item(item)
                 break
         
         self.connection.output("Generate world creatures...")
@@ -98,7 +99,8 @@ class StoryBuilder:
                                                             world_info=self.story_info.world_info,
                                                             world_mood=self.story_info.world_mood)
             if creatures:
-                story._catalogue._creatures = creatures
+                for creature in creatures:
+                    story._catalogue.add_creature(creature)
                 break
 
         self.connection.output("Generating starting zone...")

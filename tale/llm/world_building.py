@@ -273,7 +273,6 @@ class WorldBuilding():
         result = self.io_util.synchronous_request(request_body, prompt=prompt)
         try:
             return json.loads(parse_utils.sanitize_json(result))["creatures"]
-            #return self._validate_creatures(json_result["creatures"])
         except json.JSONDecodeError as exc:
             print(exc)
             return None
