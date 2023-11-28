@@ -1,3 +1,4 @@
+from tale.llm.item_handling_result import ItemHandlingResult
 import tale.llm.llm_cache as llm_cache
 from tale import lang, mud_context
 from tale.base import ContainingType, Living, ParseResult
@@ -58,14 +59,15 @@ class LivingNpc(Living):
             self._do_react(parsed, actor)
         elif targeted and parsed.verb == "give":
             parsed_split = parsed.unparsed.split(" to ")
+            
             if len(parsed_split) == 2:
-                result = {"item":parsed_split[0], "to":self.title}
+                result = ItemHandlingResult(item=parsed_split[0], to=self.title)
             else:
                 parsed_split = parsed.unparsed.split(self.title)
                 if len(parsed_split[0]) == 0:
-                    result = {"item":parsed_split[1].strip(), "to":self.title}
+                    result = ItemHandlingResult(item=parsed_split[1].strip(), to=self.title)
                 else:
-                    result = {"item":parsed_split[0].strip(), "to":self.title}
+                    result = ItemHandlingResult(item=parsed_split[0].strip(), to=self.title)
             if self.handle_item_result(result, actor) and self.quest:
                 self.quest.check_completion(result)
             self.do_say(parsed.unparsed, actor)
@@ -114,9 +116,9 @@ class LivingNpc(Living):
             self.tell_others(action)
             self.location._notify_action_all(result, actor=self)
 
-    def handle_item_result(self, result: dict, actor: Living) -> bool:
-        if result.get("to", None) and result["to"] == self.title:
-            item = actor.search_item(result["item"])
+    def handle_item_result(self, result: ItemHandlingResult, actor: Living) -> bool:
+        if result.to == self.title:
+            item = actor.search_item(result.item)
             if not item:
                 raise TaleError("item not found on actor %s " % item)
             actor.remove(item, actor=actor)
@@ -124,15 +126,15 @@ class LivingNpc(Living):
             actor.tell_others("{Actor} gives %s to %s" % (item.title, self.title), evoke=False)
             return True
 
-        if result.get("from", None) and result["from"] == self.title:
-            item = self.search_item(result["item"])
+        if result.from_  == self.title:
+            item = self.search_item(result.item)
             if not item:
                 raise TaleError("item not found on actor %s " % item)
             self.remove(item, actor=self)
-            if result["to"]:
-                if result["to"] == actor.name or result["to"] == actor.title:
+            if result.to:
+                if result.to == actor.name or result.to == actor.title:
                     item.move(target=actor, actor=self)
-                elif result["to"] in ["user", "you", "player"] and isinstance(actor, Player):
+                elif result.to in ["user", "you", "player"] and isinstance(actor, Player):
                     item.move(target=actor, actor=self)
                 actor.tell("%s gives you %s." % (self.subjective, item.title), evoke=False)
                 self.tell_others("{Actor} gives %s to %s" % (item.title, actor.title), evoke=False)
