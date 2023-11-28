@@ -22,6 +22,7 @@ CREATE_ZONE_PROMPT: '[Story context: {story_context}]; World info: {world_info};
 OPENAI_HEADERS: '{"Content-Type":"application/json", "Authorization":""}'
 OPENAI_BODY: '{"model":"gpt-3.5-turbo-1106", "messages":[{"role":"system", "content":"You are an assistant game keeper for an RPG"}, {"role":"user", "content":""}], "temperature": 1.0, "max_tokens":500}'
 OPENAI_API_KEY: "OPENAI_API_KEY"
+OPENAI_JSON_FORMAT: '{"type":"json_object"}'
 ITEMS_PROMPT: "Add {items} of various type."
 SPAWN_PROMPT: "Add a level {level}, {alignment} npc or mob."
 IDLE_ACTION_PROMPT: "[Sentiments towards characters: {sentiments}]; [History: {history}]; [Last action: {last_action}]; [Location: {location}]; [Acting character: {character}]; [USER_START] Choose an item from: {items}, or a character from:{characters}, to interact with, or perform a solo action. Do not make up new characters. Don't contradict or repeat Last Action. [USER_START] Don't write what {character_name} thinks, or what the player (You) or anyone else does. Write what {character_name} does, in present tense third person point of view. Use less than 40 words. "

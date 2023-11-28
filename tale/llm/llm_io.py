@@ -27,13 +27,14 @@ class IoUtil():
         self.stream = config['STREAM']
         self.user_start_prompt = config['USER_START']
         self.user_end_prompt = config['USER_END']
+        self.openai_json_format = json.loads(config['OPENAI_JSON_FORMAT'])
 
     def synchronous_request(self, request_body: dict, prompt: str) -> str:
         """ Send request to backend and return the result """
         if request_body.get('grammar', None) and 'openai' in self.url:
             # TODO: temp fix for openai
             request_body.pop('grammar')
-            request_body['response_format'] = { "type":"json_object" }
+            request_body['response_format'] = self.openai_json_format
         self._set_prompt(request_body, prompt)
         response = requests.post(self.url + self.endpoint, headers=self.headers, data=json.dumps(request_body))
         if self.backend == 'openai':
