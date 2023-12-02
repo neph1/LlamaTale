@@ -35,9 +35,9 @@ class LivingNpc(Living):
         # store even our own events.
         event_hash = llm_cache.cache_event(parsed.unparsed)
         self._observed_events.append(event_hash)
-
         if actor is self or parsed.verb in self.verbs:
             return  # avoid reacting to ourselves, or reacting to verbs we already have a handler for
+        
         greet = False
         targeted = False
         for alias in self.aliases:
@@ -57,7 +57,7 @@ class LivingNpc(Living):
                 self.quest.check_completion({"npc":self.title})
             self.do_say(parsed.unparsed, actor)
             
-        elif targeted and parsed.verb == "idle-action":
+        elif (targeted and parsed.verb == "idle-action") or parsed.verb == "location-event":
             self._do_react(parsed, actor)
         elif targeted and parsed.verb == "give":
             parsed_split = parsed.unparsed.split(" to ")
@@ -109,9 +109,9 @@ class LivingNpc(Living):
                                             character_card=self.character_card,
                                             character_name=self.title,
                                             location=self.location,
-                                            acting_character_name=actor.title,
+                                            acting_character_name=actor.title if actor else '',
                                             event_history=llm_cache.get_events(self._observed_events),
-                                            sentiment=self.sentiments.get(actor.name, ''))
+                                            sentiment=self.sentiments.get(actor.name, '') if actor else '')
         if action:
             self.action_history.append(action)
             self.deferred_result = ParseResult(verb='idle-action', unparsed=action, who_info=None)

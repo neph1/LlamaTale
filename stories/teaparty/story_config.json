@@ -15,16 +15,16 @@
     "server_tick_time": 5.0,
     "gametime_to_realtime": 1,
     "display_gametime": false,
-    "startlocation_player": "Mad Hatters House.Living Room",
-    "startlocation_wizard": "Mad Hatters House.Living Room",
+    "startlocation_player": "Mad Hatters House.Living room",
+    "startlocation_wizard": "Mad Hatters House.Living room",
     "zones": [
-        "mad_hatters_house"
+        "Mad Hatters House"
     ],
     "server_mode": "IF",
     "npcs": "guests",
     "items": "",
     "context": "The player is having tea in the Mad Hatter's house, as Alice. The guests are all mad in their own way, and making sense of anything is difficult.",
-    "story_type": "A whimsical and humoristic tale of tea and madness. Guests are so busy with their own problems that it's difficult to make yourself heard.",
+    "type": "A whimsical and humoristic tale of tea and madness. Guests are so busy with their own problems that it's difficult to make yourself heard.",
     "world_info": "",
-    "world_mood": ""
+    "world_mood": 0
 }

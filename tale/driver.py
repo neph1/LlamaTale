@@ -626,9 +626,10 @@ class Driver(pubsub.Listener):
                 player.tell(f"You're entering {new_zone.name}:{new_zone.description}")
             
             # generate the location if it's not built yet. retry 5 times.
-            while i < 5 and not result:
+            for i in range(5):
                 result = self.build_location(xt.target, new_zone, player)
-                i += 1
+                if result:
+                    break
 
             if not result:
                 raise errors.ActionRefused("Reached max attempts when building location: " + xt.target.name + ". You can try entering again.")

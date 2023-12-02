@@ -160,14 +160,14 @@ class LlmUtil():
     def generate_start_zone(self, location_desc: str, story_type: str, story_context: str, world_info: dict) -> Zone:
         return self._world_building.generate_start_zone(location_desc, story_type, story_context, world_info)
     
-    def generate_world_items(self, story_context: str = '', story_type: str = '', world_info: str = '', world_mood: int = '') -> dict:
+    def generate_world_items(self, story_context: str = '', story_type: str = '', world_info: str = '', world_mood: int = None) -> dict:
         return self._world_building.generate_world_items(story_context or self.__story.config.context, 
                                                             story_type or self.__story.config.type, 
                                                             world_info or self.__story.config.world_info, 
                                                             world_mood or self.__story.config.world_mood)
         
     
-    def generate_world_creatures(self, story_context: str = '', story_type: str = '', world_info: str = '', world_mood: int = '') -> dict:
+    def generate_world_creatures(self, story_context: str = '', story_type: str = '', world_info: str = '', world_mood: int = None) -> dict:
         return self._world_building.generate_world_creatures(story_context or self.__story.config.context, 
                                                              story_type or self.__story.config.type, 
                                                              world_info or self.__story.config.world_info, 

@@ -64,6 +64,7 @@ class IFDriver(driver.Driver):
         connection = self.connect_player(self.io_type, self.screen_delay)
         self.llm_util.connection = connection
         if self.wizard_override:
+            print("Wizard mode enabled.")
             connection.player.privileges.add("wizard")
         # create the login dialog
         driver.topic_async_dialogs.send((connection, self._login_dialog_if(connection)))

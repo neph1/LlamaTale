@@ -762,3 +762,11 @@ def do_enrich(player: Player, parsed: base.ParseResult, ctx: util.Context) -> No
                 ctx.driver.story._catalogue.add_living(creature)
                 return
     
+@wizcmd("add_event")
+def do_add_event(player: Player, parsed: base.ParseResult, ctx: util.Context) -> None:
+    """ Add an event that happens in the current location. """
+    if len(parsed.args) < 1:
+        raise ParseError("You need to define an event inside ''")
+    player.location._notify_action_all( base.ParseResult(verb='location-event', unparsed=parsed.unparsed, who_info=None), actor=None)
+    player.location.tell(parsed.unparsed, evoke=False)
+
