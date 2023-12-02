@@ -614,8 +614,9 @@ class Driver(pubsub.Listener):
     def go_through_exit(self, player: player.Player, direction: str, evoke: bool=True) -> None:
         xt = player.location.exits[direction]
         xt.allow_passage(player)
-        dynamic_story = typing.cast(DynamicStory, self.story)
+        
         if not xt.target.built:
+            dynamic_story = typing.cast(DynamicStory, self.story)
             zone = dynamic_story.find_zone(location=player.location.name)
             # are we close to the edge of a zone? if so we need to build the next zone.
             new_zone = self.llm_util.get_neighbor_or_generate_zone(current_zone=zone, 
@@ -637,9 +638,10 @@ class Driver(pubsub.Listener):
             zone = dynamic_story.find_zone(location=xt.target.name)
             self.llm_util.generate_random_spawn(xt.target, zone.get_info())
         else:
+            dynamic_story = typing.cast(DynamicStory, self.story)
             zone = dynamic_story.find_zone(location=player.location.name)
             new_zone = dynamic_story.find_zone(location=xt.target.name)
-            if zone.name != new_zone.name:
+            if zone and zone.name != new_zone.name:
                 player.tell(f"You're entering {new_zone.name}:{new_zone.description}")
 
                     

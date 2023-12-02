@@ -113,10 +113,10 @@ class WorldBuilding():
             location.insert(item, None)
         return location
     
-    def _add_npcs(self, location: Location, json_result: dict, world_creatures: dict = {}):
+    def _add_npcs(self, location: Location, json_result: dict, world_creatures: dict = {}) -> dict:
         generated_npcs = json_result.get("npcs", [])
         if not generated_npcs:
-            return location
+            return {}
         if world_creatures:
             generated_npcs = parse_utils.replace_creature_with_world_creature(generated_npcs, world_creatures)
         try:
@@ -191,7 +191,7 @@ class WorldBuilding():
         zone.items = json_result.get('items', [])
         return zone
     
-    def generate_start_location(self, location: Location, zone_info: dict, story_type: str, story_context: str, world_info: str):
+    def generate_start_location(self, location: Location, zone_info: dict, story_type: str, story_context: str, world_info: str) -> (list, list, list):
         """ Generate a location based on the current story context
         One gotcha is that the location is not returned, its contents are just updated"""
 
@@ -214,7 +214,7 @@ class WorldBuilding():
             return self._validate_location(json_result, location, '')
         except Exception as exc:
             print(exc)
-            return None, None
+            return None, None, None
         
     def generate_start_zone(self, location_desc: str, story_type: str, story_context: str, world_info: dict) -> Zone:
         """ Generate a zone based on the current story context"""

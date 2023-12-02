@@ -118,7 +118,7 @@ class StoryBuilder:
         self.connection.output("Generating starting location...")
         start_location = Location(name="", descr=self.story_info.start_location)
         for i in range(3):
-            new_locations, exits = llm_util.generate_start_location(location=start_location, 
+            new_locations, exits, npcs = llm_util.generate_start_location(location=start_location, 
                                                                 story_type=self.story_info.type, 
                                                                 story_context=story.config.context,
                                                                 world_info=self.story_info.world_info,

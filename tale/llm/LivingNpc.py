@@ -71,7 +71,7 @@ class LivingNpc(Living):
                 else:
                     result = ItemHandlingResult(item=parsed_split[0].strip(), to=self.title)
             if self.handle_item_result(result, actor) and self.quest:
-                self.quest.check_completion(result)
+                self.quest.check_completion({"item":result.item, "npc":result.to})
             self.do_say(parsed.unparsed, actor)
         if self.quest and self.quest.is_completed():
             # do last to give npc chance to react   
