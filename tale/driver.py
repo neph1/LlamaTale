@@ -23,9 +23,11 @@ from types import ModuleType
 from typing import Sequence, Union, Tuple, Any, Dict, Callable, Iterable, Generator, Set, List, MutableSequence, Optional
 
 import appdirs
+from tale.items.basic import Note
 
-from tale import story_builder
 from tale.llm.LivingNpc import LivingNpc
+from tale.npc_defs import StationaryNpc
+from tale.zone import Zone
 
 from . import __version__ as tale_version_str, _check_required_libraries
 from . import mud_context, errors, util, cmds, player, pubsub, charbuilder, lang, verbdefs, vfs, base
@@ -612,8 +614,8 @@ class Driver(pubsub.Listener):
     def go_through_exit(self, player: player.Player, direction: str, evoke: bool=True) -> None:
         xt = player.location.exits[direction]
         xt.allow_passage(player)
+        dynamic_story = typing.cast(DynamicStory, self.story)
         if not xt.target.built:
-            dynamic_story = typing.cast(DynamicStory, self.story)
             zone = dynamic_story.find_zone(location=player.location.name)
             # are we close to the edge of a zone? if so we need to build the next zone.
             new_zone = self.llm_util.get_neighbor_or_generate_zone(current_zone=zone, 
@@ -623,35 +625,23 @@ class Driver(pubsub.Listener):
                 player.tell(f"You're entering {new_zone.name}:{new_zone.description}")
             
             # generate the location if it's not built yet. retry 5 times.
-            for i in range(5):
-                neighbor_locations = dynamic_story.neighbors_for_location(xt.target)
-                new_locations, exits = self.llm_util.build_location(location=xt.target, 
-                                                             exit_location_name=player.location.name, 
-                                                             zone_info=new_zone.get_info(),
-                                                             world_creatures=dynamic_story.catalogue._creatures,
-                                                             world_items=dynamic_story.catalogue._items,
-                                                             neighbors=neighbor_locations,)
-                if new_locations:
-                    break
-            if not new_locations:
+            while i < 5 and not result:
+                result = self.build_location(xt.target, new_zone, player)
+                i += 1
+
+            if not result:
                 raise errors.ActionRefused("Reached max attempts when building location: " + xt.target.name + ". You can try entering again.")
-            for location in new_locations:
-                # try to add location, and if it fails, remove exit to it
-                result = dynamic_story.add_location(location, zone=new_zone.name)
-                if not result:
-                    for exit in exits:
-                        if exit.name == location.name:
-                            exits.remove(exit)
-            for exit in exits:
-                try:
-                    xt.target.add_exits([exit])
-                except errors.LocationIntegrityError:
-                    # fail silently
-                    pass
+                    
         elif random.random() < 0.2 and isinstance(self.story, DynamicStory):
             dynamic_story = typing.cast(DynamicStory, self.story)
             zone = dynamic_story.find_zone(location=xt.target.name)
             self.llm_util.generate_random_spawn(xt.target, zone.get_info())
+        else:
+            zone = dynamic_story.find_zone(location=player.location.name)
+            new_zone = dynamic_story.find_zone(location=xt.target.name)
+            if zone.name != new_zone.name:
+                player.tell(f"You're entering {new_zone.name}:{new_zone.description}")
+
                     
         if xt.enter_msg:
             player.tell(xt.enter_msg, end=True, evoke=False, short_len=True)
@@ -893,3 +883,43 @@ class Driver(pubsub.Listener):
                                                     attacker_msg=attacker_msg,
                                                     location=location_title,
                                                     location_description=location_description)
+    
+    def build_location(self, targetLocation: base.Location, zone: Zone, player: player.Player):
+        dynamic_story = typing.cast(DynamicStory, self.story)
+        neighbor_locations = dynamic_story.neighbors_for_location(targetLocation)
+        new_locations, exits, npcs = self.llm_util.build_location(location=targetLocation, 
+                                                        exit_location_name=player.location.name, 
+                                                        zone_info=zone.get_info(),
+                                                        world_creatures=dynamic_story.catalogue._creatures,
+                                                        world_items=dynamic_story.catalogue._items,
+                                                        neighbors=neighbor_locations,)
+        if not new_locations:
+            return False
+        for location in new_locations:
+            # try to add location, and if it fails, remove exit to it
+            result = dynamic_story.add_location(location, zone=zone.name)
+            if not result:
+                for exit in exits: # type: Exit
+                    if exit.name == location.name:
+                        exits.remove(exit)
+        for exit in exits:
+            try:
+                targetLocation.add_exits([exit])
+            except errors.LocationIntegrityError:
+                # fail silently
+                pass
+        for npc in npcs:
+            if isinstance(npc, StationaryNpc) and random.random() < 0.2:
+                new_quest = dynamic_story.generate_quest(npc)
+                new_quest.giver = npc
+                npc.quest = new_quest
+        for item in targetLocation.items:
+            if isinstance(item, Note):
+                if random.random() < 0.5:
+                    new_quest = self.llm_util.generate_note_quest(zone_info=zone.get_info())
+                    new_quest.giver = item
+                    item.text = new_quest.reason
+                else:
+                    text = self.llm_util.generate_note_lore(zone_info=zone.get_info())
+                    item.text = text
+        return True

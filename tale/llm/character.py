@@ -8,7 +8,6 @@ import random
 from tale import _MudContext, parse_utils
 from tale.base import Location
 from tale.llm import llm_config
-from tale.llm.llm_ext import DynamicStory
 from tale.llm.llm_io import IoUtil
 from tale.load_character import CharacterV2
 
@@ -192,18 +191,4 @@ class CharacterBuilding():
         text = self.io_util.synchronous_request(request_body, prompt=prompt)
         return parse_utils.trim_response(text) + "\n"
     
-    def generate_quest(self, base_quest: dict, character_name: str, location: Location, story_context: str, character_card: str = '', story_type: str = '', world_info: str = '', zone_info: str = ''):
-        prompt = self.pre_prompt
-        prompt += self.quest_prompt.format(
-            base_quest=base_quest,
-            location_name=location.name,
-            character_name=character_name,
-            character=character_card,
-            story_context=story_context,
-            story_type=story_type,
-            world_info=world_info,
-            zone_info=zone_info)
-        request_body = deepcopy(self.default_body)
-        text = self.io_util.synchronous_request(request_body, prompt=prompt)
-        return parse_utils.trim_response(text) + "\n"
     

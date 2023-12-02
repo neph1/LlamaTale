@@ -28,6 +28,8 @@ class LivingNpc(Living):
         self.planned_actions = [] # type: list[str]
         self.goal = None # type: str # a free form string describing the goal of the NPC
         self.quest = None # type: Quest # a quest object
+        self.deferred_tell = ''
+        self.deferred_result = None
 
     def notify_action(self, parsed: ParseResult, actor: Living) -> None:
         # store even our own events.
@@ -112,9 +114,9 @@ class LivingNpc(Living):
                                             sentiment=self.sentiments.get(actor.name, ''))
         if action:
             self.action_history.append(action)
-            result = ParseResult(verb='idle-action', unparsed=action, who_info=None)
-            self.tell_others(action)
-            self.location._notify_action_all(result, actor=self)
+            self.deferred_result = ParseResult(verb='idle-action', unparsed=action, who_info=None)
+            self.deferred_tell = action
+            mud_context.driver.defer(1.0, self.tell_action_deferred)
 
     def handle_item_result(self, result: ItemHandlingResult, actor: Living) -> bool:
         if result.to == self.title:
@@ -171,10 +173,10 @@ class LivingNpc(Living):
         if len(self.planned_actions) > 0:
             action = self.planned_actions.pop(0)
             self.action_history.append(action)
-            result = ParseResult(verb='idle-action', unparsed=action, who_info=None)
-            self.tell_others(action)
-            self.location.notify_action(result, actor=self)
-            self.location._notify_action_all(result, actor=self)
+            self.deferred_result = ParseResult(verb='idle-action', unparsed=action, who_info=None)
+            self.deferred_tell = action
+            mud_context.driver.defer(1.0, self.tell_action_deferred)
+            #self.location.notify_action(result, actor=self)
 
     def travel(self):
         result = mud_context.driver.llm_util.perform_travel_action(character_card=self.character_card,
@@ -186,6 +188,13 @@ class LivingNpc(Living):
             exit = self.location.exits.get(result)
             if exit:
                 self.move(target=exit.target, actor=self)
+
+    def tell_action_deferred(self):
+        if (self.deferred_tell):
+            self.tell_others(self.deferred_tell)
+            self.location._notify_action_all(self.deferred_result, actor=self)
+            self.deferred_tell = ''
+            self.deferred_result = None
 
     def _clear_quest(self):
         self.quest = None

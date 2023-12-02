@@ -19,7 +19,8 @@ class StationaryNpc(LivingNpc):
         """ Perform an idle action if a player is in the same location."""
         player_names = ctx.driver.all_players.keys()
         player_in_location = any(name == living.name for name in player_names for living in self.location.livings)
-        if player_in_location:
+        
+        if player_in_location or self.location.get_wiretap() or self.get_wiretap():
             self.idle_action()
 
 class StationaryMob(LivingNpc):
@@ -36,7 +37,7 @@ class StationaryMob(LivingNpc):
             for liv in self.location.livings:
                 if isinstance(liv, Player):
                     self.do_attack(liv)
-        elif player_in_location:
+        elif player_in_location or self.location.get_wiretap() or self.get_wiretap():
             self.idle_action()
 
     def do_attack(self, target: Living) -> None:

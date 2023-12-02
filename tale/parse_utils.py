@@ -337,7 +337,7 @@ def trim_response(message: str):
     
     return message
 
-def sanitize_json(result: str):
+def sanitize_json(result: str) -> str:
     """ Removes special chars from json string. Some common, and some 'creative' ones. """
     if result is None:
         return ''

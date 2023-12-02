@@ -122,4 +122,34 @@ class TestTalkQuest():
         assert(quest.status == QuestStatus.NOT_COMPLETED)
         assert(self.testNpc.quest == quest)
 
+class TestGenerateQuests():
+
+    story = DynamicStory()
+    story.catalogue.add_item({"name":"bowling ball", "description":"bowling ball"})
+    story.catalogue.add_creature({"name":"goblin", "description":"goblin"})
+    story.world.add_npc(LivingNpc("TalkToNpc", "m", age=20))
+
+    def test_generate_give_quest(self):
+        """ Test that a give quest is generated correctly."""
+        quest = self.story.generate_quest(npc=TestGiveQuest.testNpc, type=QuestType.GIVE)
+
+        assert(quest.type == QuestType.GIVE)
+        assert(quest.target == "bowling ball")
+        assert(quest.giver == TestGiveQuest.testNpc.name)
+
+    def test_generate_talk_quest(self):
+        """ Test that a talk quest is generated correctly."""
+        quest = self.story.generate_quest(npc=TestGiveQuest.testNpc, type=QuestType.TALK)
+
+        assert(quest.type == QuestType.TALK)
+        assert(quest.target == "talktonpc")
+        assert(quest.giver == TestGiveQuest.testNpc.name)
+
+    def test_generate_kill_quest(self):
+        """ Test that a kill quest is generated correctly."""
+        quest = self.story.generate_quest(npc=TestGiveQuest.testNpc, type=QuestType.KILL)
+
+        assert(quest.type == QuestType.KILL)
+        assert(quest.target == "goblin")
+        assert(quest.giver == TestGiveQuest.testNpc.name)
             

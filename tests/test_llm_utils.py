@@ -472,5 +472,21 @@ class TestWorldBuilding():
         assert((len(rocky_cliffs.exits) == 6))
         assert((len(new_locations) == 2))
 
+    def test_generate_note_lore(self):
+        self.llm_util._quest_building.io_util.response = 'A long lost tale of a hero who saved the world from a great evil.'
+        lore = self.llm_util._world_building.generate_note_lore(story_context='', story_type='', world_info='', zone_info='')
+        assert(lore.startswith('A long lost tale'))
+
+
+class TestQuestBuilding():
+
+    llm_util = LlmUtil(FakeIoUtil()) # type: LlmUtil
+
+    def test_generate_note_quest(self):
+        self.llm_util._quest_building.io_util.response = '{"name": "Test Quest",  "reason": "A test quest", "target":"Arto", "type":"talk"}'
+        quest = self.llm_util._quest_building.generate_note_quest(story_context='', story_type='', world_info='')
+        assert(quest.name == 'Test Quest')
+        assert(quest.reason == 'A test quest')
+        assert(quest.target == 'Arto')
 
         
