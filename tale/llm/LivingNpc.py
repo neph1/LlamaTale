@@ -1,3 +1,4 @@
+from tale.llm.item_handling_result import ItemHandlingResult
 import tale.llm.llm_cache as llm_cache
 from tale import lang, mud_context
 from tale.base import ContainingType, Living, ParseResult
@@ -27,14 +28,16 @@ class LivingNpc(Living):
         self.planned_actions = [] # type: list[str]
         self.goal = None # type: str # a free form string describing the goal of the NPC
         self.quest = None # type: Quest # a quest object
+        self.deferred_tell = ''
+        self.deferred_result = None
 
     def notify_action(self, parsed: ParseResult, actor: Living) -> None:
         # store even our own events.
         event_hash = llm_cache.cache_event(parsed.unparsed)
         self._observed_events.append(event_hash)
-
         if actor is self or parsed.verb in self.verbs:
             return  # avoid reacting to ourselves, or reacting to verbs we already have a handler for
+        
         greet = False
         targeted = False
         for alias in self.aliases:
@@ -54,20 +57,21 @@ class LivingNpc(Living):
                 self.quest.check_completion({"npc":self.title})
             self.do_say(parsed.unparsed, actor)
             
-        elif targeted and parsed.verb == "idle-action":
+        elif (targeted and parsed.verb == "idle-action") or parsed.verb == "location-event":
             self._do_react(parsed, actor)
         elif targeted and parsed.verb == "give":
             parsed_split = parsed.unparsed.split(" to ")
+            
             if len(parsed_split) == 2:
-                result = {"item":parsed_split[0], "to":self.title}
+                result = ItemHandlingResult(item=parsed_split[0], to=self.title)
             else:
                 parsed_split = parsed.unparsed.split(self.title)
                 if len(parsed_split[0]) == 0:
-                    result = {"item":parsed_split[1].strip(), "to":self.title}
+                    result = ItemHandlingResult(item=parsed_split[1].strip(), to=self.title)
                 else:
-                    result = {"item":parsed_split[0].strip(), "to":self.title}
+                    result = ItemHandlingResult(item=parsed_split[0].strip(), to=self.title)
             if self.handle_item_result(result, actor) and self.quest:
-                self.quest.check_completion(result)
+                self.quest.check_completion({"item":result.item, "npc":result.to})
             self.do_say(parsed.unparsed, actor)
         if self.quest and self.quest.is_completed():
             # do last to give npc chance to react   
@@ -105,18 +109,18 @@ class LivingNpc(Living):
                                             character_card=self.character_card,
                                             character_name=self.title,
                                             location=self.location,
-                                            acting_character_name=actor.title,
+                                            acting_character_name=actor.title if actor else '',
                                             event_history=llm_cache.get_events(self._observed_events),
-                                            sentiment=self.sentiments.get(actor.name, ''))
+                                            sentiment=self.sentiments.get(actor.name, '') if actor else '')
         if action:
             self.action_history.append(action)
-            result = ParseResult(verb='idle-action', unparsed=action, who_info=None)
-            self.tell_others(action)
-            self.location._notify_action_all(result, actor=self)
+            self.deferred_result = ParseResult(verb='idle-action', unparsed=action, who_info=None)
+            self.deferred_tell = action
+            mud_context.driver.defer(1.0, self.tell_action_deferred)
 
-    def handle_item_result(self, result: dict, actor: Living) -> bool:
-        if result.get("to", None) and result["to"] == self.title:
-            item = actor.search_item(result["item"])
+    def handle_item_result(self, result: ItemHandlingResult, actor: Living) -> bool:
+        if result.to == self.title:
+            item = actor.search_item(result.item)
             if not item:
                 raise TaleError("item not found on actor %s " % item)
             actor.remove(item, actor=actor)
@@ -124,15 +128,15 @@ class LivingNpc(Living):
             actor.tell_others("{Actor} gives %s to %s" % (item.title, self.title), evoke=False)
             return True
 
-        if result.get("from", None) and result["from"] == self.title:
-            item = self.search_item(result["item"])
+        if result.from_  == self.title:
+            item = self.search_item(result.item)
             if not item:
                 raise TaleError("item not found on actor %s " % item)
             self.remove(item, actor=self)
-            if result["to"]:
-                if result["to"] == actor.name or result["to"] == actor.title:
+            if result.to:
+                if result.to == actor.name or result.to == actor.title:
                     item.move(target=actor, actor=self)
-                elif result["to"] in ["user", "you", "player"] and isinstance(actor, Player):
+                elif result.to in ["user", "you", "player"] and isinstance(actor, Player):
                     item.move(target=actor, actor=self)
                 actor.tell("%s gives you %s." % (self.subjective, item.title), evoke=False)
                 self.tell_others("{Actor} gives %s to %s" % (item.title, actor.title), evoke=False)
@@ -169,10 +173,10 @@ class LivingNpc(Living):
         if len(self.planned_actions) > 0:
             action = self.planned_actions.pop(0)
             self.action_history.append(action)
-            result = ParseResult(verb='idle-action', unparsed=action, who_info=None)
-            self.tell_others(action)
-            self.location.notify_action(result, actor=self)
-            self.location._notify_action_all(result, actor=self)
+            self.deferred_result = ParseResult(verb='idle-action', unparsed=action, who_info=None)
+            self.deferred_tell = action
+            mud_context.driver.defer(1.0, self.tell_action_deferred)
+            #self.location.notify_action(result, actor=self)
 
     def travel(self):
         result = mud_context.driver.llm_util.perform_travel_action(character_card=self.character_card,
@@ -184,6 +188,13 @@ class LivingNpc(Living):
             exit = self.location.exits.get(result)
             if exit:
                 self.move(target=exit.target, actor=self)
+
+    def tell_action_deferred(self):
+        if (self.deferred_tell):
+            self.tell_others(self.deferred_tell + '\n')
+            self.location._notify_action_all(self.deferred_result, actor=self)
+            self.deferred_tell = ''
+            self.deferred_result = None
 
     def _clear_quest(self):
         self.quest = None

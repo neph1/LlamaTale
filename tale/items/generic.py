@@ -3,7 +3,8 @@
 """
 
 
-from tale.base import Weapon
+from tale.base import Item, Weapon
+from tale.items.basic import Note
 from tale.weapon_type import WeaponType
 
 generic_weapons = [
@@ -22,11 +23,15 @@ modern_weapons = [
     Weapon(name='Semi-automatic pistol', weapon_type=WeaponType.ONE_HANDED_RANGED, short_descr='A pistol that has seen better days.', base_damage=2).to_dict(),
 ]
 
+generic_various = [
+    Note(name="Note", weight=0.1).to_dict()
+]
+
 
 generic_items = {
-    'fantasy': [*generic_weapons, *fantasy_weapons],
-    'modern': [*generic_weapons, *modern_weapons],
-    'postapoc': [*generic_weapons, *modern_weapons],
-    '': generic_weapons,
+    'fantasy': [*generic_weapons, *fantasy_weapons, *generic_various],
+    'modern': [*generic_weapons, *modern_weapons, *generic_various],
+    'postapoc': [*generic_weapons, *modern_weapons, *generic_various],
+    '': [*generic_weapons, *generic_various],
 }
 

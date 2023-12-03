@@ -1,7 +1,10 @@
 import json
+import random
 from tale import parse_utils
 from tale.base import Item, Living, Location
 from tale.coord import Coord
+from tale.llm.LivingNpc import LivingNpc
+from tale.quest import Quest, QuestType
 from tale.story import StoryBase
 
 from tale.zone import Zone
@@ -117,6 +120,19 @@ class DynamicStory(StoryBase):
 
         with open('llm_cache.json', "w") as fp:
             json.dump(llm_cache.json_dump(), fp, indent=4)
+
+    
+    def generate_quest(self, npc: LivingNpc, type: QuestType = QuestType.GIVE) -> Quest:
+        """ Generate a quest for the npc. """
+        if type == QuestType.GIVE:
+            target = random.choice(list(self._catalogue.get_items())) # type: dict
+            return Quest(name='quest', type=type, target=target['name'], giver=npc.name)
+        if type == QuestType.TALK:
+            target = random.choice(list(self._world.npcs.values())) # type: LivingNpc
+            return Quest(name='quest', type=type, target=target.name, giver=npc.name)
+        if type == QuestType.KILL:
+            target = random.choice(list(self._catalogue.get_creatures())) # type: dict
+            return Quest(name='quest', type=type, target=target['name'], giver=npc.name)
         
     @property
     def get_catalogue(self) -> 'Catalogue':
@@ -153,6 +169,12 @@ class WorldInfo():
 
     def get_npc(self, npc: str) -> Living:
         return self._npcs[npc]
+    
+    def add_npc(self, npc: Living) -> bool:
+        if npc.name in self._npcs:
+            return False
+        self._npcs[npc.name] = npc
+        return True
     
     @property
     def items(self) -> dict:

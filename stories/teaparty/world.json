@@ -9,10 +9,16 @@
             "mood": 3,
             "races": [],
             "items": [],
+            "size": 5,
+            "center": [
+                0,
+                0,
+                0
+            ],
             "name": "Mad Hatters House",
             "locations": [
                 {
-                    "name": "Living Room",
+                    "name": "Living room",
                     "descr": "The Mad Hatter's cluttered living room. It's set up for a tea party.",
                     "short_descr": "",
                     "exits": [],
@@ -20,7 +26,8 @@
                         "0",
                         "0",
                         "0"
-                    ]
+                    ],
+                    "built": true
                 }
             ]
         }
@@ -28,7 +35,7 @@
     "world": {
         "npcs": {
             "mad hatter": {
-                "location": "Living Room",
+                "location": "Living room",
                 "name": "Mad hatter",
                 "title": "Mad Hatter",
                 "aliases": [
@@ -36,8 +43,11 @@
                 ],
                 "short_descr": "A man with a big hat and colorful costume.",
                 "descr": "Wearing a big hat and a colorful costume.",
+                "personality": "",
+                "occupation": "",
+                "age": 0,
                 "type": "Npc",
-                "race": "human",
+                "race": "",
                 "gender": "m",
                 "level": 1,
                 "stats": {
@@ -55,10 +65,10 @@
                     "strength": 3,
                     "dexterity": 3,
                     "unarmed_attack": "FISTS"
-                }
+                                }
             },
             "duchess": {
-                "location": "Living Room",
+                "location": "Living room",
                 "name": "Duchess",
                 "title": "Duchess",
                 "aliases": [
@@ -66,8 +76,11 @@
                 ],
                 "short_descr": "Short woman with a very large head.",
                 "descr": "Very big head. Tall enough to rest her chin upon Alice\u2019s shoulder, uncomfortably sharp chin.",
+                "personality": "",
+                "occupation": "",
+                "age": 0,
                 "type": "Npc",
-                "race": "human",
+                "race": "",
                 "gender": "f",
                 "level": 1,
                 "stats": {
@@ -85,10 +98,10 @@
                     "strength": 3,
                     "dexterity": 3,
                     "unarmed_attack": "FISTS"
-                }
+                                }
             },
             "ace of spades": {
-                "location": "Living Room",
+                "location": "Living room",
                 "name": "Ace of spades",
                 "title": "Ace of Spades",
                 "aliases": [
@@ -96,8 +109,11 @@
                 ],
                 "short_descr": "A man with leather jacket and a black top hat.",
                 "descr": "Thin man with eyeliner and a vacant expression. Wearing a black leather jacket and a black top hat.",
+                "personality": "",
+                "occupation": "",
+                "age": 0,
                 "type": "Npc",
-                "race": "human",
+                "race": "",
                 "gender": "m",
                 "level": 1,
                 "stats": {
@@ -115,7 +131,7 @@
                     "strength": 3,
                     "dexterity": 3,
                     "unarmed_attack": "FISTS"
-                }
+                                }
             }
         },
         "items": {}

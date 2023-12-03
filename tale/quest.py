@@ -1,7 +1,6 @@
 
 from enum import IntEnum
 
-
 class QuestStatus(IntEnum):
     NOT_STARTED = 0
     NOT_COMPLETED = 1
@@ -62,3 +61,4 @@ class Quest():
 
     def __str__(self):
         return "Quest: %s, type:%s, %s, reason:%s, %s, %s" % (self.name, self.type, self.target, self.reason, self.giver, self.reward)
+    

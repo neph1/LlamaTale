@@ -6,11 +6,13 @@ from tale.base import Location
 from tale.llm.character import CharacterBuilding
 from tale.llm.llm_ext import DynamicStory
 from tale.llm.llm_io import IoUtil
+from tale.llm.quest_building import QuestBuilding
 from tale.llm.story_building import StoryBuilding
 from tale.llm.world_building import WorldBuilding
 from tale.player_utils import TextBuffer
 import tale.parse_utils as parse_utils
 import tale.llm.llm_cache as llm_cache
+from tale.quest import Quest
 from tale.zone import Zone
 
 class LlmUtil():
@@ -43,6 +45,9 @@ class LlmUtil():
                                     io_util=self.io_util,
                                     default_body=self.default_body)
         self._story_building = StoryBuilding(default_body=self.default_body,
+                                             io_util=self.io_util,
+                                             backend=self.backend)
+        self._quest_building = QuestBuilding(default_body=self.default_body,
                                              io_util=self.io_util,
                                              backend=self.backend)
 
@@ -119,7 +124,7 @@ class LlmUtil():
     def get_neighbor_or_generate_zone(self, current_zone: Zone, current_location: Location, target_location: Location) -> Zone:
         return self._world_building.get_neighbor_or_generate_zone(current_zone, current_location, target_location, self.__story)
 
-    def build_location(self, location: Location, exit_location_name: str, zone_info: dict, world_items: dict = {}, world_creatures: dict = {}, neighbors: dict = {}):
+    def build_location(self, location: Location, exit_location_name: str, zone_info: dict, world_items: dict = {}, world_creatures: dict = {}, neighbors: dict = {}) -> (list, list, list):
         """ Generate a location based on the current story context"""
         return self._world_building.build_location(location, 
                                                    exit_location_name, 
@@ -155,11 +160,18 @@ class LlmUtil():
     def generate_start_zone(self, location_desc: str, story_type: str, story_context: str, world_info: dict) -> Zone:
         return self._world_building.generate_start_zone(location_desc, story_type, story_context, world_info)
     
-    def generate_world_items(self, story_context: str, story_type: str, world_info: str, world_mood: int) -> dict:
-        return self._world_building.generate_world_items(story_context, story_type, world_info, world_mood)
+    def generate_world_items(self, story_context: str = '', story_type: str = '', world_info: str = '', world_mood: int = None) -> dict:
+        return self._world_building.generate_world_items(story_context or self.__story.config.context, 
+                                                            story_type or self.__story.config.type, 
+                                                            world_info or self.__story.config.world_info, 
+                                                            world_mood or self.__story.config.world_mood)
+        
     
-    def generate_world_creatures(self, story_context: str, story_type: str, world_info: str, world_mood: int) -> dict:
-        return self._world_building.generate_world_creatures(story_context, story_type, world_info, world_mood)
+    def generate_world_creatures(self, story_context: str = '', story_type: str = '', world_info: str = '', world_mood: int = None) -> dict:
+        return self._world_building.generate_world_creatures(story_context or self.__story.config.context, 
+                                                             story_type or self.__story.config.type, 
+                                                             world_info or self.__story.config.world_info, 
+                                                             world_mood or self.__story.config.world_mood)
         
     def generate_random_spawn(self, location: Location, zone_info: dict):
         return self._world_building.generate_random_spawn(location=location, 
@@ -170,8 +182,8 @@ class LlmUtil():
                                                           world_creatures=self.__story.catalogue._creatures,
                                                           world_items=self.__story.catalogue._items)
     
-    def generate_quest(self, base_quest: dict, character_name: str, location: Location, character_card: str, zone_info: dict, event_history: str = ''):
-        return self._character.generate_quest(base_quest=base_quest,
+    def generate_quest(self, base_quest: dict, character_name: str, location: Location, character_card: str, zone_info: dict, event_history: str = '') -> Quest:
+        return self._quest_building.generate_quest(base_quest=base_quest,
                                               character_name=character_name, 
                                               character_card=character_card, 
                                               location=location, 
@@ -180,6 +192,18 @@ class LlmUtil():
                                               world_info=self.__story.config.world_info, 
                                               zone_info=zone_info, 
                                               event_history=event_history)
+    
+    def generate_note_quest(self, zone_info: dict) -> Quest:
+        return self._quest_building.generate_note_quest(story_context=self.__story.config.context, 
+                                                        story_type=self.__story.config.type, 
+                                                        world_info=self.__story.config.world_info, 
+                                                        zone_info=zone_info)
+  
+    def generate_note_lore(self, zone_info: dict) -> str:
+        return self._world_building.generate_note_lore(story_context=self.__story.config.context, 
+                                                        story_type=self.__story.config.type, 
+                                                        world_info=self.__story.config.world_info, 
+                                                        zone_info=zone_info)
   
     def set_story(self, story: DynamicStory):
         """ Set the story object."""

@@ -3,6 +3,7 @@ import pytest
 from tale.base import Item, Location
 from tale.coord import Coord
 from tale.llm.LivingNpc import LivingNpc
+from tale.llm.item_handling_result import ItemHandlingResult
 from tale.llm.llm_ext import DynamicStory
 from tale.player import Player
 from tale.zone import Zone
@@ -27,7 +28,7 @@ class TestLivingNpc():
 
         player = Player(name='player', gender='m')
         location.init_inventory([npc, player])
-        item_result = json.loads('{"from":"test", "to":"player", "item":"ale"}')
+        item_result = ItemHandlingResult(item='ale', to='player', from_='test')
 
         npc.handle_item_result(item_result, player)
         assert(not npc.search_item('ale'))
@@ -40,7 +41,7 @@ class TestLivingNpc():
 
         player = Player(name='player', gender='m')
         location.init_inventory([npc, player])
-        item_result = json.loads('{"from":"test", "to":"user", "item":"ale"}')
+        item_result = ItemHandlingResult(item='ale', to='user', from_='test')
 
         npc.handle_item_result(item_result, player)
         assert(not npc.search_item('ale', include_location=False))
@@ -53,7 +54,7 @@ class TestLivingNpc():
 
         player = Player(name='player', gender='m')
         location.init_inventory([npc, player])
-        item_result = json.loads('{"from":"test", "to":"", "item":"ale"}')
+        item_result = ItemHandlingResult(item='ale', to='', from_='test')
 
         npc.handle_item_result(item_result, player)
 
