@@ -638,7 +638,7 @@ class Driver(pubsub.Listener):
             dynamic_story = typing.cast(DynamicStory, self.story)
             zone = dynamic_story.find_zone(location=xt.target.name)
             self.llm_util.generate_random_spawn(xt.target, zone.get_info())
-        else:
+        elif isinstance(self.story, DynamicStory):
             dynamic_story = typing.cast(DynamicStory, self.story)
             zone = dynamic_story.find_zone(location=player.location.name)
             new_zone = dynamic_story.find_zone(location=xt.target.name)

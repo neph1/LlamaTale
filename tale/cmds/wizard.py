@@ -753,20 +753,20 @@ def do_enrich(player: Player, parsed: base.ParseResult, ctx: util.Context) -> No
             player.tell("(generated: %s, items)" % (len(items)))
             for item in items:
                 ctx.driver.story._catalogue.add_item(item)
-                return
+        return
     if parsed.args[0] == "creatures":
         creatures = ctx.driver.llm_util.generate_world_creatures()
         if creatures:
             player.tell("(generated: %s, creatures)" % (len(creatures)))
             for creature in creatures:
-                ctx.driver.story._catalogue.add_living(creature)
-                return
+                ctx.driver.story._catalogue.add_creature(creature)
+        return
     
 @wizcmd("add_event")
 def do_add_event(player: Player, parsed: base.ParseResult, ctx: util.Context) -> None:
     """ Add an event that happens in the current location. """
     if len(parsed.args) < 1:
-        raise ParseError("You need to define an event inside ''")
+        raise ParseError("You need to define an event")
     player.location._notify_action_all( base.ParseResult(verb='location-event', unparsed=parsed.unparsed, who_info=None), actor=None)
     player.location.tell(parsed.unparsed, evoke=False)
 

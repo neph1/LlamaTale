@@ -242,7 +242,7 @@ class WorldBuilding():
         
 
     def generate_world_items(self, story_context: str, story_type: str, world_info: str, world_mood: int) -> dict:
-        """ Since 0.16.1 returns a json list, rather than a list of items"""
+        """ Since 0.16.1 returns a json array, rather than a list of items"""
         prompt = self.world_items_prompt.format(story_context=story_context,
                                                 story_type=story_type,
                                                 world_info=world_info,
@@ -262,7 +262,7 @@ class WorldBuilding():
             return None
     
     def generate_world_creatures(self, story_context: str, story_type: str, world_info: str, world_mood: int):
-        """ Since 0.16.1 returns a json list, rather than a list of creatures"""
+        """ Since 0.16.1 returns a json array, rather than a list of creatures"""
         prompt = self.world_creatures_prompt.format(story_context=story_context,
                                                 story_type=story_type,
                                                 world_info=world_info,

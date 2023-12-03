@@ -149,7 +149,7 @@ def load_npcs(json_npcs: [], locations = {}) -> dict:
         if 'npc' in npc_type.lower():
             
             new_npc = StationaryNpc(name=name, 
-                                gender=lang.validate_gender_mf(npc.get('gender', 'm')[0]), 
+                                gender=lang.validate_gender(npc.get('gender', 'm')[0]), 
                                 race=npc.get('race', 'human').lower(), 
                                 title=npc.get('title', name), 
                                 descr=npc.get('descr', ''), 
@@ -163,7 +163,7 @@ def load_npcs(json_npcs: [], locations = {}) -> dict:
         else:
 
             new_npc = StationaryMob(name=npc['name'], 
-                                gender=lang.validate_gender_mf(npc.get('gender', 'm')[0]), 
+                                gender=lang.validate_gender(npc.get('gender', 'm')[0]), 
                                 race=npc.get('race', 'human').lower(), 
                                 title=npc.get('title', npc['name']), 
                                 descr=npc.get('descr', ''), 
@@ -586,7 +586,7 @@ def save_npcs(creatures: []) -> dict:
             stored_npc['type'] = 'Mob'
         if npc.stats:
             stored_npc['race'] = npc.stats.race
-            stored_npc['gender'] = npc.gender
+            stored_npc['gender'] = lang.gender_string(npc.gender)
             stored_npc['title'] = npc.title
             stored_npc['descr'] = npc.description
             stored_npc['short_descr'] = npc.short_description

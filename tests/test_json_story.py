@@ -81,8 +81,6 @@ class TestAnythingStory():
         assert(zone.level == 5)
         assert(zone.mood == -5)
 
-
-
         gas_station = story.get_location('The Cursed Swamp', 'Abandoned gas station')
         assert(gas_station)
         assert(gas_station.name == 'Abandoned gas station')
@@ -111,5 +109,6 @@ class TestAnythingStory():
 
 
         print(story.get_catalogue.get_items())
-        assert(len(story.get_catalogue.get_items()) == 10) # 8 story items + 2 generic items
+
+        assert(len(story.get_catalogue.get_items()) == 8 + len(generic.generic_items.get(''))) # 8 story items + generic items
         assert(len(story.get_catalogue.get_creatures()) == 5)
