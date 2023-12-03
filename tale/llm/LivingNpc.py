@@ -191,7 +191,7 @@ class LivingNpc(Living):
 
     def tell_action_deferred(self):
         if (self.deferred_tell):
-            self.tell_others(self.deferred_tell)
+            self.tell_others(self.deferred_tell + '\n')
             self.location._notify_action_all(self.deferred_result, actor=self)
             self.deferred_tell = ''
             self.deferred_result = None

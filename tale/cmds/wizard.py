@@ -767,6 +767,8 @@ def do_add_event(player: Player, parsed: base.ParseResult, ctx: util.Context) ->
     """ Add an event that happens in the current location. """
     if len(parsed.args) < 1:
         raise ParseError("You need to define an event")
-    player.location._notify_action_all( base.ParseResult(verb='location-event', unparsed=parsed.unparsed, who_info=None), actor=None)
-    player.location.tell(parsed.unparsed, evoke=False)
+    
+    
+    player.location._notify_action_all( base.ParseResult(verb='location-event', unparsed=parsed.args[0], who_info=None), actor=None)
+    player.location.tell( lang.capital(parsed.args[0]) + '\n', evoke=False)
 

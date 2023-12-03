@@ -54,37 +54,32 @@ class TestEnrichCommand():
 
 class TestEvents():
 
-    context = tale._MudContext()
-    context.config = StoryConfig()
-    io_util = FakeIoUtil(response='')
-    llm_util = LlmUtil(io_util)
-    story = DynamicStory()
-    llm_util.set_story(story)
-
     test_player = Player('test', 'f')
     test_player.privileges.add('wizard')
     
-    context.driver = FakeDriver()
-    
-    context.driver.llm_util = llm_util
-    context.driver.story = story
-    tale.mud_context = context
-    tale.mud_context.llm_util.set_story(story)
-    
+
     def test_add_event_no_parse(self):
         parse_result = ParseResult(verb='add_event', args=[])
         with pytest.raises(ParseError, match="You need to define an event"):
-            wizard.do_add_event(self.test_player, parse_result, self.context)
+            wizard.do_add_event(self.test_player, parse_result, tale._MudContext())
 
     def test_add_event(self):
+        context = tale.mud_context
+        context.config = StoryConfig()
+        io_util = FakeIoUtil(response='')
+        llm_util = LlmUtil(io_util)
+        story = DynamicStory()
+        llm_util.set_story(story)
+        context.driver = FakeDriver()
+        context.driver.llm_util = llm_util
         event_string = 'a foreboding storm approaches'
         test_location = Location('test_location')
-        self.story.add_location(test_location)
+        story.add_location(test_location)
         test_npc = LivingNpc('test_npc', 'f', age=30)
         test_location.insert(test_npc, actor=None)
         test_location.insert(self.test_player, actor=None)
         parse_result = ParseResult(verb='add_event', args=[event_string], unparsed=event_string)
-        wizard.do_add_event(self.test_player, parse_result, self.context)
+        wizard.do_add_event(self.test_player, parse_result, context)
         dumped = tale.llm.llm_cache.json_dump()
         events = dumped['events'].values()
         for event in events:
