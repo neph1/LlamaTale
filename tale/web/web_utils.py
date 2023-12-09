@@ -11,7 +11,7 @@ def create_chat_container(text: str) -> str:
     separated = text.split(dialogue_splitter)
     name = separated[0]
     content = separated[1]
-    image_file = separated[0].lower().replace(' ', '_') + '.png'
+    image_file = separated[0].lower().replace(' ', '_') + '.jpg'
     html = '<div class="chat-container">\n'
     html += '<div class="user-name" content="%s"></div>\n' % name
     html += '<img class="user-image" src="static/resources/%s" alt="%s"/>\n' % (image_file, name)
