@@ -9,6 +9,7 @@ from tale.player import Player
 from typing import Sequence
 
 from tale.quest import Quest
+from tale.resources_utils import pad_text_for_npc
 
 
 class LivingNpc(Living):
@@ -83,23 +84,29 @@ class LivingNpc(Living):
         self._conversations.append(tell_hash)
         short_len = False if isinstance(actor, Player) else True
 
-        response, item, sentiment = mud_context.driver.llm_util.generate_dialogue(
-            conversation=llm_cache.get_tells(self._conversations),
-            character_card = self.character_card,
-            character_name = self.title,
-            target = actor.title,
-            target_description = actor.short_description,
-            sentiment = self.sentiments.get(actor.title, ''),
-            location_description=self.location.look(exclude_living=self),
-            event_history=llm_cache.get_events(self._observed_events),
-            short_len=short_len)
+        for i in range(3):
+            response, item, sentiment = mud_context.driver.llm_util.generate_dialogue(
+                conversation=llm_cache.get_tells(self._conversations),
+                character_card = self.character_card,
+                character_name = self.title,
+                target = actor.title,
+                target_description = actor.short_description,
+                sentiment = self.sentiments.get(actor.title, ''),
+                location_description=self.location.look(exclude_living=self),
+                event_history=llm_cache.get_events(self._observed_events),
+                short_len=short_len)
+            if response:
+                break
+        if not response:
+            raise TaleError("Failed to parse dialogue")
 
         tell_hash = llm_cache.cache_tell('{actor.title}:{response}'.format(actor=self.title, response=response))
         self._conversations.append(tell_hash)
-        self.tell_others("{response}".format(response=response), evoke=False)
+        if mud_context.driver.custom_resources:
+            response = pad_text_for_npc(response, self.title)
+        self.tell_others(response, evoke=False)
         if item:
-            item_result = {"item":item, "to":actor.title, "from":self.title if self.title else self.name}
-            self.handle_item_result(item_result, actor)
+            self.handle_item_result(ItemHandlingResult(item=item, from_=self.title, to=actor.title), actor)
 
         if sentiment:
             self.sentiments[actor.title] = sentiment
@@ -115,6 +122,9 @@ class LivingNpc(Living):
         if action:
             self.action_history.append(action)
             self.deferred_result = ParseResult(verb='idle-action', unparsed=action, who_info=None)
+
+            if mud_context.driver.custom_resources:
+                action = pad_text_for_npc(action, self.title)
             self.deferred_tell = action
             mud_context.driver.defer(1.0, self.tell_action_deferred)
 
@@ -122,7 +132,7 @@ class LivingNpc(Living):
         if result.to == self.title:
             item = actor.search_item(result.item)
             if not item:
-                raise TaleError("item not found on actor %s " % item)
+                return False # fail silently
             actor.remove(item, actor=actor)
             item.move(target=self, actor=self)
             actor.tell_others("{Actor} gives %s to %s" % (item.title, self.title), evoke=False)
@@ -131,7 +141,7 @@ class LivingNpc(Living):
         if result.from_  == self.title:
             item = self.search_item(result.item)
             if not item:
-                raise TaleError("item not found on actor %s " % item)
+                return False # fail silently
             self.remove(item, actor=self)
             if result.to:
                 if result.to == actor.name or result.to == actor.title:
@@ -174,6 +184,8 @@ class LivingNpc(Living):
             action = self.planned_actions.pop(0)
             self.action_history.append(action)
             self.deferred_result = ParseResult(verb='idle-action', unparsed=action, who_info=None)
+            if mud_context.driver.custom_resources:
+                action = pad_text_for_npc(action, self.title)
             self.deferred_tell = action
             mud_context.driver.defer(1.0, self.tell_action_deferred)
             #self.location.notify_action(result, actor=self)
