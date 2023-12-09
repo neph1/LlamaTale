@@ -27,7 +27,7 @@ h1 {
     text-shadow: 2px 2px 4px rgba(150, 150, 150, 1);
 }
 
-.txt-monospaced, .txt-userinput, pre, #input-cmd {
+.txt-monospaced, .txt-userinput, pre, #input-cmd, .text-field {
     font-family: Monaco, "DejaVu Sans Mono", "Bitstream Vera Sans Mono", Consolas, "Courier New", monospace;
     line-height: 1.2;
     font-size: 11pt;
@@ -44,7 +44,7 @@ pre {
 #input-cmd {
     padding: 3px;
     width: 28em;
-    border: 1px inset cadetblue;
+    border: 1px inset gainsboro;
 }
 .location {
     text-align: right;
@@ -60,7 +60,7 @@ pre {
     width: 100%;
 }
 #textframe {
-    border: 1px solid cadetblue;
+    border: 1px solid gainsboro;
     overflow: auto;
     height: 34em;
     margin-bottom: 1em;
@@ -122,4 +122,39 @@ p, pre {
 .start-story-link {
     font-size: 200%;
     text-shadow: 2px 2px 4px rgba(150, 150, 150, 1);
+}
+
+.chat-container {
+    display: flex;
+    align-items: center;
+    padding: 10px;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+    margin-bottom: 10px;
+}
+
+.user-name {
+    margin-bottom: 5px;
+}
+
+.user-image {
+    width: 50px;
+    height: 50px;
+    border-radius: 10px;
+    margin-right: 10px;
+}
+
+.text-field {
+    flex-grow: 1;
+    padding: 8px;
+    border: 1px solid #ddd;
+    color: white;
+    border-radius: 5px;
+}
+
+.location-image {
+    width: 320px;
+    height: 240px;
+    border-radius: 10px;
+    margin-right: 10px;
 }

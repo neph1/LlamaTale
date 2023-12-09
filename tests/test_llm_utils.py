@@ -155,8 +155,9 @@ class TestLlmUtils():
         assert(item == None)
         assert(sentiment == None)
 
-
-
+    def test_init_image_gen(self):
+        self.llm_util._init_image_gen("automatic1111")
+        assert(self.llm_util.image_gen)
 
 class TestWorldBuilding():
 

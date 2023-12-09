@@ -42,7 +42,9 @@ class CharacterV2():
                  age: int=30, 
                  money: int=0,
                  hp: int=10,
-                 aliases: list=[]) -> None:
+                 aliases: list=[],
+                 avatar: str = '',
+                 wearing: str= '') -> None:
         self.name = name
         self.race = race
         self.gender = gender
@@ -54,6 +56,8 @@ class CharacterV2():
         self.age = age
         self.money = money
         self.hp = hp
+        self.avatar = avatar
+        self.wearing = wearing
         if aliases:
             self.aliases = aliases
         
@@ -70,6 +74,8 @@ class CharacterV2():
         self.age = json.get('age', 30)
         self.money = json.get('money', 0)
         self.hp = json.get('hp', 10)
-        self.aliases = json.get('aliases', [])
+        self.aliases = json.get('aliases', []),
+        self.avatar = json.get('avatar', ''),
+        self.wearing = json.get('wearing', '')
         return self
         

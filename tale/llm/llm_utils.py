@@ -37,6 +37,7 @@ class LlmUtil():
         self.io_util = io_util or IoUtil(config=config_file)
         self.stream = config_file['STREAM']
         self.connection = None
+        
         #self._look_hashes = dict() # type: dict[int, str] # location hashes for look command. currently never cleared.
         self._world_building = WorldBuilding(default_body=self.default_body,
                                              io_util=self.io_util,
@@ -119,7 +120,12 @@ class LlmUtil():
         return rolling_prompt
     
     def generate_character(self, story_context: str = '', keywords: list = [], story_type: str = ''):
-        return self._character.generate_character(story_context, keywords, story_type)
+        character = self._character.generate_character(story_context, keywords, story_type)
+        if not character.avatar and self.__story.config.image_gen:
+            result = self.__story.config.image_gen.generate_image(character.appearance, character.name)
+            if result:
+                character.avatar = character.name + '.jpg'
+        return character
     
     def get_neighbor_or_generate_zone(self, current_zone: Zone, current_location: Location, target_location: Location) -> Zone:
         return self._world_building.get_neighbor_or_generate_zone(current_zone, current_location, target_location, self.__story)
@@ -208,6 +214,14 @@ class LlmUtil():
     def set_story(self, story: DynamicStory):
         """ Set the story object."""
         self.__story = story
+        if story.config.image_gen:
+            self._init_image_gen(story.config.image_gen)
+
+    def _init_image_gen(self, image_gen: str):
+        """ Initialize the image generator"""
+        mod = __import__('tale.image_gen', fromlist=[image_gen])
+        self.image_gen = getattr(mod, image_gen)
+
 
     def _kobold_generation_prompt(self, request_body: dict) -> dict:
         """ changes some parameters for better generation of locations in kobold_cpp"""

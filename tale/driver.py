@@ -6,6 +6,7 @@ Copyright by Irmen de Jong (irmen@razorvine.net)
 """
 
 import collections
+import copy
 import datetime
 import heapq
 import importlib
@@ -14,6 +15,7 @@ import os
 import pathlib
 import pkgutil
 import random
+import shutil
 import sys
 import threading
 import time
@@ -38,6 +40,7 @@ from .errors import StoryCompleted, StoryConfigError
 from tale.load_character import CharacterLoader, CharacterV2
 from tale.llm.llm_ext import DynamicStory
 from tale.llm.llm_utils import LlmUtil
+from tale.web.web_utils import clear_resources, load_web_resources
 
 
 topic_pending_actions = pubsub.topic("driver-pending-actions")
@@ -254,6 +257,10 @@ class Driver(pubsub.Listener):
         if self.game_mode not in self.story.config.supported_modes:
             raise ValueError("driver mode '%s' not supported by this story. Valid modes: %s" %
                              (self.game_mode, list(self.story.config.supported_modes)))
+        if self.story.config.custom_resources:
+            load_web_resources(gamepath)
+            self.custom_resources = True
+
         self.story.config.mud_host = self.story.config.mud_host or "localhost"
         self.story.config.mud_port = self.story.config.mud_port or 8180
         self.story.config.server_mode = self.game_mode
@@ -374,6 +381,8 @@ class Driver(pubsub.Listener):
             conn.write_output()
             conn.destroy()
         self.all_players.clear()
+        if self.story.config.custom_resources:
+            clear_resources()
         time.sleep(0.1)
 
     def _continue_dialog(self, conn: player.PlayerConnection, dialog: Generator, message: str) -> None:
@@ -886,7 +895,7 @@ class Driver(pubsub.Listener):
                                                     attacker_msg=attacker_msg,
                                                     location=location_title,
                                                     location_description=location_description)
-    
+
     def build_location(self, targetLocation: base.Location, zone: Zone, player: player.Player):
         dynamic_story = typing.cast(DynamicStory, self.story)
         neighbor_locations = dynamic_story.neighbors_for_location(targetLocation)

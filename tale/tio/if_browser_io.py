@@ -16,6 +16,8 @@ from typing import Iterable, Sequence, Tuple, Any, Optional, Dict, Callable, Lis
 from urllib.parse import parse_qs
 from wsgiref.simple_server import make_server, WSGIRequestHandler, WSGIServer
 
+from tale.web.web_utils import create_chat_container, dialogue_splitter
+
 from . import iobase
 from .. import vfs, lang
 from .styleaware_wrapper import tag_split_re
@@ -138,7 +140,10 @@ class HttpIo(iobase.IoAdapterBase):
                 text = self.convert_to_html(text)
                 if text == "\n":
                     text = "<br>"
-                if formatted:
+                if dialogue_splitter in text:
+                    text = create_chat_container(text)
+                    self.__html_to_browser.append("<p>" + text + "</p>\n")
+                elif formatted:
                     self.__html_to_browser.append("<p>" + text + "</p>\n")
                 else:
                     self.__html_to_browser.append("<pre>" + text + "</pre>\n")
