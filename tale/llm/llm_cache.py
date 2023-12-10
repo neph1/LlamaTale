@@ -48,7 +48,7 @@ def cache_tell(tell: str, tell_hash: int = -1) -> int:
 
 def get_tells(tell_hashes: [int]) -> str:
     """ Gets tells from the cache as a string """
-    return "<break> ".join([tell_cache.get(tell_hash, '') for tell_hash in tell_hashes])
+    return "<break>".join([tell_cache.get(tell_hash, '') for tell_hash in tell_hashes])
 
 
 def load(cache_file: dict):

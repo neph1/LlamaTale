@@ -2,6 +2,7 @@ import random
 
 from tale.base import Location, Item, Exit, Door, Key, Living, ParseResult, Weapon
 from tale.errors import StoryCompleted
+from tale.items.basic import Note
 from tale.lang import capital
 from tale.player import Player
 from tale.util import Context, call_periodically
@@ -66,6 +67,15 @@ old_map = Item("map", "map", descr="It looks like a map, and a cave is marked on
 
 norhardt.init_inventory([old_map])
 
+quest = Quest("talk to Count Karta", 
+              QuestType.TALK, 
+              target='count karta',
+              reason="Esteemed Adventurer,\n\nIn shadows, I scribe a plea for justice. Once a lord, now betrayed and banished, I seek allies to reclaim my birthright. Treasonous whispers echo in ancestral halls. Will you be the steadfast ally I need? Seek me out, and together we shall unveil the truth. A clandestine meeting awaits.\n\nYours in retribution,\n Count Karta")
+count_karta.quest = quest
+note = Note(name='sealed note', short_descr='A note with a wax seal')
+note.text = quest.reason
+entrance.init_inventory([note])
+
 all_locations = [main_hall, bar, kitchen, hearth, entrance, outside, cellar]
 
 def _generate_character():
@@ -74,14 +84,14 @@ def _generate_character():
     for i in range(5):
         verbs.append(random.choice(list(VERBS.keys())))
 
-    character = mud_context.driver.llm_util.generate_character(story_context=mud_context.config.context, keywords=verbs) # Characterv2
+    character = mud_context.driver.llm_util.generate_character(story_context='', story_type='fantasy', keywords=verbs) # Characterv2
     if character:
         patron = RoamingPatron(character.name, 
                         gender=character.gender, 
                         title=lang.capital(character.name), 
                         descr=character.description, 
                         short_descr=character.appearance, 
-                        age=character.age, 
+                        age=character.age,
                         personality=character.personality)
         patron.aliases = [character.name.split(' ')[0]]
         location = all_locations[random.randint(0, len(all_locations) - 1)]
@@ -90,7 +100,7 @@ def _generate_character():
     return False
 
 # 5 attempts to generate 2 characters
-generated = 0
+# generated = 0
 # for i in range(5):
 #     if _generate_character():
 #         generated += 1

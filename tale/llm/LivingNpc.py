@@ -123,7 +123,7 @@ class LivingNpc(Living):
             self.action_history.append(action)
             self.deferred_result = ParseResult(verb='idle-action', unparsed=action, who_info=None)
 
-            if mud_context.driver.custom_resources:
+            if mud_context.driver.story.config.custom_resources:
                 action = pad_text_for_npc(action, self.title)
             self.deferred_tell = action
             mud_context.driver.defer(1.0, self.tell_action_deferred)
@@ -184,7 +184,7 @@ class LivingNpc(Living):
             action = self.planned_actions.pop(0)
             self.action_history.append(action)
             self.deferred_result = ParseResult(verb='idle-action', unparsed=action, who_info=None)
-            if mud_context.driver.custom_resources:
+            if mud_context.driver.story.config.custom_resources:
                 action = pad_text_for_npc(action, self.title)
             self.deferred_tell = action
             mud_context.driver.defer(1.0, self.tell_action_deferred)
