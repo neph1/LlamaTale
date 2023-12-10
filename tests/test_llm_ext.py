@@ -89,7 +89,7 @@ class TestLivingNpc():
         assert(memories['sentiments'] == npc_clean.sentiments)
 
         assert(llm_cache.get_events(npc_clean._observed_events) == 'test_event, test_event 2')
-        assert(llm_cache.get_tells(npc_clean._conversations) == 'test_tell, test_tell_2, test_tell_3')
+        assert(llm_cache.get_tells(npc_clean._conversations) == 'test_tell<break>test_tell_2<break>test_tell_3')
 
 
 class TestDynamicStory():

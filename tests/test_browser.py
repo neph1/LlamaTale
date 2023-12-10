@@ -34,5 +34,5 @@ class TestHttpIo:
         result = http_io.get_html_to_browser()[0]
         assert "chat-container" in result
         assert '<div class="user-name" content="Bloated Murklin"></div>' in result
-        assert '<div class="text-field" type="text" content="Hello World!"/>' in result
+        assert '<div class="text-field" type="text">Hello World!</div>' in result
         

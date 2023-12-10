@@ -23,6 +23,13 @@ class TestLlmIo():
                 print(exc)
         self.llm_io.user_start_prompt = self.config_file['USER_START']
         self.llm_io.user_end_prompt = self.config_file['USER_END']
+        self.llm_io.backend = self.config_file['BACKEND']
+        self.backend = self.config_file['BACKEND']
+        with open(os.path.realpath(os.path.join(os.path.dirname(__file__), f"../backend_{self.backend}.yaml")), "r") as stream:
+            try:
+                self.backend_config = yaml.safe_load(stream)
+            except yaml.YAMLError as exc:
+                print(exc)
 
     def test_set_prompt_kobold_cpp(self):
         self.llm_io.backend = 'kobold_cpp'
@@ -31,11 +38,11 @@ class TestLlmIo():
         assert('### Response' not in prompt)
         assert('USER_START' in prompt)
         assert('USER_END' not in prompt)
-        request_body = json.loads(self.config_file['DEFAULT_BODY'])
+        request_body = json.loads(self.backend_config['DEFAULT_BODY'])
 
         result = self.llm_io._set_prompt(request_body, prompt)
-        assert('### Instruction' in result['prompt'])
-        assert('### Response' in result['prompt'])
+        assert(self.config_file['USER_START'] in result['prompt'])
+        assert(self.config_file['USER_END'] in result['prompt'])
 
     def test_set_prompt_openai(self):
         self.llm_io.backend = 'openai'
@@ -44,8 +51,21 @@ class TestLlmIo():
         assert('### Response' not in prompt)
         assert('USER_START' in prompt)
         assert('USER_END' not in prompt)
-        request_body = json.loads(self.config_file['OPENAI_BODY'])
+        request_body = json.loads(self.backend_config['DEFAULT_BODY'])
 
         result = self.llm_io._set_prompt(request_body, prompt)
-        assert('### Instruction' in result['messages'][1]['content'])
-        assert('### Response' in result['messages'][1]['content'])
+        assert(self.config_file['USER_START'] in result['messages'][1]['content'])
+        assert(self.config_file['USER_END'] in result['messages'][1]['content'])
+
+    def test_set_prompt_llama_cpp(self):
+        self.llm_io.backend = 'llama_cpp'
+        prompt = self.config_file['BASE_PROMPT']
+        assert('### Instruction' not in prompt)
+        assert('### Response' not in prompt)
+        assert('USER_START' in prompt)
+        assert('USER_END' not in prompt)
+        request_body = json.loads(self.backend_config['DEFAULT_BODY'])
+
+        result = self.llm_io._set_prompt(request_body, prompt)
+        assert(self.config_file['USER_START'] in result['messages'][1]['content'])
+        assert(self.config_file['USER_END'] in result['messages'][1]['content'])

@@ -56,7 +56,7 @@ class TestLlmCache():
         llm_cache.cache_tell("test2", tell_hash2)
         assert llm_cache.get_tells([tell_hash2]) == "test2"
 
-        assert llm_cache.get_tells([tell_hash, tell_hash2]) == "test, test2"
+        assert llm_cache.get_tells([tell_hash, tell_hash2]) == "test<break>test2"
 
     def test_load(self):
         """ Test load function """
