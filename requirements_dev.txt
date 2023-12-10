@@ -7,6 +7,7 @@ serpent>=1.23
 aiohttp==3.8.5
 pillow
 packaging==20.3
-#pillow>=8.3.2
+pillow>=8.3.2
+responses==0.13.3
 
 
