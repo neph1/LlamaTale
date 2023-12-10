@@ -6,11 +6,11 @@ import yaml
 
 from tale.image_gen.base_gen import ImageGeneratorBase
 
-class Automatic1111Interface(ImageGeneratorBase):
+class Automatic1111(ImageGeneratorBase):
     """ Generating images using the AUTOMATIC1111 API (stable-diffusion-webui)"""
 
 
-    def __init__(self, address: str = 'localhost', port: int = 7860) -> None:
+    def __init__(self, address: str = '127.0.0.1', port: int = 7860) -> None:
         super().__init__("/sdapi/v1/txt2img", address, port)
         with open(os.path.realpath(os.path.join(os.path.dirname(__file__), "../../automatic1111_config.yaml")), "r") as stream:
             try:

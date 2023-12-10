@@ -1,5 +1,5 @@
-URL: "http://localhost:5001" # "http://127.0.0.1:8081" # " "https://api.openai.com"
-ENDPOINT: "/api/v1/generate" #  "/v1/chat/completions" # "
+URL: "http://localhost:5001"
+ENDPOINT: "/api/v1/generate"
 STREAM: False
 STREAM_ENDPOINT: "/api/extra/generate/stream"
 DATA_ENDPOINT: "/api/extra/generate/check"

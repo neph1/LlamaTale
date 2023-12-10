@@ -1,9 +1,7 @@
-import json
 import os
-import requests
 import io
 import base64
-from PIL import Image, PngImagePlugin
+from PIL import Image
 
 
 class ImageGeneratorBase():

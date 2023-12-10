@@ -40,7 +40,7 @@ from .errors import StoryCompleted, StoryConfigError
 from tale.load_character import CharacterLoader, CharacterV2
 from tale.llm.llm_ext import DynamicStory
 from tale.llm.llm_utils import LlmUtil
-from tale.web.web_utils import clear_resources, load_web_resources
+from tale.web.web_utils import clear_resources, copy_web_resources
 
 
 topic_pending_actions = pubsub.topic("driver-pending-actions")
@@ -258,7 +258,7 @@ class Driver(pubsub.Listener):
             raise ValueError("driver mode '%s' not supported by this story. Valid modes: %s" %
                              (self.game_mode, list(self.story.config.supported_modes)))
         if self.story.config.custom_resources:
-            load_web_resources(gamepath)
+            copy_web_resources(gamepath)
             self.custom_resources = True
 
         self.story.config.mud_host = self.story.config.mud_host or "localhost"

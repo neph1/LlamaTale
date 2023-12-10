@@ -31,6 +31,7 @@ class LivingNpc(Living):
         self.quest = None # type: Quest # a quest object
         self.deferred_tell = ''
         self.deferred_result = None
+        self.avatar = None
 
     def notify_action(self, parsed: ParseResult, actor: Living) -> None:
         # store even our own events.
@@ -96,6 +97,10 @@ class LivingNpc(Living):
                 event_history=llm_cache.get_events(self._observed_events),
                 short_len=short_len)
             if response:
+                if not self.avatar:
+                    result = mud_context.driver.llm_util.generate_avatar(self.name, self.description)
+                    if result:
+                        self.avatar = self.name + '.jpg'
                 break
         if not response:
             raise TaleError("Failed to parse dialogue")
@@ -216,7 +221,7 @@ class LivingNpc(Living):
         items = []
         for i in self.inventory:
             items.append(f'"{str(i.name)}"')
-        return '{{"name":"{name}", "gender":"{gender}","age":{age},"occupation":"{occupation}","personality":"{personality}","appearance":"{description}","items":[{items}], "race":"{race}", "quest":"{quest}"}}'.format(
+        return '{{"name":"{name}", "gender":"{gender}","age":{age},"occupation":"{occupation}","personality":"{personality}","appearance":"{description}","items":[{items}], "race":"{race}", "quest":"{quest}", "wearing":"{wearing}"}}'.format(
                 name=self.title,
                 gender=lang.gender_string(self.gender),
                 age=self.age,
@@ -225,6 +230,7 @@ class LivingNpc(Living):
                 occupation=self.occupation,
                 race=self.stats.race,
                 quest=self.quest,
+                wearing=','.join([f'"{str(i.name)}"' for i in self.get_worn_items()]),
                 items=','.join(items))
     
     def dump_memory(self) -> dict:

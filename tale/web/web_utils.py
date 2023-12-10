@@ -19,7 +19,7 @@ def create_chat_container(text: str) -> str:
     html += '</div>\n'
     return html
 
-def load_web_resources(gamepath: str):
+def copy_web_resources(gamepath: str):
     # copy the resources folder to the resources folder in the web folder
     shutil.copytree(os.path.join(gamepath, "resources"), os.path.join(web_resources_path, resource_folder), dirs_exist_ok=True)
     
@@ -28,3 +28,7 @@ def clear_resources():
     files = os.listdir(os.path.join(web_resources_path, resource_folder))
     for file in files:
         os.remove(os.path.join(web_resources_path, resource_folder, file))
+
+def copy_single_image(gamepath: str, image_name: str):
+    # copy a single image to the resources folder in the web folder
+    shutil.copy(os.path.join(gamepath, "resources", image_name), os.path.join(web_resources_path, resource_folder))
