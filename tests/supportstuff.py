@@ -7,6 +7,7 @@ Copyright by Irmen de Jong (irmen@razorvine.net)
 
 import datetime
 from typing import Any, List
+from wsgiref.simple_server import WSGIServer
 
 from tale import pubsub, util, driver, base, story
 from tale.llm.llm_utils import LlmUtil
@@ -73,3 +74,19 @@ class FakeIoUtil(IoUtil):
     
     def set_response(self, response: any):
         self.response = response
+
+class FakeWSGIServer(WSGIServer):
+
+    def __init__(self, server_address, RequestHandlerClass, bind_and_activate=True):
+        super().__init__(server_address, RequestHandlerClass, bind_and_activate)
+        self.requests = [] # type: List[Any]
+
+    def get_request(self):
+        request, client_address = super().get_request()
+        self.requests.append(request)
+        return request, client_address
+
+    def clear_requests(self):
+        self.requests = []
+
+    

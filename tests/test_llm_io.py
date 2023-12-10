@@ -23,16 +23,18 @@ class TestLlmIo():
                 print(exc)
         self.llm_io.user_start_prompt = self.config_file['USER_START']
         self.llm_io.user_end_prompt = self.config_file['USER_END']
-        self.llm_io.backend = self.config_file['BACKEND']
-        self.backend = self.config_file['BACKEND']
-        with open(os.path.realpath(os.path.join(os.path.dirname(__file__), f"../backend_{self.backend}.yaml")), "r") as stream:
+
+    def _load_backend_config(self, backend):
+        with open(os.path.realpath(os.path.join(os.path.dirname(__file__), f"../backend_{backend}.yaml")), "r") as stream:
             try:
                 self.backend_config = yaml.safe_load(stream)
             except yaml.YAMLError as exc:
                 print(exc)
+        
 
     def test_set_prompt_kobold_cpp(self):
         self.llm_io.backend = 'kobold_cpp'
+        self._load_backend_config('kobold_cpp')
         prompt = self.config_file['BASE_PROMPT']
         assert('### Instruction' not in prompt)
         assert('### Response' not in prompt)
@@ -45,6 +47,8 @@ class TestLlmIo():
         assert(self.config_file['USER_END'] in result['prompt'])
 
     def test_set_prompt_openai(self):
+        self.backend = 'openai'
+        self._load_backend_config('openai')
         self.llm_io.backend = 'openai'
         prompt = self.config_file['BASE_PROMPT']
         assert('### Instruction' not in prompt)
@@ -58,6 +62,8 @@ class TestLlmIo():
         assert(self.config_file['USER_END'] in result['messages'][1]['content'])
 
     def test_set_prompt_llama_cpp(self):
+        self.backend = 'llama_cpp'
+        self._load_backend_config('llama_cpp')
         self.llm_io.backend = 'llama_cpp'
         prompt = self.config_file['BASE_PROMPT']
         assert('### Instruction' not in prompt)

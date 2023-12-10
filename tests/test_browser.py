@@ -3,7 +3,6 @@
 from wsgiref.simple_server import WSGIServer
 from tale.player import PlayerConnection
 from tale.tio.if_browser_io import HttpIo
-from tests.supportstuff import FakeWSGIServer
 
 
 class TestHttpIo:
