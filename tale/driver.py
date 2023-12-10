@@ -840,6 +840,8 @@ class Driver(pubsub.Listener):
         """Loads a character from a json file and inserts it into the player's location."""
         character_loader = CharacterLoader()
         char_data = character_loader.load_character(path)
+        if not char_data:
+            raise errors.TaleError("Character not found.")
         character = CharacterV2().from_json(char_data)
         npc = LivingNpc(name = character.name.lower(), 
                         gender = character.gender,
@@ -853,6 +855,7 @@ class Driver(pubsub.Listener):
         npc.following = player
         npc.stats.hp = character.hp
         player.location.insert(npc, None)
+        player.location.tell("%s arrives." % npc.title)
         
 
     @property

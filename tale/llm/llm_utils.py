@@ -25,7 +25,12 @@ class LlmUtil():
             except yaml.YAMLError as exc:
                 print(exc)
         self.backend = config_file['BACKEND']
-        self.default_body = json.loads(config_file['DEFAULT_BODY']) if self.backend == 'kobold_cpp' else json.loads(config_file['OPENAI_BODY'])
+        with open(os.path.realpath(os.path.join(os.path.dirname(__file__), f"../../backend_{self.backend}.yaml")), "r") as stream:
+            try:
+                backend_config = yaml.safe_load(stream)
+            except yaml.YAMLError as exc:
+                print(exc)
+        self.default_body = json.loads(backend_config['DEFAULT_BODY'])
         self.memory_size = config_file['MEMORY_SIZE']
         self.pre_prompt = config_file['PRE_PROMPT'] # type: str
         self.base_prompt = config_file['BASE_PROMPT'] # type: str
@@ -34,8 +39,8 @@ class LlmUtil():
         self.story_background_prompt = config_file['STORY_BACKGROUND_PROMPT'] # type: str
         self.json_grammar = config_file['JSON_GRAMMAR'] # type: str
         self.__story = None # type: DynamicStory
-        self.io_util = io_util or IoUtil(config=config_file)
-        self.stream = config_file['STREAM']
+        self.io_util = io_util or IoUtil(config=config_file, backend_config=backend_config)
+        self.stream = backend_config['STREAM']
         self.connection = None
         
         #self._look_hashes = dict() # type: dict[int, str] # location hashes for look command. currently never cleared.

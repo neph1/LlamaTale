@@ -25,6 +25,9 @@ class CharacterLoader():
         return json.loads(char_data)
 
     def load_from_json(self, path: str):
+        # check if file exists on path
+        if not os.path.exists(path):
+            return None
         json_char = parse_utils.load_json(path)
         return json_char
     
@@ -74,8 +77,8 @@ class CharacterV2():
         self.age = json.get('age', 30)
         self.money = json.get('money', 0)
         self.hp = json.get('hp', 10)
-        self.aliases = json.get('aliases', []),
-        self.avatar = json.get('avatar', ''),
+        self.aliases = json.get('aliases', [])
+        self.avatar = json.get('avatar', '')
         self.wearing = json.get('wearing', '')
         return self
         
