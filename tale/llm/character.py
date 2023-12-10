@@ -39,10 +39,13 @@ class CharacterBuilding():
                           event_history = '',
                           short_len : bool=False):
         prompt = self.pre_prompt
+
+        formatted_conversation = llm_config.params['USER_START']
+        formatted_conversation += conversation.replace('<break>', llm_config.params['USER_END'] + '\n' + llm_config.params['USER_START'])
         prompt += self.dialogue_prompt.format(
                 story_context=story_context,
                 location=location_description,
-                previous_conversation=conversation, 
+                previous_conversation=formatted_conversation, 
                 character2_description=character_card,
                 character2=character_name,
                 character1=target,

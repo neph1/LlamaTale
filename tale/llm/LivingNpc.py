@@ -100,9 +100,9 @@ class LivingNpc(Living):
         if not response:
             raise TaleError("Failed to parse dialogue")
 
-        tell_hash = llm_cache.cache_tell('{actor.title}:{response}'.format(actor=self.title, response=response))
+        tell_hash = llm_cache.cache_tell('{actor.title}:{response}'.format(actor=self, response=response))
         self._conversations.append(tell_hash)
-        if mud_context.driver.custom_resources:
+        if mud_context.driver.story.config.custom_resources:
             response = pad_text_for_npc(response, self.title)
         self.tell_others(response, evoke=False)
         if item:
