@@ -14,6 +14,8 @@ It generates dialogue for NPC's based on the story context and their character.
 
 Check the wiki on how to get started : https://github.com/neph1/LlamaTale/wiki 
 
+Or <a href="https://discord.gg/SmUNnPZXYd">join the discord server</a> if you have any questions.
+
 ![prancingllama3](https://github.com/neph1/LlamaTale/assets/7988802/07e382b9-2ae1-4230-82c8-3bcfb77556e2)
 
 
