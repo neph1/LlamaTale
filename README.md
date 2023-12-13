@@ -20,14 +20,15 @@ Or <a href="https://discord.gg/SmUNnPZXYd">join the discord server</a> if you ha
 
 
 More features (See https://github.com/neph1/LlamaTale/releases for a more up to date list):
-* Run the 'Anything' story to get a completely customized world. Answer a few questions on what you'd like and the LLM will generate the world, background, world, common items and creatures.
-* Npcs can have pre-defined avatars, which are used when talking to them.
+* Run the <a href="https://github.com/neph1/LlamaTale/wiki/The-Land-of-Anything-%E2%80%90-Prompt-your-own-story">'Anything' story</a> to get a completely customized world. Answer a few questions on what you'd like and the LLM will generate the world, background, world, common items and creatures.
+* Npcs can have <a href="https://github.com/neph1/LlamaTale/releases/tag/v0.18.0">pre-defined avatars</a>, which are used when talking to them.
+* Npcs have 'idle' actions and reactions, brought to life by the LLM. This sometimes leads to <a href="https://github.com/neph1/LlamaTale/releases/tag/v0.11.0">drama</a>.
 * Use Stable Diffusion to generate avatars for npcs you meet.
-* Use "Game Master" commands to affect the world and characters.
+* Use <a href="https://github.com/neph1/LlamaTale/wiki/Be-a-Game-Master">"Game Master"</a> commands to affect the world and characters.
 * Combat results are rolled by the MUD, but the LLM tries to describe them in a more fluid way.
 * Characters have a memories of past events and conversations, as well as a flexible 'sentiment' towards other characters.
 * You can mix predefined locations with dynamically generated ones. Ie, create a base and let the LLM do the rest.
-* Quests. See new places and meet new people with the (simple) automated quest system.
+* <a href="https://github.com/neph1/LlamaTale/releases/tag/v0.17.0>Quests</a>. See new places and meet new people with the (simple) automated quest system.
 * Support for KoboldCpp and OpenAI API based backends.
 
 
