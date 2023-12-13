@@ -40,8 +40,8 @@ class CharacterBuilding():
                           short_len : bool=False):
         prompt = self.pre_prompt
 
-        formatted_conversation = llm_config.params['USER_START']
-        formatted_conversation += conversation.replace('<break>', llm_config.params['USER_END'] + '\n' + llm_config.params['USER_START'])
+        #formatted_conversation = llm_config.params['USER_START']
+        formatted_conversation = conversation.replace('<break>', '\n')#llm_config.params['USER_END'] + '\n' + llm_config.params['USER_START'])
         prompt += self.dialogue_prompt.format(
                 story_context=story_context,
                 location=location_description,
@@ -60,8 +60,12 @@ class CharacterBuilding():
         try:
             json_result = json.loads(parse_utils.sanitize_json(response))
             text = json_result["response"]
+            if isinstance(text, list):
+                text = text[0]
             new_sentiment = json_result.get("sentiment", None)
             item = json_result.get("give", None)
+            if not isinstance(item, str):
+                item = None
         except Exception as exc:
             return None, None, None
         

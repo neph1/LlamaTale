@@ -39,7 +39,6 @@ class LivingNpc(Living):
         self._observed_events.append(event_hash)
         if actor is self or parsed.verb in self.verbs:
             return  # avoid reacting to ourselves, or reacting to verbs we already have a handler for
-        
         greet = False
         targeted = False
         for alias in self.aliases:
@@ -50,7 +49,6 @@ class LivingNpc(Living):
         if parsed.verb in ("hi", "hello") or parsed.verb == "greet":
             greet = True
         if greet and targeted:
-            self.tell_others("{Actor} says: \"Hi.\"", evoke=True)
             if self.quest:
                 self.quest.check_completion({"npc":self.title})
             #self.update_conversation(f"{self.title} says: \"Hi.\"")
@@ -78,10 +76,9 @@ class LivingNpc(Living):
         if self.quest and self.quest.is_completed():
             # do last to give npc chance to react   
             self._clear_quest()
-
-
+    
     def do_say(self, what_happened: str, actor: Living) -> None:
-        tell_hash = llm_cache.cache_tell('{actor.title}:{what_happened}'.format(actor=actor, what_happened=what_happened))
+        tell_hash = llm_cache.cache_tell('{actor.title} says to {what_happened}'.format(actor=actor, what_happened=what_happened))
         self._conversations.append(tell_hash)
         short_len = False if isinstance(actor, Player) else True
 
@@ -105,7 +102,7 @@ class LivingNpc(Living):
         if not response:
             raise TaleError("Failed to parse dialogue")
 
-        tell_hash = llm_cache.cache_tell('{actor.title}:{response}'.format(actor=self, response=response))
+        tell_hash = llm_cache.cache_tell('{actor.title} says: {response}'.format(actor=self, response=response))
         self._conversations.append(tell_hash)
         if mud_context.driver.story.config.custom_resources:
             response = pad_text_for_npc(response, self.title)

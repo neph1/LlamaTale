@@ -46,7 +46,7 @@ class LlmUtil():
         self.io_util = io_util or IoUtil(config=config_file, backend_config=backend_config)
         self.stream = backend_config['STREAM']
         self.connection = None
-        self.__image_gen = None # type: ImageGeneratorBase
+        self._image_gen = None # type: ImageGeneratorBase
         
         #self._look_hashes = dict() # type: dict[int, str] # location hashes for look command. currently never cleared.
         self._world_building = WorldBuilding(default_body=self.default_body,
@@ -221,12 +221,12 @@ class LlmUtil():
                                                         world_info=self.__story.config.world_info, 
                                                         zone_info=zone_info)
     
-    def generate_avatar(self, character_name: str, character_appearance: dict = '', save_path: str = "./resources") -> bool:
-        image_name = character_name.lower().replace(' ', '_')
+    def generate_avatar(self, character_name: str, character_appearance: dict = '', save_path: str = "./resources", copy_file: bool = True) -> bool:
         if not self._image_gen:
             return False
+        image_name = character_name.lower().replace(' ', '_')
         result = self._image_gen.generate_image(prompt=character_appearance, save_path=save_path , image_name=image_name)
-        if result:
+        if result and copy_file:
             copy_single_image('./', image_name + '.jpg')
         return result
 
