@@ -63,7 +63,7 @@ class StoryConfig:
         self.epoch = None                    # type: Optional[datetime.datetime]  # start date/time of the game clock
         self.startlocation_player = ""       # name of the location where a player starts the game in
         self.startlocation_wizard = ""       # name of the location where a wizard player starts the game in
-        self.savegames_enabled = False        # allow savegames?
+        self.savegames_enabled = False       # allow savegames?
         self.show_exits_in_look = True       # with the look command, also show exit descriptions automatically?
         self.license_file = ""               # game license file, if applicable
         self.mud_host = ""                   # for mud mode: hostname to bind the server on. Use "[...]" for IPV6 connectivity.
@@ -76,6 +76,8 @@ class StoryConfig:
         self.type = ""                       # brief description of the setting and type of story, for LLM context
         self.world_info = ""                 # brief description of the world, for LLM context
         self.world_mood = 0                  # how safe is the world? 5 is a happy place, -5 is nightmare mode.
+        self.custom_resources = False        # type: bool # does this story use custom resources?
+        self.image_gen = None                # image generator to use for the story, or None
         
     def __eq__(self, other: Any) -> bool:
         return isinstance(other, StoryConfig) and vars(self) == vars(other)

@@ -25,6 +25,11 @@ class TestCharacterLoader():
         assert(char_data.get('name') == 'test character')
         assert(char_data.get('description'))
 
+    def test_load_missing_file(self):
+        path = 'tests/files/missing.json'
+        char_data = self.character_loader.load_character(path)
+        assert(not char_data)
+
     def test_CharacterV2(self):
         path = 'tests/files/test_character.json'
         char_data = self.character_loader.load_character(path)

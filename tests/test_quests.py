@@ -18,13 +18,17 @@ class TestGiveQuest():
     tale.mud_context.config = StoryConfig()
     llm_util = LlmUtil(FakeIoUtil(response='{"response": "ok", "give":"", "sentiment":"pleased"}'))
     llm_util.set_story(DynamicStory())
+
+    def setup_method(self):
+        tale.mud_context.driver = FakeDriver()
+        tale.mud_context.driver.story = DynamicStory()
+        tale.mud_context.driver.llm_util = self.llm_util
     
 
     def test_give_quest(self):
         quest = Quest(name="TestQuest", reason="out of bowling balls", reward=100, giver=self.testNpc.name, type=QuestType.GIVE, target="bowling ball")
         self.testNpc.quest = quest
-        tale.mud_context.driver = FakeDriver()
-        tale.mud_context.driver.llm_util = self.llm_util
+
         item = Item("bowling ball", "bowling ball")
         self.testNpc2.init_inventory([item])
         parse_result = ParseResult(verb="give", unparsed="bowling ball to TestNpc")
@@ -79,6 +83,7 @@ class TestGiveQuest():
 class TestTalkQuest():
 
     d = Driver()
+    d.story = DynamicStory()
     llm_util = LlmUtil(FakeIoUtil(response='{"response": "ok", "give":"", "sentiment":"pleased"}'))
     llm_util.set_story(DynamicStory())
     d.llm_util = llm_util

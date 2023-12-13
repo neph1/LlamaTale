@@ -15,6 +15,8 @@ import sys
 from types import ModuleType
 from typing import Generator, Optional
 
+from tale import parse_utils
+
 from . import wizcmd, disabled_in_gamemode
 from .. import base, lang, util, pubsub, races, __version__
 from ..errors import ParseError, ActionRefused, NonSoulVerb, TaleError, TaleFlowControlException
@@ -767,8 +769,33 @@ def do_add_event(player: Player, parsed: base.ParseResult, ctx: util.Context) ->
     """ Add an event that happens in the current location. """
     if len(parsed.args) < 1:
         raise ParseError("You need to define an event")
+    player.location._notify_action_all( base.ParseResult(verb='location-event', unparsed=parsed.unparsed, who_info=None), actor=None)
+    player.location.tell( lang.capital(parsed.unparsed) + '\n', evoke=False)
+
+@wizcmd("spawn")
+def do_spawn(player: Player, parsed: base.ParseResult, ctx: util.Context) -> None:
+    """ Spawn a creature in the current location. """
+    if len(parsed.args) < 1:
+        raise ParseError("You need to define a creature")
+    creature = ctx.driver.story._catalogue.get_creature(parsed.args[0])
+    if creature:
+        mob = parse_utils.load_npcs([creature], ctx.driver.story)[0]
+        player.location.insert(mob, actor=None)
+        player.location.tell( lang.capital(mob.title) + ' appears!\n', evoke=False)
+    else:
+        raise ParseError("Creature not found")
     
-    
-    player.location._notify_action_all( base.ParseResult(verb='location-event', unparsed=parsed.args[0], who_info=None), actor=None)
-    player.location.tell( lang.capital(parsed.args[0]) + '\n', evoke=False)
+@wizcmd("load_character")
+def do_load_character(player: Player, parsed: base.ParseResult, ctx: util.Context) -> None:
+    """Load a companion character from file."""
+    if len(parsed.args) != 1:
+        raise ParseError("You need to specify the path to the character file")
+    try:
+        path = str(parsed.args[0])
+    except ValueError as x:
+        raise ActionRefused(str(x))
+    try:
+        ctx.driver.load_character(player, path)
+    except FileNotFoundError:
+        raise ActionRefused("File not found")
 

@@ -39,10 +39,13 @@ class CharacterBuilding():
                           event_history = '',
                           short_len : bool=False):
         prompt = self.pre_prompt
+
+        #formatted_conversation = llm_config.params['USER_START']
+        formatted_conversation = conversation.replace('<break>', '\n')#llm_config.params['USER_END'] + '\n' + llm_config.params['USER_START'])
         prompt += self.dialogue_prompt.format(
                 story_context=story_context,
                 location=location_description,
-                previous_conversation=conversation, 
+                previous_conversation=formatted_conversation, 
                 character2_description=character_card,
                 character2=character_name,
                 character1=target,
@@ -56,13 +59,16 @@ class CharacterBuilding():
         response = self.io_util.synchronous_request(request_body, prompt=prompt)
         try:
             json_result = json.loads(parse_utils.sanitize_json(response))
-        except JSONDecodeError as exc:
-            print(exc)
+            text = json_result["response"]
+            if isinstance(text, list):
+                text = text[0]
+            new_sentiment = json_result.get("sentiment", None)
+            item = json_result.get("give", None)
+            if not isinstance(item, str):
+                item = None
+        except Exception as exc:
             return None, None, None
-        text = json_result["response"]
-        new_sentiment = json_result.get("sentiment", None)
-        item = json_result.get("give", None)
-
+        
         return text, item, new_sentiment
     
     def dialogue_analysis(self, text: str, character_card: str, character_name: str, target: str):
@@ -117,7 +123,7 @@ class CharacterBuilding():
             return True, result
         return False, ''
     
-    def generate_character(self, story_context: str = '', keywords: list = [], story_type: str = ''):
+    def generate_character(self, story_context: str = '', keywords: list = [], story_type: str = '') -> CharacterV2:
         """ Generate a character card based on the current story context"""
         prompt = self.character_prompt.format(story_type=story_type if story_type else _MudContext.config.type,
                                               story_context=story_context, 

@@ -6,6 +6,7 @@ from tale.llm.LivingNpc import LivingNpc
 from tale.llm.item_handling_result import ItemHandlingResult
 from tale.llm.llm_ext import DynamicStory
 from tale.player import Player
+from tale.wearable import WearLocation
 from tale.zone import Zone
 
 class TestLivingNpc():
@@ -70,6 +71,13 @@ class TestLivingNpc():
         assert(json_card['name'] == 'test')
         assert(json_card['items'][0] == 'ale')
 
+    def test_wearing(self):
+        npc = LivingNpc(name='test', gender='m', age=42, personality='')
+        hat = Item("hat", "hat", descr="A big hat.")
+        npc.set_wearable(hat, wear_location=WearLocation.HEAD)
+        assert npc.get_wearable( WearLocation.HEAD) == hat
+        assert list(npc.get_worn_items()) == [hat]
+
     def test_memory(self):
         npc = LivingNpc(name='test', gender='m', age=42, personality='')
         from tale.llm import llm_cache
@@ -89,7 +97,7 @@ class TestLivingNpc():
         assert(memories['sentiments'] == npc_clean.sentiments)
 
         assert(llm_cache.get_events(npc_clean._observed_events) == 'test_event, test_event 2')
-        assert(llm_cache.get_tells(npc_clean._conversations) == 'test_tell, test_tell_2, test_tell_3')
+        assert(llm_cache.get_tells(npc_clean._conversations) == 'test_tell<break>test_tell_2<break>test_tell_3')
 
 
 class TestDynamicStory():

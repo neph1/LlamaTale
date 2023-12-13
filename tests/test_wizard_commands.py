@@ -71,6 +71,7 @@ class TestEvents():
         story = DynamicStory()
         llm_util.set_story(story)
         context.driver = FakeDriver()
+        context.driver.story = story
         context.driver.llm_util = llm_util
         event_string = 'a foreboding storm approaches'
         test_location = Location('test_location')

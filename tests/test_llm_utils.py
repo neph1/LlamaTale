@@ -1,5 +1,6 @@
 import datetime
 import json
+from tale.image_gen.automatic1111 import Automatic1111
 import tale.llm.llm_cache as llm_cache
 from tale import mud_context, weapon_type
 from tale import zone
@@ -155,8 +156,9 @@ class TestLlmUtils():
         assert(item == None)
         assert(sentiment == None)
 
-
-
+    def test_init_image_gen(self):
+        self.llm_util._init_image_gen("Automatic1111")
+        assert(self.llm_util._image_gen)
 
 class TestWorldBuilding():
 

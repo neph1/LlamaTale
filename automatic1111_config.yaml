@@ -1,0 +1,9 @@
+
+NEGATIVE_PROMPT : 'text, watermark, logo'
+SEED : -1
+SAMPLER : 'Euler'
+STEPS : 30
+CFG_SCALE : 5
+WIDTH : 512
+HEIGHT : 512
+ALWAYS_PROMPT : 'closeup'

@@ -1682,18 +1682,6 @@ def do_account(player: Player, parsed: base.ParseResult, ctx: util.Context) -> N
     player.tell("last login: %s" % account.logged_in, end=True)
     player.tell("\n")
 
-@cmd("load_character")
-def do_load_character(player: Player, parsed: base.ParseResult, ctx: util.Context) -> None:
-    """Load a companion character from file."""
-    if len(parsed.args) != 1:
-        raise ParseError("You need to specify the path to the character file")
-    try:
-        path = str(parsed.args[0])
-    except ValueError as x:
-        raise ActionRefused(str(x))
-
-    ctx.driver.load_character(player, path)
-
 @cmd("wield")
 def do_wield(player: Player, parsed: base.ParseResult, ctx: util.Context) -> None:
     """Wield a weapon."""

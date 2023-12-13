@@ -1,8 +1,10 @@
 from copy import deepcopy
 import json
 import os
+import sys
 import yaml
 from tale.base import Location
+from tale.image_gen.base_gen import ImageGeneratorBase
 from tale.llm.character import CharacterBuilding
 from tale.llm.llm_ext import DynamicStory
 from tale.llm.llm_io import IoUtil
@@ -13,7 +15,9 @@ from tale.player_utils import TextBuffer
 import tale.parse_utils as parse_utils
 import tale.llm.llm_cache as llm_cache
 from tale.quest import Quest
+from tale.web.web_utils import copy_single_image
 from tale.zone import Zone
+from tale.image_gen.automatic1111 import Automatic1111
 
 class LlmUtil():
     """ Prepares prompts for various LLM requests"""
@@ -25,7 +29,12 @@ class LlmUtil():
             except yaml.YAMLError as exc:
                 print(exc)
         self.backend = config_file['BACKEND']
-        self.default_body = json.loads(config_file['DEFAULT_BODY']) if self.backend == 'kobold_cpp' else json.loads(config_file['OPENAI_BODY'])
+        with open(os.path.realpath(os.path.join(os.path.dirname(__file__), f"../../backend_{self.backend}.yaml")), "r") as stream:
+            try:
+                backend_config = yaml.safe_load(stream)
+            except yaml.YAMLError as exc:
+                print(exc)
+        self.default_body = json.loads(backend_config['DEFAULT_BODY'])
         self.memory_size = config_file['MEMORY_SIZE']
         self.pre_prompt = config_file['PRE_PROMPT'] # type: str
         self.base_prompt = config_file['BASE_PROMPT'] # type: str
@@ -34,9 +43,11 @@ class LlmUtil():
         self.story_background_prompt = config_file['STORY_BACKGROUND_PROMPT'] # type: str
         self.json_grammar = config_file['JSON_GRAMMAR'] # type: str
         self.__story = None # type: DynamicStory
-        self.io_util = io_util or IoUtil(config=config_file)
-        self.stream = config_file['STREAM']
+        self.io_util = io_util or IoUtil(config=config_file, backend_config=backend_config)
+        self.stream = backend_config['STREAM']
         self.connection = None
+        self._image_gen = None # type: ImageGeneratorBase
+        
         #self._look_hashes = dict() # type: dict[int, str] # location hashes for look command. currently never cleared.
         self._world_building = WorldBuilding(default_body=self.default_body,
                                              io_util=self.io_util,
@@ -119,7 +130,12 @@ class LlmUtil():
         return rolling_prompt
     
     def generate_character(self, story_context: str = '', keywords: list = [], story_type: str = ''):
-        return self._character.generate_character(story_context, keywords, story_type)
+        character = self._character.generate_character(story_context, keywords, story_type)
+        if not character.avatar and self.__story.config.image_gen:
+            result = self.generate_avatar(character.name, character.appearance)
+            if result:
+                character.avatar = character.name + '.jpg'
+        return character
     
     def get_neighbor_or_generate_zone(self, current_zone: Zone, current_location: Location, target_location: Location) -> Zone:
         return self._world_building.get_neighbor_or_generate_zone(current_zone, current_location, target_location, self.__story)
@@ -204,23 +220,29 @@ class LlmUtil():
                                                         story_type=self.__story.config.type, 
                                                         world_info=self.__story.config.world_info, 
                                                         zone_info=zone_info)
+    
+    def generate_avatar(self, character_name: str, character_appearance: dict = '', save_path: str = "./resources", copy_file: bool = True) -> bool:
+        if not self._image_gen:
+            return False
+        image_name = character_name.lower().replace(' ', '_')
+        result = self._image_gen.generate_image(prompt=character_appearance, save_path=save_path , image_name=image_name)
+        if result and copy_file:
+            copy_single_image('./', image_name + '.jpg')
+        return result
+
+
   
     def set_story(self, story: DynamicStory):
         """ Set the story object."""
         self.__story = story
+        if story.config.image_gen:
+            self._init_image_gen(story.config.image_gen)
 
-    def _kobold_generation_prompt(self, request_body: dict) -> dict:
-        """ changes some parameters for better generation of locations in kobold_cpp"""
-        request_body = request_body.copy()
-        request_body['stop_sequence'] = ['\n\n']
-        request_body['temperature'] = 0.5
-        request_body['top_p'] = 0.6
-        request_body['top_k'] = 0
-        request_body['rep_pen'] = 1.0
-        request_body['grammar'] = self.json_grammar
-        #request_body['banned_tokens'] = ['```']
-        return request_body
-    
+    def _init_image_gen(self, image_gen: str):
+        """ Initialize the image generator"""
+        clazz =  getattr(sys.modules['tale.image_gen.' + image_gen.lower()], image_gen)
+        self._image_gen = clazz()
+
 
 
 

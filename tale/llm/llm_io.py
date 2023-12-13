@@ -9,25 +9,28 @@ from tale.player_utils import TextBuffer
 class IoUtil():
     """ Handles connection and data retrieval from backend """
 
-    def __init__(self, config: dict = None):
+    def __init__(self, config: dict = None, backend_config: dict = None):
         if not config:
             # for tests
             return 
         self.backend = config['BACKEND']
-        self.url = config['URL']
-        self.endpoint = config['ENDPOINT']
-        self.stream_endpoint = config['STREAM_ENDPOINT']
-        self.data_endpoint = config['DATA_ENDPOINT']
-        if self.backend == 'openai':
-            headers = json.loads(config['OPENAI_HEADERS'])
-            headers['Authorization'] = f"Bearer {config['OPENAI_API_KEY']}"
+        self.url = backend_config['URL']
+        self.endpoint = backend_config['ENDPOINT']
+        
+        
+        if self.backend != 'kobold_cpp':
+            headers = json.loads(backend_config['OPENAI_HEADERS'])
+            headers['Authorization'] = f"Bearer {backend_config['OPENAI_API_KEY']}"
+            self.openai_json_format = json.loads(backend_config['OPENAI_JSON_FORMAT'])
             self.headers = headers
         else:
             self.headers = {}
-        self.stream = config['STREAM']
+        self.stream = backend_config['STREAM']
+        if self.stream:
+            self.stream_endpoint = backend_config['STREAM_ENDPOINT']
+            self.data_endpoint = backend_config['DATA_ENDPOINT']
         self.user_start_prompt = config['USER_START']
         self.user_end_prompt = config['USER_END']
-        self.openai_json_format = json.loads(config['OPENAI_JSON_FORMAT'])
 
     def synchronous_request(self, request_body: dict, prompt: str) -> str:
         """ Send request to backend and return the result """
@@ -37,19 +40,19 @@ class IoUtil():
             request_body['response_format'] = self.openai_json_format
         self._set_prompt(request_body, prompt)
         response = requests.post(self.url + self.endpoint, headers=self.headers, data=json.dumps(request_body))
-        if self.backend == 'openai':
-            parsed_response = self._parse_openai_result(response.text)
-        else:
+        if self.backend == 'kobold_cpp':
             parsed_response = self._parse_kobold_result(response.text)
+        else:
+            parsed_response = self._parse_openai_result(response.text)
         return parsed_response
     
     def asynchronous_request(self, request_body: dict, prompt: str) -> str:
-        if self.backend == 'openai':
+        if self.backend != 'kobold_cpp':
             return self.synchronous_request(request_body, prompt)
         return self.stream_request(request_body, wait=True, prompt=prompt)
 
     def stream_request(self, request_body: dict, prompt: str, player_io: TextBuffer = None, io = None, wait: bool = False) -> str:
-        if self.backend == 'openai':
+        if self.backend != 'kobold_cpp':
             raise NotImplementedError("Currently does not support streaming requests for OpenAI")
         self._set_prompt(request_body, prompt)
         result = asyncio.run(self._do_stream_request(self.url + self.stream_endpoint, request_body))
@@ -106,6 +109,6 @@ class IoUtil():
             prompt = prompt + self.user_end_prompt
         if self.backend == 'kobold_cpp':
             request_body['prompt'] = prompt
-        elif self.backend == 'openai':
+        else :
             request_body['messages'][1]['content'] = prompt
         return request_body

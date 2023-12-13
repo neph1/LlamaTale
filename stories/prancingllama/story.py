@@ -33,6 +33,7 @@ class Story(DynamicStory):
     config.zones = ["prancingllama"]
     config.context = "The final outpost high up in a cold, craggy mountain range. It's frequented by adventurers and those looking to avoid attention."
     config.type = "A low level fantasy adventure with focus of character building and interaction."
+    config.custom_resources = True
     
     
     def init(self, driver: Driver) -> None:
