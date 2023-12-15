@@ -1518,7 +1518,7 @@ class Living(MudObject):
             
     def check_stat(self, stat : str):
         if stat == 'hp':
-            return self.stat.hp
+            return self.stats.hp
     
     @property
     def wielding(self) -> Weapon:
@@ -1528,16 +1528,30 @@ class Living(MudObject):
     @wielding.setter
     def wielding(self, weapon: Optional[Weapon]) -> None:
         """Wield a weapon. If weapon is None, unwield."""
+        if not weapon and not self.__wielding:
+            raise ActionRefused("You're not wielding anything.")
         self.__wielding = weapon
         self.stats.wc = weapon.wc if self.__wielding else 0
+        if weapon:
+            self.tell_others("{Actor} wields %s." % self.wielding.title, evoke=True, short_len=True)
+            self.tell("You wield %s." % self.wielding.title)
+        elif self.__wielding:
+            self.tell_others("{Actor} unwields %s." % self.__wielding.title, evoke=True, short_len=True)
+            self.tell("You unwield %s." % self.__wielding.title)
 
     def set_wearable(self, wearable: Optional[Wearable], wear_location: Optional[wearable.WearLocation]) -> None:
         """ Wear an item if item is not None, else unwear location"""
         if wearable:
             loc = wear_location if wear_location else wearable.wear_location
             self.__wearing[loc] = wearable
+            self.tell_others("{Actor} puts on %s." % wearable.title, evoke=True, short_len=True)
+            self.tell("You put on %s." % wearable.title)
         elif wear_location:
-            self.__wearing.pop(wear_location, None)
+            item = self.__wearing.pop(wear_location, None)
+            if item:
+                self.tell_others("{Actor} removes %s." % item.title, evoke=True, short_len=True)
+                self.tell("You remove %s." % item.title)
+
 
     def get_wearable(self, location: wearable.WearLocation) -> Optional[Wearable]:
         """Return the wearable item at the given location, or None if no item is worn there."""
