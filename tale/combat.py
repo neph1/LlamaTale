@@ -54,6 +54,11 @@ class Combat():
 
         text_result, damage_to_attacker = self._round(self.defender, self.attacker)
         texts.extend(text_result)
+
+        if self.defender.stats.hp - damage_to_defender < 0:
+            texts.append(f'{self.defender.title} dies')
+        if self.attacker.stats.hp - damage_to_attacker < 0:
+            texts.append(f'{self.attacker.title} dies')
             
         return ', '.join(texts), damage_to_attacker, damage_to_defender
     
@@ -78,8 +83,6 @@ class Combat():
                     texts.append(f', {actor2.title} is injured')
                 else:
                     texts.append(f', {actor2.title} is unharmed')
-                if actor2.stats.hp - damage_to_defender < 1:
-                    texts.append(f', {actor2.title} dies')
                 return texts, damage_to_defender
         elif attack_result > 50:
             texts.append(f'{actor1.title} misses completely')
