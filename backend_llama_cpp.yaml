@@ -1,4 +1,4 @@
-URL: "http://127.0.0.1:8081"
+URL: "http://127.0.0.1:8080"
 ENDPOINT: "/v1/chat/completions"
 STREAM: False
 OPENAI_HEADERS: '{"Content-Type":"application/json", "Authorization":""}'
