@@ -1,26 +1,27 @@
 import json
 import pytest
-from tale.base import Item, Location
+from tale import mud_context
+from tale.base import Item, Location, ParseResult
 from tale.coord import Coord
 from tale.llm.LivingNpc import LivingNpc
 from tale.llm.item_handling_result import ItemHandlingResult
 from tale.llm.llm_ext import DynamicStory
+from tale.llm.llm_utils import LlmUtil
 from tale.player import Player
 from tale.wearable import WearLocation
 from tale.zone import Zone
+from tests.supportstuff import FakeDriver, FakeIoUtil
 
 class TestLivingNpc():
 
     drink = Item("ale", "jug of ale", descr="Looks and smells like strong ale.")
+    mud_context.driver = FakeDriver()
+    story = DynamicStory()
+    llm_util = LlmUtil(FakeIoUtil()) # type: LlmUtil
+    llm_util.set_story(story)
+    mud_context.driver.llm_util = llm_util
+    mud_context.driver.story = story
 
-    def test_character_card(self):
-        npc = LivingNpc(name='test', gender='m', age=42, personality='')
-        drink = Item("ale", "jug of ale", descr="Looks and smells like strong ale.")
-        npc.init_inventory([drink])
-        item = npc.search_item("ale")
-        assert(item)
-        desc = npc.character_card
-        assert('ale' in desc)
 
     def test_handle_item_result_player(self):
         location = Location("test_room")
@@ -99,6 +100,54 @@ class TestLivingNpc():
         assert(llm_cache.get_events(npc_clean._observed_events) == 'test_event, test_event 2')
         assert(llm_cache.get_tells(npc_clean._conversations) == 'test_tell<break>test_tell_2<break>test_tell_3')
 
+
+    def test_do_say(self):
+        npc = LivingNpc(name='test', gender='m', age=42, personality='')
+        npc2 = LivingNpc(name="actor", gender='f', age=42, personality='')
+        self.llm_util._character.io_util.response = ["{\n  \"response\": \"Hello there, how can I assist you today?\"\n, \"sentiment\":\"kind\"}"]
+        npc.do_say(what_happened='something', actor=npc2)
+        assert(npc.sentiments['actor'] == 'kind')
+        assert(len(npc._conversations) == 2)
+
+    def test_idle_action(self):
+        npc = LivingNpc(name='test', gender='f', age=35, personality='')
+        self.llm_util._character.io_util.response = ["sits down on a chair"]
+        action = npc.idle_action()
+        assert(action == 'sits down on a chair\n')
+        assert(npc.deferred_actions.pop() == 'sits down on a chair\n')
+
+    def test_do_react(self):
+        action = ParseResult(verb='idle-action', unparsed='something happened', who_info=None)
+        npc = LivingNpc(name='test', gender='m', age=44, personality='')
+        npc2 = LivingNpc(name="actor", gender='f', age=32, personality='')
+        self.llm_util._character.io_util.response = ['test happens back!']
+        npc._do_react(action, npc2)
+        assert(npc.deferred_actions.unparsed == 'test happens back\n')
+
+    def test_take_action(self):
+        location = Location("test_room")
+        item = Item(name="test item", short_descr="test item", descr="A test item.")
+        location.init_inventory([item])
+    
+        self.llm_util._character.io_util.response = '{"action":"take", "item":"test item"}'
+        npc = LivingNpc(name='test', gender='f', age=37, personality='')
+        npc.move(location)
+        assert(npc.location == location)
+        actions = npc.autonomous_action()
+        assert(actions == 'test takes test item')
+        assert(npc.search_item('test item', include_location=False))
+
+    def test_give_action(self):
+        location = Location("test_room")
+        item = Item(name="test item", short_descr="test item", descr="A test item.")
+        npc = LivingNpc(name='test', gender='f', age=37, personality='')
+        npc.init_inventory([item])
+        npc2 = LivingNpc(name="actor", gender='f', age=32, personality='')
+        location.init_inventory([npc, npc2])
+        self.llm_util._character.io_util.response = '{"action":"give", "item":"test item", "target":"actor"}'
+        npc.autonomous_action()
+        assert npc.search_item('test item', include_location=False) == None
+        assert(npc2.search_item('test item', include_location=False))
 
 class TestDynamicStory():
 

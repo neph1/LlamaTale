@@ -843,7 +843,7 @@ class Driver(pubsub.Listener):
         if not char_data:
             raise errors.TaleError("Character not found.")
         character = CharacterV2().from_json(char_data)
-        npc = LivingNpc(name = character.name.lower(), 
+        npc = StationaryNpc(name = character.name.lower(), 
                         gender = character.gender,
                         title = character.name, 
                         descr  = character.appearance, 
@@ -854,6 +854,10 @@ class Driver(pubsub.Listener):
                         occupation = character.occupation)
         npc.following = player
         npc.stats.hp = character.hp
+        if isinstance(self.story, DynamicStory):
+            dynamic_story = typing.cast(DynamicStory, self.story)
+            dynamic_story.world.add_npc(npc)
+
         player.location.insert(npc, None)
         player.location.tell("%s arrives." % npc.title)
         

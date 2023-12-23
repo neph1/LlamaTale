@@ -285,6 +285,7 @@ class MudObject:
         self.verbs = {}  # type: Dict[str, str]
         # register all periodical tagged methods
         self.story_data = {}  # type: Dict[Any, Any]   # not used by Tale itself, story can put custom data here. Use builtin types only.
+        self.visible = True  # can this object be seen by others?
         self.init()
         if util.get_periodicals(self):
             if mud_context.driver is None:
@@ -766,7 +767,7 @@ class Location(MudObject):
                 item_names = sorted(item.name for item in self.items)
                 paragraphs.append("You see: " + lang.join(item_names))
             if self.livings:
-                living_names = sorted(living.name for living in self.livings if living != exclude_living)
+                living_names = sorted(living.name for living in self.livings if living != exclude_living and living.visible)
                 if living_names:
                     paragraphs.append("Present here: " + lang.join(living_names))
             return paragraphs
@@ -783,8 +784,8 @@ class Location(MudObject):
                     exit_paragraph.append(exit.short_description)
             paragraphs.append(" ".join(exit_paragraph))
         items_and_livings = []  # type: List[str]
-        items_with_short_descr = [item for item in self.items if item.short_description]
-        items_without_short_descr = [item for item in self.items if not item.short_description]
+        items_with_short_descr = [item for item in self.items if item.short_description and item.visible]
+        items_without_short_descr = [item for item in self.items if not item.short_description and item.visible]
         uniq_descriptions = set()
         if items_with_short_descr:
             for item in items_with_short_descr:
@@ -793,8 +794,8 @@ class Location(MudObject):
         if items_without_short_descr:
             titles = sorted([lang.a(item.title) for item in items_without_short_descr])
             items_and_livings.append("You see " + lang.join(titles) + ".")
-        livings_with_short_descr = [living for living in self.livings if living != exclude_living and living.short_description]
-        livings_without_short_descr = [living for living in self.livings if living != exclude_living and not living.short_description]
+        livings_with_short_descr = [living for living in self.livings if living != exclude_living and living.short_description and living.visible]
+        livings_without_short_descr = [living for living in self.livings if living != exclude_living and not living.short_description and living.visible]
         if livings_without_short_descr:
             titles = sorted(living.title for living in livings_without_short_descr)
             if titles:

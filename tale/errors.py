@@ -104,3 +104,9 @@ class StoryCompleted(TaleFlowControlException):
     Do not use this in a Mud story.
     """
     pass
+
+class LlmResponseException(TaleFlowControlException):
+    """
+    Used when LLM response parsing fails. User should retry again.
+    """
+    pass

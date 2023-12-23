@@ -101,10 +101,6 @@ class Shanda(Patron):
     def init(self) -> None:
         self.stats.set_weapon_skill(weapon_type=WeaponType.UNARMED, value=65)
 
-    def allow_give_item(self, item: Item, actor: Optional[Living]) -> None:
-        if item.name == "rat_skull":
-            self.sentiments(actor.title, 'impressed')
-            self.do_say(f'{actor.title} gives Shanda a giant rat skull', actor=actor)
 
 class Rat(Living):
     def init(self) -> None:
@@ -131,7 +127,7 @@ elid_gald.quest = Quest(name="The Map", reason="obtain the map Norhardt possesse
 
 shanda = Shanda("Shanda Heard", "f", age=31, descr="A fierce looking woman, with a face as if chiseled from granite and a red bandana around her wild hair. She keeps an unblinking gaze on her surroundings.", personality="She's a heavy drinker and boaster, and for a drink she will spill tales of her conquests and battles and long lost love. She's feared by many but respected by all for her prowess in battle.", short_descr="A fierce looking woman sitting by a table, whose eyes seem to follow you.")
 shanda.aliases = {"shanda", "fierce woman", "woman by table"}
-shanda.quest = Quest(name="bring a rat skull", reason="to prove your worth", giver=shanda.name, type=QuestType.GIVE, target="rat_skull")
+shanda.quest = Quest(name="bring a rat skull", reason="prove your worth to Shanda", giver=shanda.name, type=QuestType.GIVE, target="rat_skull")
 
 count_karta = Patron("Count of Karta", "m", age=43, descr="A hood shadows his facial features, but a prominent jaw juts out from beneath it. His mouth seems to be working constantly, as if muttering about something.", personality="Having fled from an attempt on his life, and being discredited, he has come here to plan his revenge. He seems to have gold and is looking for able bodies to help him.", short_descr="A mysterious man by the fire.")
 count_karta.aliases = {"count", "karta", "mysterious man", "hooded man"}

@@ -7,6 +7,7 @@ import random
 
 from tale import _MudContext, parse_utils
 from tale.base import Location
+from tale.errors import LlmResponseException
 from tale.llm import llm_config
 from tale.llm.llm_io import IoUtil
 from tale.load_character import CharacterV2
@@ -26,6 +27,7 @@ class CharacterBuilding():
         self.travel_prompt = llm_config.params['TRAVEL_PROMPT']
         self.reaction_prompt = llm_config.params['REACTION_PROMPT']
         self.idle_action_prompt = llm_config.params['IDLE_ACTION_PROMPT']
+        self.free_form_action_prompt = llm_config.params['ACTION_PROMPT']
         self.json_grammar = llm_config.params['JSON_GRAMMAR']
 
     def generate_dialogue(self, conversation: str, 
@@ -45,7 +47,7 @@ class CharacterBuilding():
         prompt += self.dialogue_prompt.format(
                 story_context=story_context,
                 location=location_description,
-                previous_conversation=formatted_conversation, 
+                previous_conversation=formatted_conversation,
                 character2_description=character_card,
                 character2=character_name,
                 character1=target,
@@ -54,6 +56,7 @@ class CharacterBuilding():
                 sentiment=sentiment)
         request_body = deepcopy(self.default_body)
         request_body['grammar'] = self.json_grammar
+        
 
         #if not self.stream:
         response = self.io_util.synchronous_request(request_body, prompt=prompt)
@@ -70,58 +73,6 @@ class CharacterBuilding():
             return None, None, None
         
         return text, item, new_sentiment
-    
-    def dialogue_analysis(self, text: str, character_card: str, character_name: str, target: str):
-        """Parse the response from LLM and determine if there are any items to be handled."""
-        card = json.loads(character_card)
-        items = card.get('items', [])
-        prompt = self.generate_item_prompt(text, items, character_name, target)
-        
-        request_body = deepcopy(self.default_body)
-        request_body['grammar'] = self.json_grammar
-
-        text = self.io_util.synchronous_request(request_body, prompt=prompt)
-        try:
-            json_result = json.loads(parse_utils.sanitize_json(text))
-        except JSONDecodeError as exc:
-            print(exc)
-            return None, None
-        
-        valid, item_result = self.validate_item_response(json_result, character_name, target, items)
-        
-        sentiment = self.validate_sentiment(json_result)
-
-        # summary = json_result.get('summary', '')
-        
-        return item_result, sentiment
-    
-    def validate_sentiment(self, json: dict):
-        try:
-            return json.get('sentiment', '')
-        except:
-            print(f'Exception while parsing sentiment {json}')
-            return ''
-    
-    def generate_item_prompt(self, text: str, items: str, character1: str, character2: str) -> str:
-        prompt = self.pre_prompt
-        prompt += self.item_prompt.format(
-                text=text, 
-                items=items,
-                character1=character1,
-                character2=character2)
-        return prompt
-     
-    def validate_item_response(self, json_result: dict, character1: str, character2: str, items: str) -> bool:
-        if 'result' not in json_result or not json_result.get('result'):
-            return False, ''
-        result = json_result['result']
-        if 'item' not in result or not result['item']:
-            return False, ''
-        if not result['from']:
-            return False, ''
-        if result['item'] in items:
-            return True, result
-        return False, ''
     
     def generate_character(self, story_context: str = '', keywords: list = [], story_type: str = '') -> CharacterV2:
         """ Generate a character card based on the current story context"""
@@ -146,9 +97,9 @@ class CharacterBuilding():
     def perform_idle_action(self, character_name: str, location: Location, story_context: str, character_card: str = '', sentiments: dict = {}, last_action: str = '', event_history: str = '') -> list:
         characters = {}
         for living in location.livings:
-            if living.name != character_name.lower():
+            if living.visible and living.name != character_name.lower():
                 characters[living.name] = living.short_description
-        items=location.items,
+        items = [item.name for item in location.items if item.visible]
         prompt = self.idle_action_prompt.format(
             last_action=last_action if last_action else f"{character_name} arrives in {location.name}",
             location=": ".join([location.title, location.short_description]),
@@ -161,7 +112,6 @@ class CharacterBuilding():
             sentiments=json.dumps(sentiments))
         request_body = deepcopy(self.default_body)
         if self.backend == 'kobold_cpp':
-            request_body['seed'] = random.randint(0, 2147483647)
             request_body['banned_tokens'] = ['You']
 
         text = self.io_util.synchronous_request(request_body, prompt=prompt)
@@ -197,4 +147,53 @@ class CharacterBuilding():
         text = self.io_util.synchronous_request(request_body, prompt=prompt)
         return parse_utils.trim_response(text) + "\n"
     
-    
+    def free_form_action(self, story_context: str, story_type: str, location: Location, character_card: str = '', event_history: str = ''):
+        actions = ', '.join(['move, say, attack, wear, remove, wield, take, eat, drink, emote'])
+        character_names = [character.name for character in location.livings if character.visible]  # Get the names of each living in the characters list
+        exits = location.exits.keys()
+        items = [item.name for item in location.items if item.visible]
+        prompt = self.pre_prompt
+        prompt += self.free_form_action_prompt.format(
+            story_context=story_context,
+            story_type=story_type,
+            actions=actions,
+            location=location.name,
+            exits=exits,
+            location_items=items,
+            characters=character_names,
+            history=event_history,
+            character=character_card)
+        request_body = deepcopy(self.default_body)
+        request_body['grammar'] = self.json_grammar
+        try :
+            text = self.io_util.synchronous_request(request_body, prompt=prompt)
+            response = json.loads(parse_utils.sanitize_json(text))
+            return self._sanitize_free_form_response(response)
+        except Exception as exc:
+            print(exc)  
+            raise LlmResponseException('Failed to parse action')
+            return None
+        
+    def _sanitize_free_form_response(self, action: dict):
+        if action.get('text'):
+            if isinstance(action['text'], list):
+                action['text'] = action['text'][0]
+        if action.get('target'):
+            target_name = action['target']
+            if isinstance(target_name, list):
+                action['target'] = target_name[0]
+            elif isinstance(target_name, dict):
+                action['target'] = target_name.get('name', '')
+        if action.get('item'):
+            item_name = action['item']
+            if isinstance(item_name, list):
+                action['item'] = item_name[0]
+            elif isinstance(item_name, dict):
+                action['item'] = item_name.get('name', '')
+        if action.get('action'):
+            action_name = action['action']
+            if isinstance(action_name, list):
+                action['action'] = action_name[0]
+            elif isinstance(action_name, dict):
+                action['action'] = action_name.get('action', '')
+        return action

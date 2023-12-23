@@ -23,81 +23,16 @@ class TestLlmUtils():
     driver.game_clock = util.GameDateTime(datetime.datetime(year=2023, month=1, day=1), 1)
     llm_util = LlmUtil(FakeIoUtil()) # type: LlmUtil
 
-    test_text_valid = '{"thoughts": "It seems that an item (the flagon of ale) has been given by the barkeep to the user. The text explicitly states \'the barkeep presents you with a flagon of frothy ale\'. Therefore, the item has been given by the barkeep to the user.", "result": {"item":"ale", "from":"bartender", "to":"user"}, "sentiment":"cheerful"}'
-
-    test_text_valid_no_to = '{"thoughts": "It seems that an item (the flagon of ale) has been given by the barkeep to the user. The text explicitly states \'the barkeep presents you with a flagon of frothy ale\'. Therefore, the item has been given by the barkeep to the user.", "result": {"item":"ale", "from":"bartender", "to":""}}'
-
-    test_text_invalid = '{"thoughts": "It seems that an item (the flagon of ale) has been given by the barkeep to the user. The text explicitly states \'the barkeep presents you with a flagon of frothy ale\'. Therefore, the item has been given by the barkeep to the user.", "result": {"item":"", "from":"bartender", "to":"user"}}'
-
-    test_text_invalid_2 = '{"thoughts": "It seems that an item (the flagon of ale) has been given by the barkeep to the user. The text explicitly states \'the barkeep presents you with a flagon of frothy ale\'. Therefore, the item has been given by the barkeep to the user.", "result": {"item":"ale", "from":"", "to":"user"}}'
-
-    actual_response_empty_result = '{   "thoughts": "No items were given, taken, dropped or put.",  "results": {}  }\n'
-
-    actual_response_3 = '{\n    "thoughts": "\ud83d\ude0d Norhardt feels that he is close to finding something important after a long and dangerous journey through rough terrain and harsh weather, and it consumes him fully.",\n    "result": {\n        "item": "map",\n        "from": "Norhardt",\t\n        "to": "Arto"\n    }\n}'
-    
     story = JsonStory('tests/files/world_story/', parse_utils.load_story_config(parse_utils.load_json('tests/files/test_story_config_empty.json')))
     
     story.init(driver)
 
-    def test_validate_item_response_valid(self):
-        items = json.loads('["ale"]')
-        valid, result = self.llm_util._character.validate_item_response(json.loads(self.test_text_valid), 'bartender', 'user', items)
-        assert(valid)
-        assert(result["from"] and result["to"] and result["item"])
-
-    def test_validate_item_response_valid_no_to(self):
-        items = json.loads('["ale"]')
-        valid, result = self.llm_util._character.validate_item_response(json.loads(self.test_text_valid_no_to), 'bartender', 'user', items)
-        assert(valid)
-        assert(result["from"] and result["item"] and not result["to"] )
-
-
-    def test_validate_item_response_no_item(self):
-        items = json.loads('["ale"]')
-        valid, result  = self.llm_util._character.validate_item_response(json.loads(self.test_text_invalid), 'bartender', 'user', items)
-        assert(not valid)
-        assert(not result)
-
-    def test_validate_item_response_no_from(self):
-        items = json.loads('["ale"]')
-        valid, result = self.llm_util._character.validate_item_response(json.loads(self.test_text_invalid_2), 'bartender', 'user', items)
-        assert(not valid)
-        assert(not result)
-
-    def test_validate_item_response_invalid_item(self):
-        items = json.loads('["water"]')
-        valid, result = self.llm_util._character.validate_item_response(json.loads(self.test_text_valid), 'bartender', 'user', items)
-        assert(not valid)
-    
     def test_read_items(self):
         character_card = "[Norhardt; gender: m; age: 56; occupation: ; personality: An experienced explorer ; appearance: A grizzled old man, with parch; items:map]"
         items_array = character_card.split('items:')[1].split(']')[0]
         #items = json.loads(items_array)
         assert('map' in items_array)
-
-    def test_generate_item_prompt(self):
-        prompt = self.llm_util._character.generate_item_prompt('pre prompt', 'items', 'character1', 'character2')
-        assert(prompt)
-
-    def test_handle_response_no_result(self):
-        response = '{"thoughts":"The character Norhardt did not give anything listed. The character Arto took nothing. But the author mentioned that they saw something big and fury near where they were walking so likely this creature got dropped there."}'
-        result = json.loads(response)
-        assert(result)
-
-    def test_validate_response_empty_result(self):
-        valid, result  = self.llm_util._character.validate_item_response(json.loads(self.actual_response_empty_result), 'Norhardt', 'Arto', 'map')
-        assert(not valid)
-        assert(not result)
-
-    def test_actual_response_3(self):
-        valid, result  = self.llm_util._character.validate_item_response(json.loads(self.actual_response_3), 'Norhardt', 'Arto', 'map')
-        assert(valid)
-        assert(result)
         
-    def test_validate_sentiment(self):
-        sentiment = self.llm_util._character.validate_sentiment(json.loads(self.test_text_valid))
-        assert(sentiment == 'cheerful')
-
     def test_evoke(self):
         evoke_string = 'test response'
         self.llm_util.io_util = FakeIoUtil(response=evoke_string)
@@ -155,6 +90,36 @@ class TestLlmUtils():
         assert(result.startswith("Autumn greets Test character")) 
         assert(item == None)
         assert(sentiment == None)
+
+    def test_free_form_action(self):
+        self.llm_util._character.io_util.response = '{"action":"test_action", "text":"test response", "target":"test target", "item":"test item"}'
+        location = Location(name='Test Location')
+        self.llm_util.set_story(self.story)
+        result = self.llm_util.free_form_action(location=location, character_card='', event_history='')
+        assert(result)
+        assert(result["action"] == 'test_action')
+        assert(result["text"] == 'test response')
+        assert(result["target"] == 'test target')
+        assert(result["item"] == 'test item')
+
+    def test_free_form_action_lists(self):
+        self.llm_util._character.io_util.response = '{"action":["test_action"], "text":["test response"], "target":["test target"], "item":["test item"]}'
+        location = Location(name='Test Location')
+        self.llm_util.set_story(self.story)
+        result = self.llm_util.free_form_action(location=location, character_card='', event_history='')
+        assert(result)
+        assert(result["action"] == 'test_action')
+        assert(result["text"] == 'test response')
+        assert(result["target"] == 'test target')
+        assert(result["item"] == 'test item')
+
+    def test_free_form_action_dict(self):
+        self.llm_util._character.io_util.response = '{"action":{"action":"test_action"}, "target":{"name":"test target"}}'
+        location = Location(name='Test Location')
+        self.llm_util.set_story(self.story)
+        result = self.llm_util.free_form_action(location=location, character_card='', event_history='')
+        assert(result["action"] == 'test_action')
+        assert(result["target"] == 'test target')
 
     def test_init_image_gen(self):
         self.llm_util._init_image_gen("Automatic1111")

@@ -21,7 +21,8 @@ class StationaryNpc(LivingNpc):
         player_in_location = any(name == living.name for name in player_names for living in self.location.livings)
         
         if player_in_location or self.location.get_wiretap() or self.get_wiretap():
-            self.idle_action()
+            self.autonomous_action()
+            #self.idle_action()
 
 class StationaryMob(LivingNpc):
     

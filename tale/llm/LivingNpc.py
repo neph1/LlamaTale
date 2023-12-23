@@ -2,7 +2,7 @@ from tale.llm.item_handling_result import ItemHandlingResult
 import tale.llm.llm_cache as llm_cache
 from tale import lang, mud_context
 from tale.base import ContainingType, Living, ParseResult
-from tale.errors import TaleError
+from tale.errors import LlmResponseException, TaleError
 from tale.player import Player
 
 
@@ -29,9 +29,9 @@ class LivingNpc(Living):
         self.planned_actions = [] # type: list[str]
         self.goal = None # type: str # a free form string describing the goal of the NPC
         self.quest = None # type: Quest # a quest object
-        self.deferred_tell = ''
-        self.deferred_result = None
+        self.deferred_actions = set() # type: set[str]
         self.avatar = None
+        self.autonomous = False
 
     def notify_action(self, parsed: ParseResult, actor: Living) -> None:
         # store even our own events.
@@ -83,16 +83,19 @@ class LivingNpc(Living):
         short_len = False if isinstance(actor, Player) else True
 
         for i in range(3):
-            response, item, sentiment = mud_context.driver.llm_util.generate_dialogue(
-                conversation=llm_cache.get_tells(self._conversations),
-                character_card = self.character_card,
-                character_name = self.title,
-                target = actor.title,
-                target_description = actor.short_description,
-                sentiment = self.sentiments.get(actor.title, ''),
-                location_description=self.location.look(exclude_living=self),
-                event_history=llm_cache.get_events(self._observed_events),
-                short_len=short_len)
+            if self.autonomous:
+                response = self.autonomous_action()
+            else:
+                response, item, sentiment = mud_context.driver.llm_util.generate_dialogue(
+                    conversation=llm_cache.get_tells(self._conversations),
+                    character_card = self.character_card,
+                    character_name = self.title,
+                    target = actor.title,
+                    target_description = actor.short_description,
+                    sentiment = self.sentiments.get(actor.title, ''),
+                    location_description=self.location.look(exclude_living=self),
+                    event_history=llm_cache.get_events(self._observed_events),
+                    short_len=short_len)
             if response:
                 if not self.avatar:
                     result = mud_context.driver.llm_util.generate_avatar(self.name, self.description)
@@ -100,13 +103,11 @@ class LivingNpc(Living):
                         self.avatar = self.name + '.jpg'
                 break
         if not response:
-            raise TaleError("Failed to parse dialogue")
+            raise LlmResponseException("Failed to parse dialogue")
 
         tell_hash = llm_cache.cache_tell('{actor.title} says: {response}'.format(actor=self, response=response))
         self._conversations.append(tell_hash)
-        if mud_context.driver.story.config.custom_resources:
-            response = pad_text_for_npc(response, self.title)
-        self.tell_others(response, evoke=False)
+        self._defer_result(response, verb='say')
         if item:
             self.handle_item_result(ItemHandlingResult(item=item, from_=self.title, to=actor.title), actor)
 
@@ -114,7 +115,10 @@ class LivingNpc(Living):
             self.sentiments[actor.title] = sentiment
 
     def _do_react(self, parsed: ParseResult, actor: Living) -> None:
-        action = mud_context.driver.llm_util.perform_reaction(action=parsed.unparsed,
+        if self.autonomous:
+            action = self.autonomous_action()
+        else: 
+            action = mud_context.driver.llm_util.perform_reaction(action=parsed.unparsed,
                                             character_card=self.character_card,
                                             character_name=self.title,
                                             location=self.location,
@@ -123,7 +127,7 @@ class LivingNpc(Living):
                                             sentiment=self.sentiments.get(actor.name, '') if actor else '')
         if action:
             self.action_history.append(action)
-            self.deferred_result = ParseResult(verb='idle-action', unparsed=action, who_info=None)
+            self.deferred_actions = ParseResult(verb='idle-action', unparsed=action, who_info=None)
 
             if mud_context.driver.story.config.custom_resources:
                 action = pad_text_for_npc(action, self.title)
@@ -137,7 +141,7 @@ class LivingNpc(Living):
                 return False # fail silently
             actor.remove(item, actor=actor)
             item.move(target=self, actor=self)
-            actor.tell_others("{Actor} gives %s to %s" % (item.title, self.title), evoke=False)
+            self._defer_result("%s gives %s to {Actor}" % (self.title, item.title), verb='give')
             return True
 
         if result.from_  == self.title:
@@ -147,15 +151,20 @@ class LivingNpc(Living):
             self.remove(item, actor=self)
             if result.to:
                 if result.to == actor.name or result.to == actor.title:
-                    item.move(target=actor, actor=self)
+                    target = actor
                 elif result.to in ["user", "you", "player"] and isinstance(actor, Player):
-                    item.move(target=actor, actor=self)
+                    target = actor
+                else:
+                    target = self.location.search_living(result.to)
+                if not target:
+                    return False
+                item.move(target=target, actor=target)
+                self._defer_result("{Actor} gives %s to %s" % (item.title, actor.title), verb='give')
                 actor.tell("%s gives you %s." % (self.subjective, item.title), evoke=False)
-                self.tell_others("{Actor} gives %s to %s" % (item.title, actor.title), evoke=False)
                 return True
             else:
                 item.move(self.location, self)
-                self.tell_others("{Actor} drops %s on the floor" % (item.title), evoke=False)
+                self._defer_result("{Actor} drops %s on the floor" % (item.title), verb='put')
                 return True
         return False
 
@@ -174,41 +183,83 @@ class LivingNpc(Living):
                 previous_actions = self.action_history[-5:] if history_length > 4 else self.action_history[-history_length:]
             else:
                 previous_actions = []
-            actions = mud_context.driver.llm_util.perform_idle_action(character_card=self.character_card,
-                                                character_name=self.title,
-                                                location=self.location,
-                                                last_action=previous_actions,
-                                                event_history=llm_cache.get_events(self._observed_events),
-                                                sentiments=self.sentiments)
+            if self.autonomous:
+                actions = [self.autonomous_action()]
+            else: 
+                actions = mud_context.driver.llm_util.perform_idle_action(character_card=self.character_card,
+                                                    character_name=self.title,
+                                                    location=self.location,
+                                                    last_action=previous_actions,
+                                                    event_history=llm_cache.get_events(self._observed_events),
+                                                    sentiments=self.sentiments)
             if actions:
                 self.planned_actions.append(actions)
         if len(self.planned_actions) > 0:
             action = self.planned_actions.pop(0)
             self.action_history.append(action)
-            self.deferred_result = ParseResult(verb='idle-action', unparsed=action, who_info=None)
-            if mud_context.driver.story.config.custom_resources:
-                action = pad_text_for_npc(action, self.title)
-            self.deferred_tell = action
-            mud_context.driver.defer(1.0, self.tell_action_deferred)
+            self._defer_result(action)
+            return action
+        return None
             #self.location.notify_action(result, actor=self)
 
-    def travel(self):
-        result = mud_context.driver.llm_util.perform_travel_action(character_card=self.character_card,
-                                            character_name=self.title,
+    def autonomous_action(self) -> str:
+        action = mud_context.driver.llm_util.free_form_action(character_card=self.character_card,
                                             location=self.location,
-                                            locations=', '.join(self.location.exits.keys()),
-                                            directions=[])
-        if result:
-            exit = self.location.exits.get(result)
+                                            event_history=llm_cache.get_events(self._observed_events))
+        if not action:
+            return None
+        
+        print(f"Performing free form action: {action}")
+        defered_actions = []
+        if action.get('text', ''):
+            text = action['text']
+            tell_hash = llm_cache.cache_tell('{actor.title} says: {response}'.format(actor=self, response=text))
+            self._conversations.append(tell_hash)
+            if mud_context.driver.story.config.custom_resources:
+                text = pad_text_for_npc(text, self.title)
+            if action.get('target'):
+                target = self.location.search_living(action['target'])
+                if target:
+                    target.tell(text, evoke=False)
+                    target.notify_action(ParseResult(verb='say', unparsed=text, who_list=[target]), actor=self)
+            else:
+                defered_actions.append(text)
+        if not action.get('action', ''):
+            return
+        if action['action'] == 'move':
+            try:
+                exit = self.location.exits[action['target']]
+            except KeyError:
+                exit = None
             if exit:
-                self.move(target=exit.target, actor=self)
+                self.move(target=exit.target, actor=self, direction_names=exit.names)
+        elif action['action'] == 'give':
+            result = ItemHandlingResult(item=action['item'], to=action['target'], from_=self.title)
+            self.handle_item_result(result, actor=self)
+        elif action['action'] == 'take':
+            item = self.search_item(action['item'], include_location=True, include_inventory=False) # Type: Item
+            if item:
+                item.move(target=self, actor=self)
+                defered_actions.append(f"{self.title} takes {item.title}")
+
+        return '\n'.join(defered_actions)
+        #return f"{action.get('action', '')} {action.get('item', '')} {action.get('target', '')}: {action.get('text', '')}"
+    
+
+    def _defer_result(self, action: str, verb: str="idle-action"):
+        if verb != 'say':
+            self.deferred_actions.add(action)
+            if mud_context.driver.story.config.custom_resources:
+                action = pad_text_for_npc(action, self.title)
+        mud_context.driver.defer(1.0, self.tell_action_deferred)
 
     def tell_action_deferred(self):
-        if (self.deferred_tell):
-            self.tell_others(self.deferred_tell + '\n')
-            self.location._notify_action_all(self.deferred_result, actor=self)
-            self.deferred_tell = ''
-            self.deferred_result = None
+        if len(self.deferred_actions):
+            actions = '\n'.join(self.deferred_actions)
+            deferred_action = ParseResult(verb='idle-action', unparsed=actions, who_info=None)
+            self.tell_others(actions + '\n')
+            self.location._notify_action_all(deferred_action, actor=self)
+            self.deferred_actions.clear()
 
     def _clear_quest(self):
         self.quest = None
