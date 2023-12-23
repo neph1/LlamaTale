@@ -1739,7 +1739,7 @@ def do_save(player: Player, parsed: base.ParseResult, ctx: util.Context) -> None
     
 @cmd("eat", "drink")
 def do_consume(player: Player, parsed: base.ParseResult, ctx: util.Context) -> None:
-    """Eat or drinksomething."""
+    """Eat or drink something."""
     if len(parsed.args) != 1:
         raise ParseError("You need to specify the item to consume")
     try:
