@@ -1,10 +1,14 @@
 import json
+
+import responses
 from tale import mud_context
+import tale
 from tale.base import Exit, Item, Living, Location, ParseResult
 from tale.coord import Coord
 from tale.llm.LivingNpc import LivingNpc
 from tale.llm.item_handling_result import ItemHandlingResult
 from tale.llm.llm_ext import DynamicStory
+from tale.llm.llm_io import IoUtil
 from tale.llm.llm_utils import LlmUtil
 from tale.player import Player
 from tale.wearable import WearLocation
@@ -21,6 +25,7 @@ class TestLivingNpc():
     story = DynamicStory()
     driver.story = story
     mud_context.config = story.config
+    mud_context.driver = driver
 
     def test_handle_item_result_player(self):
         location = Location("test_room")
@@ -99,36 +104,73 @@ class TestLivingNpc():
         assert(llm_cache.get_events(npc_clean._observed_events) == 'test_event, test_event 2')
         assert(llm_cache.get_tells(npc_clean._conversations) == 'test_tell<break>test_tell_2<break>test_tell_3')
 
+class TestLivingNpcActions():
 
+    dummy_config = {
+        'BACKEND': 'kobold_cpp',
+        'USER_START': '',
+        'USER_END': '',
+        'DIALOGUE_PROMPT': '',
+    }
+
+    dummy_backend_config = {
+        'URL': 'http://localhost:5001',
+        'ENDPOINT': '/api/v1/generate',
+        'STREAM': False,
+        'STREAM_ENDPOINT': '',
+        'DATA_ENDPOINT': '',
+        'OPENAI_HEADERS': '',
+        'OPENAI_API_KEY': '',
+        'OPENAI_JSON_FORMAT': '',
+    }
+
+    context = tale._MudContext()
+    driver = FakeDriver()
+    driver.story = DynamicStory()
+    llm_util = LlmUtil(IoUtil(config=dummy_config, backend_config=dummy_backend_config)) # type: LlmUtil
+    driver.llm_util = llm_util
+    story = DynamicStory()
+    driver.story = story
+    context.config = story.config
+    context.driver = driver
+
+    @responses.activate
     def test_do_say(self):
         npc = LivingNpc(name='test', gender='m', age=42, personality='')
         npc2 = LivingNpc(name="actor", gender='f', age=42, personality='')
-        self.llm_util._character.io_util.response = ["{\n  \"response\": \"Hello there, how can I assist you today?\"\n, \"sentiment\":\"kind\"}"]
+        responses.add(responses.POST, self.dummy_backend_config['URL'] + self.dummy_backend_config['ENDPOINT'],
+                  json={'results':[{'text':'{"response": "Hello there, how can I assist you today?", "sentiment":"kind"}'}]}, status=200)
         npc.do_say(what_happened='something', actor=npc2)
         assert(npc.sentiments['actor'] == 'kind')
         assert(len(npc._conversations) == 2)
 
+    @responses.activate
     def test_idle_action(self):
         npc = LivingNpc(name='test', gender='f', age=35, personality='')
-        self.llm_util._character.io_util.response = ["sits down on a chair"]
+        responses.add(responses.POST, self.dummy_backend_config['URL'] + self.dummy_backend_config['ENDPOINT'],
+                  json={'results':[{'text':'"sits down on a chair"'}]}, status=200)
+        self.llm_util._character.io_util.response = []
         action = npc.idle_action()
         assert(action == 'sits down on a chair\n')
         assert(npc.deferred_actions.pop() == 'sits down on a chair\n')
 
+    @responses.activate
     def test_do_react(self):
         action = ParseResult(verb='idle-action', unparsed='something happened', who_info=None)
         npc = LivingNpc(name='test', gender='m', age=44, personality='')
         npc2 = LivingNpc(name="actor", gender='f', age=32, personality='')
-        self.llm_util._character.io_util.response = ['test happens back!']
+        responses.add(responses.POST, self.dummy_backend_config['URL'] + self.dummy_backend_config['ENDPOINT'],
+                  json={'results':[{'text':'"test happens back!"'}]}, status=200)
         npc._do_react(action, npc2)
         assert(npc.deferred_actions.unparsed == 'test happens back\n')
 
+    @responses.activate
     def test_take_action(self):
         location = Location("test_room")
         item = Item(name="test item", short_descr="test item", descr="A test item.")
         location.init_inventory([item])
-    
-        self.llm_util._character.io_util.response = '{"action":"take", "item":"test item"}'
+        responses.add(responses.POST, self.dummy_backend_config['URL'] + self.dummy_backend_config['ENDPOINT'],
+                  json={'results':[{'text':'{"action":"take", "item":"test item"}'}]}, status=200)
         npc = LivingNpc(name='test', gender='f', age=37, personality='')
         npc.move(location)
         assert(npc.location == location)
@@ -136,6 +178,7 @@ class TestLivingNpc():
         assert(actions == 'test takes test item')
         assert(npc.search_item('test item', include_location=False))
 
+    @responses.activate
     def test_give_action(self):
         location = Location("test_room")
         item = Item(name="test item", short_descr="test item", descr="A test item.")
@@ -143,37 +186,46 @@ class TestLivingNpc():
         npc.init_inventory([item])
         npc2 = LivingNpc(name="actor", gender='f', age=32, personality='')
         location.init_inventory([npc, npc2])
-        self.llm_util._character.io_util.response = '{"action":"give", "item":"test item", "target":"actor"}'
+        responses.add(responses.POST, self.dummy_backend_config['URL'] + self.dummy_backend_config['ENDPOINT'],
+                  json={'results':[{'text':'{"action":"give", "item":"test item", "target":"actor"}'}]}, status=200)
         npc.autonomous_action()
         assert npc.search_item('test item', include_location=False) == None
         assert(npc2.search_item('test item', include_location=False))
 
+    @responses.activate
     def test_move_action(self):
         location = Location("room 1")
         location2 = Location("room 2")
         npc = LivingNpc(name='test', gender='f', age=27, personality='')
         location.init_inventory([npc])
         Exit.connect(location, 'room 2', '', None,
-             location2, 'room 1', '', None)
-        self.llm_util._character.io_util.response = '{"action":"move", "target":"room 2"}'
+            location2, 'room 1', '', None)
+        responses.add(responses.POST, self.dummy_backend_config['URL'] + self.dummy_backend_config['ENDPOINT'],
+                  json={'results':[{'text':'{"action":"move", "target":"room 2"}'}]}, status=200)
         npc.autonomous_action()
         assert(npc.location == location2)
 
+    @responses.activate
     def test_attack(self):
         location = Location("arena")
         npc = LivingNpc(name='test', gender='f', age=27, personality='')
         giant_rat = Living(name='rat', gender='m')
         location.init_inventory([npc, giant_rat])
-        self.llm_util._character.io_util.response = '{"action":"attack", "text":"take that, you filthy animal!", "target":"rat"}'
+        responses.add(responses.POST, self.dummy_backend_config['URL'] + self.dummy_backend_config['ENDPOINT'],
+                  json={'results':[{'text':'{"action":"attack", "text":"take that, you filthy animal!", "target":"rat"}'}]}, status=200)
         actions = npc.autonomous_action()
         assert(actions == '"take that, you filthy animal!"\ntest attacks rat')
 
+    @responses.activate
     def test_say(self):
         location = Location("test_room")
         npc = LivingNpc(name='test', gender='f', age=27, personality='')
         npc2 = LivingNpc(name="actor", gender='f', age=32, personality='')
         location.init_inventory([npc, npc2])
-        self.llm_util._character.io_util.response = ['{"action":"say", "text":"How are you doing?", "target":"actor"}', '{"response":"Fine."}']
+        responses.add(responses.POST, self.dummy_backend_config['URL'] + self.dummy_backend_config['ENDPOINT'],
+                  json={'results':[{'text':'{"action":"say", "text":"How are you doing?", "target":"actor"}'}]}, status=200)
+        responses.add(responses.POST, self.dummy_backend_config['URL'] + self.dummy_backend_config['ENDPOINT'],
+                  json={'results':[{'text':'{"response":"Fine."}'}]}, status=200)
         actions = npc.autonomous_action()
         assert(actions == '"How are you doing?"')
         
