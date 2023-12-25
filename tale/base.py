@@ -1407,7 +1407,7 @@ class Living(MudObject):
                         break
         return (found, containing_object) if found else (None, None)
 
-    def start_attack(self, victim: 'Living') -> None:
+    def start_attack(self, victim: 'Living') -> combat.Combat:
         """Starts attacking the given living for one round."""
         attacker_name = lang.capital(self.title)
         victim_name = lang.capital(victim.title)
@@ -1437,6 +1437,7 @@ class Living(MudObject):
             combat.produce_remains(util.Context, self)
         if victim.stats.hp < 1:
             combat.produce_remains(util.Context, victim)  
+        return c
 
     def allow_give_money(self, amount: float, actor: Optional['Living']) -> None:
         """Do we accept money? Raise ActionRefused if not."""

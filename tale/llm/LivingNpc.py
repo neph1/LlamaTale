@@ -2,7 +2,7 @@ from tale.llm.item_handling_result import ItemHandlingResult
 import tale.llm.llm_cache as llm_cache
 from tale import lang, mud_context
 from tale.base import ContainingType, Living, ParseResult
-from tale.errors import LlmResponseException, TaleError
+from tale.errors import LlmResponseException
 from tale.player import Player
 
 
@@ -129,7 +129,7 @@ class LivingNpc(Living):
             self.action_history.append(action)
             self.deferred_actions = ParseResult(verb='idle-action', unparsed=action, who_info=None)
 
-            if mud_context.driver.story.config.custom_resources:
+            if mud_context.config.custom_resources:
                 action = pad_text_for_npc(action, self.title)
             self.deferred_tell = action
             mud_context.driver.defer(1.0, self.tell_action_deferred)
@@ -215,15 +215,14 @@ class LivingNpc(Living):
             text = action['text']
             tell_hash = llm_cache.cache_tell('{actor.title} says: {response}'.format(actor=self, response=text))
             self._conversations.append(tell_hash)
-            if mud_context.driver.story.config.custom_resources:
+            if mud_context.config.custom_resources:
                 text = pad_text_for_npc(text, self.title)
             if action.get('target'):
                 target = self.location.search_living(action['target'])
                 if target:
                     target.tell(text, evoke=False)
                     target.notify_action(ParseResult(verb='say', unparsed=text, who_list=[target]), actor=self)
-            else:
-                defered_actions.append(text)
+            defered_actions.append(f'"{text}"')
         if not action.get('action', ''):
             return
         if action['action'] == 'move':
@@ -241,6 +240,11 @@ class LivingNpc(Living):
             if item:
                 item.move(target=self, actor=self)
                 defered_actions.append(f"{self.title} takes {item.title}")
+        elif action['action'] == 'attack':
+            target = self.location.search_living(action['target'])
+            if target:
+                self.start_attack(target)
+                defered_actions.append(f"{self.title} attacks {target.title}")
 
         return '\n'.join(defered_actions)
         #return f"{action.get('action', '')} {action.get('item', '')} {action.get('target', '')}: {action.get('text', '')}"
@@ -249,7 +253,7 @@ class LivingNpc(Living):
     def _defer_result(self, action: str, verb: str="idle-action"):
         if verb != 'say':
             self.deferred_actions.add(action)
-            if mud_context.driver.story.config.custom_resources:
+            if mud_context.config.custom_resources:
                 action = pad_text_for_npc(action, self.title)
         mud_context.driver.defer(1.0, self.tell_action_deferred)
 

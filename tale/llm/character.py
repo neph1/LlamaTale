@@ -167,12 +167,14 @@ class CharacterBuilding():
         request_body['grammar'] = self.json_grammar
         try :
             text = self.io_util.synchronous_request(request_body, prompt=prompt)
+            if not text:
+                return None
             response = json.loads(parse_utils.sanitize_json(text))
             return self._sanitize_free_form_response(response)
         except Exception as exc:
             print(exc)  
             raise LlmResponseException('Failed to parse action')
-            return None
+            
         
     def _sanitize_free_form_response(self, action: dict):
         if action.get('text'):

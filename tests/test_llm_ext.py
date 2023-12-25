@@ -1,7 +1,6 @@
 import json
-import pytest
 from tale import mud_context
-from tale.base import Item, Location, ParseResult
+from tale.base import Exit, Item, Living, Location, ParseResult
 from tale.coord import Coord
 from tale.llm.LivingNpc import LivingNpc
 from tale.llm.item_handling_result import ItemHandlingResult
@@ -21,7 +20,7 @@ class TestLivingNpc():
     llm_util.set_story(story)
     mud_context.driver.llm_util = llm_util
     mud_context.driver.story = story
-
+    mud_context.config = story.config
 
     def test_handle_item_result_player(self):
         location = Location("test_room")
@@ -148,6 +147,36 @@ class TestLivingNpc():
         npc.autonomous_action()
         assert npc.search_item('test item', include_location=False) == None
         assert(npc2.search_item('test item', include_location=False))
+
+    def test_move_action(self):
+        location = Location("room 1")
+        location2 = Location("room 2")
+        npc = LivingNpc(name='test', gender='f', age=27, personality='')
+        location.init_inventory([npc])
+        Exit.connect(location, 'room 2', '', None,
+             location2, 'room 1', '', None)
+        self.llm_util._character.io_util.response = '{"action":"move", "target":"room 2"}'
+        npc.autonomous_action()
+        assert(npc.location == location2)
+
+    def test_attack(self):
+        location = Location("arena")
+        npc = LivingNpc(name='test', gender='f', age=27, personality='')
+        giant_rat = Living(name='rat', gender='m')
+        location.init_inventory([npc, giant_rat])
+        self.llm_util._character.io_util.response = '{"action":"attack", "text":"take that, you filthy animal!", "target":"rat"}'
+        actions = npc.autonomous_action()
+        assert(actions == '"take that, you filthy animal!"\ntest attacks rat')
+
+    def test_say(self):
+        location = Location("test_room")
+        npc = LivingNpc(name='test', gender='f', age=27, personality='')
+        npc2 = LivingNpc(name="actor", gender='f', age=32, personality='')
+        location.init_inventory([npc, npc2])
+        self.llm_util._character.io_util.response = ['{"action":"say", "text":"How are you doing?", "target":"actor"}', '{"response":"Fine."}']
+        actions = npc.autonomous_action()
+        assert(actions == '"How are you doing?"')
+        
 
 class TestDynamicStory():
 

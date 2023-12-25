@@ -47,6 +47,9 @@ class LlmUtil():
         self.stream = backend_config['STREAM']
         self.connection = None
         self._image_gen = None # type: ImageGeneratorBase
+        self.__story_context = ''
+        self.__story_type = ''
+        self.__world_info = ''
         
         #self._look_hashes = dict() # type: dict[int, str] # location hashes for look command. currently never cleared.
         self._world_building = WorldBuilding(default_body=self.default_body,
@@ -84,7 +87,7 @@ class LlmUtil():
         amount = 25
         prompt = self.pre_prompt
         prompt += alt_prompt or (self.base_prompt.format(
-            story_context=self.__story.config.context,
+            story_context=self.__story_context,
             history=rolling_prompt if not skip_history or alt_prompt else '',
             max_words=self.word_limit if not short_len else amount,
             input_text=str(trimmed_message)))
@@ -118,7 +121,7 @@ class LlmUtil():
                                                  target_description=target_description, 
                                                  sentiment=sentiment, 
                                                  location_description=location_description, 
-                                                 story_context=self.__story.config.context, 
+                                                 story_context=self.__story_context, 
                                                  event_history=event_history,
                                                  short_len=short_len)
     
@@ -145,15 +148,15 @@ class LlmUtil():
         return self._world_building.build_location(location, 
                                                    exit_location_name, 
                                                    zone_info, 
-                                                   self.__story.config.type, 
-                                                   self.__story.config.context,
-                                                   self.__story.config.world_info,
+                                                   self.__story_type, 
+                                                   self.__story_context,
+                                                   self.__world_info,
                                                    world_creatures=world_creatures,
                                                    world_items=world_items,
                                                    neighbors=neighbors)
      
     def perform_idle_action(self, character_name: str, location: Location, character_card: str = '', sentiments: dict = {}, last_action: str = '', event_history: str = '') -> list:
-        return self._character.perform_idle_action(character_name, location, self.__story.config.context, character_card, sentiments, last_action, event_history=event_history)
+        return self._character.perform_idle_action(character_name, location, self.__story_context, character_card, sentiments, last_action, event_history=event_history)
     
     def perform_travel_action(self, character_name: str, location: Location, locations: list, directions: list, character_card: str = ''):
         return self._character.perform_travel_action(character_name, location, locations, directions, character_card)
@@ -164,7 +167,7 @@ class LlmUtil():
                                                 acting_character_name=acting_character_name, 
                                                 location=location, character_card=character_card, 
                                                 sentiment=sentiment, 
-                                                story_context=self.__story.config.context,
+                                                story_context=self.__story_context,
                                                 event_history=event_history)
     
     def generate_story_background(self, world_mood: int, world_info: str, story_type: str):
@@ -177,24 +180,24 @@ class LlmUtil():
         return self._world_building.generate_start_zone(location_desc, story_type, story_context, world_info)
     
     def generate_world_items(self, story_context: str = '', story_type: str = '', world_info: str = '', world_mood: int = None) -> dict:
-        return self._world_building.generate_world_items(story_context or self.__story.config.context, 
-                                                            story_type or self.__story.config.type, 
-                                                            world_info or self.__story.config.world_info, 
+        return self._world_building.generate_world_items(story_context or self.__story_context, 
+                                                            story_type or self.__story_type, 
+                                                            world_info or self.__world_info, 
                                                             world_mood or self.__story.config.world_mood)
         
     
     def generate_world_creatures(self, story_context: str = '', story_type: str = '', world_info: str = '', world_mood: int = None) -> dict:
-        return self._world_building.generate_world_creatures(story_context or self.__story.config.context, 
-                                                             story_type or self.__story.config.type, 
-                                                             world_info or self.__story.config.world_info, 
+        return self._world_building.generate_world_creatures(story_context or self.__story_context, 
+                                                             story_type or self.__story_type, 
+                                                             world_info or self.__world_info, 
                                                              world_mood or self.__story.config.world_mood)
         
     def generate_random_spawn(self, location: Location, zone_info: dict):
         return self._world_building.generate_random_spawn(location=location, 
                                                           zone_info=zone_info, 
-                                                          story_type=self.__story.config.type, 
-                                                          story_context=self.__story.config.context,
-                                                          world_info=self.__story.config.world_info,
+                                                          story_type=self.__story_type, 
+                                                          story_context=self.__story_context,
+                                                          world_info=self.__world_info,
                                                           world_creatures=self.__story.catalogue._creatures,
                                                           world_items=self.__story.catalogue._items)
     
@@ -203,22 +206,22 @@ class LlmUtil():
                                               character_name=character_name, 
                                               character_card=character_card, 
                                               location=location, 
-                                              story_context=self.__story.config.context, 
-                                              story_type=self.__story.config.type, 
-                                              world_info=self.__story.config.world_info, 
+                                              story_context=self.__story_context, 
+                                              story_type=self.__story_type, 
+                                              world_info=self.__world_info, 
                                               zone_info=zone_info, 
                                               event_history=event_history)
     
     def generate_note_quest(self, zone_info: dict) -> Quest:
-        return self._quest_building.generate_note_quest(story_context=self.__story.config.context, 
-                                                        story_type=self.__story.config.type, 
-                                                        world_info=self.__story.config.world_info, 
+        return self._quest_building.generate_note_quest(story_context=self.__story_context, 
+                                                        story_type=self.__story_type, 
+                                                        world_info=self.__world_info, 
                                                         zone_info=zone_info)
   
     def generate_note_lore(self, zone_info: dict) -> str:
-        return self._world_building.generate_note_lore(story_context=self.__story.config.context, 
-                                                        story_type=self.__story.config.type, 
-                                                        world_info=self.__story.config.world_info, 
+        return self._world_building.generate_note_lore(story_context=self.__story_context, 
+                                                        story_type=self.__story_type, 
+                                                        world_info=self.__world_info, 
                                                         zone_info=zone_info)
     
     def generate_avatar(self, character_name: str, character_appearance: dict = '', save_path: str = "./resources", copy_file: bool = True) -> bool:
@@ -231,12 +234,15 @@ class LlmUtil():
         return result
 
     def free_form_action(self, location: Location, character_card: str = '', event_history: str = ''):
-        return self._character.free_form_action(self.__story.config.context, self.__story.config.type, location, character_card, event_history)
+        return self._character.free_form_action(self.__story_context, self.__story_type, location, character_card, event_history)
 
   
     def set_story(self, story: DynamicStory):
         """ Set the story object."""
         self.__story = story
+        self.__story_context = story.config.context
+        self.__story_type = story.config.type
+        self.__world_info = story.config.world_info
         if story.config.image_gen:
             self._init_image_gen(story.config.image_gen)
 
