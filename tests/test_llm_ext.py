@@ -14,12 +14,12 @@ from tests.supportstuff import FakeDriver, FakeIoUtil
 class TestLivingNpc():
 
     drink = Item("ale", "jug of ale", descr="Looks and smells like strong ale.")
-    mud_context.driver = FakeDriver()
-    story = DynamicStory()
+    driver = FakeDriver()
+    driver.story = DynamicStory()
     llm_util = LlmUtil(FakeIoUtil()) # type: LlmUtil
-    llm_util.set_story(story)
-    mud_context.driver.llm_util = llm_util
-    mud_context.driver.story = story
+    driver.llm_util = llm_util
+    story = DynamicStory()
+    driver.story = story
     mud_context.config = story.config
 
     def test_handle_item_result_player(self):
