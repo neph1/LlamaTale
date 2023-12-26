@@ -80,5 +80,6 @@ class CharacterV2():
         self.aliases = json.get('aliases', [])
         self.avatar = json.get('avatar', '')
         self.wearing = json.get('wearing', '')
+        self.autonomous = json.get('autonomous', False)
         return self
         

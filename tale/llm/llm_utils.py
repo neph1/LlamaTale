@@ -233,8 +233,8 @@ class LlmUtil():
             copy_single_image('./', image_name + '.jpg')
         return result
 
-    def free_form_action(self, location: Location, character_card: str = '', event_history: str = ''):
-        return self._character.free_form_action(self.__story_context, self.__story_type, location, character_card, event_history)
+    def free_form_action(self, location: Location, character_name: str,  character_card: str = '', event_history: str = ''):
+        return self._character.free_form_action(self.__story_context, self.__story_type, location, character_name, character_card, event_history)
 
   
     def set_story(self, story: DynamicStory):

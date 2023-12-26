@@ -9,7 +9,7 @@ from tale.player import Player
 from typing import Sequence
 
 from tale.quest import Quest
-from tale.resources_utils import pad_text_for_npc
+from tale.resources_utils import pad_text_for_avatar
 
 
 class LivingNpc(Living):
@@ -51,7 +51,7 @@ class LivingNpc(Living):
         if greet and targeted:
             if self.quest:
                 self.quest.check_completion({"npc":self.title})
-            #self.update_conversation(f"{self.title} says: \"Hi.\"")
+            self.do_say(parsed.unparsed, actor)
         elif parsed.verb == "say" and targeted:
             if self.quest:
                 self.quest.check_completion({"npc":self.title})
@@ -78,10 +78,11 @@ class LivingNpc(Living):
             self._clear_quest()
     
     def do_say(self, what_happened: str, actor: Living) -> None:
-        tell_hash = llm_cache.cache_tell('{actor.title} says to {what_happened}'.format(actor=actor, what_happened=what_happened))
+        tell_hash = llm_cache.cache_tell('{actor.title} says {what_happened}'.format(actor=actor, what_happened=what_happened))
         self._conversations.append(tell_hash)
         short_len = False if isinstance(actor, Player) else True
-
+        item = None
+        sentiment = None
         for i in range(3):
             if self.autonomous:
                 response = self.autonomous_action()
@@ -127,12 +128,7 @@ class LivingNpc(Living):
                                             sentiment=self.sentiments.get(actor.name, '') if actor else '')
         if action:
             self.action_history.append(action)
-            self.deferred_actions = ParseResult(verb='idle-action', unparsed=action, who_info=None)
-
-            if mud_context.config.custom_resources:
-                action = pad_text_for_npc(action, self.title)
-            self.deferred_tell = action
-            mud_context.driver.defer(1.0, self.tell_action_deferred)
+            self._defer_result(action, verb='idle-action')
 
     def handle_item_result(self, result: ItemHandlingResult, actor: Living) -> bool:
         if result.to == self.title:
@@ -196,6 +192,8 @@ class LivingNpc(Living):
                 self.planned_actions.append(actions)
         if len(self.planned_actions) > 0:
             action = self.planned_actions.pop(0)
+            if isinstance(action, list):
+                action = action[0]
             self.action_history.append(action)
             self._defer_result(action)
             return action
@@ -204,6 +202,7 @@ class LivingNpc(Living):
 
     def autonomous_action(self) -> str:
         action = mud_context.driver.llm_util.free_form_action(character_card=self.character_card,
+                                            character_name=self.title,
                                             location=self.location,
                                             event_history=llm_cache.get_events(self._observed_events))
         if not action:
@@ -213,10 +212,10 @@ class LivingNpc(Living):
         defered_actions = []
         if action.get('text', ''):
             text = action['text']
-            tell_hash = llm_cache.cache_tell('{actor.title} says: {response}'.format(actor=self, response=text))
+            tell_hash = llm_cache.cache_tell('{actor.title} says: "{response}"'.format(actor=self, response=text))
             self._conversations.append(tell_hash)
             if mud_context.config.custom_resources:
-                text = pad_text_for_npc(text, self.title)
+                text = pad_text_for_avatar(text, self.title)
             if action.get('target'):
                 target = self.location.search_living(action['target'])
                 if target:
@@ -224,7 +223,7 @@ class LivingNpc(Living):
                     target.notify_action(ParseResult(verb='say', unparsed=text, who_list=[target]), actor=self)
             defered_actions.append(f'"{text}"')
         if not action.get('action', ''):
-            return
+            return '\n'.join(defered_actions)
         if action['action'] == 'move':
             try:
                 exit = self.location.exits[action['target']]
@@ -247,14 +246,14 @@ class LivingNpc(Living):
                 defered_actions.append(f"{self.title} attacks {target.title}")
 
         return '\n'.join(defered_actions)
-        #return f"{action.get('action', '')} {action.get('item', '')} {action.get('target', '')}: {action.get('text', '')}"
     
 
     def _defer_result(self, action: str, verb: str="idle-action"):
-        if verb != 'say':
-            self.deferred_actions.add(action)
-            if mud_context.config.custom_resources:
-                action = pad_text_for_npc(action, self.title)
+        self.deferred_actions.add(action)
+        if mud_context.config.custom_resources:
+            action = pad_text_for_avatar(action, self.title)
+        else:
+            action = f"{self.title} : {action}"
         mud_context.driver.defer(1.0, self.tell_action_deferred)
 
     def tell_action_deferred(self):

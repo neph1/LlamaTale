@@ -98,7 +98,10 @@ class CharacterBuilding():
         characters = {}
         for living in location.livings:
             if living.visible and living.name != character_name.lower():
-                characters[living.name] = living.short_description
+                if living.alive:
+                    characters[living.name] = living.short_description
+                else:
+                    characters[living.name] = f"{living.short_description} (dead)"
         items = [item.name for item in location.items if item.visible]
         prompt = self.idle_action_prompt.format(
             last_action=last_action if last_action else f"{character_name} arrives in {location.name}",
@@ -147,9 +150,15 @@ class CharacterBuilding():
         text = self.io_util.synchronous_request(request_body, prompt=prompt)
         return parse_utils.trim_response(text) + "\n"
     
-    def free_form_action(self, story_context: str, story_type: str, location: Location, character_card: str = '', event_history: str = ''):
+    def free_form_action(self, story_context: str, story_type: str, location: Location, character_name: str, character_card: str = '', event_history: str = ''):
         actions = ', '.join(['move, say, attack, wear, remove, wield, take, eat, drink, emote'])
-        character_names = [character.name for character in location.livings if character.visible]  # Get the names of each living in the characters list
+        characters = {}
+        for living in location.livings:
+            if living.visible and living.name != character_name.lower():
+                if living.alive:
+                    characters[living.name] = living.short_description
+                else:
+                    characters[living.name] = f"{living.short_description} (dead)"
         exits = location.exits.keys()
         items = [item.name for item in location.items if item.visible]
         prompt = self.pre_prompt
@@ -160,8 +169,9 @@ class CharacterBuilding():
             location=location.name,
             exits=exits,
             location_items=items,
-            characters=character_names,
+            characters=json.dumps(characters),
             history=event_history,
+            character_name=character_name,
             character=character_card)
         request_body = deepcopy(self.default_body)
         request_body['grammar'] = self.json_grammar

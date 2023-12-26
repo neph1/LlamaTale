@@ -852,6 +852,13 @@ class Driver(pubsub.Listener):
                         personality = character.personality, 
                         race = character.race,
                         occupation = character.occupation)
+        npc.autonomous = character.autonomous
+        wearing = character.wearing.split(',')
+        for item in wearing:
+            if item:
+                wearable = base.Wearable(name=item.lower().trim())
+                npc.set_wearable(wearable)
+        
         npc.following = player
         npc.stats.hp = character.hp
         if isinstance(self.story, DynamicStory):

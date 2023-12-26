@@ -95,7 +95,7 @@ class TestLlmUtils():
         self.llm_util._character.io_util.response = '{"action":"test_action", "text":"test response", "target":"test target", "item":"test item"}'
         location = Location(name='Test Location')
         self.llm_util.set_story(self.story)
-        result = self.llm_util.free_form_action(location=location, character_card='', event_history='')
+        result = self.llm_util.free_form_action(location=location, character_name='', character_card='', event_history='')
         assert(result)
         assert(result["action"] == 'test_action')
         assert(result["text"] == 'test response')
@@ -106,7 +106,7 @@ class TestLlmUtils():
         self.llm_util._character.io_util.response = '{"action":["test_action"], "text":["test response"], "target":["test target"], "item":["test item"]}'
         location = Location(name='Test Location')
         self.llm_util.set_story(self.story)
-        result = self.llm_util.free_form_action(location=location, character_card='', event_history='')
+        result = self.llm_util.free_form_action(location=location, character_name='', character_card='', event_history='')
         assert(result)
         assert(result["action"] == 'test_action')
         assert(result["text"] == 'test response')
@@ -117,7 +117,7 @@ class TestLlmUtils():
         self.llm_util._character.io_util.response = '{"action":{"action":"test_action"}, "target":{"name":"test target"}}'
         location = Location(name='Test Location')
         self.llm_util.set_story(self.story)
-        result = self.llm_util.free_form_action(location=location, character_card='', event_history='')
+        result = self.llm_util.free_form_action(location=location, character_name='', character_card='', event_history='')
         assert(result["action"] == 'test_action')
         assert(result["target"] == 'test target')
 
@@ -192,7 +192,19 @@ class TestWorldBuilding():
         assert(new_locations[0].name == 'Misty Meadows')
         assert(new_locations[1].name == 'Riverdale')
 
-    
+    def test_generate_start_location_2(self):
+        self.llm_util._world_building.io_util.response='{"name": "Oakwood Glade", "exits": [{"direction": "north", "name": "Moonlit Mire", "description": "A dark and eerie bog, home to strange creatures and hidden treasures."}, {"direction": "south", "name": "Raven\'s Peak", "description": "A rugged mountain peak, shrouded in mystery."}, {"direction": "west", "name": "Willow\'s Edge", "description": "A secluded grove, filled with ancient magic."}], "items": [{"name": "Rare Flower", "type": "Other", "short_descr": "A delicate, glowing flower, said to have healing properties."}, {"name": "Mystic Staff", "type": "Wearable", "short_descr": "A staff imbued with ancient magic, granting the wielder incredible power."}, {"name": "Glimmering Gem", "type": "Money", "short_descr": "A rare and valuable gemstone, sought after by collectors."}], "npcs": [{"name": "Eira", "sentiment": "friendly", "race": "female", "level": 5, "description": "A wise and gentle druid, known for her healing magic."}]}'
+        location = Location(name='', descr='on a small road outside a village')
+        new_locations, exits, npcs = self.llm_util._world_building.generate_start_location(location, 
+                                                       story_type='',
+                                                       story_context='', 
+                                                       zone_info={},
+                                                       world_info='',)
+        location = Location(name=location.name, descr=location.description)
+        assert(location.name == 'Oakwood Glade')
+        assert(location.title == 'Oakwood Glade')
+        assert(location.description == 'on a small road outside a village')
+
     def test_generate_start_zone(self):
         # mostly for coverage
         self.llm_util._world_building.io_util.response = self.generated_zone
@@ -292,6 +304,15 @@ class TestWorldBuilding():
         self.llm_util.set_story(self.story)
         new_locations, exits, npcs = self.llm_util.build_location(location, exit_location_name, zone_info={})
         assert(len(new_locations) == 2)
+
+    def test_build_location_no_description(self):
+        location = Location(name='The Red Rock Saloon')
+        exit_location_name = 'Cactus Cove'
+        self.llm_util._world_building.io_util.response = '{"exits": [{"direction": "north", "name": "The Dusty Trail", "description": "A winding path through the cacti, leading deeper into the frontier."}, {"direction": "south", "name": "The Oasis of Eternal Springs", "description": "A lush and verdant oasis, rumored to hold ancient secrets."}, {"direction": "east", "name": "The Cactus Canyon", "description": "A treacherous gorge, home to the fierce Cactus Worm."}], "items": [{"name": "Cactus Flower", "description": "A rare and beautiful bloom, said to have healing properties."}, {"name": "Cactus Juice", "description": "A refreshing drink, made from the rare cactus fruit."}, {"name": "Cactus Shield", "description": "A sturdy shield, crafted from the toughest cactus spines."}], "npcs": []}'
+        self.llm_util.set_story(self.story)
+        new_locations, exits, npcs = self.llm_util.build_location(location, exit_location_name, zone_info={})
+        assert(location.description == 'Cactus Cove')
+        assert(len(new_locations) == 3)
 
     def test_validate_zone(self):
         center = Coord(5, 0, 0)

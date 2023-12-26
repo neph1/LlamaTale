@@ -79,9 +79,14 @@ class WorldBuilding():
             if not location_to_build.description:
                 description = json_result.get('description', '')
                 if not description:
-                    # this is a hack to get around that it sometimes generates an extra json layer
-                    json_result = json_result[location_to_build.name]
+                    if not json_result.get('exits'):
+                        # this is a hack to get around that it sometimes generates an extra json layer
+                        json_result = json_result[location_to_build.name]
+                    else:
+                        # some models don't generate description, sometimes
+                        json_result['description'] = exit_location_name
                 location_to_build.description = json_result['description']
+                
             
             self._add_items(location_to_build, json_result, world_items)
 
@@ -95,7 +100,7 @@ class WorldBuilding():
             return new_locations, exits, npcs.values()
         except Exception as exc:
             print(f'Exception while parsing location {json_result} ')
-            print(exc)
+            print(exc.with_traceback())
             return None, None, None
             
     def _add_items(self, location: Location, json_result: dict, world_items: dict = {}):
