@@ -44,6 +44,7 @@ class IoAdapterBase:
         self.stop_main_loop = False
         self.last_output_line = ""
         self.dont_echo_next_cmd = False   # used to not echo the password input, for instance
+        self.echo_input = False
 
     def destroy(self) -> None:
         """Called when the I/O adapter is shut down"""
