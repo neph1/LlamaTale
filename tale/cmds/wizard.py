@@ -798,4 +798,22 @@ def do_load_character(player: Player, parsed: base.ParseResult, ctx: util.Contex
         ctx.driver.load_character(player, path)
     except FileNotFoundError:
         raise ActionRefused("File not found")
+    
+@wizcmd("set_visibility")
+def do_set_visible(player: Player, parsed: base.ParseResult, ctx: util.Context) -> None:
+    """Set the visibility of a creature."""
+    if len(parsed.args) != 2:
+        raise ParseError("You need to specify the object and the visibility(true or false)")
+    try:
+        object = player.location.search_living(parsed.args[0])
+        if not object:
+            object = player.search_item(parsed.args[0], include_inventory=True, include_location=True)
+        if not object:
+            raise ParseError("No object found")
+        
+        visible = parsed.args[1].lower() == 'true' or parsed.args[1] == '1'
+        object.visible = visible
+        player.tell("%s visibility set to %s" % (object, visible))
+    except ValueError as x:
+        raise ActionRefused(str(x))
 

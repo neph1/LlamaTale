@@ -171,6 +171,8 @@ def load_npcs(json_npcs: [], locations = {}) -> dict:
             new_npc.aliases.add(name.split(' ')[0].lower())
             new_npc.stats.set_weapon_skill(WeaponType.UNARMED, random.randint(10, 30))
             new_npc.stats.level = npc.get('level', 1)
+        if npc.get('autonomous', False):
+            new_npc.autonomous = True
         if npc.get('stats', None):
             new_npc.stats = load_stats(npc['stats'])
 

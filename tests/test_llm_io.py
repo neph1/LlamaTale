@@ -4,9 +4,7 @@ import json
 import os
 
 import yaml
-from tale.llm import llm_config
 from tale.llm.llm_io import IoUtil
-from tests.supportstuff import FakeIoUtil
 
 
 class TestLlmIo():

@@ -20,11 +20,12 @@
             </div>
             <div class="textframe" id="textframe">
             </div>
-            <form method="POST" accept-charset="UTF-8" action="input" id="cmd-form">
+            <form method="POST" accept-charset="UTF-8" action="input" id="cmd-form" class="flex-container">
+                <select id="npc-dropdown" onchange="populateDropdown(csvString)" class="npc-dropdown"></select>
                 <input type="text" name="cmd" id="input-cmd" autofocus autocomplete="off" />
-                <input type="submit" value="Cmd (enter)" onclick="submit_cmd(); return false;" />
-                <input type="submit" value="Suggest" name="autocomplete" id="button-autocomplete" accesskey="s" onclick="autocomplete_cmd(); return false;" />
-                <input type="submit" value="Quit" name="quit" id="button-quit" onclick="quit_clicked(); return false;" />
+                <input type="submit" value="&#9166;" onclick="submit_cmd(); return false;" readonly/>
+                <input type="submit" value="&RightArrowBar;" name="autocomplete" id="button-autocomplete" onclick="autocomplete_cmd(); return false;" readonly/>
+                <input type="submit" value="&#128682" name="quit" id="button-quit" onclick="quit_clicked(); return false;" readonly/>
             </form>
         </div>
     </div>

@@ -23,81 +23,16 @@ class TestLlmUtils():
     driver.game_clock = util.GameDateTime(datetime.datetime(year=2023, month=1, day=1), 1)
     llm_util = LlmUtil(FakeIoUtil()) # type: LlmUtil
 
-    test_text_valid = '{"thoughts": "It seems that an item (the flagon of ale) has been given by the barkeep to the user. The text explicitly states \'the barkeep presents you with a flagon of frothy ale\'. Therefore, the item has been given by the barkeep to the user.", "result": {"item":"ale", "from":"bartender", "to":"user"}, "sentiment":"cheerful"}'
-
-    test_text_valid_no_to = '{"thoughts": "It seems that an item (the flagon of ale) has been given by the barkeep to the user. The text explicitly states \'the barkeep presents you with a flagon of frothy ale\'. Therefore, the item has been given by the barkeep to the user.", "result": {"item":"ale", "from":"bartender", "to":""}}'
-
-    test_text_invalid = '{"thoughts": "It seems that an item (the flagon of ale) has been given by the barkeep to the user. The text explicitly states \'the barkeep presents you with a flagon of frothy ale\'. Therefore, the item has been given by the barkeep to the user.", "result": {"item":"", "from":"bartender", "to":"user"}}'
-
-    test_text_invalid_2 = '{"thoughts": "It seems that an item (the flagon of ale) has been given by the barkeep to the user. The text explicitly states \'the barkeep presents you with a flagon of frothy ale\'. Therefore, the item has been given by the barkeep to the user.", "result": {"item":"ale", "from":"", "to":"user"}}'
-
-    actual_response_empty_result = '{   "thoughts": "No items were given, taken, dropped or put.",  "results": {}  }\n'
-
-    actual_response_3 = '{\n    "thoughts": "\ud83d\ude0d Norhardt feels that he is close to finding something important after a long and dangerous journey through rough terrain and harsh weather, and it consumes him fully.",\n    "result": {\n        "item": "map",\n        "from": "Norhardt",\t\n        "to": "Arto"\n    }\n}'
-    
     story = JsonStory('tests/files/world_story/', parse_utils.load_story_config(parse_utils.load_json('tests/files/test_story_config_empty.json')))
     
     story.init(driver)
 
-    def test_validate_item_response_valid(self):
-        items = json.loads('["ale"]')
-        valid, result = self.llm_util._character.validate_item_response(json.loads(self.test_text_valid), 'bartender', 'user', items)
-        assert(valid)
-        assert(result["from"] and result["to"] and result["item"])
-
-    def test_validate_item_response_valid_no_to(self):
-        items = json.loads('["ale"]')
-        valid, result = self.llm_util._character.validate_item_response(json.loads(self.test_text_valid_no_to), 'bartender', 'user', items)
-        assert(valid)
-        assert(result["from"] and result["item"] and not result["to"] )
-
-
-    def test_validate_item_response_no_item(self):
-        items = json.loads('["ale"]')
-        valid, result  = self.llm_util._character.validate_item_response(json.loads(self.test_text_invalid), 'bartender', 'user', items)
-        assert(not valid)
-        assert(not result)
-
-    def test_validate_item_response_no_from(self):
-        items = json.loads('["ale"]')
-        valid, result = self.llm_util._character.validate_item_response(json.loads(self.test_text_invalid_2), 'bartender', 'user', items)
-        assert(not valid)
-        assert(not result)
-
-    def test_validate_item_response_invalid_item(self):
-        items = json.loads('["water"]')
-        valid, result = self.llm_util._character.validate_item_response(json.loads(self.test_text_valid), 'bartender', 'user', items)
-        assert(not valid)
-    
     def test_read_items(self):
         character_card = "[Norhardt; gender: m; age: 56; occupation: ; personality: An experienced explorer ; appearance: A grizzled old man, with parch; items:map]"
         items_array = character_card.split('items:')[1].split(']')[0]
         #items = json.loads(items_array)
         assert('map' in items_array)
-
-    def test_generate_item_prompt(self):
-        prompt = self.llm_util._character.generate_item_prompt('pre prompt', 'items', 'character1', 'character2')
-        assert(prompt)
-
-    def test_handle_response_no_result(self):
-        response = '{"thoughts":"The character Norhardt did not give anything listed. The character Arto took nothing. But the author mentioned that they saw something big and fury near where they were walking so likely this creature got dropped there."}'
-        result = json.loads(response)
-        assert(result)
-
-    def test_validate_response_empty_result(self):
-        valid, result  = self.llm_util._character.validate_item_response(json.loads(self.actual_response_empty_result), 'Norhardt', 'Arto', 'map')
-        assert(not valid)
-        assert(not result)
-
-    def test_actual_response_3(self):
-        valid, result  = self.llm_util._character.validate_item_response(json.loads(self.actual_response_3), 'Norhardt', 'Arto', 'map')
-        assert(valid)
-        assert(result)
         
-    def test_validate_sentiment(self):
-        sentiment = self.llm_util._character.validate_sentiment(json.loads(self.test_text_valid))
-        assert(sentiment == 'cheerful')
-
     def test_evoke(self):
         evoke_string = 'test response'
         self.llm_util.io_util = FakeIoUtil(response=evoke_string)
@@ -155,6 +90,36 @@ class TestLlmUtils():
         assert(result.startswith("Autumn greets Test character")) 
         assert(item == None)
         assert(sentiment == None)
+
+    def test_free_form_action(self):
+        self.llm_util._character.io_util.response = '{"action":"test_action", "text":"test response", "target":"test target", "item":"test item"}'
+        location = Location(name='Test Location')
+        self.llm_util.set_story(self.story)
+        result = self.llm_util.free_form_action(location=location, character_name='', character_card='', event_history='')
+        assert(result)
+        assert(result["action"] == 'test_action')
+        assert(result["text"] == 'test response')
+        assert(result["target"] == 'test target')
+        assert(result["item"] == 'test item')
+
+    def test_free_form_action_lists(self):
+        self.llm_util._character.io_util.response = '{"action":["test_action"], "text":["test response"], "target":["test target"], "item":["test item"]}'
+        location = Location(name='Test Location')
+        self.llm_util.set_story(self.story)
+        result = self.llm_util.free_form_action(location=location, character_name='', character_card='', event_history='')
+        assert(result)
+        assert(result["action"] == 'test_action')
+        assert(result["text"] == 'test response')
+        assert(result["target"] == 'test target')
+        assert(result["item"] == 'test item')
+
+    def test_free_form_action_dict(self):
+        self.llm_util._character.io_util.response = '{"action":{"action":"test_action"}, "target":{"name":"test target"}}'
+        location = Location(name='Test Location')
+        self.llm_util.set_story(self.story)
+        result = self.llm_util.free_form_action(location=location, character_name='', character_card='', event_history='')
+        assert(result["action"] == 'test_action')
+        assert(result["target"] == 'test target')
 
     def test_init_image_gen(self):
         self.llm_util._init_image_gen("Automatic1111")
@@ -227,7 +192,19 @@ class TestWorldBuilding():
         assert(new_locations[0].name == 'Misty Meadows')
         assert(new_locations[1].name == 'Riverdale')
 
-    
+    def test_generate_start_location_2(self):
+        self.llm_util._world_building.io_util.response='{"name": "Oakwood Glade", "exits": [{"direction": "north", "name": "Moonlit Mire", "description": "A dark and eerie bog, home to strange creatures and hidden treasures."}, {"direction": "south", "name": "Raven\'s Peak", "description": "A rugged mountain peak, shrouded in mystery."}, {"direction": "west", "name": "Willow\'s Edge", "description": "A secluded grove, filled with ancient magic."}], "items": [{"name": "Rare Flower", "type": "Other", "short_descr": "A delicate, glowing flower, said to have healing properties."}, {"name": "Mystic Staff", "type": "Wearable", "short_descr": "A staff imbued with ancient magic, granting the wielder incredible power."}, {"name": "Glimmering Gem", "type": "Money", "short_descr": "A rare and valuable gemstone, sought after by collectors."}], "npcs": [{"name": "Eira", "sentiment": "friendly", "race": "female", "level": 5, "description": "A wise and gentle druid, known for her healing magic."}]}'
+        location = Location(name='', descr='on a small road outside a village')
+        new_locations, exits, npcs = self.llm_util._world_building.generate_start_location(location, 
+                                                       story_type='',
+                                                       story_context='', 
+                                                       zone_info={},
+                                                       world_info='',)
+        location = Location(name=location.name, descr=location.description)
+        assert(location.name == 'Oakwood Glade')
+        assert(location.title == 'Oakwood Glade')
+        assert(location.description == 'on a small road outside a village')
+
     def test_generate_start_zone(self):
         # mostly for coverage
         self.llm_util._world_building.io_util.response = self.generated_zone
@@ -327,6 +304,15 @@ class TestWorldBuilding():
         self.llm_util.set_story(self.story)
         new_locations, exits, npcs = self.llm_util.build_location(location, exit_location_name, zone_info={})
         assert(len(new_locations) == 2)
+
+    def test_build_location_no_description(self):
+        location = Location(name='The Red Rock Saloon')
+        exit_location_name = 'Cactus Cove'
+        self.llm_util._world_building.io_util.response = '{"exits": [{"direction": "north", "name": "The Dusty Trail", "description": "A winding path through the cacti, leading deeper into the frontier."}, {"direction": "south", "name": "The Oasis of Eternal Springs", "description": "A lush and verdant oasis, rumored to hold ancient secrets."}, {"direction": "east", "name": "The Cactus Canyon", "description": "A treacherous gorge, home to the fierce Cactus Worm."}], "items": [{"name": "Cactus Flower", "description": "A rare and beautiful bloom, said to have healing properties."}, {"name": "Cactus Juice", "description": "A refreshing drink, made from the rare cactus fruit."}, {"name": "Cactus Shield", "description": "A sturdy shield, crafted from the toughest cactus spines."}], "npcs": []}'
+        self.llm_util.set_story(self.story)
+        new_locations, exits, npcs = self.llm_util.build_location(location, exit_location_name, zone_info={})
+        assert(location.description == 'Cactus Cove')
+        assert(len(new_locations) == 3)
 
     def test_validate_zone(self):
         center = Coord(5, 0, 0)

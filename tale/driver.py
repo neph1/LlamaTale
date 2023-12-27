@@ -843,7 +843,7 @@ class Driver(pubsub.Listener):
         if not char_data:
             raise errors.TaleError("Character not found.")
         character = CharacterV2().from_json(char_data)
-        npc = LivingNpc(name = character.name.lower(), 
+        npc = StationaryNpc(name = character.name.lower(), 
                         gender = character.gender,
                         title = character.name, 
                         descr  = character.appearance, 
@@ -852,8 +852,19 @@ class Driver(pubsub.Listener):
                         personality = character.personality, 
                         race = character.race,
                         occupation = character.occupation)
+        npc.autonomous = character.autonomous
+        wearing = character.wearing.split(',')
+        for item in wearing:
+            if item:
+                wearable = base.Wearable(name=item.lower().trim())
+                npc.set_wearable(wearable)
+        
         npc.following = player
         npc.stats.hp = character.hp
+        if isinstance(self.story, DynamicStory):
+            dynamic_story = typing.cast(DynamicStory, self.story)
+            dynamic_story.world.add_npc(npc)
+
         player.location.insert(npc, None)
         player.location.tell("%s arrives." % npc.title)
         

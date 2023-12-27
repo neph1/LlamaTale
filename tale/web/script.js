@@ -67,6 +67,10 @@ function process_text(json)
         }
         if(json["text"]) {
             document.getElementById("player-location").innerHTML = json["location"];
+            if (json.hasOwnProperty("npcs")) {
+                populateNpcDropdown(json["npcs"]);
+            }
+            //set_location_image(json["location"]);
             // document.getElementById("player-turns").innerHTML = json["turns"];
             txtdiv.innerHTML += json["text"];
             if(!document.smoothscrolling_busy) smoothscroll(txtdiv, 0);
@@ -96,7 +100,13 @@ function submit_cmd()
     var ajax = new XMLHttpRequest();
     ajax.open("POST", "input", true);
     ajax.setRequestHeader("Content-type","application/x-www-form-urlencoded; charset=UTF-8");
-    var encoded_cmd = encodeURIComponent(cmd_input.value);
+    var selectedNpc = document.getElementById('npc-dropdown').value;
+    var npcAddress = '';
+    if (selectedNpc && selectedNpc !== 'None') {
+        npcAddress = ' to ' + selectedNpc.replace(/ /g, '_');
+    }
+    var encoded_cmd = encodeURIComponent(cmd_input.value + npcAddress);
+    
     ajax.send("cmd=" + encoded_cmd);
     cmd_input.value="";
     cmd_input.focus();
@@ -126,4 +136,81 @@ function quit_clicked()
         return true;
     }
     return false;
+}
+
+function create_chat_container(npc_name) {
+    // Create elements
+    var chatContainer = document.createElement('div');
+    chatContainer.className = 'chat-container';
+
+    var userImage = document.createElement('img');
+    userImage.className = 'user-image';
+    userImage.src = npc_name.replace(/ /g, '_') + '.jpg';
+    userImage.alt = 'User Avatar';
+
+    var userNameDiv = document.createElement('div');
+    userNameDiv.className = 'user-name';
+    userNameDiv.textContent = npc_name;
+
+    var textField = document.createElement('input');
+    textField.className = 'text-field';
+    textField.type = 'text';
+    textField.placeholder = 'Type your message...';
+
+    // Append elements to the chat container
+    chatContainer.appendChild(userNameDiv);
+    chatContainer.appendChild(userImage);
+    chatContainer.appendChild(textField);
+
+    // Append the chat container to the wrapper div
+    document.getElementById('chatContainerWrapper').appendChild(chatContainer);
+}
+
+function set_location_image(location_name) {
+    var locationImage = document.getElementById('location-image');
+    locationImage.src = 'resources/' + location_name.replace(/ /g, '_') + '.jpg';
+}
+
+function updateImage() {
+    var input = document.getElementById('imageInput');
+    var image = document.getElementById('userImage');
+
+    var file = input.files[0];
+
+    if (file) {
+        var reader = new FileReader();
+
+        reader.onload = function (e) {
+            image.src = e.target.result;
+        };
+
+        reader.readAsDataURL(file);
+    }
+}
+
+function populateNpcDropdown(csvString) {
+    // Split the comma-separated string into an array
+    var optionsArray = csvString.split(',');
+
+    // Get the dropdown element
+    var dropdown = document.getElementById('npc-dropdown');
+    let lastSelected = dropdown.value;
+    dropdown.innerHTML = '';
+    // Loop through the options array and add each option to the dropdown
+    var option = document.createElement('option');
+    option.value = 'None';
+    option.text = 'None';
+    dropdown.add(option);
+    optionsArray.forEach(function (optionValue) {
+        var option = document.createElement('option');
+        let npc = optionValue.trim();
+        option.value = npc;
+        option.text = npc;
+        dropdown.add(option);
+        if (lastSelected && option.value === lastSelected) {
+            option.selected = true;
+        }
+    });
+
+    
 }

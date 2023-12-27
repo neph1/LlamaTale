@@ -7,11 +7,13 @@ body {
     color: white;
     background: black;
     margin: 1em;
+    border: 1px solid gainsboro;
 }
 #tale-page {
-    max-width: 52em;
-    margin: 0 auto;
+    max-width: 90%;
+    margin: auto;
 }
+
 h1, h2, h3, h4, h5 {
     font-weight: normal;
     margin-top: 1em;
@@ -43,34 +45,28 @@ pre {
 
 #input-cmd {
     padding: 3px;
-    width: 28em;
     border: 1px inset gainsboro;
+    border-radius: 5px;
 }
 .location {
     text-align: right;
     margin-bottom: 4pt;
     font-style: italic;
-    text-shadow: 2px 2px 4px rgba(150, 150, 150, 1);
 }
 .location > span {
     color: green;
 }
-.story {
-    margin-top: -2ex;
-    width: 100%;
-}
 #textframe {
     border: 1px solid gainsboro;
     overflow: auto;
-    height: 34em;
-    margin-bottom: 1em;
-    padding: 1em;
-    box-shadow: 3px 3px 8px 1px rgba(150,150,150,1);
+    height: 33em;
+    margin-bottom: 3px;
+    padding: 3px;
 }
 
 #cmd-form {
     padding: 1ex;
-    box-shadow: 3px 3px 8px 1px rgba(150,150,150,1);
+    border: 1px solid gainsboro;
 }
 
 p, pre {
@@ -157,4 +153,22 @@ p, pre {
     height: 240px;
     border-radius: 10px;
     margin-right: 10px;
+}
+
+.npc-dropdown {
+    width: 100px;
+}
+
+.flex-container {
+    display: flex;
+    padding: 3px;
+}
+
+.flex-container input {
+    margin-left: 3px;
+}
+
+.flex-container input[type="text"] {
+    flex-grow: 1;
+    width: 100%;
 }

@@ -1,4 +1,5 @@
 import json
+import os
 import random
 from tale import parse_utils
 from tale.base import Item, Living, Location
@@ -98,7 +99,7 @@ class DynamicStory(StoryBase):
             neighbors[dir] = self._world._grid.get(coord.as_tuple(), None)
         return neighbors
     
-    def save(self) -> None:
+    def save(self, save_name: str = '') -> None:
         """ Save the story to disk."""
         story = dict()
         story["story"] = dict()
@@ -112,13 +113,16 @@ class DynamicStory(StoryBase):
             story["zones"][zone.name]["name"] = zone.name
             story["zones"][zone.name]["locations"] = parse_utils.save_locations(zone.locations.values())
         print(story)
-        with open('world.json', "w") as fp:
+        save_path = os.path.join(os.getcwd(), '../', save_name) if save_name else './'
+        if not os.path.exists(save_path):
+            os.mkdir(save_path)
+        with open(os.path.join(save_path, 'world.json'), "w") as fp:
             json.dump(story , fp, indent=4)
 
-        with open('story_config.json', "w") as fp:
+        with open(os.path.join(save_path, 'story_config.json'), "w") as fp:
             json.dump(parse_utils.save_story_config(self.config), fp, indent=4)
 
-        with open('llm_cache.json', "w") as fp:
+        with open(os.path.join(save_path, 'llm_cache.json'), "w") as fp:
             json.dump(llm_cache.json_dump(), fp, indent=4)
 
     

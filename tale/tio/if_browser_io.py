@@ -346,13 +346,18 @@ class TaleWsgiAppBase:
             html = conn.io.get_html_to_browser()
             special = conn.io.get_html_special()
             if html or special:
+                location = conn.player.location
                 if conn.io.dont_echo_next_cmd:
                     special.append("noecho")
+                npc_names = ''
+                if location:
+                    npc_names = ','.join([l.name for l in location.livings if l.alive and l != conn.player])
                 response = {
                     "text": "\n".join(html),
                     "special": special,
                     "turns": conn.player.turns,
-                    "location": conn.player.location.title if conn.player.location else "???"
+                    "location": location.title if location else "???",
+                    "npcs": npc_names if location else '',
                 }
                 result = "event: text\nid: {event_id}\ndata: {data}\n\n"\
                     .format(event_id=str(time.time()), data=json.dumps(response))
@@ -391,7 +396,7 @@ class TaleWsgiAppBase:
             if cmd:
                 if conn.io.dont_echo_next_cmd:
                     conn.io.dont_echo_next_cmd = False
-                else:
+                elif conn.io.echo_input:
                     conn.io.append_html_to_browser("<span class='txt-userinput'>%s</span>" % cmd)
             conn.player.store_input_line(cmd)
         start_response('200 OK', [('Content-Type', 'text/plain')])

@@ -285,6 +285,7 @@ class MudObject:
         self.verbs = {}  # type: Dict[str, str]
         # register all periodical tagged methods
         self.story_data = {}  # type: Dict[Any, Any]   # not used by Tale itself, story can put custom data here. Use builtin types only.
+        self.visible = True  # can this object be seen by others?
         self.init()
         if util.get_periodicals(self):
             if mud_context.driver is None:
@@ -766,7 +767,7 @@ class Location(MudObject):
                 item_names = sorted(item.name for item in self.items)
                 paragraphs.append("You see: " + lang.join(item_names))
             if self.livings:
-                living_names = sorted(living.name for living in self.livings if living != exclude_living)
+                living_names = sorted(living.name for living in self.livings if living != exclude_living and living.visible)
                 if living_names:
                     paragraphs.append("Present here: " + lang.join(living_names))
             return paragraphs
@@ -783,8 +784,8 @@ class Location(MudObject):
                     exit_paragraph.append(exit.short_description)
             paragraphs.append(" ".join(exit_paragraph))
         items_and_livings = []  # type: List[str]
-        items_with_short_descr = [item for item in self.items if item.short_description]
-        items_without_short_descr = [item for item in self.items if not item.short_description]
+        items_with_short_descr = [item for item in self.items if item.short_description and item.visible]
+        items_without_short_descr = [item for item in self.items if not item.short_description and item.visible]
         uniq_descriptions = set()
         if items_with_short_descr:
             for item in items_with_short_descr:
@@ -793,8 +794,8 @@ class Location(MudObject):
         if items_without_short_descr:
             titles = sorted([lang.a(item.title) for item in items_without_short_descr])
             items_and_livings.append("You see " + lang.join(titles) + ".")
-        livings_with_short_descr = [living for living in self.livings if living != exclude_living and living.short_description]
-        livings_without_short_descr = [living for living in self.livings if living != exclude_living and not living.short_description]
+        livings_with_short_descr = [living for living in self.livings if living != exclude_living and living.short_description and living.visible]
+        livings_without_short_descr = [living for living in self.livings if living != exclude_living and not living.short_description and living.visible]
         if livings_without_short_descr:
             titles = sorted(living.title for living in livings_without_short_descr)
             if titles:
@@ -1406,7 +1407,7 @@ class Living(MudObject):
                         break
         return (found, containing_object) if found else (None, None)
 
-    def start_attack(self, victim: 'Living') -> None:
+    def start_attack(self, victim: 'Living') -> combat.Combat:
         """Starts attacking the given living for one round."""
         attacker_name = lang.capital(self.title)
         victim_name = lang.capital(victim.title)
@@ -1436,6 +1437,7 @@ class Living(MudObject):
             combat.produce_remains(util.Context, self)
         if victim.stats.hp < 1:
             combat.produce_remains(util.Context, victim)  
+        return c
 
     def allow_give_money(self, amount: float, actor: Optional['Living']) -> None:
         """Do we accept money? Raise ActionRefused if not."""
@@ -1518,7 +1520,7 @@ class Living(MudObject):
             
     def check_stat(self, stat : str):
         if stat == 'hp':
-            return self.stat.hp
+            return self.stats.hp
     
     @property
     def wielding(self) -> Weapon:
@@ -1528,16 +1530,30 @@ class Living(MudObject):
     @wielding.setter
     def wielding(self, weapon: Optional[Weapon]) -> None:
         """Wield a weapon. If weapon is None, unwield."""
+        if not weapon and not self.__wielding:
+            raise ActionRefused("You're not wielding anything.")
         self.__wielding = weapon
         self.stats.wc = weapon.wc if self.__wielding else 0
+        if weapon:
+            self.tell_others("{Actor} wields %s." % self.wielding.title, evoke=True, short_len=True)
+            self.tell("You wield %s." % self.wielding.title)
+        elif self.__wielding:
+            self.tell_others("{Actor} unwields %s." % self.__wielding.title, evoke=True, short_len=True)
+            self.tell("You unwield %s." % self.__wielding.title)
 
     def set_wearable(self, wearable: Optional[Wearable], wear_location: Optional[wearable.WearLocation]) -> None:
         """ Wear an item if item is not None, else unwear location"""
         if wearable:
             loc = wear_location if wear_location else wearable.wear_location
             self.__wearing[loc] = wearable
+            self.tell_others("{Actor} puts on %s." % wearable.title, evoke=True, short_len=True)
+            self.tell("You put on %s." % wearable.title)
         elif wear_location:
-            self.__wearing.pop(wear_location, None)
+            item = self.__wearing.pop(wear_location, None)
+            if item:
+                self.tell_others("{Actor} removes %s." % item.title, evoke=True, short_len=True)
+                self.tell("You remove %s." % item.title)
+
 
     def get_wearable(self, location: wearable.WearLocation) -> Optional[Wearable]:
         """Return the wearable item at the given location, or None if no item is worn there."""

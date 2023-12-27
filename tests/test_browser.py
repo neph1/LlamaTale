@@ -3,6 +3,7 @@
 from wsgiref.simple_server import WSGIServer
 from tale.player import PlayerConnection
 from tale.tio.if_browser_io import HttpIo
+from tale.web.web_utils import create_chat_container
 
 
 class TestHttpIo:
@@ -35,3 +36,9 @@ class TestHttpIo:
         assert '<div class="user-name" content="Bloated Murklin"></div>' in result
         assert '<div class="text-field" type="text">Hello World!</div>' in result
         
+    def test_create_chat_container(self):
+        result = create_chat_container("Bloated Murklin <:> Hello World!")
+
+        assert "chat-container" in result
+        assert '<div class="user-name" content="Bloated Murklin"></div>' in result
+        assert '<div class="text-field" type="text">Hello World!</div>' in result
