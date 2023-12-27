@@ -208,14 +208,12 @@ class LivingNpc(Living):
         if not action:
             return None
         
-        print(f"Performing free form action: {action}")
         defered_actions = []
         if action.get('text', ''):
             text = action['text']
             tell_hash = llm_cache.cache_tell('{actor.title} says: "{response}"'.format(actor=self, response=text))
             self._conversations.append(tell_hash)
-            if mud_context.config.custom_resources:
-                text = pad_text_for_avatar(text, self.title)
+            #if mud_context.config.custom_resources:
             if action.get('target'):
                 target = self.location.search_living(action['target'])
                 if target:
@@ -249,20 +247,19 @@ class LivingNpc(Living):
     
 
     def _defer_result(self, action: str, verb: str="idle-action"):
-        self.deferred_actions.add(action)
         if mud_context.config.custom_resources:
-            action = pad_text_for_avatar(action, self.title)
+            action = pad_text_for_avatar(text=action, npc_name=self.title)
         else:
             action = f"{self.title} : {action}"
+        self.deferred_actions.add(action)
         mud_context.driver.defer(1.0, self.tell_action_deferred)
 
     def tell_action_deferred(self):
-        if len(self.deferred_actions):
-            actions = '\n'.join(self.deferred_actions)
-            deferred_action = ParseResult(verb='idle-action', unparsed=actions, who_info=None)
-            self.tell_others(actions + '\n')
-            self.location._notify_action_all(deferred_action, actor=self)
-            self.deferred_actions.clear()
+        actions = '\n'.join(self.deferred_actions)
+        deferred_action = ParseResult(verb='idle-action', unparsed=actions, who_info=None)
+        self.tell_others(actions + '\n')
+        self.location._notify_action_all(deferred_action, actor=self)
+        self.deferred_actions.clear()
 
     def _clear_quest(self):
         self.quest = None

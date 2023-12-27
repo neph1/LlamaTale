@@ -145,7 +145,7 @@ class TestLivingNpcActions():
                   json={'results':[{'text':'"sits down on a chair"'}]}, status=200)
         self.llm_util._character.io_util.response = []
         action = npc.idle_action()
-        assert(action == 'sits down on a chair\n')
+        assert(action == 'test : sits down on a chair\n')
         assert(npc.deferred_actions.pop() == 'sits down on a chair\n')
 
     @responses.activate
@@ -156,7 +156,7 @@ class TestLivingNpcActions():
         responses.add(responses.POST, self.dummy_backend_config['URL'] + self.dummy_backend_config['ENDPOINT'],
                   json={'results':[{'text':'"test happens back!"'}]}, status=200)
         npc._do_react(action, npc2)
-        assert(npc.deferred_actions.unparsed == 'test happens back\n')
+        assert(npc.deferred_actions == {'test : test happens back\n'})
 
     @responses.activate
     def test_take_action(self):

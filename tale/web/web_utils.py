@@ -9,6 +9,10 @@ resource_folder = 'resources'
 
 def create_chat_container(text: str) -> str:
     separated = text.split(dialogue_splitter)
+    if len(separated) != 2:
+        separated = text.split(' <:> ')
+    if len(separated) != 2:
+        return text
     name = separated[0]
     content = separated[1]
     image_file = separated[0].lower().replace(' ', '_') + '.jpg'

@@ -145,7 +145,7 @@ function create_chat_container(npc_name) {
 
     var userImage = document.createElement('img');
     userImage.className = 'user-image';
-    userImage.src = npc_name.replace(/ /g, '_') + '.png';
+    userImage.src = npc_name.replace(/ /g, '_') + '.jpg';
     userImage.alt = 'User Avatar';
 
     var userNameDiv = document.createElement('div');
@@ -168,7 +168,7 @@ function create_chat_container(npc_name) {
 
 function set_location_image(location_name) {
     var locationImage = document.getElementById('location-image');
-    locationImage.src = 'resources/' + location_name.replace(/ /g, '_') + '.png';
+    locationImage.src = 'resources/' + location_name.replace(/ /g, '_') + '.jpg';
 }
 
 function updateImage() {
