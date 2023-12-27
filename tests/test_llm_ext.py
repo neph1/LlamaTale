@@ -145,8 +145,8 @@ class TestLivingNpcActions():
                   json={'results':[{'text':'"sits down on a chair"'}]}, status=200)
         self.llm_util._character.io_util.response = []
         action = npc.idle_action()
-        assert(action == 'test : sits down on a chair\n')
-        assert(npc.deferred_actions.pop() == 'sits down on a chair\n')
+        assert(action == 'sits down on a chair\n')
+        assert(npc.deferred_actions.pop() == 'test : sits down on a chair\n')
 
     @responses.activate
     def test_do_react(self):
