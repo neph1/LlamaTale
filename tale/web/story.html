@@ -10,16 +10,27 @@
 </head>
 <body onload="setup()">
     <div id="tale-page">
-        <h1 title="version: {story_version} -- author: {story_author} -- {story_author_email}"><img src="static/logo.png" id="img-logo"> {story_name}</h1>
+        <div id="top-container">
+            <h1 title="version: {story_version} -- author: {story_author} -- {story_author_email}"><img src="static/logo.png" id="img-logo"> {story_name}</h1>
+
+            <div class="location-container">
+                <div class="location-image"></div>
+                <div class="location">
+                    Location: &nbsp;<span id="player-location">...</span> <!-- &nbsp;&nbsp; turns: &nbsp;<span id="player-turns">...</span> -->
+                </div>
+            </div>
+            
+
+
+           
+        </div>
+        
         <noscript>
             <h2>Your browser doesn't have Javascript or it is disabled. You can't use this web interface without it.</h2>
         </noscript>
         <div class="story">
-            <div class="location">
-                Location: &nbsp;<span id="player-location">...</span> <!-- &nbsp;&nbsp; turns: &nbsp;<span id="player-turns">...</span> -->
-            </div>
-            <div class="textframe" id="textframe">
-            </div>
+            
+            <div class="textframe" id="textframe"></div>
             <form method="POST" accept-charset="UTF-8" action="input" id="cmd-form" class="flex-container">
                 <select id="npc-dropdown" onchange="populateDropdown(csvString)" class="npc-dropdown"></select>
                 <input type="text" name="cmd" id="input-cmd" autofocus autocomplete="off" />

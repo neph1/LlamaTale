@@ -623,42 +623,46 @@ class Driver(pubsub.Listener):
     def go_through_exit(self, player: player.Player, direction: str, evoke: bool=True) -> None:
         xt = player.location.exits[direction]
         xt.allow_passage(player)
-        
-        if not xt.target.built:
+        target_location = xt.target # type: base.Location
+        if not target_location.built:
             dynamic_story = typing.cast(DynamicStory, self.story)
             zone = dynamic_story.find_zone(location=player.location.name)
             # are we close to the edge of a zone? if so we need to build the next zone.
             new_zone = self.llm_util.get_neighbor_or_generate_zone(current_zone=zone, 
                                                         current_location=player.location, 
-                                                        target_location=xt.target)
+                                                        target_location=target_location)
             if zone.name != new_zone.name:
                 player.tell(f"You're entering {new_zone.name}:{new_zone.description}")
             
             # generate the location if it's not built yet. retry 5 times.
             for i in range(5):
-                result = self.build_location(xt.target, new_zone, player)
+                result = self.build_location(target_location, new_zone, player)
                 if result:
                     break
 
             if not result:
-                raise errors.ActionRefused("Reached max attempts when building location: " + xt.target.name + ". You can try entering again.")
+                raise errors.ActionRefused("Reached max attempts when building location: " + target_location.name + ". You can try entering again.")
                     
         elif random.random() < 0.2 and isinstance(self.story, DynamicStory):
             dynamic_story = typing.cast(DynamicStory, self.story)
-            zone = dynamic_story.find_zone(location=xt.target.name)
-            self.llm_util.generate_random_spawn(xt.target, zone.get_info())
+            zone = dynamic_story.find_zone(location=target_location.name)
+            self.llm_util.generate_random_spawn(target_location, zone.get_info())
         elif isinstance(self.story, DynamicStory):
             dynamic_story = typing.cast(DynamicStory, self.story)
             zone = dynamic_story.find_zone(location=player.location.name)
-            new_zone = dynamic_story.find_zone(location=xt.target.name)
+            new_zone = dynamic_story.find_zone(location=target_location.name)
             if zone and zone.name != new_zone.name:
                 player.tell(f"You're entering {new_zone.name}:{new_zone.description}")
 
+        if self.story.config.custom_resources and not target_location.avatar:
+            result = self.llm_util.generate_image(target_location.name, target_location.description)
+            if result:
+                target_location.avatar = target_location.name + '.jpg'
                     
         if xt.enter_msg:
             player.tell(xt.enter_msg, end=True, evoke=False, short_len=True)
             player.tell("\n")
-        player.move(xt.target, direction_names=[xt.name] + list(xt.aliases))
+        player.move(target_location, direction_names=[xt.name] + list(xt.aliases))
         player.look(evoke=evoke)
 
     def lookup_location(self, location_name: str) -> base.Location:

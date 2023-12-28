@@ -19,7 +19,7 @@ from wsgiref.simple_server import make_server, WSGIRequestHandler, WSGIServer
 from tale.web.web_utils import create_chat_container, dialogue_splitter
 
 from . import iobase
-from .. import vfs, lang
+from .. import mud_context, vfs, lang
 from .styleaware_wrapper import tag_split_re
 from .. import __version__ as tale_version_str
 from ..driver import Driver
@@ -357,6 +357,7 @@ class TaleWsgiAppBase:
                     "special": special,
                     "turns": conn.player.turns,
                     "location": location.title if location else "???",
+                    "location_image": location.image if location and location.avatar and mud_context.config.custom_resources else "",
                     "npcs": npc_names if location else '',
                 }
                 result = "event: text\nid: {event_id}\ndata: {data}\n\n"\

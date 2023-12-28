@@ -46,5 +46,5 @@ class TestAutomatic():
         llm_util = LlmUtil(FakeIoUtil()) # type: LlmUtil
         llm_util._init_image_gen("Automatic1111")
         # Not copying file for now, due to test folder set up
-        result = llm_util.generate_avatar(character_appearance='test prompt', character_name='test name', save_path='./tests/files', copy_file=False)
+        result = llm_util.generate_image(character_appearance='test prompt', character_name='test name', save_path='./tests/files', copy_file=False)
         assert(result)

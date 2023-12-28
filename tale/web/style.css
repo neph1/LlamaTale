@@ -7,7 +7,6 @@ body {
     color: white;
     background: black;
     margin: 1em;
-    border: 1px solid gainsboro;
 }
 #tale-page {
     max-width: 90%;
@@ -56,17 +55,25 @@ pre {
 .location > span {
     color: green;
 }
+.location-image {
+    width: 160px;
+    height: 180px;
+    border-radius: 10px;
+    margin-right: 10px;
+}
 #textframe {
     border: 1px solid gainsboro;
     overflow: auto;
     height: 33em;
     margin-bottom: 3px;
     padding: 3px;
+    border-radius: 10px;
 }
 
 #cmd-form {
     padding: 1ex;
     border: 1px solid gainsboro;
+    border-radius: 10px;
 }
 
 p, pre {
@@ -129,7 +136,7 @@ p, pre {
     margin-bottom: 10px;
 }
 
-.user-name {
+.user-name, .location-name {
     margin-bottom: 5px;
 }
 
@@ -149,10 +156,16 @@ p, pre {
 }
 
 .location-image {
-    width: 320px;
-    height: 240px;
+    width: 160px;
+    height: 120px;
     border-radius: 10px;
     margin-right: 10px;
+}
+
+.location-container {
+    margin-top: 20px;
+    margin-left: auto;
+    flex-direction: column;
 }
 
 .npc-dropdown {
@@ -171,4 +184,8 @@ p, pre {
 .flex-container input[type="text"] {
     flex-grow: 1;
     width: 100%;
+}
+
+#top-container {
+    display: flex;
 }

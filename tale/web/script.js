@@ -70,6 +70,9 @@ function process_text(json)
             if (json.hasOwnProperty("npcs")) {
                 populateNpcDropdown(json["npcs"]);
             }
+            if (json.hasOwnProperty("location_image")) {
+                set_location_image(json["location_image"]);
+            }
             //set_location_image(json["location"]);
             // document.getElementById("player-turns").innerHTML = json["turns"];
             txtdiv.innerHTML += json["text"];
@@ -138,37 +141,9 @@ function quit_clicked()
     return false;
 }
 
-function create_chat_container(npc_name) {
-    // Create elements
-    var chatContainer = document.createElement('div');
-    chatContainer.className = 'chat-container';
-
-    var userImage = document.createElement('img');
-    userImage.className = 'user-image';
-    userImage.src = npc_name.replace(/ /g, '_') + '.jpg';
-    userImage.alt = 'User Avatar';
-
-    var userNameDiv = document.createElement('div');
-    userNameDiv.className = 'user-name';
-    userNameDiv.textContent = npc_name;
-
-    var textField = document.createElement('input');
-    textField.className = 'text-field';
-    textField.type = 'text';
-    textField.placeholder = 'Type your message...';
-
-    // Append elements to the chat container
-    chatContainer.appendChild(userNameDiv);
-    chatContainer.appendChild(userImage);
-    chatContainer.appendChild(textField);
-
-    // Append the chat container to the wrapper div
-    document.getElementById('chatContainerWrapper').appendChild(chatContainer);
-}
-
-function set_location_image(location_name) {
+function set_location_image(location_image) {
     var locationImage = document.getElementById('location-image');
-    locationImage.src = 'resources/' + location_name.replace(/ /g, '_') + '.jpg';
+    locationImage.src = 'resources/' + location_image;
 }
 
 function updateImage() {
