@@ -1,5 +1,7 @@
 "use strict";
 
+let no_action = '- - -';
+
 function setup()
 {
     if(/Edge\//.test(navigator.userAgent))
@@ -42,6 +44,9 @@ function setup()
         cmd_input.disabled=true;
         //   esource.close();       // close the eventsource, so that it won't reconnect
     }, false);
+
+    populateActionDropdown();
+
 }
 
 function process_text(json)
@@ -105,8 +110,16 @@ function submit_cmd()
     ajax.setRequestHeader("Content-type","application/x-www-form-urlencoded; charset=UTF-8");
     var selectedNpc = document.getElementById('npc-dropdown').value;
     var npcAddress = '';
+    var selectedAction = document.getElementById('action-dropdown').value;
+    if (selectedAction && selectedAction !== no_action) {
+        cmd_input.value = selectedAction + ' ' + cmd_input.value;
+    }
     if (selectedNpc && selectedNpc !== 'None') {
-        npcAddress = ' to ' + selectedNpc.replace(/ /g, '_');
+        if ('say' in cmd_input.value) {
+            npcAddress = ' to ' + selectedNpc.replace(/ /g, '_');
+        } else {
+            npcAddress = ' ' + selectedNpc.replace(/ /g, '_');
+        }
     }
     var encoded_cmd = encodeURIComponent(cmd_input.value + npcAddress);
     
@@ -186,6 +199,25 @@ function populateNpcDropdown(csvString) {
             option.selected = true;
         }
     });
+}
 
-    
+function populateActionDropdown() {
+    // Get the dropdown element
+    var dropdown = document.getElementById('action-dropdown');
+    let lastSelected = dropdown.value;
+    dropdown.innerHTML = '';
+    // Loop through the options array and add each option to the dropdown
+    var actions = [no_action, 'say', 'give', 'take', 'use', 'attack', 'look', 'examine', 'open', 'close', 'loot', 'wear', 'wield'];
+    actions.forEach(function (action) {
+        var option = document.createElement('option');
+        option.value = action;
+        option.text = action;
+        dropdown.add(option);
+        if (lastSelected && option.value === lastSelected) {
+            option.selected = true;
+        } else if (option.value === no_action) {
+            option.selected = true;
+        }
+    });
+
 }

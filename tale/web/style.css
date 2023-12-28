@@ -172,6 +172,10 @@ p, pre {
     width: 100px;
 }
 
+.action-dropdown {
+    width: 150px;
+}
+
 .flex-container {
     display: flex;
     padding: 3px;
