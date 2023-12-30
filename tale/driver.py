@@ -840,12 +840,15 @@ class Driver(pubsub.Listener):
             assert len(period) == 3
             mud_context.driver.defer(period, func)
             
-    def load_character(self, player: player.Player, path: str):
+    def load_character_from_path(self, player: player.Player, path: str) -> LivingNpc:
         """Loads a character from a json file and inserts it into the player's location."""
         character_loader = CharacterLoader()
         char_data = character_loader.load_character(path)
         if not char_data:
             raise errors.TaleError("Character not found.")
+        self.load_character(player, char_data)
+
+    def load_character(self, player: player.Player, char_data: dict):
         character = CharacterV2().from_json(char_data)
         npc = StationaryNpc(name = character.name.lower(), 
                         gender = character.gender,
@@ -860,7 +863,7 @@ class Driver(pubsub.Listener):
         wearing = character.wearing.split(',')
         for item in wearing:
             if item:
-                wearable = base.Wearable(name=item.lower().trim())
+                wearable = base.Wearable(name=item.lower().strip())
                 npc.set_wearable(wearable)
         
         npc.following = player
@@ -868,10 +871,9 @@ class Driver(pubsub.Listener):
         if isinstance(self.story, DynamicStory):
             dynamic_story = typing.cast(DynamicStory, self.story)
             dynamic_story.world.add_npc(npc)
-
         player.location.insert(npc, None)
         player.location.tell("%s arrives." % npc.title)
-        
+        return npc
 
     @property
     def uptime(self) -> Tuple[int, int, int]:

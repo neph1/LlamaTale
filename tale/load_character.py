@@ -74,7 +74,7 @@ class CharacterV2():
         self.appearance = json.get('appearance', description.split(';')[0])
         self.personality = json.get('personality', '')
         self.occupation = json.get('occupation', '')
-        self.age = json.get('age', 30)
+        self.age = int(json.get('age', 30))
         self.money = json.get('money', 0)
         self.hp = json.get('hp', 10)
         self.aliases = json.get('aliases', [])
