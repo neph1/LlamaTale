@@ -848,7 +848,7 @@ class Driver(pubsub.Listener):
             raise errors.TaleError("Character not found.")
         self.load_character(player, char_data)
 
-    def load_character(self, player: player.Player, char_data: dict):
+    def load_character(self, player: player.Player, char_data: dict) -> LivingNpc:
         character = CharacterV2().from_json(char_data)
         npc = StationaryNpc(name = character.name.lower(), 
                         gender = character.gender,

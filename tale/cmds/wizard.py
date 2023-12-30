@@ -797,12 +797,13 @@ def do_load_character(player: Player, parsed: base.ParseResult, ctx: util.Contex
     except ValueError as x:
         raise ActionRefused(str(x))
     try:
-        ctx.driver.load_character_from_path(player, path)
+        return ctx.driver.load_character_from_path(player, path)
     except FileNotFoundError:
         raise ActionRefused("File not found")
+    return None
     
 @wizcmd("load_character_from_data")
-def do_load_character_from_data(player: Player, parsed: base.ParseResult, ctx: util.Context):
+def do_load_character_from_data(player: Player, parsed: base.ParseResult, ctx: util.Context) -> None:
     """Load a companion character from file."""
     try:
         unparsed = str(parsed.unparsed)
@@ -812,7 +813,8 @@ def do_load_character_from_data(player: Player, parsed: base.ParseResult, ctx: u
     try:
         return ctx.driver.load_character(player, data)
     except FileNotFoundError:
-        raise ActionRefused("File not found")
+        raise ActionRefused("Could not load character")
+    return None
     
 @wizcmd("set_visibility")
 def do_set_visible(player: Player, parsed: base.ParseResult, ctx: util.Context) -> None:

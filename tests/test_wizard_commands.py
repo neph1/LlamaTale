@@ -66,6 +66,15 @@ class TestEnrichCommand():
         assert(npc.age == 99)
         assert(npc.get_wearable(WearLocation.TORSO) is not None)
 
+    def test_set_visible(self):
+        location = Location('test')
+        player = Player('test', 'f')
+        player.privileges.add('wizard')
+        location.init_inventory([player])
+        parse_result = ParseResult(verb='set_visible', args=['test', 'False'])
+        wizard.do_set_visible(player, parse_result, self.context)
+        assert(player.visible == False)
+
 class TestEvents():
 
     test_player = Player('test', 'f')
