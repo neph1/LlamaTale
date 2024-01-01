@@ -30,7 +30,6 @@ class LivingNpc(Living):
         self.goal = None # type: str # a free form string describing the goal of the NPC
         self.quest = None # type: Quest # a quest object
         self.deferred_actions = set() # type: set[str]
-        self.avatar = None
         self.autonomous = False
 
     def notify_action(self, parsed: ParseResult, actor: Living) -> None:
@@ -99,9 +98,9 @@ class LivingNpc(Living):
                     short_len=short_len)
             if response:
                 if not self.avatar:
-                    result = mud_context.driver.llm_util.generate_avatar(self.name, self.description)
+                    result = mud_context.driver.llm_util.generate_image(self.name, self.description)
                     if result:
-                        self.avatar = self.name + '.jpg'
+                        self.avatar = self.name
                 break
         if not response:
             raise LlmResponseException("Failed to parse dialogue")
@@ -217,7 +216,7 @@ class LivingNpc(Living):
             if action.get('target'):
                 target = self.location.search_living(action['target'])
                 if target:
-                    target.tell(text, evoke=False)
+                    #target.tell(text, evoke=False)
                     target.notify_action(ParseResult(verb='say', unparsed=text, who_list=[target]), actor=self)
             defered_actions.append(f'"{text}"')
         if not action.get('action', ''):
@@ -247,7 +246,7 @@ class LivingNpc(Living):
     
 
     def _defer_result(self, action: str, verb: str="idle-action"):
-        if mud_context.config.custom_resources:
+        if mud_context.config.custom_resources and self.avatar:
             action = pad_text_for_avatar(text=action, npc_name=self.title)
         else:
             action = f"{self.title} : {action}"

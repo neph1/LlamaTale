@@ -11,6 +11,7 @@ from tale.llm.llm_ext import DynamicStory
 from tale.llm.llm_utils import LlmUtil
 from tale.player import Player
 from tale.story import StoryConfig
+from tale.wearable import WearLocation
 from tests.supportstuff import FakeDriver, FakeIoUtil
 
 
@@ -51,6 +52,28 @@ class TestEnrichCommand():
         wizard.do_enrich(self.test_player, parse_result, self.context)
 
         assert(len(self.story._catalogue._creatures) == 5)
+
+    def test_load_character_from_data(self):
+        parse_result = ParseResult(
+            verb='load_character_from_data',
+            unparsed='{"description": "test description", "appearance": "test appearance", "aliases":[], "age": "99", "race":"human", "occupation":"test occupation", "extensions": {}, "name": "test name", "personality": "test personality ", "scenario": "", "system_prompt": "", "wearing":"test clothes", "tags": []}')
+        npc = wizard.do_load_character_from_data(self.test_player, parse_result, self.context) # type: LivingNpc
+        assert(npc.name == 'test')
+        assert(npc.description == 'test appearance')
+        assert(npc.short_description == 'test appearance')
+        assert(npc.occupation == 'test occupation')
+        assert(npc.personality == 'test personality ')
+        assert(npc.age == 99)
+        assert(npc.get_wearable(WearLocation.TORSO) is not None)
+
+    def test_set_visible(self):
+        location = Location('test')
+        player = Player('test', 'f')
+        player.privileges.add('wizard')
+        location.init_inventory([player])
+        parse_result = ParseResult(verb='set_visible', args=['test', 'False'])
+        wizard.do_set_visible(player, parse_result, self.context)
+        assert(player.visible == False)
 
 class TestEvents():
 

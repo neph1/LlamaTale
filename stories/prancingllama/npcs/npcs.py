@@ -7,6 +7,7 @@ from tale.lang import capital
 from tale.llm.LivingNpc import LivingNpc
 from tale.player import Player
 from tale.quest import Quest, QuestType
+from tale.resources_utils import pad_text_for_avatar
 from tale.util import call_periodically, Context
 from tale import lang
 from typing import Optional
@@ -112,10 +113,12 @@ class Rat(Living):
 
     @call_periodically(10, 25)
     def do_idle_action(self, ctx: Context) -> None:
-        if random.random() < 0.5:
-            self.tell_others("{Actor} hisses.", evoke=False, short_len=True)
-        else:
-            self.tell_others("{Actor} sniffs around.", evoke=False, short_len=True)
+        action = "{Actor} " + random.choice(["sniffs", "scratches", "hisses", "looks menacing"])
+        if self.avatar:
+           action = pad_text_for_avatar(action, self.name)
+        self.tell_others(action, evoke=False, short_len=True)
+
+        
 
 
 norhardt = Patron("Norhardt", "m", age=56, descr="A grizzled old man, with parchment-like skin and sunken eyes. He\'s wearing ragged clothing and big leather boots. He\'s a formidable presence, commanding yet somber.", personality="An experienced explorer who is obsessed with finding the mythological Yeti which supposedly haunts these mountains. He won\'t stop talking about it.", short_descr="An old grizzled man sitting by the bar.")

@@ -23,6 +23,22 @@ def create_chat_container(text: str) -> str:
     html += '</div>\n'
     return html
 
+def create_location_container(text: str) -> str:
+    separated = text.split(dialogue_splitter)
+    if len(separated) != 2:
+        separated = text.split(' <:> ')
+    if len(separated) != 2:
+        return text
+    name = separated[0]
+    content = separated[1]
+    image_file = separated[0].lower().replace(' ', '_') + '.jpg'
+    html = '<div class="location-container">\n'
+    html += '<div class="text-field" type="text">%s</div>\n' % content
+    html += '<div class="location-name" content="%s"></div>\n' % name
+    html += '<img class="location-image" src="static/resources/%s" alt="%s"/>\n' % (image_file, name)
+    html += '</div>\n'
+    return html
+
 def copy_web_resources(gamepath: str):
     # copy the resources folder to the resources folder in the web folder
     shutil.copytree(os.path.join(gamepath, "resources"), os.path.join(web_resources_path, resource_folder), dirs_exist_ok=True)

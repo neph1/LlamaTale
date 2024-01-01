@@ -46,6 +46,7 @@ from collections import OrderedDict
 from textwrap import dedent
 from types import ModuleType
 from typing import Iterable, Any, Sequence, Optional, Set, Dict, Union, FrozenSet, Tuple, List, Type, no_type_check
+from tale import resources_utils
 
 from tale.coord import Coord
 
@@ -286,6 +287,7 @@ class MudObject:
         # register all periodical tagged methods
         self.story_data = {}  # type: Dict[Any, Any]   # not used by Tale itself, story can put custom data here. Use builtin types only.
         self.visible = True  # can this object be seen by others?
+        self.avatar = resources_utils.check_file_exists_in_resources(self.name.strip().replace(" ", "_").lower())
         self.init()
         if util.get_periodicals(self):
             if mud_context.driver is None:
@@ -417,7 +419,6 @@ class MudObject:
                 return  # avoid reacting to ourselves, or reacting to verbs we already have a handler for
         """
         pass
-
 
 class Item(MudObject):
     """
@@ -1541,7 +1542,7 @@ class Living(MudObject):
             self.tell_others("{Actor} unwields %s." % self.__wielding.title, evoke=True, short_len=True)
             self.tell("You unwield %s." % self.__wielding.title)
 
-    def set_wearable(self, wearable: Optional[Wearable], wear_location: Optional[wearable.WearLocation]) -> None:
+    def set_wearable(self, wearable: Optional[Wearable], wear_location: Optional[wearable.WearLocation] = wearable.WearLocation.TORSO) -> None:
         """ Wear an item if item is not None, else unwear location"""
         if wearable:
             loc = wear_location if wear_location else wearable.wear_location

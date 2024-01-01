@@ -9,6 +9,7 @@ import datetime
 import gc
 import importlib
 import inspect
+import json
 import os
 import platform
 import sys
@@ -788,6 +789,7 @@ def do_spawn(player: Player, parsed: base.ParseResult, ctx: util.Context) -> Non
 @wizcmd("load_character")
 def do_load_character(player: Player, parsed: base.ParseResult, ctx: util.Context) -> None:
     """Load a companion character from file."""
+    print('load character ' + str(parsed.args) + str(parsed.unparsed))
     if len(parsed.args) != 1:
         raise ParseError("You need to specify the path to the character file")
     try:
@@ -795,9 +797,24 @@ def do_load_character(player: Player, parsed: base.ParseResult, ctx: util.Contex
     except ValueError as x:
         raise ActionRefused(str(x))
     try:
-        ctx.driver.load_character(player, path)
+        return ctx.driver.load_character_from_path(player, path)
     except FileNotFoundError:
         raise ActionRefused("File not found")
+    return None
+    
+@wizcmd("load_character_from_data")
+def do_load_character_from_data(player: Player, parsed: base.ParseResult, ctx: util.Context) -> None:
+    """Load a companion character from file."""
+    try:
+        unparsed = str(parsed.unparsed)
+        data = json.loads(unparsed)
+    except ValueError as x:
+        raise ActionRefused(str(x))
+    try:
+        return ctx.driver.load_character(player, data)
+    except FileNotFoundError:
+        raise ActionRefused("Could not load character")
+    return None
     
 @wizcmd("set_visibility")
 def do_set_visible(player: Player, parsed: base.ParseResult, ctx: util.Context) -> None:

@@ -9,15 +9,17 @@ import datetime
 import heapq
 import os
 import unittest
+from tale import story
 
 import tale.base
 import tale.demo
 import tale.driver
 import tale.driver_if
 import tale.driver_mud
+from tale.player import Player, PlayerConnection
 import tale.util
 from tale.cmds import cmd, wizcmd, disabled_in_gamemode
-from tale.story import GameMode
+from tale.story import GameMode, StoryBase
 from tests.supportstuff import Thing, FakeDriver
 
 
@@ -190,7 +192,6 @@ class TestDeferreds(unittest.TestCase):
         self.assertEqual("getcwd", d.action)
         self.assertTrue(d.owner.startswith("module:"))
         self.assertEqual((2, 3), d.periodical)
-
 
 @cmd("test1")
 @disabled_in_gamemode(GameMode.IF)

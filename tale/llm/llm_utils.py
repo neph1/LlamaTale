@@ -135,7 +135,7 @@ class LlmUtil():
     def generate_character(self, story_context: str = '', keywords: list = [], story_type: str = ''):
         character = self._character.generate_character(story_context, keywords, story_type)
         if not character.avatar and self.__story.config.image_gen:
-            result = self.generate_avatar(character.name, character.appearance)
+            result = self.generate_image(character.name, character.appearance)
             if result:
                 character.avatar = character.name + '.jpg'
         return character
@@ -224,7 +224,7 @@ class LlmUtil():
                                                         world_info=self.__world_info, 
                                                         zone_info=zone_info)
     
-    def generate_avatar(self, character_name: str, character_appearance: dict = '', save_path: str = "./resources", copy_file: bool = True) -> bool:
+    def generate_image(self, character_name: str, character_appearance: dict = '', save_path: str = "./resources", copy_file: bool = True) -> bool:
         if not self._image_gen:
             return False
         image_name = character_name.lower().replace(' ', '_')

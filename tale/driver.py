@@ -6,7 +6,6 @@ Copyright by Irmen de Jong (irmen@razorvine.net)
 """
 
 import collections
-import copy
 import datetime
 import heapq
 import importlib
@@ -15,7 +14,6 @@ import os
 import pathlib
 import pkgutil
 import random
-import shutil
 import sys
 import threading
 import time
@@ -36,7 +34,7 @@ from . import mud_context, errors, util, cmds, player, pubsub, charbuilder, lang
 from .story import TickMethod, GameMode, MoneyType, StoryBase
 from .tio import DEFAULT_SCREEN_WIDTH
 from .races import playable_races
-from .errors import StoryCompleted, StoryConfigError
+from .errors import StoryCompleted
 from tale.load_character import CharacterLoader, CharacterV2
 from tale.llm.llm_ext import DynamicStory
 from tale.llm.llm_utils import LlmUtil
@@ -623,42 +621,46 @@ class Driver(pubsub.Listener):
     def go_through_exit(self, player: player.Player, direction: str, evoke: bool=True) -> None:
         xt = player.location.exits[direction]
         xt.allow_passage(player)
-        
-        if not xt.target.built:
+        target_location = xt.target # type: base.Location
+        if not target_location.built:
             dynamic_story = typing.cast(DynamicStory, self.story)
             zone = dynamic_story.find_zone(location=player.location.name)
             # are we close to the edge of a zone? if so we need to build the next zone.
             new_zone = self.llm_util.get_neighbor_or_generate_zone(current_zone=zone, 
                                                         current_location=player.location, 
-                                                        target_location=xt.target)
+                                                        target_location=target_location)
             if zone.name != new_zone.name:
                 player.tell(f"You're entering {new_zone.name}:{new_zone.description}")
             
             # generate the location if it's not built yet. retry 5 times.
             for i in range(5):
-                result = self.build_location(xt.target, new_zone, player)
+                result = self.build_location(target_location, new_zone, player)
                 if result:
                     break
 
             if not result:
-                raise errors.ActionRefused("Reached max attempts when building location: " + xt.target.name + ". You can try entering again.")
+                raise errors.ActionRefused("Reached max attempts when building location: " + target_location.name + ". You can try entering again.")
                     
         elif random.random() < 0.2 and isinstance(self.story, DynamicStory):
             dynamic_story = typing.cast(DynamicStory, self.story)
-            zone = dynamic_story.find_zone(location=xt.target.name)
-            self.llm_util.generate_random_spawn(xt.target, zone.get_info())
+            zone = dynamic_story.find_zone(location=target_location.name)
+            self.llm_util.generate_random_spawn(target_location, zone.get_info())
         elif isinstance(self.story, DynamicStory):
             dynamic_story = typing.cast(DynamicStory, self.story)
             zone = dynamic_story.find_zone(location=player.location.name)
-            new_zone = dynamic_story.find_zone(location=xt.target.name)
+            new_zone = dynamic_story.find_zone(location=target_location.name)
             if zone and zone.name != new_zone.name:
                 player.tell(f"You're entering {new_zone.name}:{new_zone.description}")
 
+        if self.story.config.custom_resources and not target_location.avatar:
+            result = self.llm_util.generate_image(target_location.name, target_location.description)
+            if result:
+                target_location.avatar = target_location.name
                     
         if xt.enter_msg:
             player.tell(xt.enter_msg, end=True, evoke=False, short_len=True)
             player.tell("\n")
-        player.move(xt.target, direction_names=[xt.name] + list(xt.aliases))
+        player.move(target_location, direction_names=[xt.name] + list(xt.aliases))
         player.look(evoke=evoke)
 
     def lookup_location(self, location_name: str) -> base.Location:
@@ -836,12 +838,15 @@ class Driver(pubsub.Listener):
             assert len(period) == 3
             mud_context.driver.defer(period, func)
             
-    def load_character(self, player: player.Player, path: str):
+    def load_character_from_path(self, player: player.Player, path: str) -> LivingNpc:
         """Loads a character from a json file and inserts it into the player's location."""
         character_loader = CharacterLoader()
         char_data = character_loader.load_character(path)
         if not char_data:
             raise errors.TaleError("Character not found.")
+        self.load_character(player, char_data)
+
+    def load_character(self, player: player.Player, char_data: dict) -> LivingNpc:
         character = CharacterV2().from_json(char_data)
         npc = StationaryNpc(name = character.name.lower(), 
                         gender = character.gender,
@@ -856,7 +861,7 @@ class Driver(pubsub.Listener):
         wearing = character.wearing.split(',')
         for item in wearing:
             if item:
-                wearable = base.Wearable(name=item.lower().trim())
+                wearable = base.Wearable(name=item.lower().strip())
                 npc.set_wearable(wearable)
         
         npc.following = player
@@ -864,10 +869,9 @@ class Driver(pubsub.Listener):
         if isinstance(self.story, DynamicStory):
             dynamic_story = typing.cast(DynamicStory, self.story)
             dynamic_story.world.add_npc(npc)
-
         player.location.insert(npc, None)
         player.location.tell("%s arrives." % npc.title)
-        
+        return npc
 
     @property
     def uptime(self) -> Tuple[int, int, int]:
