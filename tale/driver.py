@@ -655,7 +655,7 @@ class Driver(pubsub.Listener):
         if self.story.config.custom_resources and not target_location.avatar:
             result = self.llm_util.generate_image(target_location.name, target_location.description)
             if result:
-                target_location.avatar = target_location.name + '.jpg'
+                target_location.avatar = target_location.name
                     
         if xt.enter_msg:
             player.tell(xt.enter_msg, end=True, evoke=False, short_len=True)

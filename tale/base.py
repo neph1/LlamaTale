@@ -287,7 +287,7 @@ class MudObject:
         # register all periodical tagged methods
         self.story_data = {}  # type: Dict[Any, Any]   # not used by Tale itself, story can put custom data here. Use builtin types only.
         self.visible = True  # can this object be seen by others?
-        self.avatar = resources_utils.check_file_exists_in_resources(self.name)  # type: Optional[str]
+        self.avatar = resources_utils.check_file_exists_in_resources(self.name.strip().replace(" ", "_").lower())
         self.init()
         if util.get_periodicals(self):
             if mud_context.driver is None:
@@ -419,7 +419,6 @@ class MudObject:
                 return  # avoid reacting to ourselves, or reacting to verbs we already have a handler for
         """
         pass
-
 
 class Item(MudObject):
     """

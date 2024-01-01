@@ -100,7 +100,7 @@ class LivingNpc(Living):
                 if not self.avatar:
                     result = mud_context.driver.llm_util.generate_image(self.name, self.description)
                     if result:
-                        self.avatar = self.name + '.jpg'
+                        self.avatar = self.name
                 break
         if not response:
             raise LlmResponseException("Failed to parse dialogue")

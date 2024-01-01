@@ -346,7 +346,7 @@ class TaleWsgiAppBase:
             html = conn.io.get_html_to_browser()
             special = conn.io.get_html_special()
             if html or special:
-                location = conn.player.location
+                location = conn.player.location # type : Optional[Location]
                 if conn.io.dont_echo_next_cmd:
                     special.append("noecho")
                 npc_names = ''
@@ -357,7 +357,7 @@ class TaleWsgiAppBase:
                     "special": special,
                     "turns": conn.player.turns,
                     "location": location.title if location else "???",
-                    "location_image": location.image if location and location.avatar and mud_context.config.custom_resources else "",
+                    "location_image": location.avatar if location and location.avatar else "",
                     "npcs": npc_names if location else '',
                 }
                 result = "event: text\nid: {event_id}\ndata: {data}\n\n"\
