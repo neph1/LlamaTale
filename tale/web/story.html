@@ -7,6 +7,7 @@
     <link rel="stylesheet" type="text/css" href="static/style.css" />
     <script type="application/javascript" src="static/eventsource.min.js"></script>
     <script type="application/javascript" src="static/script.js"></script>
+    <script type="application/javascript" src="static/handle_upload.js"></script>
 </head>
 <body onload="setup()">
     <div id="tale-page">
@@ -14,15 +15,11 @@
             <h1 title="version: {story_version} -- author: {story_author} -- {story_author_email}"><img src="static/logo.png" id="img-logo"> {story_name}</h1>
 
             <div class="location-container">
-                <div class="location-image"></div>
+                <img class="location-image" id="location-image" onerror="imageError()"/>
                 <div class="location">
                     Location: &nbsp;<span id="player-location">...</span> <!-- &nbsp;&nbsp; turns: &nbsp;<span id="player-turns">...</span> -->
                 </div>
             </div>
-            
-
-
-           
         </div>
         
         <noscript>
@@ -32,14 +29,20 @@
             
             <div class="textframe" id="textframe"></div>
             <form method="POST" accept-charset="UTF-8" action="input" id="cmd-form" class="flex-container">
-                <select id="npc-dropdown" class="npc-dropdown"></select>
                 <select id="action-dropdown" class="action-dropdown"></select>
+                <select id="npc-dropdown" class="npc-dropdown"></select>
                 <input type="text" name="cmd" id="input-cmd" autofocus autocomplete="off" />
                 <input type="submit" value="&#9166;" onclick="submit_cmd(); return false;" readonly/>
                 <input type="submit" value="&RightArrowBar;" name="autocomplete" id="button-autocomplete" onclick="autocomplete_cmd(); return false;" readonly/>
                 <input type="submit" value="&#128682" name="quit" id="button-quit" onclick="quit_clicked(); return false;" readonly/>
             </form>
+            <input type="file" id="fileInput" accept=".json, .png, .jpeg, .jpg">
+            
         </div>
     </div>
 </body>
+<script>
+    document.getElementById('fileInput').addEventListener('change', handleFile);        
+</script>
+    
 </html>

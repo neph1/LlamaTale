@@ -17,7 +17,7 @@ class Story(DynamicStory):
 
     config = StoryConfig()
     config.name = "The Prancing Llama"
-    config.author = "Rickard Edén, neph1@github.com"
+    config.author = "Rickard Edén, github.com/neph1/LlamaTale"
     config.author_address = "rickard@mindemia.com"
     config.version = tale.__version__
     config.supported_modes = {GameMode.IF, GameMode.MUD}

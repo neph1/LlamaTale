@@ -1,6 +1,6 @@
 "use strict";
 
-let no_action = '- - -';
+let none_action = 'None';
 
 function setup()
 {
@@ -75,11 +75,12 @@ function process_text(json)
             if (json.hasOwnProperty("npcs")) {
                 populateNpcDropdown(json["npcs"]);
             }
-            if (json.hasOwnProperty("location_image")) {
-                set_location_image(json["location_image"]);
-            }
-            //set_location_image(json["location"]);
-            // document.getElementById("player-turns").innerHTML = json["turns"];
+            setLocationImage(json["location"].toLowerCase().replace(/ /g, '_') + '.jpg');
+            // if (json.hasOwnProperty("location_image") && json["location_image"] !== '') {
+            //    setLocationImage(json["location_image"]);
+            // } else {
+            //     setLocationImage(null);
+            // }
             txtdiv.innerHTML += json["text"];
             if(!document.smoothscrolling_busy) smoothscroll(txtdiv, 0);
         }
@@ -111,18 +112,19 @@ function submit_cmd()
     var selectedNpc = document.getElementById('npc-dropdown').value;
     var npcAddress = '';
     var selectedAction = document.getElementById('action-dropdown').value;
-    if (selectedAction && selectedAction !== no_action) {
+    if (selectedAction && selectedAction !== none_action) {
         cmd_input.value = selectedAction + ' ' + cmd_input.value;
     }
     if (selectedNpc && selectedNpc !== 'None') {
-        if ('say' in cmd_input.value) {
-            npcAddress = ' to ' + selectedNpc.replace(/ /g, '_');
+        const trimmed_name = selectedNpc.replace(/ /g, '_');
+        if (cmd_input.value.includes('say')) {
+            npcAddress = ' to ' + trimmed_name;
         } else {
-            npcAddress = ' ' + selectedNpc.replace(/ /g, '_');
+            npcAddress = ' ' + trimmed_name;
         }
     }
     var encoded_cmd = encodeURIComponent(cmd_input.value + npcAddress);
-    
+    console.log("Sending command: " + encoded_cmd);
     ajax.send("cmd=" + encoded_cmd);
     cmd_input.value="";
     cmd_input.focus();
@@ -154,9 +156,20 @@ function quit_clicked()
     return false;
 }
 
-function set_location_image(location_image) {
+function setLocationImage(location_image) {
     var locationImage = document.getElementById('location-image');
-    locationImage.src = 'resources/' + location_image;
+    if (location_image !== null) {
+        locationImage.style.visibility = "visible";
+        locationImage.src = 'static/resources/' + location_image;
+    } else {
+        locationImage.src = 'static/unknown_location.jpg';
+        locationImage.style.visibility = "hidden";
+    }
+}
+
+function imageError() {
+    console.log('Image not found. Hiding the image element.');
+    document.getElementById('location-image').style.visibility = 'hidden';
 }
 
 function updateImage() {
@@ -186,8 +199,8 @@ function populateNpcDropdown(csvString) {
     dropdown.innerHTML = '';
     // Loop through the options array and add each option to the dropdown
     var option = document.createElement('option');
-    option.value = 'None';
-    option.text = 'None';
+    option.value = none_action;
+    option.text = none_action;
     dropdown.add(option);
     optionsArray.forEach(function (optionValue) {
         var option = document.createElement('option');
@@ -207,7 +220,7 @@ function populateActionDropdown() {
     let lastSelected = dropdown.value;
     dropdown.innerHTML = '';
     // Loop through the options array and add each option to the dropdown
-    var actions = [no_action, 'say', 'give', 'take', 'use', 'attack', 'look', 'examine', 'open', 'close', 'loot', 'wear', 'wield'];
+    var actions = [none_action, 'say', 'give', 'take', 'use', 'attack', 'look', 'examine', 'open', 'close', 'loot', 'wear', 'wield'];
     actions.forEach(function (action) {
         var option = document.createElement('option');
         option.value = action;
@@ -215,7 +228,7 @@ function populateActionDropdown() {
         dropdown.add(option);
         if (lastSelected && option.value === lastSelected) {
             option.selected = true;
-        } else if (option.value === no_action) {
+        } else if (option.value === none_action) {
             option.selected = true;
         }
     });

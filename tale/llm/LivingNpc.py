@@ -98,7 +98,7 @@ class LivingNpc(Living):
                     short_len=short_len)
             if response:
                 if not self.avatar:
-                    result = mud_context.driver.llm_util.generate_avatar(self.name, self.description)
+                    result = mud_context.driver.llm_util.generate_image(self.name, self.description)
                     if result:
                         self.avatar = self.name + '.jpg'
                 break
@@ -216,7 +216,7 @@ class LivingNpc(Living):
             if action.get('target'):
                 target = self.location.search_living(action['target'])
                 if target:
-                    target.tell(text, evoke=False)
+                    #target.tell(text, evoke=False)
                     target.notify_action(ParseResult(verb='say', unparsed=text, who_list=[target]), actor=self)
             defered_actions.append(f'"{text}"')
         if not action.get('action', ''):
@@ -246,7 +246,7 @@ class LivingNpc(Living):
     
 
     def _defer_result(self, action: str, verb: str="idle-action"):
-        if mud_context.config.custom_resources and self.avatar:
+        if mud_context.config.custom_resources:
             action = pad_text_for_avatar(text=action, npc_name=self.title)
         else:
             action = f"{self.title} : {action}"

@@ -6,7 +6,6 @@ Copyright by Irmen de Jong (irmen@razorvine.net)
 """
 
 import collections
-import copy
 import datetime
 import heapq
 import importlib
@@ -15,7 +14,6 @@ import os
 import pathlib
 import pkgutil
 import random
-import shutil
 import sys
 import threading
 import time
@@ -36,7 +34,7 @@ from . import mud_context, errors, util, cmds, player, pubsub, charbuilder, lang
 from .story import TickMethod, GameMode, MoneyType, StoryBase
 from .tio import DEFAULT_SCREEN_WIDTH
 from .races import playable_races
-from .errors import StoryCompleted, StoryConfigError
+from .errors import StoryCompleted
 from tale.load_character import CharacterLoader, CharacterV2
 from tale.llm.llm_ext import DynamicStory
 from tale.llm.llm_utils import LlmUtil
