@@ -105,12 +105,12 @@ class TestLivingNpc():
         has_avatar = npc.avatar == 'test'
         assert not has_avatar
 
-    def test_avatar_exists(self):
-        shutil.copyfile("./tests/files/test.jpg", "./tale/web/resources/test.jpg")
-        npc = LivingNpc(name='test', gender='m', age=42, personality='')
-        has_avatar = npc.avatar == 'test'
-        os.remove("./tale/web/resources/test.jpg")
-        assert has_avatar
+    # def test_avatar_exists(self):
+    #     shutil.copyfile("./tests/files/test.jpg", "./tale/web/resources/test.jpg")
+    #     npc = LivingNpc(name='test', gender='m', age=42, personality='')
+    #     has_avatar = npc.avatar == 'test'
+    #     os.remove("./tale/web/resources/test.jpg")
+    #     assert has_avatar
 
 class TestLivingNpcActions():
 

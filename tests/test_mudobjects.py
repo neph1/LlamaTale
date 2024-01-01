@@ -14,7 +14,7 @@ from tale.demo.story import Story as DemoStory
 from tale.errors import ActionRefused, LocationIntegrityError, UnknownVerbException, TaleError
 from tale.llm.llm_ext import DynamicStory
 from tale.player import Player
-from tale.story import MoneyType
+from tale.story import MoneyType, StoryBase
 from tale.shop import Shopkeeper
 from tale.tio.iobase import strip_text_styles
 from tale.util import Context, MoneyFormatter
@@ -415,13 +415,9 @@ class TestDoorsExits(unittest.TestCase):
 
     def test_go_through_exit(self):
         driver = FakeDriver()
-        story = DynamicStory()
-        zone = Zone("zone")
+        story = StoryBase()
         hall = Location("hall")
         attic = Location("attic")
-        story.add_zone(zone)
-        story.add_location(hall, zone.name)
-        story.add_location(attic, zone.name)
         driver.story = story
         exit1 = Exit("ladder1", attic, "exit 1 to attic", enter_msg="entering the attic via exit 1")
         exit2 = Exit("ladder2", attic, "exit 2 to attic")
