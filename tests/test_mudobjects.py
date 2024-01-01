@@ -414,6 +414,7 @@ class TestDoorsExits(unittest.TestCase):
 
     def test_go_through_exit(self):
         driver = FakeDriver()
+        driver.story = DynamicStory()
         hall = Location("hall")
         attic = Location("attic")
         exit1 = Exit("ladder1", attic, "exit 1 to attic", enter_msg="entering the attic via exit 1")

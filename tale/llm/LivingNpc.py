@@ -246,7 +246,7 @@ class LivingNpc(Living):
     
 
     def _defer_result(self, action: str, verb: str="idle-action"):
-        if mud_context.config.custom_resources:
+        if mud_context.config.custom_resources and self.avatar:
             action = pad_text_for_avatar(text=action, npc_name=self.title)
         else:
             action = f"{self.title} : {action}"

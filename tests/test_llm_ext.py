@@ -1,4 +1,6 @@
 import json
+import os
+import shutil
 
 import responses
 from tale import mud_context
@@ -97,6 +99,18 @@ class TestLivingNpc():
 
         assert(llm_cache.get_events(npc_clean._observed_events) == 'test_event, test_event 2')
         assert(llm_cache.get_tells(npc_clean._conversations) == 'test_tell<break>test_tell_2<break>test_tell_3')
+
+    def test_avatar_not_exists(self):
+        npc = LivingNpc(name='test', gender='m', age=42, personality='')
+        has_avatar = npc.avatar == 'test'
+        assert not has_avatar
+
+    def test_avatar_exists(self):
+        shutil.copyfile("./tests/files/test.jpg", "./tale/web/resources/test.jpg")
+        npc = LivingNpc(name='test', gender='m', age=42, personality='')
+        has_avatar = npc.avatar == 'test'
+        os.remove("./tale/web/resources/test.jpg")
+        assert has_avatar
 
 class TestLivingNpcActions():
 

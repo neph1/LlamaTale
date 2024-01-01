@@ -123,7 +123,7 @@ class TestLlmUtils():
 
     def test_init_image_gen(self):
         self.llm_util._init_image_gen("Automatic1111")
-        assert(self.llm_util._image_gen)
+        assert self.llm_util._image_gen.__class__ == Automatic1111().__class__
 
 class TestWorldBuilding():
 

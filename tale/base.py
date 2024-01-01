@@ -46,6 +46,7 @@ from collections import OrderedDict
 from textwrap import dedent
 from types import ModuleType
 from typing import Iterable, Any, Sequence, Optional, Set, Dict, Union, FrozenSet, Tuple, List, Type, no_type_check
+from tale import resources_utils
 
 from tale.coord import Coord
 
@@ -286,7 +287,7 @@ class MudObject:
         # register all periodical tagged methods
         self.story_data = {}  # type: Dict[Any, Any]   # not used by Tale itself, story can put custom data here. Use builtin types only.
         self.visible = True  # can this object be seen by others?
-        self.avatar = None
+        self.avatar = resources_utils.check_file_exists_in_resources(self.name)  # type: Optional[str]
         self.init()
         if util.get_periodicals(self):
             if mud_context.driver is None:
