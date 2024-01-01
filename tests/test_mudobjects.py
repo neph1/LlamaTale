@@ -18,6 +18,7 @@ from tale.story import MoneyType
 from tale.shop import Shopkeeper
 from tale.tio.iobase import strip_text_styles
 from tale.util import Context, MoneyFormatter
+from tale.zone import Zone
 from tests.supportstuff import FakeDriver, MsgTraceNPC, Wiretap
 
 
@@ -414,9 +415,14 @@ class TestDoorsExits(unittest.TestCase):
 
     def test_go_through_exit(self):
         driver = FakeDriver()
-        driver.story = DynamicStory()
+        story = DynamicStory()
+        zone = Zone("zone")
         hall = Location("hall")
         attic = Location("attic")
+        story.add_zone(zone)
+        story.add_location(hall, zone.name)
+        story.add_location(attic, zone.name)
+        driver.story = story
         exit1 = Exit("ladder1", attic, "exit 1 to attic", enter_msg="entering the attic via exit 1")
         exit2 = Exit("ladder2", attic, "exit 2 to attic")
         door = Door("door1", attic, "Door to attic", enter_msg="entering the attic via door", opened=True)
