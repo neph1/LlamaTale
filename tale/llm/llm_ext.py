@@ -1,6 +1,7 @@
 import json
 import os
 import random
+import shutil
 from tale import parse_utils
 from tale.base import Item, Living, Location
 from tale.coord import Coord
@@ -124,6 +125,11 @@ class DynamicStory(StoryBase):
 
         with open(os.path.join(save_path, 'llm_cache.json'), "w") as fp:
             json.dump(llm_cache.json_dump(), fp, indent=4)
+
+        if save_name:
+            os.mkdir(os.path.join(save_path, 'resources'))
+            shutil.copy(os.path.join(os.getcwd(), 'story.py'), os.path.join(save_path, 'story.py'))
+            shutil.copytree(os.path.join(os.getcwd(), 'resources'), os.path.join(save_path, 'resources'), dirs_exist_ok=True)
 
     
     def generate_quest(self, npc: LivingNpc, type: QuestType = QuestType.GIVE) -> Quest:

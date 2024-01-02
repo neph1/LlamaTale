@@ -9,6 +9,7 @@ import datetime
 import itertools
 import random
 from typing import Iterable, List, Dict, Generator, Union, Optional
+from tale.llm.LivingNpc import LivingNpc
 
 from tale.llm.llm_ext import DynamicStory
 
@@ -1733,7 +1734,7 @@ def do_save(player: Player, parsed: base.ParseResult, ctx: util.Context) -> None
     """Save the current story to file."""
     story = ctx.driver.story
     if isinstance(story, DynamicStory):
-        story.save()
+        story.save(save_name=parsed.unparsed)
     else:
         raise ActionRefused("Not a dynamic story")
     

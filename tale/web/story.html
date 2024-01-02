@@ -8,8 +8,17 @@
     <script type="application/javascript" src="static/eventsource.min.js"></script>
     <script type="application/javascript" src="static/script.js"></script>
     <script type="application/javascript" src="static/handle_upload.js"></script>
+    <script type="application/javascript" src="static/save_story.js"></script>
 </head>
 <body onload="setup()">
+    <div id="dialogOverlay">
+        <div id="saveDialog">
+            <label for="filenameInput">Enter new name (or leave blank to overwrite current):</label>
+            <input type="text" id="filenameInput">
+            <button onclick="saveStory()">Save</button>
+            <button onclick="closeSaveDialog()">Cancel</button>
+        </div>
+    </div>
     <div id="tale-page">
         <div id="top-container">
             <h1 title="version: {story_version} -- author: {story_author} -- {story_author_email}"><img src="static/logo.png" id="img-logo"> {story_name}</h1>
@@ -35,9 +44,10 @@
                 <input type="submit" value="&#9166;" onclick="submit_cmd(); return false;" readonly/>
                 <input type="submit" value="&RightArrowBar;" name="autocomplete" id="button-autocomplete" onclick="autocomplete_cmd(); return false;" readonly/>
                 <input type="submit" value="&#128682" name="quit" id="button-quit" onclick="quit_clicked(); return false;" readonly/>
+
             </form>
-            <input type="file" id="fileInput" accept=".json, .png, .jpeg, .jpg">
-            
+            <input type="file" id="fileInput" accept=".json, .png, .jpeg, .jpg" value="">
+            <input type="button" id="saveButton" value="Save story" onclick="showSaveDialog()" readonly/>
         </div>
     </div>
 </body>

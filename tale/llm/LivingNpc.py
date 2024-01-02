@@ -72,6 +72,9 @@ class LivingNpc(Living):
             if self.handle_item_result(result, actor) and self.quest:
                 self.quest.check_completion({"item":result.item, "npc":result.to})
             self.do_say(parsed.unparsed, actor)
+        elif parsed.verb == 'attack' and targeted:
+            # TODO: should llm decide sentiment?
+            self.sentiments[actor.title] = 'hostile'
         if self.quest and self.quest.is_completed():
             # do last to give npc chance to react   
             self._clear_quest()

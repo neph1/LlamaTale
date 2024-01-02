@@ -320,10 +320,12 @@ class TaleWsgiAppBase:
             return self.wsgi_not_modified(start_response)
         headers.append(("ETag", etag))
         start_response('200 OK', headers)
+
         txt = resource.text.format(story_version=self.driver.story.config.version,
                                    story_name=self.driver.story.config.name,
                                    story_author=self.driver.story.config.author,
                                    story_author_email=self.driver.story.config.author_address)
+        txt = self.modify_web_page(environ["wsgi.session"]["player_connection"], txt)
         return [txt.encode("utf-8")]
 
     def wsgi_handle_eventsource(self, environ: Dict[str, Any], parameters: Dict[str, str],
@@ -465,6 +467,14 @@ class TaleWsgiAppBase:
             data = resource.data
         start_response('200 OK', headers)
         return [data]
+    
+    def modify_web_page(self, player_connection: PlayerConnection, html_content: str) -> None:
+        """Modify the html before it is sent to the browser."""
+        # Conditionally modify the content based on your conditions
+        if not "wizard" in player_connection.player.privileges:
+            html_content = html_content.replace('<input type="file" id="fileInput" accept=".json, .png, .jpeg, .jpg" value="">', '')
+        return html_content
+
 
 
 class TaleWsgiApp(TaleWsgiAppBase):

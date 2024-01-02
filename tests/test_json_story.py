@@ -1,5 +1,7 @@
 
 import datetime
+import os
+import shutil
 from tale.coord import Coord
 from tale.items import generic
 import tale.parse_utils as parse_utils
@@ -54,6 +56,12 @@ class TestJsonStory():
 
     def test_save_story(self):
         self.story.save()
+
+    def test_save_story_as(self):
+        self.story.save('./LlamaTale/stories/test_story2')
+        assert os.path.exists('../LlamaTale/stories/test_story2')
+        shutil.rmtree('./stories/test_story2', ignore_errors=True)
+        assert not os.path.exists('./stories/test_story2')
 
 class TestAnythingStory():
 
