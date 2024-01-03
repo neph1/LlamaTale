@@ -127,9 +127,12 @@ class DynamicStory(StoryBase):
             json.dump(llm_cache.json_dump(), fp, indent=4)
 
         if save_name:
-            os.mkdir(os.path.join(save_path, 'resources'))
+            resource_path = os.path.join(save_path, 'resources')
+            if not os.path.exists(resource_path):
+                os.mkdir(resource_path)
             shutil.copy(os.path.join(os.getcwd(), 'story.py'), os.path.join(save_path, 'story.py'))
-            shutil.copytree(os.path.join(os.getcwd(), 'resources'), os.path.join(save_path, 'resources'), dirs_exist_ok=True)
+            if os.path.exists(os.path.join(os.getcwd(), 'resources')):
+                shutil.copytree(os.path.join(os.getcwd(), 'resources'), resource_path, dirs_exist_ok=True)
 
     
     def generate_quest(self, npc: LivingNpc, type: QuestType = QuestType.GIVE) -> Quest:

@@ -141,6 +141,11 @@ class TaleMudWsgiApp(TaleWsgiAppBase):
                                    num_players=len(self.driver.all_players),
                                    player_table=player_table_txt)
         return [txt.encode("utf-8")]
+    
+    def modify_web_page(self, player_connection: PlayerConnection, html_content: str) -> None:
+        html_content = super().modify_web_page(player_connection, html_content)
+        html_content = html_content.replace('<input type="button" id="saveButton" value="Save story" onclick="showSaveDialog()" readonly/>', '')
+        return html_content
 
 
 class CustomRequestHandler(WSGIRequestHandler):

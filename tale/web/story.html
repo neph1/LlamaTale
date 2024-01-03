@@ -46,13 +46,13 @@
                 <input type="submit" value="&#128682" name="quit" id="button-quit" onclick="quit_clicked(); return false;" readonly/>
 
             </form>
-            <input type="file" id="fileInput" accept=".json, .png, .jpeg, .jpg" value="">
+            <input type="file" id="loadCharacterInput" accept=".json, .png, .jpeg, .jpg">
             <input type="button" id="saveButton" value="Save story" onclick="showSaveDialog()" readonly/>
         </div>
     </div>
 </body>
 <script>
-    document.getElementById('fileInput').addEventListener('change', handleFile);        
+    document.getElementById('loadCharacterInput').addEventListener('change', handleFile);        
 </script>
     
 </html>

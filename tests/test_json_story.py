@@ -58,10 +58,11 @@ class TestJsonStory():
         self.story.save()
 
     def test_save_story_as(self):
-        self.story.save('./LlamaTale/stories/test_story2')
-        assert os.path.exists('../LlamaTale/stories/test_story2')
-        shutil.rmtree('./stories/test_story2', ignore_errors=True)
-        assert not os.path.exists('./stories/test_story2')
+        os.chdir(os.getcwd() + '/stories/test_story/')
+        self.story.save('test_story2')
+        assert os.path.exists('../test_story2')
+        shutil.rmtree('../test_story2', ignore_errors=True)
+        assert not os.path.exists('../test_story2')
 
 class TestAnythingStory():
 
