@@ -76,11 +76,6 @@ function process_text(json)
                 populateNpcDropdown(json["npcs"]);
             }
             setLocationImage(json["location"].toLowerCase().replace(/ /g, '_') + '.jpg');
-            // if (json.hasOwnProperty("location_image") && json["location_image"] !== '') {
-            //    setLocationImage(json["location_image"]);
-            // } else {
-            //     setLocationImage(null);
-            // }
             txtdiv.innerHTML += json["text"];
             if(!document.smoothscrolling_busy) smoothscroll(txtdiv, 0);
         }
