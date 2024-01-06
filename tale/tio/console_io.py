@@ -177,12 +177,12 @@ class ConsoleIo(iobase.IoAdapterBase):
             print(self._apply_style(line, self.do_styles))
         sys.stdout.flush()
 
-    def output_no_newline(self, text: str) -> None:
+    def output_no_newline(self, text: str, new_paragraph = True) -> None:
         """Like output, but just writes a single line, without end-of-line."""
         if prompt_toolkit and self.do_prompt_toolkit:
             self.output(text)
         else:
-            super().output_no_newline(text)
+            super().output_no_newline(text, new_paragraph)
             print(self._apply_style(text, self.do_styles), end="")
             sys.stdout.flush()
 

@@ -91,9 +91,9 @@ class TkinterIo(iobase.IoAdapterBase):
         for line in lines:
             self.gui.write_line(line)
 
-    def output_no_newline(self, text: str) -> None:
+    def output_no_newline(self, text: str, new_paragraph = True) -> None:
         """Like output, but just writes a single line, without end-of-line."""
-        super().output_no_newline(text)
+        super().output_no_newline(text, new_paragraph)
         self.gui.write_line(text)
 
 

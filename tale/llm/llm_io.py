@@ -1,3 +1,4 @@
+import re
 import requests
 import time
 import aiohttp
@@ -51,13 +52,13 @@ class IoUtil():
             return self.synchronous_request(request_body, prompt)
         return self.stream_request(request_body, wait=True, prompt=prompt)
 
-    def stream_request(self, request_body: dict, prompt: str, player_io: TextBuffer = None, io = None, wait: bool = False) -> str:
+    def stream_request(self, request_body: dict, prompt: str, io = None, wait: bool = False) -> str:
         if self.backend != 'kobold_cpp':
             raise NotImplementedError("Currently does not support streaming requests for OpenAI")
         self._set_prompt(request_body, prompt)
         result = asyncio.run(self._do_stream_request(self.url + self.stream_endpoint, request_body))
         if result:
-            return self._do_process_result(self.url + self.data_endpoint, player_io, io, wait)
+            return self._do_process_result(self.url + self.data_endpoint, io, wait)
         return ''
 
     async def _do_stream_request(self, url: str, request_body: dict,) -> bool:
@@ -70,7 +71,7 @@ class IoUtil():
                     # Handle errors
                     print("Error occurred:", response.status)
 
-    def _do_process_result(self, url, player_io: TextBuffer = None, io = None, wait: bool = False) -> str:
+    def _do_process_result(self, url, io = None, wait: bool = False) -> str:
         """ Process the result from the stream endpoint """
         tries = 0
         old_text = ''
@@ -84,10 +85,9 @@ class IoUtil():
                 continue
             if not wait:
                 new_text = text[len(old_text):]
-                player_io.print(new_text, end=False, format=True, line_breaks=False)
-                io.write_output()
+                io.output_no_newline(new_text, new_paragraph=False)
             old_text = text
-
+        io.output_no_newline("")
         return old_text
 
     def _parse_kobold_result(self, result: str) -> str:
@@ -108,7 +108,17 @@ class IoUtil():
         if self.user_end_prompt:
             prompt = prompt + self.user_end_prompt
         if self.backend == 'kobold_cpp':
+            context = self._extract_context(prompt)
+            request_body['memory'] = context
             request_body['prompt'] = prompt
         else :
             request_body['messages'][1]['content'] = prompt
         return request_body
+    
+    def _extract_context(self, full_string):
+        pattern = re.escape('<context>') + "(.*?)" + re.escape('</context>')
+        match = re.search(pattern, full_string, re.DOTALL)
+        if match:
+            return '<context>' + match.group(1) + '</context>'
+        else:
+            return ''

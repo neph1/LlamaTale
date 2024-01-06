@@ -27,5 +27,5 @@
     "type": "A whimsical and humoristic tale of tea and madness. Guests are so busy with their own problems that it's difficult to make yourself heard.",
     "world_info": "",
     "world_mood": 0,
-    "custom_resources" : "True"
+    "custom_resources": true
 }

@@ -582,6 +582,13 @@ class TestTextbuffer(unittest.TestCase):
         output.print("   1   ", format=False)
         self.assertEqual([("   1   \n", False)], output.get_paragraphs())
 
+    def test_no_line_break(self):
+        output = TextBuffer()
+        output.print("1", line_breaks=False)
+        output.print("2", line_breaks=False)
+        output.print("3", line_breaks=False)
+        self.assertEqual([("123\n", True)], output.get_paragraphs())
+
 
 class TestCharacterBuilders(unittest.TestCase):
     def setUp(self):

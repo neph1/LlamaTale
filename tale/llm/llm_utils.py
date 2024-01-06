@@ -100,11 +100,9 @@ class LlmUtil():
             text = self.io_util.synchronous_request(request_body, prompt=prompt)
             llm_cache.cache_look(text, text_hash_value)
             return output_template.format(message=message, text=text), rolling_prompt
-        text = self.io_util.stream_request(request_body=request_body, player_io=player_io, prompt=prompt, io=self.connection)     
-        player_io.print(output_template.format(message=message, text=text), end=False, format=True, line_breaks=False)
         
+        text = self.io_util.stream_request(request_body=request_body, player_io=player_io, prompt=prompt, io=self.connection)
         llm_cache.cache_look(text, text_hash_value)
-        
         return '\n', rolling_prompt
     
     def generate_dialogue(self, conversation: str, 
