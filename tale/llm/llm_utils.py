@@ -6,8 +6,11 @@ import yaml
 from tale.base import Location
 from tale.image_gen.base_gen import ImageGeneratorBase
 from tale.llm.character import CharacterBuilding
+from tale.llm.contexts.ActionContext import ActionContext
+from tale.llm.contexts.EvokeContext import EvokeContext
 from tale.llm.llm_ext import DynamicStory
 from tale.llm.llm_io import IoUtil
+from tale.llm.contexts.DialogueContext import DialogueContext
 from tale.llm.quest_building import QuestBuilding
 from tale.llm.story_building import StoryBuilding
 from tale.llm.world_building import WorldBuilding
@@ -37,9 +40,10 @@ class LlmUtil():
         self.default_body = json.loads(backend_config['DEFAULT_BODY'])
         self.memory_size = config_file['MEMORY_SIZE']
         self.pre_prompt = config_file['PRE_PROMPT'] # type: str
-        self.base_prompt = config_file['BASE_PROMPT'] # type: str
+        self.evoke_prompt = config_file['BASE_PROMPT'] # type: str
         self.combat_prompt = config_file['COMBAT_PROMPT'] # type: str
         self.word_limit = config_file['WORD_LIMIT']
+        self.short_word_limit = config_file['SHORT_WORD_LIMIT']
         self.story_background_prompt = config_file['STORY_BACKGROUND_PROMPT'] # type: str
         self.json_grammar = config_file['JSON_GRAMMAR'] # type: str
         self.__story = None # type: DynamicStory
@@ -83,13 +87,11 @@ class LlmUtil():
             return output_template.format(message=message, text=cached_look), rolling_prompt
 
         trimmed_message = parse_utils.remove_special_chars(str(message))
-
-        amount = 25
+        context = EvokeContext(story_context=self.__story_context, history=rolling_prompt if not skip_history or alt_prompt else '')
         prompt = self.pre_prompt
-        prompt += alt_prompt or (self.base_prompt.format(
-            story_context=self.__story_context,
-            history=rolling_prompt if not skip_history or alt_prompt else '',
-            max_words=self.word_limit if not short_len else amount,
+        prompt += alt_prompt or (self.evoke_prompt.format(
+            context=context.to_prompt_string(),
+            max_words=self.word_limit if not short_len else self.short_word_limit,
             input_text=str(trimmed_message)))
         
         request_body = deepcopy(self.default_body)
@@ -98,9 +100,9 @@ class LlmUtil():
             text = self.io_util.synchronous_request(request_body, prompt=prompt)
             llm_cache.cache_look(text, text_hash_value)
             return output_template.format(message=message, text=text), rolling_prompt
-
+        text = self.io_util.stream_request(request_body=request_body, player_io=player_io, prompt=prompt, io=self.connection)     
         player_io.print(output_template.format(message=message, text=text), end=False, format=True, line_breaks=False)
-        text = self.io_util.stream_request(request_body, player_io, self.connection, prompt=prompt)
+        
         llm_cache.cache_look(text, text_hash_value)
         
         return '\n', rolling_prompt
@@ -114,16 +116,17 @@ class LlmUtil():
                           location_description = '',
                           event_history='',
                           short_len : bool=False):
-        return self._character.generate_dialogue(conversation, 
-                                                 character_card=character_card, 
-                                                 character_name=character_name, 
-                                                 target=target, 
-                                                 target_description=target_description, 
-                                                 sentiment=sentiment, 
-                                                 location_description=location_description, 
-                                                 story_context=self.__story_context, 
-                                                 event_history=event_history,
-                                                 short_len=short_len)
+        dialogue_context = DialogueContext(story_context=self.__story_context,
+                                           location_description=location_description,
+                                           speaker_card=character_card,
+                                           speaker_name=character_name,
+                                           target_name=target,
+                                           target_description=target_description)
+        return self._character.generate_dialogue(context=dialogue_context,
+                                                conversation=conversation,
+                                                sentiment=sentiment,
+                                                event_history=event_history,
+                                                short_len=short_len)
     
     def update_memory(self, rolling_prompt: str, response_text: str):
         """ Keeps a history of the last couple of events"""
@@ -234,7 +237,13 @@ class LlmUtil():
         return result
 
     def free_form_action(self, location: Location, character_name: str,  character_card: str = '', event_history: str = ''):
-        return self._character.free_form_action(self.__story_context, self.__story_type, location, character_name, character_card, event_history)
+        action_context = ActionContext(story_context=self.__story_context,
+                                       story_type=self.__story_type,
+                                       character_name=character_name,
+                                       character_card=character_card,
+                                       event_history=event_history,
+                                       location=location)
+        return self._character.free_form_action(action_context)
 
   
     def set_story(self, story: DynamicStory):

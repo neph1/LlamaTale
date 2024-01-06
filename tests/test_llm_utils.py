@@ -65,7 +65,7 @@ class TestLlmUtils():
     def test_generate_dialogue(self):
         # mostly testing that prompt works
         self.llm_util._character.io_util.response = ['{"response":"Hello there", "sentiment":"cheerful", "give":"ale"}']
-        result, item, sentiment = self.llm_util._character.generate_dialogue(conversation='test conversation', 
+        result, item, sentiment = self.llm_util.generate_dialogue(conversation='test conversation', 
                                                             character_card='{}', 
                                                             character_name='Norhardt', 
                                                             target='Arto', 
@@ -80,7 +80,7 @@ class TestLlmUtils():
     def test_generate_dialogue_json(self):
         # mostly testing that prompt works
         self.llm_util._character.io_util.response = ["{\n  \"response\": \"Autumn greets Test character with a warm smile, her golden hair shining in the sunlight. She returns the greeting, her voice filled with kindness, \'Hello there, how can I assist you today?\'\"\n}"]
-        result, item, sentiment = self.llm_util._character.generate_dialogue(conversation='test conversation', 
+        result, item, sentiment = self.llm_util.generate_dialogue(conversation='test conversation', 
                                                             character_card='{}', 
                                                             character_name='Norhardt', 
                                                             target='Arto', 
