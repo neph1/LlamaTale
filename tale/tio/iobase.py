@@ -99,7 +99,7 @@ class IoAdapterBase:
         """
         self.last_output_line = lines[-1]
 
-    def output_no_newline(self, text: str) -> None:
+    def output_no_newline(self, text: str, new_paragraph = True) -> None:
         """
         Like output, but just writes a single line, without end-of-line.
         Implement specific behavior in subclass (but don't forget to call base method)

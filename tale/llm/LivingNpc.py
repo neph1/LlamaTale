@@ -9,7 +9,7 @@ from tale.player import Player
 from typing import Sequence
 
 from tale.quest import Quest
-from tale.resources_utils import pad_text_for_avatar
+from tale.resources_utils import pad_text_for_avatar, unpad_text
 
 
 class LivingNpc(Living):
@@ -34,7 +34,7 @@ class LivingNpc(Living):
 
     def notify_action(self, parsed: ParseResult, actor: Living) -> None:
         # store even our own events.
-        event_hash = llm_cache.cache_event(parsed.unparsed)
+        event_hash = llm_cache.cache_event(unpad_text(parsed.unparsed))
         self._observed_events.append(event_hash)
         if actor is self or parsed.verb in self.verbs:
             return  # avoid reacting to ourselves, or reacting to verbs we already have a handler for
@@ -80,7 +80,7 @@ class LivingNpc(Living):
             self._clear_quest()
     
     def do_say(self, what_happened: str, actor: Living) -> None:
-        tell_hash = llm_cache.cache_tell('{actor.title} says {what_happened}'.format(actor=actor, what_happened=what_happened))
+        tell_hash = llm_cache.cache_tell('{actor.title} says {what_happened}'.format(actor=actor, what_happened=unpad_text(what_happened)))
         self._conversations.append(tell_hash)
         short_len = False if isinstance(actor, Player) else True
         item = None
@@ -108,7 +108,7 @@ class LivingNpc(Living):
         if not response:
             raise LlmResponseException("Failed to parse dialogue")
 
-        tell_hash = llm_cache.cache_tell('{actor.title} says: {response}'.format(actor=self, response=response))
+        tell_hash = llm_cache.cache_tell('{actor.title} says: {response}'.format(actor=self, response=unpad_text(response)))
         self._conversations.append(tell_hash)
         self._defer_result(response, verb='say')
         if item:
@@ -213,7 +213,7 @@ class LivingNpc(Living):
         defered_actions = []
         if action.get('text', ''):
             text = action['text']
-            tell_hash = llm_cache.cache_tell('{actor.title} says: "{response}"'.format(actor=self, response=text))
+            tell_hash = llm_cache.cache_tell('{actor.title} says: "{response}"'.format(actor=self, response=unpad_text(text)))
             self._conversations.append(tell_hash)
             #if mud_context.config.custom_resources:
             if action.get('target'):
@@ -260,7 +260,7 @@ class LivingNpc(Living):
         actions = '\n'.join(self.deferred_actions)
         deferred_action = ParseResult(verb='idle-action', unparsed=actions, who_info=None)
         self.tell_others(actions + '\n')
-        self.location._notify_action_all(deferred_action, actor=self)
+        #self.location._notify_action_all(deferred_action, actor=self)
         self.deferred_actions.clear()
 
     def _clear_quest(self):

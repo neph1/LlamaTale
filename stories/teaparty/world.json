@@ -46,9 +46,9 @@
                 "personality": "",
                 "occupation": "",
                 "age": 0,
-                "type": "Npc",
+                "type": "Mob",
                 "race": "",
-                "gender": "m",
+                "gender": "male",
                 "level": 1,
                 "stats": {
                     "ac": 0,
@@ -65,7 +65,16 @@
                     "strength": 3,
                     "dexterity": 3,
                     "unarmed_attack": "FISTS"
-                                }
+                },
+                "memory": {
+                    "known_locations": {},
+                    "observed_events": [],
+                    "conversations": [],
+                    "sentiments": {},
+                    "action_history": [],
+                    "planned_actions": [],
+                    "goal": null
+                }
             },
             "duchess": {
                 "location": "Living room",
@@ -79,9 +88,9 @@
                 "personality": "",
                 "occupation": "",
                 "age": 0,
-                "type": "Npc",
+                "type": "Mob",
                 "race": "",
-                "gender": "f",
+                "gender": "female",
                 "level": 1,
                 "stats": {
                     "ac": 0,
@@ -98,7 +107,16 @@
                     "strength": 3,
                     "dexterity": 3,
                     "unarmed_attack": "FISTS"
-                                }
+                },
+                "memory": {
+                    "known_locations": {},
+                    "observed_events": [],
+                    "conversations": [],
+                    "sentiments": {},
+                    "action_history": [],
+                    "planned_actions": [],
+                    "goal": null
+                }
             },
             "ace of spades": {
                 "location": "Living room",
@@ -112,9 +130,9 @@
                 "personality": "",
                 "occupation": "",
                 "age": 0,
-                "type": "Npc",
+                "type": "Mob",
                 "race": "",
-                "gender": "m",
+                "gender": "male",
                 "level": 1,
                 "stats": {
                     "ac": 0,
@@ -131,9 +149,64 @@
                     "strength": 3,
                     "dexterity": 3,
                     "unarmed_attack": "FISTS"
-                                }
+                },
+                "memory": {
+                    "known_locations": {},
+                    "observed_events": [],
+                    "conversations": [],
+                    "sentiments": {},
+                    "action_history": [],
+                    "planned_actions": [],
+                    "goal": null
+                }
             }
         },
         "items": {}
+    },
+    "catalogue": {
+        "items": [
+            {
+                "name": "dagger",
+                "title": "Dagger",
+                "descr": "",
+                "short_descr": "A steel dagger",
+                "value": 0,
+                "rent": 0.0,
+                "weight": 0.0,
+                "takeable": true,
+                "location": "",
+                "wc": 0,
+                "base_damage": 1,
+                "bonus_damage": 0,
+                "weapon_type": "ONE_HANDED"
+            },
+            {
+                "name": "club",
+                "title": "Club",
+                "descr": "",
+                "short_descr": "A wooden club",
+                "value": 0,
+                "rent": 0.0,
+                "weight": 0.0,
+                "takeable": true,
+                "location": "",
+                "wc": 0,
+                "base_damage": 1,
+                "bonus_damage": 0,
+                "weapon_type": "ONE_HANDED"
+            },
+            {
+                "name": "note",
+                "title": "Note",
+                "descr": "",
+                "short_descr": "",
+                "value": 0,
+                "rent": 0.0,
+                "weight": 0.0,
+                "takeable": true,
+                "location": ""
+            }
+        ],
+        "creatures": []
     }
 }

@@ -78,8 +78,7 @@ class Player(base.Living, pubsub.Listener):
         if evoke:
             if self.title in message:
                 message = message.replace(self.title, 'you')
-            msg, rolling_prompt = mud_context.driver.llm_util.evoke(self._output, 
-                                                                    message, 
+            msg, rolling_prompt = mud_context.driver.llm_util.evoke(message, 
                                                                     short_len = short_len, 
                                                                     rolling_prompt = self.rolling_prompt, 
                                                                     alt_prompt = alt_prompt)
@@ -339,9 +338,9 @@ class PlayerConnection:
         """directly writes the given text to the player's screen, without buffering and formatting/wrapping"""
         self.io.output(*lines)
 
-    def output_no_newline(self, line: str) -> None:
+    def output_no_newline(self, line: str, new_paragraph = True) -> None:
         """similar to output() but writes a single line, without newline at the end"""
-        self.io.output_no_newline(self.io.smartquotes(line))
+        self.io.output_no_newline(self.io.smartquotes(line), new_paragraph)
 
     def input_direct(self, prompt: str) -> str:
         """

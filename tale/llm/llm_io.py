@@ -1,8 +1,10 @@
+import re
 import requests
 import time
 import aiohttp
 import asyncio
 import json
+from tale.errors import LlmResponseException
 import tale.parse_utils as parse_utils
 from tale.player_utils import TextBuffer
 
@@ -40,10 +42,14 @@ class IoUtil():
             request_body['response_format'] = self.openai_json_format
         self._set_prompt(request_body, prompt)
         response = requests.post(self.url + self.endpoint, headers=self.headers, data=json.dumps(request_body))
-        if self.backend == 'kobold_cpp':
-            parsed_response = self._parse_kobold_result(response.text)
-        else:
-            parsed_response = self._parse_openai_result(response.text)
+        try:
+            if self.backend == 'kobold_cpp':
+                parsed_response = self._parse_kobold_result(response.text)
+            else:
+                parsed_response = self._parse_openai_result(response.text)
+        except LlmResponseException as exc:
+            print("Error parsing response from backend - ", exc)
+            return ''
         return parsed_response
     
     def asynchronous_request(self, request_body: dict, prompt: str) -> str:
@@ -51,13 +57,13 @@ class IoUtil():
             return self.synchronous_request(request_body, prompt)
         return self.stream_request(request_body, wait=True, prompt=prompt)
 
-    def stream_request(self, request_body: dict, prompt: str, player_io: TextBuffer = None, io = None, wait: bool = False) -> str:
+    def stream_request(self, request_body: dict, prompt: str, io = None, wait: bool = False) -> str:
         if self.backend != 'kobold_cpp':
             raise NotImplementedError("Currently does not support streaming requests for OpenAI")
         self._set_prompt(request_body, prompt)
         result = asyncio.run(self._do_stream_request(self.url + self.stream_endpoint, request_body))
         if result:
-            return self._do_process_result(self.url + self.data_endpoint, player_io, io, wait)
+            return self._do_process_result(self.url + self.data_endpoint, io, wait)
         return ''
 
     async def _do_stream_request(self, url: str, request_body: dict,) -> bool:
@@ -70,7 +76,7 @@ class IoUtil():
                     # Handle errors
                     print("Error occurred:", response.status)
 
-    def _do_process_result(self, url, player_io: TextBuffer = None, io = None, wait: bool = False) -> str:
+    def _do_process_result(self, url, io = None, wait: bool = False) -> str:
         """ Process the result from the stream endpoint """
         tries = 0
         old_text = ''
@@ -84,10 +90,8 @@ class IoUtil():
                 continue
             if not wait:
                 new_text = text[len(old_text):]
-                player_io.print(new_text, end=False, format=True, line_breaks=False)
-                io.write_output()
+                io.output_no_newline(new_text, new_paragraph=False)
             old_text = text
-
         return old_text
 
     def _parse_kobold_result(self, result: str) -> str:
@@ -99,8 +103,7 @@ class IoUtil():
         try:
             return json.loads(result)['choices'][0]['message']['content']
         except:
-            print("Error parsing result from OpenAI")
-            print(result)
+            raise LlmResponseException("Error parsing result from backend")
 
     def _set_prompt(self, request_body: dict, prompt: str) -> dict:
         if self.user_start_prompt:
@@ -112,3 +115,11 @@ class IoUtil():
         else :
             request_body['messages'][1]['content'] = prompt
         return request_body
+    
+    def _extract_context(self, full_string):
+        pattern = re.escape('<context>') + "(.*?)" + re.escape('</context>')
+        match = re.search(pattern, full_string, re.DOTALL)
+        if match:
+            return '<context>' + match.group(1) + '</context>'
+        else:
+            return ''

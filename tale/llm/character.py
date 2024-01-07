@@ -9,7 +9,9 @@ from tale import _MudContext, parse_utils
 from tale.base import Location
 from tale.errors import LlmResponseException
 from tale.llm import llm_config
+from tale.llm.contexts.ActionContext import ActionContext
 from tale.llm.llm_io import IoUtil
+from tale.llm.contexts.DialogueContext import DialogueContext
 from tale.load_character import CharacterV2
 
 
@@ -19,25 +21,21 @@ class CharacterBuilding():
         self.pre_prompt = llm_config.params['PRE_PROMPT']
         self.dialogue_prompt = llm_config.params['DIALOGUE_PROMPT']
         self.character_prompt = llm_config.params['CREATE_CHARACTER_PROMPT']
-        self.item_prompt = llm_config.params['ITEM_PROMPT']
         self.backend = backend
         self.io_util = io_util
         self.default_body = default_body
-        self.analysis_body = json.loads(llm_config.params['ANALYSIS_BODY'])
         self.travel_prompt = llm_config.params['TRAVEL_PROMPT']
         self.reaction_prompt = llm_config.params['REACTION_PROMPT']
         self.idle_action_prompt = llm_config.params['IDLE_ACTION_PROMPT']
         self.free_form_action_prompt = llm_config.params['ACTION_PROMPT']
         self.json_grammar = llm_config.params['JSON_GRAMMAR']
+        self.dialogue_template = llm_config.params['DIALOGUE_TEMPLATE']
+        self.action_template = llm_config.params['ACTION_TEMPLATE']
 
-    def generate_dialogue(self, conversation: str, 
-                          character_card: str, 
-                          character_name: str, 
-                          target: str, 
-                          target_description: str='', 
+    def generate_dialogue(self,
+                          context: DialogueContext,
+                          conversation: str,
                           sentiment = '', 
-                          location_description = '',
-                          story_context = '',
                           event_history = '',
                           short_len : bool=False):
         prompt = self.pre_prompt
@@ -45,13 +43,11 @@ class CharacterBuilding():
         #formatted_conversation = llm_config.params['USER_START']
         formatted_conversation = conversation.replace('<break>', '\n')#llm_config.params['USER_END'] + '\n' + llm_config.params['USER_START'])
         prompt += self.dialogue_prompt.format(
-                story_context=story_context,
-                location=location_description,
+                context=context.to_prompt_string(),
                 previous_conversation=formatted_conversation,
-                character2_description=character_card,
-                character2=character_name,
-                character1=target,
-                character1_description=target_description,
+                character2=context.speaker_name,
+                character1=context.target_name,
+                dialogue_template=self.dialogue_template,
                 history=event_history,
                 sentiment=sentiment)
         request_body = deepcopy(self.default_body)
@@ -150,29 +146,12 @@ class CharacterBuilding():
         text = self.io_util.synchronous_request(request_body, prompt=prompt)
         return parse_utils.trim_response(text) + "\n"
     
-    def free_form_action(self, story_context: str, story_type: str, location: Location, character_name: str, character_card: str = '', event_history: str = ''):
-        actions = ', '.join(['move, say, attack, wear, remove, wield, take, eat, drink, emote'])
-        characters = {}
-        for living in location.livings:
-            if living.visible and living.name != character_name.lower():
-                if living.alive:
-                    characters[living.name] = living.short_description
-                else:
-                    characters[living.name] = f"{living.short_description} (dead)"
-        exits = location.exits.keys()
-        items = [item.name for item in location.items if item.visible]
+    def free_form_action(self, action_context: ActionContext):
         prompt = self.pre_prompt
         prompt += self.free_form_action_prompt.format(
-            story_context=story_context,
-            story_type=story_type,
-            actions=actions,
-            location=location.name,
-            exits=exits,
-            location_items=items,
-            characters=json.dumps(characters),
-            history=event_history,
-            character_name=character_name,
-            character=character_card)
+            context=action_context.to_prompt_string(),
+            character_name=action_context.character_name,
+            action_template=self.action_template)
         request_body = deepcopy(self.default_body)
         request_body['grammar'] = self.json_grammar
         try :

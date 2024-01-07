@@ -157,12 +157,15 @@ class HttpIo(iobase.IoAdapterBase):
                 self.output_no_newline(line)
             self.__new_html_available.set()
 
-    def output_no_newline(self, text: str) -> None:
-        super().output_no_newline(text)
+    def output_no_newline(self, text: str, new_paragraph = True) -> None:
+        super().output_no_newline(text, new_paragraph)
         text = self.convert_to_html(text)
         if text == "\n":
             text = "<br>"
-        self.__html_to_browser.append("<p>" + text + "</p>\n")
+        if new_paragraph:
+            self.__html_to_browser.append("<p>" + text + "</p>\n")
+        else:
+            self.__html_to_browser.append(text.replace("\\n", "<br>"))
         self.__new_html_available.set()
 
     def convert_to_html(self, line: str) -> str:

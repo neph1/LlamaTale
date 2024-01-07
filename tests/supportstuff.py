@@ -65,6 +65,7 @@ class FakeIoUtil(IoUtil):
     def __init__(self, response: list = []) -> None:
         super().__init__()
         self.response = response # type: list
+        self.backend = 'kobold_cpp'
 
     def synchronous_request(self, request_body: dict, prompt: str = None) -> str:
         return self.response.pop(0) if isinstance(self.response, list) > 0 and len(self.response) > 0 else self.response
