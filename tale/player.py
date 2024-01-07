@@ -78,8 +78,7 @@ class Player(base.Living, pubsub.Listener):
         if evoke:
             if self.title in message:
                 message = message.replace(self.title, 'you')
-            msg, rolling_prompt = mud_context.driver.llm_util.evoke(self._output, 
-                                                                    message, 
+            msg, rolling_prompt = mud_context.driver.llm_util.evoke(message, 
                                                                     short_len = short_len, 
                                                                     rolling_prompt = self.rolling_prompt, 
                                                                     alt_prompt = alt_prompt)

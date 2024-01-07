@@ -36,8 +36,9 @@ class TestLlmUtils():
     def test_evoke(self):
         evoke_string = 'test response'
         self.llm_util.io_util = FakeIoUtil(response=evoke_string)
+        
         self.llm_util.set_story(self.story)
-        result = self.llm_util.evoke(message='test evoke', player_io=None)
+        result = self.llm_util.evoke(message='test evoke')
         assert(result)
         assert(llm_cache.get_looks([llm_cache.generate_hash('test evoke')]) == evoke_string)
 

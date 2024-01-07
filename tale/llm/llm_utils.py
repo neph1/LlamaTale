@@ -69,7 +69,7 @@ class LlmUtil():
                                              io_util=self.io_util,
                                              backend=self.backend)
 
-    def evoke(self, player_io: TextBuffer, message: str, short_len : bool=False, rolling_prompt='', alt_prompt='', skip_history=True):
+    def evoke(self, message: str, short_len : bool=False, rolling_prompt='', alt_prompt='', skip_history=True):
         """Evoke a response from LLM. Async if stream is True, otherwise synchronous.
         Update the rolling prompt with the latest message.
         Will put generated text in lm_cache.look_hashes, and reuse it if same hash is generated."""
@@ -101,7 +101,8 @@ class LlmUtil():
             llm_cache.cache_look(text, text_hash_value)
             return output_template.format(message=message, text=text), rolling_prompt
         
-        text = self.io_util.stream_request(request_body=request_body, player_io=player_io, prompt=prompt, io=self.connection)
+        self.connection.output(output_template.format(message=message, text='<p>'))
+        text = self.io_util.stream_request(request_body=request_body, prompt=prompt, io=self.connection)
         llm_cache.cache_look(text, text_hash_value)
         return '\n', rolling_prompt
     

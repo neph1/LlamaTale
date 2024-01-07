@@ -4,6 +4,7 @@ import time
 import aiohttp
 import asyncio
 import json
+from tale.errors import LlmResponseException
 import tale.parse_utils as parse_utils
 from tale.player_utils import TextBuffer
 
@@ -41,10 +42,13 @@ class IoUtil():
             request_body['response_format'] = self.openai_json_format
         self._set_prompt(request_body, prompt)
         response = requests.post(self.url + self.endpoint, headers=self.headers, data=json.dumps(request_body))
-        if self.backend == 'kobold_cpp':
-            parsed_response = self._parse_kobold_result(response.text)
-        else:
-            parsed_response = self._parse_openai_result(response.text)
+        try:
+            if self.backend == 'kobold_cpp':
+                parsed_response = self._parse_kobold_result(response.text)
+            else:
+                parsed_response = self._parse_openai_result(response.text)
+        except LlmResponseException as exc:
+            return ''
         return parsed_response
     
     def asynchronous_request(self, request_body: dict, prompt: str) -> str:
@@ -87,7 +91,7 @@ class IoUtil():
                 new_text = text[len(old_text):]
                 io.output_no_newline(new_text, new_paragraph=False)
             old_text = text
-        io.output_no_newline("")
+        io.output_no_newline("</p>", new_paragraph=False)
         return old_text
 
     def _parse_kobold_result(self, result: str) -> str:
@@ -99,8 +103,7 @@ class IoUtil():
         try:
             return json.loads(result)['choices'][0]['message']['content']
         except:
-            print("Error parsing result from OpenAI")
-            print(result)
+            raise LlmResponseException("Error parsing result from backend")
 
     def _set_prompt(self, request_body: dict, prompt: str) -> dict:
         if self.user_start_prompt:
