@@ -48,6 +48,7 @@ class IoUtil():
             else:
                 parsed_response = self._parse_openai_result(response.text)
         except LlmResponseException as exc:
+            print("Error parsing response from backend - ", exc)
             return ''
         return parsed_response
     
@@ -91,7 +92,7 @@ class IoUtil():
                 new_text = text[len(old_text):]
                 io.output_no_newline(new_text, new_paragraph=False)
             old_text = text
-        io.output_no_newline("</p>", new_paragraph=False)
+        #io.output_no_newline("</p>", new_paragraph=False)
         return old_text
 
     def _parse_kobold_result(self, result: str) -> str:

@@ -100,8 +100,8 @@ class LlmUtil():
             text = self.io_util.synchronous_request(request_body, prompt=prompt)
             llm_cache.cache_look(text, text_hash_value)
             return output_template.format(message=message, text=text), rolling_prompt
-        
-        self.connection.output(output_template.format(message=message, text='<p>'))
+        if self.connection:
+            self.connection.output(output_template.format(message=message, text=''))
         text = self.io_util.stream_request(request_body=request_body, prompt=prompt, io=self.connection)
         llm_cache.cache_look(text, text_hash_value)
         return '\n', rolling_prompt
