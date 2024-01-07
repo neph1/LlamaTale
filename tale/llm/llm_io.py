@@ -92,7 +92,6 @@ class IoUtil():
                 new_text = text[len(old_text):]
                 io.output_no_newline(new_text, new_paragraph=False)
             old_text = text
-        #io.output_no_newline("</p>", new_paragraph=False)
         return old_text
 
     def _parse_kobold_result(self, result: str) -> str:
@@ -112,8 +111,6 @@ class IoUtil():
         if self.user_end_prompt:
             prompt = prompt + self.user_end_prompt
         if self.backend == 'kobold_cpp':
-            context = self._extract_context(prompt)
-            request_body['memory'] = context
             request_body['prompt'] = prompt
         else :
             request_body['messages'][1]['content'] = prompt
