@@ -43,7 +43,6 @@ class CharacterBuilding():
         #formatted_conversation = llm_config.params['USER_START']
         formatted_conversation = conversation.replace('<break>', '\n')#llm_config.params['USER_END'] + '\n' + llm_config.params['USER_START'])
         prompt += self.dialogue_prompt.format(
-                context=context.to_prompt_string(),
                 previous_conversation=formatted_conversation,
                 character2=context.speaker_name,
                 character1=context.target_name,
@@ -52,10 +51,7 @@ class CharacterBuilding():
                 sentiment=sentiment)
         request_body = deepcopy(self.default_body)
         request_body['grammar'] = self.json_grammar
-        
-
-        #if not self.stream:
-        response = self.io_util.synchronous_request(request_body, prompt=prompt)
+        response = self.io_util.synchronous_request(request_body, prompt=prompt, context=context.to_prompt_string())
         try:
             json_result = json.loads(parse_utils.sanitize_json(response))
             text = json_result["response"]
@@ -149,13 +145,13 @@ class CharacterBuilding():
     def free_form_action(self, action_context: ActionContext):
         prompt = self.pre_prompt
         prompt += self.free_form_action_prompt.format(
-            context=action_context.to_prompt_string(),
+            context = '',
             character_name=action_context.character_name,
             action_template=self.action_template)
         request_body = deepcopy(self.default_body)
         request_body['grammar'] = self.json_grammar
         try :
-            text = self.io_util.synchronous_request(request_body, prompt=prompt)
+            text = self.io_util.synchronous_request(request_body, prompt=prompt, context=action_context.to_prompt_string())
             if not text:
                 return None
             response = json.loads(parse_utils.sanitize_json(text))
