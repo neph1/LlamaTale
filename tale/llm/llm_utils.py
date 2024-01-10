@@ -87,22 +87,22 @@ class LlmUtil():
             return output_template.format(message=message, text=cached_look), rolling_prompt
 
         trimmed_message = parse_utils.remove_special_chars(str(message))
-        context = EvokeContext(story_context=self.__story_context, history=rolling_prompt if not skip_history or alt_prompt else '')
+        story_context = EvokeContext(story_context=self.__story_context, history=rolling_prompt if not skip_history or alt_prompt else '')
         prompt = self.pre_prompt
         prompt += alt_prompt or (self.evoke_prompt.format(
-            context=context.to_prompt_string(),
+            context = '',
             max_words=self.word_limit if not short_len else self.short_word_limit,
             input_text=str(trimmed_message)))
         
         request_body = deepcopy(self.default_body)
 
         if not self.stream:
-            text = self.io_util.synchronous_request(request_body, prompt=prompt)
+            text = self.io_util.synchronous_request(request_body, prompt=prompt, context=story_context.to_prompt_string())
             llm_cache.cache_look(text, text_hash_value)
             return output_template.format(message=message, text=text), rolling_prompt
         if self.connection:
             self.connection.output(output_template.format(message=message, text=''))
-        text = self.io_util.stream_request(request_body=request_body, prompt=prompt, io=self.connection)
+        text = self.io_util.stream_request(request_body=request_body, prompt=prompt, context=story_context.to_prompt_string(), io=self.connection)
         llm_cache.cache_look(text, text_hash_value)
         return '\n', rolling_prompt
     

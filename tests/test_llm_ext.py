@@ -136,6 +136,7 @@ class TestLivingNpcActions():
     driver = FakeDriver()
     driver.story = DynamicStory()
     llm_util = LlmUtil(IoUtil(config=dummy_config, backend_config=dummy_backend_config)) # type: LlmUtil
+    llm_util.backend = dummy_config['BACKEND']
     driver.llm_util = llm_util
     story = DynamicStory()
     driver.story = story
