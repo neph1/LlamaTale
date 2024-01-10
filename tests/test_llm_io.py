@@ -80,6 +80,17 @@ class TestLlmIo():
         assert(config_file['USER_END'] in result['messages'][1]['content'])
 
     @responses.activate
+    def test_error_response(self):
+        config_file = self._load_config()
+        backend_config = self._load_backend_config('kobold_cpp')
+        responses.add(responses.POST, backend_config['URL'] + backend_config['ENDPOINT'],
+                    json={'results':['']}, status=500)
+        io_util = IoUtil(config=config_file, backend_config=backend_config)
+
+        response = io_util.synchronous_request(request_body=json.loads(backend_config['DEFAULT_BODY']), prompt='test evoke', context='')
+        assert(response == '')
+
+    @responses.activate
     def test_stream_kobold_cpp(self):
         config = {'BACKEND':'kobold_cpp', 'USER_START':'', 'USER_END':''}
         with open(os.path.realpath(os.path.join(os.path.dirname(__file__), f"../backend_kobold_cpp.yaml")), "r") as stream:

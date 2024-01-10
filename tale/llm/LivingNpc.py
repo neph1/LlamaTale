@@ -260,7 +260,7 @@ class LivingNpc(Living):
         actions = '\n'.join(self.deferred_actions)
         deferred_action = ParseResult(verb='idle-action', unparsed=actions, who_info=None)
         self.tell_others(actions + '\n')
-        #self.location._notify_action_all(deferred_action, actor=self)
+        self.location._notify_action_all(deferred_action, actor=self)
         self.deferred_actions.clear()
 
     def _clear_quest(self):

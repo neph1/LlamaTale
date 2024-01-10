@@ -36,12 +36,9 @@ class IoUtil():
         request_body = self.io_adapter._set_prompt(request_body, prompt, context)
         print(request_body)
         response = requests.post(self.url + self.endpoint, headers=self.headers, data=json.dumps(request_body))
-        try:
-            parsed_response = self.io_adapter._parse_result(response.text)
-        except LlmResponseException as exc:
-            print("Error parsing response from backend - ", exc)
-            return ''
-        return parsed_response
+        if response.status_code == 200:
+            return self.io_adapter._parse_result(response.text)
+        return ''
     
     def asynchronous_request(self, request_body: dict, prompt: str, context: str = '') -> str:
         if self.backend != 'kobold_cpp':
