@@ -1,6 +1,6 @@
 WORD_LIMIT: 200 # max number of words the model is encoraged to generate. not a hard limit
 SHORT_WORD_LIMIT: 25 # max number of words when asked to write something short. not a hard limit
-BACKEND: "llama_cpp" # valid options: "openai", "llama_cpp", "kobold_cpp"
+BACKEND: "kobold_cpp" # valid options: "openai", "llama_cpp", "kobold_cpp"
 MEMORY_SIZE: 512
 DIALOGUE_TEMPLATE: '{"response":"may be both dialogue and action.", "sentiment":"sentiment based on response", "give":"if any physical item of {character2}s is given as part of the dialogue. Or nothing."}'
 ACTION_TEMPLATE: '{"goal": reason for action, "thoughts":thoughts about performing action, "action":action chosen, "target":character, item or exit or description, "text": if anything is said during the action}'

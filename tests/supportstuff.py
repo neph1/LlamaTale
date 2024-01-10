@@ -10,6 +10,7 @@ from typing import Any, List
 from wsgiref.simple_server import WSGIServer
 
 from tale import pubsub, util, driver, base, story
+from tale.llm.io_adapters import AbstractIoAdapter
 from tale.llm.llm_utils import LlmUtil
 from tale.llm.llm_io import IoUtil
 
@@ -66,11 +67,13 @@ class FakeIoUtil(IoUtil):
         super().__init__()
         self.response = response # type: list
         self.backend = 'kobold_cpp'
+        self.io_adapter = None
+        self.stream = False
 
-    def synchronous_request(self, request_body: dict, prompt: str = None) -> str:
+    def synchronous_request(self, request_body: dict, prompt: str = None, context: str = '') -> str:
         return self.response.pop(0) if isinstance(self.response, list) > 0 and len(self.response) > 0 else self.response
     
-    def asynchronous_request(self, request_body: dict, prompt: str = None):
+    def asynchronous_request(self, request_body: dict, prompt: str = None, context: str = ''):
         return self.synchronous_request(request_body, prompt)
     
     def set_response(self, response: any):
@@ -89,5 +92,3 @@ class FakeWSGIServer(WSGIServer):
 
     def clear_requests(self):
         self.requests = []
-
-    

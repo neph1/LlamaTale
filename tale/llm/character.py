@@ -43,6 +43,7 @@ class CharacterBuilding():
         #formatted_conversation = llm_config.params['USER_START']
         formatted_conversation = conversation.replace('<break>', '\n')#llm_config.params['USER_END'] + '\n' + llm_config.params['USER_START'])
         prompt += self.dialogue_prompt.format(
+                context='',
                 previous_conversation=formatted_conversation,
                 character2=context.speaker_name,
                 character1=context.target_name,
