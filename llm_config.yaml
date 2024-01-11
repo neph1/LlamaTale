@@ -30,4 +30,4 @@ NOTE_QUEST_PROMPT: '[Story context: {story_context}]; World info: {world_info}; 
 NOTE_LORE_PROMPT: '[Story context: {story_context}]; World info: {world_info}; Zone info: {zone_info}; [USER_START]For an RPG described as {story_type}, Decide what is written on a note that has been found. Use the provided story and world information to generate a piece of lore. Use about 50 words.'
 ACTION_PROMPT: '<context>{context}</context>\nAct as as {character_name}.\nUsing the information supplied inside the <context> tag, pick an action according to {character_name}s description and mood. If suitable, select something to perform the action on (target). The action should be in the supplied list and should be related to {character_name}s thoughts.\n Respond using JSON in the following format: """{action_template}"""'
 USER_START: '### Instruction:'
-USER_END: '### Response:\n'
+USER_END: '### Response:'

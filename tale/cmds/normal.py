@@ -698,7 +698,7 @@ def do_look(player: Player, parsed: base.ParseResult, ctx: util.Context) -> None
 @disable_notify_action
 def do_examine(player: Player, parsed: base.ParseResult, ctx: util.Context) -> None:
     """Examine something or someone thoroughly."""
-    p = player.tell
+    player_tell = player.tell
     living = None
     if parsed.who_info and isinstance(parsed.who_1, base.Living):
         living = parsed.who_1
@@ -709,77 +709,103 @@ def do_examine(player: Player, parsed: base.ParseResult, ctx: util.Context) -> N
         remove_is_are_args(parsed.args)
         name = parsed.args[0]
         living = player.location.search_living(name)
+    if len(parsed.args) > 1:
+        what = parsed.args[1]
+    else:
+        what = ""
     if living:
         if living is player:
             # player examines him/herself
-            p("You are %s. But you knew that already." % lang.capital(living.title))
-            player.tell_others("{Actor} is looking at %sself." % living.objective, evoke=True, short_len=False)
-            return
-        # if "wizard" in player.privileges:
-        #     tell(repr(living), end=True)
+            if what:
+                player_tell("You examine your %s." % what, evoke=True)
+            else:
+                player_tell("You are %s. But you knew that already." % lang.capital(living.title))
+            player.tell_others("{Actor} is looking at %sself." % living.objective, evoke=False, short_len=False)
+            return True
+        if what:
+            if what in living.extra_desc:
+                player_tell(living.extra_desc[what], evoke=True, short_len=False)
+            elif isinstance(living, LivingNpc):
+                last_action = living.action_history[-1:] if len(living.action_history) > 0 else 'Nothing'
+                observed_event = living._observed_events[-1:] if len(living._observed_events) > 0 else 'Nothing'
+                player_tell("%s; %s's latest action: %s; %s's latest observed event: %s; You examine %s's %s; " % (living.character_card, living.title, last_action, living.title, observed_event, living.title, what), evoke=True)
+            return True
+        elif isinstance(living, LivingNpc):
+            last_action = living.action_history[-1:] if len(living.action_history) > 0 else 'Nothing'
+            observed_event = living._observed_events[-1:] if len(living._observed_events) > 0 else 'Nothing'
+            player_tell("%s; %s's latest action: %s; %s's latest observed event: %s; You look closely at %s; " % (living.character_card, living.title, last_action, living.title, observed_event, living.title), evoke=True)
+            return True
         if living.description:
-            p(living.description, evoke=True, short_len=False)
+            player_tell(living.description, evoke=True, short_len=False)
         else:
-            p("This is %s." % living.title, evoke=True, short_len=False)
+            player_tell("%s; This is %s." % living.title, evoke=True, short_len=False)
         if ctx.config.display_race and living.stats.race != "human":
             # only print this race related info when dealing with creatures other than humans
             if living.stats.bodytype and living.stats.size:
-                p("{subj}'s a {size} {btype} {race}.".format(
+                player_tell("{subj}'s a {size} {btype} {race}.".format(
                     subj=lang.capital(living.subjective),
                     size=living.stats.size.text,
                     btype=living.stats.bodytype.value,
                     race=living.stats.race or "creature"
                 ), evoke=True, short_len=False)
         if name in living.extra_desc:
-            p(living.extra_desc[name], evoke=True, short_len=False)   # print the extra description, rather than a generic message
+            player_tell(living.extra_desc[name], evoke=True, short_len=False)   # print the extra description, rather than a generic message
         if name in player.location.extra_desc:
-            p(player.location.extra_desc[name], evoke=True, short_len=False)   # print the extra description, rather than a generic message
+            player_tell(player.location.extra_desc[name], evoke=True, short_len=False)   # print the extra description, rather than a generic message
         if living.following:
             if living.is_pet:
                 if living.following is player:
-                    p("%s's your loyal pet." % lang.capital(living.subjective), evoke=True, short_len=False)
+                    player_tell("%s's your loyal pet." % lang.capital(living.subjective), evoke=True, short_len=False)
                 else:
-                    p("%s's a pet of %s." % (lang.capital(living.subjective), living.following.title), evoke=True, short_len=False)
+                    player_tell("%s's a pet of %s." % (lang.capital(living.subjective), living.following.title), evoke=True, short_len=False)
             else:
                 if living.following is player:
-                    p("%s's following you." % lang.capital(living.subjective))
+                    player_tell("%s's following you." % lang.capital(living.subjective))
                 else:
-                    p("It seems that %s's following %s." % (living.subjective, living.following.title), evoke=True, short_len=False)
+                    player_tell("It seems that %s's following %s." % (living.subjective, living.following.title), evoke=True, short_len=False)
         return
     item, container = player.locate_item(name)
     if item:
+        if what:
+            if what in item.extra_desc:
+                player_tell(item.extra_desc[what], evoke=True, short_len=False)
+            else:
+                player_tell("%s; You examine the %s of %s;" % (item.description, what, item.title), evoke=True)
+            return True
         if name in item.extra_desc:
-            p(item.extra_desc[name])   # print the extra description, rather than a generic message
+            player_tell(item.extra_desc[name])   # print the extra description, rather than a generic message
+            return True
         else:
             if item in player:
-                p("You're carrying %s." % lang.a(item.title))
+                player_tell("You're carrying %s." % lang.a(item.title))
             elif container and container in player:
                 player.tell_object_location(item, container, True)
             else:
                 if not item.description:
-                    p("You see %s." % lang.a(item.title))
+                    player_tell("You see %s." % lang.a(item.title))
             if item.description:
-                p(item.description)
+                player_tell(item.description, evoke=True)
         try:
             inventory = item.inventory
         except ActionRefused:
             pass
         else:
             if inventory:
-                p("It contains: %s." % lang.join(subitem.title for subitem in inventory))
+                player_tell("It contains: %s." % lang.join(subitem.title for subitem in inventory))
             else:
-                p("It's empty.")
+                player_tell("It's empty.")
+        return True
     elif name in player.location.exits:
-        p("It seems you can go there:")
-        p(player.location.exits[name].description)
+        player_tell("It seems you can go there:")
+        player_tell(player.location.exits[name].description, evoke=True)
     elif name in abbreviations and abbreviations[name] in player.location.exits:
-        p("It seems you can go there:")
-        p(player.location.exits[abbreviations[name]].description)
+        player_tell("It seems you can go there:")
+        player_tell(player.location.exits[abbreviations[name]].description, evoke=True)
     else:
         # check if name is in location's or an item's extradesc
         text = player.search_extradesc(name)
         if text:
-            p(text)
+            player_tell(text, evoke=True)
         else:
             raise ActionRefused("%s isn't here." % name)
 

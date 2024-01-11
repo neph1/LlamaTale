@@ -158,8 +158,8 @@ class CharacterBuilding():
             response = json.loads(parse_utils.sanitize_json(text))
             return self._sanitize_free_form_response(response)
         except Exception as exc:
-            print(exc)  
-            raise LlmResponseException('Failed to parse action')
+            print('Failed to parse action')  
+            return None
             
         
     def _sanitize_free_form_response(self, action: dict):
