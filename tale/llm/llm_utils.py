@@ -8,6 +8,7 @@ from tale.image_gen.base_gen import ImageGeneratorBase
 from tale.llm.character import CharacterBuilding
 from tale.llm.contexts.ActionContext import ActionContext
 from tale.llm.contexts.EvokeContext import EvokeContext
+from tale.llm.contexts.WorldGenerationContext import WorldGenerationContext
 from tale.llm.llm_ext import DynamicStory
 from tale.llm.llm_io import IoUtil
 from tale.llm.contexts.DialogueContext import DialogueContext
@@ -147,15 +148,17 @@ class LlmUtil():
 
     def build_location(self, location: Location, exit_location_name: str, zone_info: dict, world_items: dict = {}, world_creatures: dict = {}, neighbors: dict = {}) -> (list, list, list):
         """ Generate a location based on the current story context"""
+        world_generation_context = WorldGenerationContext(story_context=self.__story_context,
+                                                            story_type=self.__story_type,
+                                                            world_info=self.__world_info,
+                                                            world_mood=self.__story.config.world_mood)
         return self._world_building.build_location(location, 
-                                                   exit_location_name, 
-                                                   zone_info, 
-                                                   self.__story_type, 
-                                                   self.__story_context,
-                                                   self.__world_info,
-                                                   world_creatures=world_creatures,
-                                                   world_items=world_items,
-                                                   neighbors=neighbors)
+                                                    exit_location_name, 
+                                                    zone_info,
+                                                    context=world_generation_context,
+                                                    world_creatures=world_creatures,
+                                                    world_items=world_items,
+                                                    neighbors=neighbors)
      
     def perform_idle_action(self, character_name: str, location: Location, character_card: str = '', sentiments: dict = {}, last_action: str = '', event_history: str = '') -> list:
         return self._character.perform_idle_action(character_name, location, self.__story_context, character_card, sentiments, last_action, event_history=event_history)
@@ -179,51 +182,46 @@ class LlmUtil():
         return self._world_building.generate_start_location(location, zone_info, story_type, story_context, world_info)
         
     def generate_start_zone(self, location_desc: str, story_type: str, story_context: str, world_info: dict) -> Zone:
-        return self._world_building.generate_start_zone(location_desc, story_type, story_context, world_info)
+        world_generation_context = WorldGenerationContext(story_context=story_context, story_type=story_type, world_info=world_info, world_mood=world_info['world_mood'])
+        return self._world_building.generate_start_zone(location_desc, context=world_generation_context)
     
     def generate_world_items(self, story_context: str = '', story_type: str = '', world_info: str = '', world_mood: int = None) -> dict:
-        return self._world_building.generate_world_items(story_context or self.__story_context, 
-                                                            story_type or self.__story_type, 
-                                                            world_info or self.__world_info, 
-                                                            world_mood or self.__story.config.world_mood)
+        world_generation_context = WorldGenerationContext(story_context=story_context or self.__story_context,
+                                                            story_type=story_type or self.__story_type,
+                                                            world_info=world_info or self.__world_info,
+                                                            world_mood=world_mood or self.__story.config.world_mood)
+        return self._world_building.generate_world_items(world_generation_context)
         
     
     def generate_world_creatures(self, story_context: str = '', story_type: str = '', world_info: str = '', world_mood: int = None) -> dict:
-        return self._world_building.generate_world_creatures(story_context or self.__story_context, 
-                                                             story_type or self.__story_type, 
-                                                             world_info or self.__world_info, 
-                                                             world_mood or self.__story.config.world_mood)
+        world_generation_context = WorldGenerationContext(story_context=story_context or self.__story_context,
+                                                            story_type=story_type or self.__story_type,
+                                                            world_info=world_info or self.__world_info,
+                                                            world_mood=world_mood or self.__story.config.world_mood)
+        return self._world_building.generate_world_creatures(world_generation_context)
         
     def generate_random_spawn(self, location: Location, zone_info: dict):
         return self._world_building.generate_random_spawn(location=location, 
-                                                          zone_info=zone_info, 
-                                                          story_type=self.__story_type, 
-                                                          story_context=self.__story_context,
-                                                          world_info=self.__world_info,
+                                                          zone_info=zone_info,
+                                                          context=self._get_world_context(),
                                                           world_creatures=self.__story.catalogue._creatures,
                                                           world_items=self.__story.catalogue._items)
     
     def generate_quest(self, base_quest: dict, character_name: str, location: Location, character_card: str, zone_info: dict, event_history: str = '') -> Quest:
         return self._quest_building.generate_quest(base_quest=base_quest,
-                                              character_name=character_name, 
-                                              character_card=character_card, 
-                                              location=location, 
-                                              story_context=self.__story_context, 
-                                              story_type=self.__story_type, 
-                                              world_info=self.__world_info, 
-                                              zone_info=zone_info, 
-                                              event_history=event_history)
+                                            context=self._get_world_context(),
+                                            character_name=character_name, 
+                                            character_card=character_card, 
+                                            location=location,
+                                            zone_info=zone_info, 
+                                            event_history=event_history)
     
     def generate_note_quest(self, zone_info: dict) -> Quest:
-        return self._quest_building.generate_note_quest(story_context=self.__story_context, 
-                                                        story_type=self.__story_type, 
-                                                        world_info=self.__world_info, 
+        return self._quest_building.generate_note_quest(context=self._get_world_context(), 
                                                         zone_info=zone_info)
   
     def generate_note_lore(self, zone_info: dict) -> str:
-        return self._world_building.generate_note_lore(story_context=self.__story_context, 
-                                                        story_type=self.__story_type, 
-                                                        world_info=self.__world_info, 
+        return self._world_building.generate_note_lore(context=self._get_world_context(), 
                                                         zone_info=zone_info)
     
     def generate_image(self, character_name: str, character_appearance: dict = '', save_path: str = "./resources", copy_file: bool = True) -> bool:
@@ -258,6 +256,12 @@ class LlmUtil():
         """ Initialize the image generator"""
         clazz =  getattr(sys.modules['tale.image_gen.' + image_gen.lower()], image_gen)
         self._image_gen = clazz()
+
+    def _get_world_context(self):
+        return WorldGenerationContext(story_context=self.__story_context,
+                                        story_type=self.__story_type,
+                                        world_info=self.__world_info,
+                                        world_mood=self.__story.config.world_mood)
 
 
 

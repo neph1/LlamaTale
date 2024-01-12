@@ -21,13 +21,15 @@ class TestExamineCommand():
     location = Location('test_location')
     location.insert(test_player, actor=None)
     io_util = FakeIoUtil(response=[])
+    io_util.stream = False
     llm_util = LlmUtil(io_util)
     story = DynamicStory()
     llm_util.set_story(story)
 
-    context.driver = FakeDriver()
-    context.driver.llm_util = llm_util
-    context.driver.story = story
+    def setup_method(self):
+        tale.mud_context.driver = FakeDriver()
+        tale.mud_context.driver.story = DynamicStory()
+        tale.mud_context.driver.llm_util = self.llm_util
 
     def test_examine_nothing(self):
         parse_result = ParseResult(verb='examine', unparsed='')
