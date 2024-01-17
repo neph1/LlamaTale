@@ -131,8 +131,6 @@ class TestLivingNpcActions():
         'OPENAI_API_KEY': '',
         'OPENAI_JSON_FORMAT': '',
     }
-
-    context = tale._MudContext()
     driver = FakeDriver()
     driver.story = DynamicStory()
     llm_util = LlmUtil(IoUtil(config=dummy_config, backend_config=dummy_backend_config)) # type: LlmUtil
@@ -140,8 +138,8 @@ class TestLivingNpcActions():
     driver.llm_util = llm_util
     story = DynamicStory()
     driver.story = story
-    context.config = story.config
-    context.driver = driver
+    mud_context.config = story.config
+    mud_context.driver = driver
 
     @responses.activate
     def test_do_say(self):

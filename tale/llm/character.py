@@ -43,7 +43,7 @@ class CharacterBuilding():
         #formatted_conversation = llm_config.params['USER_START']
         formatted_conversation = conversation.replace('<break>', '\n')#llm_config.params['USER_END'] + '\n' + llm_config.params['USER_START'])
         prompt += self.dialogue_prompt.format(
-                context='',
+                context = '{context}',
                 previous_conversation=formatted_conversation,
                 character2=context.speaker_name,
                 character1=context.target_name,
@@ -146,7 +146,7 @@ class CharacterBuilding():
     def free_form_action(self, action_context: ActionContext):
         prompt = self.pre_prompt
         prompt += self.free_form_action_prompt.format(
-            context = '',
+            context = '{context}',
             character_name=action_context.character_name,
             action_template=self.action_template)
         request_body = deepcopy(self.default_body)
@@ -158,7 +158,7 @@ class CharacterBuilding():
             response = json.loads(parse_utils.sanitize_json(text))
             return self._sanitize_free_form_response(response)
         except Exception as exc:
-            print('Failed to parse action')  
+            print('Failed to parse action ' + str(exc))
             return None
             
         

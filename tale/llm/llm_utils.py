@@ -70,7 +70,7 @@ class LlmUtil():
                                              io_util=self.io_util,
                                              backend=self.backend)
 
-    def evoke(self, message: str, short_len : bool=False, rolling_prompt='', alt_prompt='', skip_history=True):
+    def evoke(self, message: str, short_len: bool=False, rolling_prompt: str = '', alt_prompt: str = '', extra_context: str = '', skip_history: bool = True):
         """Evoke a response from LLM. Async if stream is True, otherwise synchronous.
         Update the rolling prompt with the latest message.
         Will put generated text in lm_cache.look_hashes, and reuse it if same hash is generated."""
@@ -88,10 +88,10 @@ class LlmUtil():
             return output_template.format(message=message, text=cached_look), rolling_prompt
 
         trimmed_message = parse_utils.remove_special_chars(str(message))
-        story_context = EvokeContext(story_context=self.__story_context, history=rolling_prompt if not skip_history or alt_prompt else '')
+        story_context = EvokeContext(story_context=self.__story_context, history=rolling_prompt if not skip_history or alt_prompt else '', extra_context=extra_context)
         prompt = self.pre_prompt
         prompt += alt_prompt or (self.evoke_prompt.format(
-            context = '',
+            context = '{context}',
             max_words=self.word_limit if not short_len else self.short_word_limit,
             input_text=str(trimmed_message)))
         

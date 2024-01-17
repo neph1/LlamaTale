@@ -34,6 +34,7 @@ class TestLlmIo():
 
     def test_set_prompt_kobold_cpp(self):
         config_file = self._load_config()
+        config_file['BACKEND'] = 'kobold_cpp'
         backend_config = self._load_backend_config('kobold_cpp')
         prompt = config_file['BASE_PROMPT']
         assert('### Instruction' not in prompt)
@@ -82,6 +83,7 @@ class TestLlmIo():
     @responses.activate
     def test_error_response(self):
         config_file = self._load_config()
+        config_file['BACKEND'] = 'kobold_cpp'
         backend_config = self._load_backend_config('kobold_cpp')
         responses.add(responses.POST, backend_config['URL'] + backend_config['ENDPOINT'],
                     json={'results':['']}, status=500)

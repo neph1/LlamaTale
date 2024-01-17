@@ -72,7 +72,7 @@ class WorldBuilding():
 
         prompt = self.pre_json_prompt
         prompt += self.location_prompt.format(
-            context='',
+            context = '{context}',
             zone_info=zone_info,
             exit_locations=exit_location_name,
             location_name=location.name,
@@ -255,7 +255,7 @@ class WorldBuilding():
 
         prompt = self.pre_json_prompt
         prompt += self.create_zone_prompt.format(
-            context='',
+            context = '{context}',
             direction='',
             zone_info='',
             exit_location='',
@@ -280,7 +280,7 @@ class WorldBuilding():
 
     def generate_world_items(self, world_generation_context: WorldGenerationContext) -> dict:
         """ Since 0.16.1 returns a json array, rather than a list of items"""
-        prompt = self.world_items_prompt.format(context='',
+        prompt = self.world_items_prompt.format(context = '{context}',
                                                 item_template=self.item_template,
                                                 item_types=self.item_types)
         request_body = deepcopy(self.default_body)
@@ -298,7 +298,7 @@ class WorldBuilding():
     
     def generate_world_creatures(self, world_generation_context: WorldGenerationContext) -> dict:
         """ Since 0.16.1 returns a json array, rather than a list of creatures"""
-        prompt = self.world_creatures_prompt.format(context='',
+        prompt = self.world_creatures_prompt.format(context = '{context}',
                                                 creature_template=self.creature_template)
         request_body = deepcopy(self.default_body)
         if self.backend == 'kobold_cpp':
@@ -314,7 +314,7 @@ class WorldBuilding():
     
     def generate_random_spawn(self, location: Location, context: WorldGenerationContext, zone_info: dict, world_creatures: list, world_items: list):
         location_info = {'name': location.title, 'description': location.look(short=True), 'exits': location.exits}
-        prompt = self.player_enter_prompt.format(context='',
+        prompt = self.player_enter_prompt.format(context = '{context}',
                                                 npc_template=self.npc_template,
                                                 zone_info=zone_info,
                                                 location_info=location_info)
@@ -343,7 +343,7 @@ class WorldBuilding():
         
     def generate_note_lore(self, context: WorldGenerationContext, zone_info: str) -> str:
         """ Generate a note with story lore."""
-        prompt = self.note_lore_prompt.format(context=context,
+        prompt = self.note_lore_prompt.format(context = '{context}',
                                                 zone_info=zone_info)
         request_body = deepcopy(self.default_body)
         if self.backend == 'kobold_cpp':

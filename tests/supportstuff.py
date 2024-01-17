@@ -58,7 +58,7 @@ class MsgTraceNPC(base.Living):
     def clearmessages(self) -> None:
         self.messages = []
 
-    def tell(self, message: str, *, end: bool=False, format: bool=True, evoke: bool=False, short_len: bool=False, alt_prompt: str='') -> base.Living:
+    def tell(self, message: str, *, end: bool=False, format: bool=True, evoke: bool=False, short_len: bool=False, alt_prompt: str='', extra_context: str= '') -> base.Living:
         self.messages.append(message)
         return self
 

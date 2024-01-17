@@ -728,12 +728,14 @@ def do_examine(player: Player, parsed: base.ParseResult, ctx: util.Context) -> N
             elif isinstance(living, LivingNpc):
                 last_action = living.action_history[-1:] if len(living.action_history) > 0 else 'Nothing'
                 observed_event = living._observed_events[-1:] if len(living._observed_events) > 0 else 'Nothing'
-                player_tell("%s; %s's latest action: %s; %s's latest observed event: %s; You examine %s's %s; " % (living.character_card, living.title, last_action, living.title, observed_event, living.title, what), evoke=True)
+                context = "%s; %s's latest action: %s; %s's latest observed event: %s;" % (living.description, living.title, last_action, living.title, observed_event)
+                player_tell("You examine %s's %s" % (living.title, what), evoke=True, extra_context=context)
             return True
         elif isinstance(living, LivingNpc):
             last_action = living.action_history[-1:] if len(living.action_history) > 0 else 'Nothing'
             observed_event = living._observed_events[-1:] if len(living._observed_events) > 0 else 'Nothing'
-            player_tell("%s; %s's latest action: %s; %s's latest observed event: %s; You look closely at %s; " % (living.character_card, living.title, last_action, living.title, observed_event, living.title), evoke=True)
+            context = "%s; %s's latest action: %s; %s's latest observed event: %s;" % (living.description, living.title, last_action, living.title, observed_event)
+            player_tell("You look closely at %s" % (living.title), evoke=True)
             return True
         if living.description:
             player_tell(living.description, evoke=True, short_len=False)
@@ -770,7 +772,7 @@ def do_examine(player: Player, parsed: base.ParseResult, ctx: util.Context) -> N
             if what in item.extra_desc:
                 player_tell(item.extra_desc[what], evoke=True, short_len=False)
             else:
-                player_tell("%s; You examine the %s of %s;" % (item.description, what, item.title), evoke=True)
+                player_tell("You examine the %s of %s;" % (what, item.title), evoke=True, extra_context=item.description)
             return True
         if name in item.extra_desc:
             player_tell(item.extra_desc[name])   # print the extra description, rather than a generic message

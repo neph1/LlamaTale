@@ -47,6 +47,15 @@ class TestLlmUtils():
         assert(result)
         assert(llm_cache.get_looks([llm_cache.generate_hash('test evoke')]) == evoke_string)
 
+    def test_evoke_extra_context(self):
+        evoke_string = 'test response'
+        self.llm_util.io_util = FakeIoUtil(response=evoke_string)
+        
+        self.llm_util.set_story(self.story)
+        result = self.llm_util.evoke(message='test evoke', extra_context='test extra context')
+        assert(result)
+        assert(llm_cache.get_looks([llm_cache.generate_hash('test evoke')]) == evoke_string)
+
     def test_generate_character(self):
         character_string = json.dumps(parse_utils.load_json('tests/files/test_character.json'))
         self.llm_util._character.io_util = FakeIoUtil(response = character_string)

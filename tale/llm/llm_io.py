@@ -13,7 +13,6 @@ class IoUtil():
         self.backend = config['BACKEND']
         self.url = backend_config['URL']
         self.endpoint = backend_config['ENDPOINT']
-        
         if self.backend != 'kobold_cpp':
             headers = json.loads(backend_config['OPENAI_HEADERS'])
             headers['Authorization'] = f"Bearer {backend_config['OPENAI_API_KEY']}"
@@ -34,7 +33,6 @@ class IoUtil():
             request_body.pop('grammar')
             request_body['response_format'] = self.openai_json_format
         request_body = self.io_adapter._set_prompt(request_body, prompt, context)
-        print(request_body)
         response = requests.post(self.url + self.endpoint, headers=self.headers, data=json.dumps(request_body))
         if response.status_code == 200:
             return self.io_adapter._parse_result(response.text)

@@ -87,9 +87,9 @@ class KoboldCppAdapter(AbstractIoAdapter):
             prompt = prompt.replace('[USER_START]', self.user_start_prompt)
         if self.user_end_prompt:
             prompt = prompt + self.user_end_prompt
-        prompt.replace('<context>{context}</context>', '')
+        prompt = prompt.replace('<context>{context}</context>', '')
         request_body['prompt'] = prompt
-        request_body['memory'] = context
+        request_body['memory'] = f'<context>{context}</context>'
         return request_body
     
 class LlamaCppAdapter(AbstractIoAdapter):
@@ -124,8 +124,8 @@ class LlamaCppAdapter(AbstractIoAdapter):
                             if content:
                                 io.output_no_newline(content, new_paragraph=False)
                                 text += content
-                        #while len(lines) == 0:
-                        #    await asyncio.sleep(0.05)
+                    while len(lines) == 0:
+                        await asyncio.sleep(0.15)
                     
         return text
             
@@ -142,6 +142,8 @@ class LlamaCppAdapter(AbstractIoAdapter):
         if self.user_end_prompt:
             prompt = prompt + self.user_end_prompt
         if context:
-            prompt = prompt.format(context=context)
+            prompt = prompt.replace('<context>{context}</context>', '')
+            request_body['messages'][0]['content'] = f'<context>{context}</context>'
         request_body['messages'][1]['content'] = prompt
+        print (request_body)
         return request_body
