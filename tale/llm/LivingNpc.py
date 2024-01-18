@@ -263,6 +263,10 @@ class LivingNpc(Living):
         self.location._notify_action_all(deferred_action, actor=self)
         self.deferred_actions.clear()
 
+    def get_observed_events(self, amount: int) -> list:
+        """ Returns the last amount of observed events as a list of strings"""
+        return llm_cache.get_events(self._observed_events[-amount:])
+
     def _clear_quest(self):
         self.quest = None
 

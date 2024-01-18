@@ -3,7 +3,7 @@
 
 import pytest
 import tale
-from tale.base import Location, ParseResult
+from tale.base import Item, Location, ParseResult
 from tale.cmds import wizard, wizcmd
 from tale.errors import ParseError
 from tale.llm.LivingNpc import LivingNpc
@@ -14,6 +14,68 @@ from tale.story import StoryConfig
 from tale.wearable import WearLocation
 from tests.supportstuff import FakeDriver, FakeIoUtil
 
+class TestWizardCommands():
+
+    context = tale._MudContext()
+    context.config = StoryConfig()
+    story = DynamicStory()
+
+    test_player = Player('test', 'f')
+    test_player.privileges.add('wizard')
+
+    context.driver = FakeDriver()
+    context.driver.story = story
+
+    def test_load_character_from_data(self):
+        parse_result = ParseResult(
+            verb='load_character_from_data',
+            unparsed='{"description": "test description", "appearance": "test appearance", "aliases":[], "age": "99", "race":"human", "occupation":"test occupation", "extensions": {}, "name": "test name", "personality": "test personality ", "scenario": "", "system_prompt": "", "wearing":"test clothes", "tags": []}')
+        npc = wizard.do_load_character_from_data(self.test_player, parse_result, self.context) # type: LivingNpc
+        assert(npc.name == 'test')
+        assert(npc.description == 'test appearance')
+        assert(npc.short_description == 'test appearance')
+        assert(npc.occupation == 'test occupation')
+        assert(npc.personality == 'test personality ')
+        assert(npc.age == 99)
+        assert(npc.get_wearable(WearLocation.TORSO) is not None)
+
+    def test_set_visible(self):
+        location = Location('test')
+        player = Player('test', 'f')
+        player.privileges.add('wizard')
+        location.init_inventory([player])
+        parse_result = ParseResult(verb='set_visible', args=['test', 'False'])
+        wizard.do_set_visible(player, parse_result, self.context)
+        assert(player.visible == False)
+
+    def test_set_visible_no_args(self):
+        parse_result = ParseResult(verb='set_visible', args=[])
+        with pytest.raises(ParseError, match="You need to specify the object and the visibility\(true or false\)"):
+            wizard.do_set_visible(self.test_player, parse_result, self.context)
+
+    def test_set_description_location(self):
+        location = Location('test_room')
+        player = Player('test', 'f')
+        player.privileges.add('wizard')
+        location.init_inventory([player])
+        parse_result = ParseResult(verb='set_description', args=['test_room', 'test description'])
+        wizard.do_set_description(player, parse_result, self.context)
+        assert(location.description == 'test description')
+
+    def test_set_description_item(self):
+        location = Location('test_room')
+        item = Item('test_item')
+        player = Player('test', 'f')
+        player.privileges.add('wizard')
+        location.init_inventory([player, item])
+        parse_result = ParseResult(verb='set_description', args=['test_item', 'test description'])
+        wizard.do_set_description(player, parse_result, self.context)
+        assert(item.description == 'test description')
+
+    def test_set_description_no_args(self):
+        parse_result = ParseResult(verb='set_description', args=[])
+        with pytest.raises(ParseError, match="You need to specify the object and the description"):
+            wizard.do_set_description(self.test_player, parse_result, self.context)
 
 class TestEnrichCommand():
     
@@ -52,28 +114,6 @@ class TestEnrichCommand():
         wizard.do_enrich(self.test_player, parse_result, self.context)
 
         assert(len(self.story._catalogue._creatures) == 5)
-
-    def test_load_character_from_data(self):
-        parse_result = ParseResult(
-            verb='load_character_from_data',
-            unparsed='{"description": "test description", "appearance": "test appearance", "aliases":[], "age": "99", "race":"human", "occupation":"test occupation", "extensions": {}, "name": "test name", "personality": "test personality ", "scenario": "", "system_prompt": "", "wearing":"test clothes", "tags": []}')
-        npc = wizard.do_load_character_from_data(self.test_player, parse_result, self.context) # type: LivingNpc
-        assert(npc.name == 'test')
-        assert(npc.description == 'test appearance')
-        assert(npc.short_description == 'test appearance')
-        assert(npc.occupation == 'test occupation')
-        assert(npc.personality == 'test personality ')
-        assert(npc.age == 99)
-        assert(npc.get_wearable(WearLocation.TORSO) is not None)
-
-    def test_set_visible(self):
-        location = Location('test')
-        player = Player('test', 'f')
-        player.privileges.add('wizard')
-        location.init_inventory([player])
-        parse_result = ParseResult(verb='set_visible', args=['test', 'False'])
-        wizard.do_set_visible(player, parse_result, self.context)
-        assert(player.visible == False)
 
 class TestEvents():
 

@@ -5,6 +5,8 @@ import shutil
 import responses
 from tale import mud_context
 import tale
+
+from tale.llm import llm_cache
 from tale.base import Exit, Item, Living, Location, ParseResult
 from tale.coord import Coord
 from tale.llm.LivingNpc import LivingNpc
@@ -16,7 +18,6 @@ from tale.player import Player
 from tale.wearable import WearLocation
 from tale.zone import Zone
 from tests.supportstuff import FakeDriver, FakeIoUtil
-
 class TestLivingNpc():
 
     drink = Item("ale", "jug of ale", descr="Looks and smells like strong ale.")
@@ -81,7 +82,7 @@ class TestLivingNpc():
 
     def test_memory(self):
         npc = LivingNpc(name='test', gender='m', age=42, personality='')
-        from tale.llm import llm_cache
+        
         npc._observed_events = [llm_cache.cache_event('test_event'), llm_cache.cache_event('test_event 2')]
         npc._conversations = [llm_cache.cache_tell('test_tell'), llm_cache.cache_tell('test_tell_2'),llm_cache.cache_tell('test_tell_3')]
         npc.sentiments = {'test': 'neutral'}
@@ -104,6 +105,13 @@ class TestLivingNpc():
         npc = LivingNpc(name='test', gender='m', age=42, personality='')
         has_avatar = npc.avatar == 'test'
         assert not has_avatar
+
+    def test_get_observed_events(self):
+        npc = LivingNpc(name='test', gender='m', age=42, personality='')
+        npc._observed_events = [llm_cache.cache_event('test_event'), llm_cache.cache_event('test_event 2')]
+        assert(npc.get_observed_events(1) == 'test_event 2')
+        assert(npc.get_observed_events(2) == 'test_event, test_event 2')
+
 
     # def test_avatar_exists(self):
     #     shutil.copyfile("./tests/files/test.jpg", "./tale/web/resources/test.jpg")

@@ -727,13 +727,13 @@ def do_examine(player: Player, parsed: base.ParseResult, ctx: util.Context) -> N
                 player_tell(living.extra_desc[what], evoke=True, short_len=False)
             elif isinstance(living, LivingNpc):
                 last_action = living.action_history[-1:] if len(living.action_history) > 0 else 'Nothing'
-                observed_event = living._observed_events[-1:] if len(living._observed_events) > 0 else 'Nothing'
+                observed_event = living.get_observed_events(1) if len(living._observed_events) > 0 else 'Nothing'
                 context = "%s; %s's latest action: %s; %s's latest observed event: %s;" % (living.description, living.title, last_action, living.title, observed_event)
                 player_tell("You examine %s's %s" % (living.title, what), evoke=True, extra_context=context)
             return True
         elif isinstance(living, LivingNpc):
             last_action = living.action_history[-1:] if len(living.action_history) > 0 else 'Nothing'
-            observed_event = living._observed_events[-1:] if len(living._observed_events) > 0 else 'Nothing'
+            observed_event = living.get_observed_events(1) if len(living._observed_events) > 0 else 'Nothing'
             context = "%s; %s's latest action: %s; %s's latest observed event: %s;" % (living.description, living.title, last_action, living.title, observed_event)
             player_tell("You look closely at %s" % (living.title), evoke=True)
             return True

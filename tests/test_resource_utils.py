@@ -2,7 +2,7 @@
 
 
 import os
-from tale.resources_utils import check_file_exists_in_resources, pad_text_for_avatar
+from tale.resources_utils import check_file_exists_in_resources, pad_text_for_avatar, unpad_text
 import shutil
 
 
@@ -28,6 +28,12 @@ class TestResourceUtils:
         npc_name = ""
         expected = "This is a test."
         assert pad_text_for_avatar(text, npc_name) == expected
+
+    def test_unpad_text(self):
+        test_text = "Test text"
+        assert unpad_text(test_text) == test_text
+        test_text2 = "Test <:> text"
+        assert unpad_text(test_text2) == "Test : text"
 
     # def test_check_file_exists_in_resources(self):
     #     """Test checking file exists in resources."""
