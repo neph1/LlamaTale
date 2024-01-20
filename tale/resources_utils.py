@@ -9,7 +9,7 @@ def unpad_text(text: str) -> str:
     """Unpad text for NPC output."""
     if '<:>' not in text:
         return text
-    return text.split('<:>')[-1].strip()
+    return text.replace('<:>', ':')
 
 def check_file_exists_in_resources(file_name) -> str:
     file_path = os.path.join(os.path.dirname('../../tale/web/resources/'), file_name + '.jpg')

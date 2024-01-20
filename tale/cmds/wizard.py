@@ -833,4 +833,22 @@ def do_set_visible(player: Player, parsed: base.ParseResult, ctx: util.Context) 
         player.tell("%s visibility set to %s" % (object, visible))
     except ValueError as x:
         raise ActionRefused(str(x))
+    
+@wizcmd("set_description")
+def do_set_description(player: Player, parsed: base.ParseResult, ctx: util.Context) -> None:
+    """Set description of any object."""
+    if len(parsed.args) != 2:
+        raise ParseError("You need to specify the object and the description")
+    try:
+        object = player.location.search_living(parsed.args[0])
+        if not object:
+            object = player.search_item(parsed.args[0], include_inventory=True, include_location=True)
+        if not object and player.location.name == parsed.args[0]:
+            object = player.location
+        if not object:
+            raise ParseError("No object or location found")
+        object.description = parsed.args[1]
+        player.tell("%s description set to %s" % (object, parsed.args[1]))
+    except ValueError as x:
+        raise ActionRefused(str(x))
 

@@ -27,11 +27,11 @@ class AbstractIoAdapter(ABC):
         pass
 
     @abstractmethod
-    def _parse_result(self, result: str) -> str:
+    def parse_result(self, result: str) -> str:
         pass
     
     @abstractmethod
-    def _set_prompt(self, request_body: dict, prompt: str, context: str = '') -> dict:
+    def set_prompt(self, request_body: dict, prompt: str, context: str = '') -> dict:
         pass
 
 class KoboldCppAdapter(AbstractIoAdapter):
@@ -78,18 +78,18 @@ class KoboldCppAdapter(AbstractIoAdapter):
             old_text = text
         return old_text
     
-    def _parse_result(self, result: str) -> str:
+    def parse_result(self, result: str) -> str:
         """ Parse the result from the stream endpoint """
         return json.loads(result)['results'][0]['text']
     
-    def _set_prompt(self, request_body: dict, prompt: str, context: str = '') -> dict:
+    def set_prompt(self, request_body: dict, prompt: str, context: str = '') -> dict:
         if self.user_start_prompt:
             prompt = prompt.replace('[USER_START]', self.user_start_prompt)
         if self.user_end_prompt:
             prompt = prompt + self.user_end_prompt
-        prompt.replace('<context>{context}</context>', '')
+        prompt = prompt.replace('<context>{context}</context>', '')
         request_body['prompt'] = prompt
-        request_body['memory'] = context
+        request_body['memory'] = f'<context>{context}</context>'
         return request_body
     
 class LlamaCppAdapter(AbstractIoAdapter):
@@ -124,24 +124,27 @@ class LlamaCppAdapter(AbstractIoAdapter):
                             if content:
                                 io.output_no_newline(content, new_paragraph=False)
                                 text += content
-                        #while len(lines) == 0:
-                        #    await asyncio.sleep(0.05)
+                    while len(lines) == 0:
+                        await asyncio.sleep(0.15)
                     
         return text
             
-    def _parse_result(self, result: str) -> str:
+    def parse_result(self, result: str) -> str:
         """ Parse the result from the stream endpoint """
         try:
             return json.loads(result)['choices'][0]['message']['content']
         except:
             raise LlmResponseException("Error parsing result from backend")
    
-    def _set_prompt(self, request_body: dict, prompt: str, context: str = '') -> dict:
+    def set_prompt(self, request_body: dict, prompt: str, context: str = '') -> dict:
         if self.user_start_prompt:
             prompt = prompt.replace('[USER_START]', self.user_start_prompt)
         if self.user_end_prompt:
             prompt = prompt + self.user_end_prompt
         if context:
-            prompt = prompt.format(context=context)
+            prompt = prompt.replace('<context>{context}</context>', '')
+            request_body['messages'][0]['content'] = f'<context>{context}</context>'
         request_body['messages'][1]['content'] = prompt
+        print("context " + context)
+        print (request_body)
         return request_body

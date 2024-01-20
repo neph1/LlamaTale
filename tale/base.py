@@ -696,7 +696,7 @@ class Location(MudObject):
         return pubsub.topic(("wiretap-location", "%s#%d" % (self.name, self.vnum)))
 
     def tell(self, room_msg: str, exclude_living: 'Living'=None, specific_targets: Set[Union[ParsedWhoType, 'Living']]=None,
-             specific_target_msg: str="", evoke : bool=True, short_len : bool=False, alt_prompt: str='') -> None:
+             specific_target_msg: str="", evoke : bool=True, short_len : bool=False, alt_prompt: str='', extra_context: str= '') -> None:
         """
         Tells something to the livings in the room (excluding the living from exclude_living).
         This is just the message string! If you want to react on events, consider not doing
@@ -711,9 +711,9 @@ class Location(MudObject):
             if living == exclude_living:
                 continue
             if living in targets:
-                living.tell(specific_target_msg, evoke=evoke, short_len=short_len, alt_prompt=alt_prompt)
+                living.tell(specific_target_msg, evoke=evoke, short_len=short_len, alt_prompt=alt_prompt, extra_context=extra_context)
             else:
-                living.tell(room_msg, evoke=evoke, short_len=short_len, alt_prompt=alt_prompt)
+                living.tell(room_msg, evoke=evoke, short_len=short_len, alt_prompt=alt_prompt, extra_context=extra_context)
         if room_msg:
             tap = self.get_wiretap()
             tap.send((self.name, room_msg))
@@ -1141,7 +1141,7 @@ class Living(MudObject):
         """get a wiretap for this living"""
         return pubsub.topic(("wiretap-living", "%s#%d" % (self.name, self.vnum)))
 
-    def tell(self, message: str, *, end: bool=False, format: bool=True, evoke: bool=False, short_len : bool=False, alt_prompt : str='') -> 'Living':
+    def tell(self, message: str, *, end: bool=False, format: bool=True, evoke: bool=False, short_len : bool=False, alt_prompt : str='', extra_context: str= '') -> 'Living':
         """
         Every living thing in the mud can receive an action message.
         Message will be converted to str if required.
@@ -1163,7 +1163,7 @@ class Living(MudObject):
         """Tell something to this creature, but do it after all other messages."""
         pending_tells.send(lambda: self.tell(message, evoke=True, short_len=False))
 
-    def tell_others(self, message: str, target: Optional['Living']=None, evoke: bool=False, short_len : bool=True, alt_prompt='') -> None:
+    def tell_others(self, message: str, target: Optional['Living']=None, evoke: bool=False, short_len : bool=True, alt_prompt='', extra_context: str= '') -> None:
         """
         Send a message to the other livings in the location, but not to self.
         There are a few formatting strings for easy shorthands:
@@ -1178,7 +1178,7 @@ class Living(MudObject):
             room_msg = message.format(actor=self.title, Actor=lang.capital(self.title),
                                       target=target.title, Target=lang.capital(target.title))
             spec_msg = message.format(actor=self.title, Actor=lang.capital(self.title), target="you", Target="You")
-            self.location.tell(room_msg, exclude_living=self, specific_targets={target}, specific_target_msg=spec_msg, evoke=evoke, short_len=short_len, alt_prompt=alt_prompt)
+            self.location.tell(room_msg, exclude_living=self, specific_targets={target}, specific_target_msg=spec_msg, evoke=evoke, short_len=short_len, alt_prompt=alt_prompt, extra_context=extra_context)
 
     def parse(self, commandline: str, external_verbs: Set[str]=set()) -> ParseResult:
         """Parse the commandline into something that can be processed by the soul (ParseResult)"""

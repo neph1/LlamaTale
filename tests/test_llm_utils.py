@@ -4,6 +4,7 @@ import os
 
 import yaml
 from tale.image_gen.automatic1111 import Automatic1111
+from tale.llm.contexts.WorldGenerationContext import WorldGenerationContext
 import tale.llm.llm_cache as llm_cache
 from tale import mud_context, weapon_type
 from tale import zone
@@ -43,6 +44,15 @@ class TestLlmUtils():
         
         self.llm_util.set_story(self.story)
         result = self.llm_util.evoke(message='test evoke')
+        assert(result)
+        assert(llm_cache.get_looks([llm_cache.generate_hash('test evoke')]) == evoke_string)
+
+    def test_evoke_extra_context(self):
+        evoke_string = 'test response'
+        self.llm_util.io_util = FakeIoUtil(response=evoke_string)
+        
+        self.llm_util.set_story(self.story)
+        result = self.llm_util.evoke(message='test evoke', extra_context='test extra context')
         assert(result)
         assert(llm_cache.get_looks([llm_cache.generate_hash('test evoke')]) == evoke_string)
 
@@ -214,7 +224,7 @@ class TestWorldBuilding():
         # mostly for coverage
         self.llm_util._world_building.io_util.response = self.generated_zone
 
-        result = self.llm_util._world_building.generate_start_zone(location_desc='',
+        result = self.llm_util.generate_start_zone(location_desc='',
                                                    story_type='',
                                                    story_context='',
                                                    world_info={"info":"", "world_mood":0})
@@ -223,10 +233,7 @@ class TestWorldBuilding():
 
     def test_generate_world_items(self):
         self.llm_util._world_building.io_util.response = '{"items":[{"name": "sword", "type": "Weapon","value": 100}, {"name": "shield", "type": "Armor", "value": 60}]}'
-        result = self.llm_util._world_building.generate_world_items(story_context='', 
-                                                   story_type='',
-                                                   world_mood=0,
-                                                   world_info='')
+        result = self.llm_util._world_building.generate_world_items(world_generation_context=WorldGenerationContext(story_context='',story_type='',world_info='',world_mood=0))
         assert(len(result) == 2)
         sword = result[0]
         assert(sword['name'] == 'sword')
@@ -236,10 +243,7 @@ class TestWorldBuilding():
     def test_generate_world_creatures(self):
         # mostly for coverage
         self.llm_util._world_building.io_util.response = '{"creatures":[{"name": "dragon", "body": "Creature", "unarmed_attack": "BITE", "hp":100, "level":10}]}'
-        result = self.llm_util._world_building.generate_world_creatures(story_context='', 
-                                                   story_type='',
-                                                   world_mood=0,
-                                                   world_info='')
+        result = self.llm_util._world_building.generate_world_creatures(world_generation_context=WorldGenerationContext(story_context='',story_type='',world_info='',world_mood=0))
         assert(len(result) == 1)
         dragon = result[0]
         assert(dragon["name"] == 'dragon')
@@ -364,20 +368,20 @@ class TestWorldBuilding():
         exit_location_name = 'Sunflower Way'
         self.llm_util.set_story(self.story)
         self.llm_util._world_building.io_util.response = [item_response, creature_response, zone_desc, location_desc, location_desc_2]
-        world_items = self.llm_util._world_building.generate_world_items(story_context='', 
+        world_items = self.llm_util.generate_world_items(story_context='', 
                                                    story_type='',
                                                    world_mood=0,
                                                    world_info='')
         assert(len(world_items) > 0)
 
-        world_creatures = self.llm_util._world_building.generate_world_creatures(story_context='', 
+        world_creatures = self.llm_util.generate_world_creatures(story_context='', 
                                                    story_type='',
                                                    world_mood=0,
                                                    world_info='')
         assert(len(world_creatures) > 0)
         
         world_info = {'world_description': '', 'world_mood': 2, 'world_items': world_items, 'world_creatures': world_creatures}
-        zone = self.llm_util._world_building.generate_start_zone(location_desc='',
+        zone = self.llm_util.generate_start_zone(location_desc='',
                                                    story_type='',
                                                    story_context='',
                                                    world_info=world_info)
@@ -403,12 +407,11 @@ class TestWorldBuilding():
         world_items = [{'name':'sword', 'type': 'Weapon', 'value': 100}]
         world_creatures = [{'name': 'wolf', 'body': 'Creature', 'unarmed_attack': 'BITE', 'hp':10, 'level':10}]
         zone_info = zone.from_json(json.loads(self.generated_zone)).get_info()
+        world_generation_context = WorldGenerationContext(story_context=self.story.config.context, story_type=self.story.config.type, world_info='', world_mood=0)
 
         self.llm_util._world_building.generate_random_spawn(location, 
+                                                            context=world_generation_context,
                                                             zone_info=zone_info,
-                                                            story_context=self.story.config.context,
-                                                            story_type=self.story.config.type,
-                                                            world_info='',
                                                             world_creatures=world_creatures,
                                                             world_items=world_items)
         assert(location.items.pop().name == 'sword')
@@ -423,12 +426,11 @@ class TestWorldBuilding():
         world_items = []
         world_creatures = []
         zone_info = zone.from_json(json.loads(self.generated_zone)).get_info()
+        world_generation_context = WorldGenerationContext(story_context=self.story.config.context, story_type=self.story.config.type, world_info='', world_mood=0)
 
         self.llm_util._world_building.generate_random_spawn(location, 
                                                             zone_info=zone_info,
-                                                            story_context=self.story.config.context,
-                                                            story_type=self.story.config.type,
-                                                            world_info='',
+                                                            context=world_generation_context,
                                                             world_creatures=world_creatures,
                                                             world_items=world_items)
         assert(len(location.items) == 0)
@@ -440,7 +442,7 @@ class TestWorldBuilding():
         self.llm_util._world_building.io_util.response=['{"name": "Forest Path", "exits": [{"direction": "north", "name": "Mystic Woods", "short_descr": "A dense, misty forest teeming with ancient magic."}, {"direction": "south", "name": "Blooming Meadow", "short_descr": "A lush, vibrant meadow filled with wildflowers and gentle creatures."}, {"direction": "west", "name": "Rocky Cliffs", "short_descr": "A rugged, rocky terrain with breathtaking views of the surrounding landscape."}], "items": [{"name": "enchanted forest amulet", "type": "Wearable", "description": "A shimmering amulet infused with the magic of the forest, granting the wearer a moderate boost to their defense and resistance to harm."}], "npcs": [{"name": "Florabug", "sentiment": "neutral", "race": "florabug", "gender": "m", "level": 5, "description": "A friendly, curious creature who loves to make new friends."}]}',
                                                         '{"description": "A picturesque beach with soft, golden sand and crystal clear waters. The sun shines bright overhead, casting a warm glow over the area. The air is filled with the sound of gentle waves and the cries of seagulls. A few scattered palm trees provide shade and a sense of tranquility.", "exits": [{"direction": "north", "name": "Coastal Caves", "short_descr": "A network of dark, damp caves hidden behind the sandy shores."}, {"direction": "south", "name": "Rocky Cliffs", "short_descr": "A rugged, rocky coastline with steep drop-offs and hidden sea creatures."}, {"direction": "east", "name": "Mermaid\'s Grotto", "short_descr": "A hidden underwater cave system, rumored to be home to magical sea creatures."}], "items": [], "npcs": []}']
         location = Location(name='', descr='on a small road outside a forest')
-        new_locations, exits, npcs = self.llm_util._world_building.generate_start_location(location, 
+        new_locations, exits, npcs = self.llm_util.generate_start_location(location, 
                                                        story_type='',
                                                        story_context='', 
                                                        zone_info={},
@@ -455,11 +457,10 @@ class TestWorldBuilding():
         rocky_cliffs = new_locations[2] # type: Location
         assert(rocky_cliffs.name == 'Rocky Cliffs')
 
+        context = WorldGenerationContext(story_context='', story_type='', world_info='', world_mood=0)
         new_locations, exits, npcs2 = self.llm_util._world_building.build_location(rocky_cliffs, 
                                                                             'Rocky Cliffs', 
-                                                                            story_type='',
-                                                                            story_context='',
-                                                                            world_info='',
+                                                                            context=context,
                                                                             zone_info={})
         rocky_cliffs.add_exits(exits)
         assert((len(rocky_cliffs.exits) == 6))
@@ -467,7 +468,9 @@ class TestWorldBuilding():
 
     def test_generate_note_lore(self):
         self.llm_util._quest_building.io_util.response = 'A long lost tale of a hero who saved the world from a great evil.'
-        lore = self.llm_util._world_building.generate_note_lore(story_context='', story_type='', world_info='', zone_info='')
+        world_generation_context = WorldGenerationContext(story_context=self.story.config.context, story_type=self.story.config.type, world_info='', world_mood=0)
+
+        lore = self.llm_util._world_building.generate_note_lore(context=world_generation_context, zone_info='')
         assert(lore.startswith('A long lost tale'))
 
 
@@ -477,7 +480,9 @@ class TestQuestBuilding():
 
     def test_generate_note_quest(self):
         self.llm_util._quest_building.io_util.response = '{"name": "Test Quest",  "reason": "A test quest", "target":"Arto", "type":"talk"}'
-        quest = self.llm_util._quest_building.generate_note_quest(story_context='', story_type='', world_info='', zone_info='')
+        world_generation_context = WorldGenerationContext(story_context='', story_type='', world_info='', world_mood=0)
+
+        quest = self.llm_util._quest_building.generate_note_quest(context=world_generation_context, zone_info='')
         assert(quest.name == 'Test Quest')
         assert(quest.reason == 'A test quest')
         assert(quest.target == 'Arto')

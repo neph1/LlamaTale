@@ -1,18 +1,17 @@
 
 from copy import deepcopy
 import json
+import random
 from tale import parse_utils, races
 from tale import zone
 from tale.base import Location
 from tale.coord import Coord
 from tale.llm import llm_config
+from tale.llm.contexts.WorldGenerationContext import WorldGenerationContext
 from tale.llm.llm_ext import DynamicStory
 from tale.llm.llm_io import IoUtil
-from tale.llm.requests.build_location import BuildLocation
 from tale.llm.requests.generate_zone import GenerateZone
 from tale.llm.requests.start_location import StartLocation
-from tale.llm.requests.start_zone import StartZone
-from tale.story import StoryConfig
 from tale.zone import Zone
 
 
@@ -28,36 +27,68 @@ class WorldBuilding():
         self.world_creatures_prompt = llm_config.params['WORLD_CREATURES'] # Type: str
         self.player_enter_prompt = llm_config.params['PLAYER_ENTER_PROMPT'] # Type: str
         self.note_lore_prompt = llm_config.params['NOTE_LORE_PROMPT'] # Type: str
-        self.item_types = ["Weapon", "Wearable", "Health", "Money", "Trash", "Food", "Drink", "Key"]
+        self.creature_template = llm_config.params['CREATURE_TEMPLATE'] # Type: str
+        self.item_template = llm_config.params['ITEM_TEMPLATE'] # Type: str
+        self.exit_template = llm_config.params['EXIT_TEMPLATE'] # Type: str
+        self.npc_template = llm_config.params['NPC_TEMPLATE']
+        self.location_template = llm_config.params['LOCATION_TEMPLATE']
+        self.item_types = llm_config.params['ITEM_TYPES'] # Type: list
+        self.pre_json_prompt = llm_config.params['PRE_JSON_PROMPT'] # Type: str
+        self.location_prompt = llm_config.params['CREATE_LOCATION_PROMPT'] # Type: str
+        self.spawn_prompt = llm_config.params['SPAWN_PROMPT'] # Type: str
+        self.items_prompt = llm_config.params['ITEMS_PROMPT'] # Type: str
+        self.create_zone_prompt = llm_config.params['CREATE_ZONE_PROMPT'] # Type: str
+        self.zone_template = llm_config.params['ZONE_TEMPLATE'] # Type: str
 
 
     def build_location(self, location: Location, 
                        exit_location_name: str, 
                        zone_info: dict, 
-                       story_type: str, 
-                       story_context: str, 
-                       world_info: str, 
+                       context: WorldGenerationContext,
                        world_items: dict = {}, 
                        world_creatures: dict = {},
                        neighbors: dict = {}) -> (list, list, list):
         """ Build 'up' a previously generated location.
             Returns lists of new locations, exits, and npcs."""
+        
+        spawn_prompt = ''
+        spawn_chance = 0.35
+        spawn = random.random() < spawn_chance
+        if spawn:
+            mood = zone_info.get('mood', 0)
+            if isinstance(mood, str):
+                num_mood = parse_utils.mood_string_to_int(mood)
+            else:
+                num_mood = mood
+            num_mood = (int) (random.gauss(num_mood, 2))
+            level = (int) (random.gauss(zone_info.get('level', 1), 2))
+            mood_string = parse_utils.mood_string_from_int(num_mood)
+            spawn_prompt = self.spawn_prompt.format(alignment=mood_string, level=level)
 
-        prompt = BuildLocation().build_prompt({
-            'zone_info': zone_info,
-            'location': location,
-            'exit_location_name': exit_location_name,
-            'story_type': story_type,
-            'world_info': world_info,
-            'story_context': story_context,
+        items_prompt = ''
+        item_amount = (int) (random.gauss(1, 2))
+        if item_amount > 0:
+            items_prompt = self.items_prompt.format(items=item_amount)
+
+        prompt = self.pre_json_prompt
+        prompt += self.location_prompt.format(
+            context = '{context}',
+            zone_info=zone_info,
+            exit_locations=exit_location_name,
+            location_name=location.name,
+            spawn_prompt=spawn_prompt,
+            items_prompt=items_prompt,
+            exit_location_name=exit_location_name,
+            exit_template=self.exit_template,
+            npc_template=self.npc_template,
+            location_template=self.location_template,)
             
-        })
 
         request_body = deepcopy(self.default_body)
         if self.backend == 'kobold_cpp':
             request_body = self._kobold_generation_prompt(request_body)
         request_body['grammar'] = self.json_grammar
-        result = self.io_util.synchronous_request(request_body, prompt=prompt)
+        result = self.io_util.synchronous_request(request_body, prompt=prompt, context=context.to_prompt_string())
         try:
             json_result = json.loads(parse_utils.sanitize_json(result))
             return self._validate_location(json_result, location, exit_location_name, world_items, world_creatures, neighbors)
@@ -144,9 +175,10 @@ class WorldBuilding():
             if neighbor:
                 return neighbor
             else:
+                world_generation_context = WorldGenerationContext(story_context=story.config.context, story_type=story.config.type, world_mood=story.config.world_mood, world_info=story.config.world_info)
                 for i in range(5):
-                    json_result = self._generate_zone(location_desc=target_location.description, 
-                                        story_config=story.config,
+                    json_result = self._generate_zone(location_desc=target_location.description,
+                                        context=world_generation_context,
                                         exit_location_name=current_location.name, 
                                         current_zone_info=current_zone.get_info(),
                                         direction=parse_utils.direction_from_coordinates(direction))  # type: dict
@@ -159,17 +191,14 @@ class WorldBuilding():
         return current_zone
 
         
-    def _generate_zone(self, location_desc: str, story_config: StoryConfig, exit_location_name: str = '', current_zone_info: dict = {}, direction: str = '', catalogue: dict = {}) -> dict:
+    def _generate_zone(self, location_desc: str, context: WorldGenerationContext, exit_location_name: str = '', current_zone_info: dict = {}, direction: str = '', catalogue: dict = {}) -> dict:
         """ Generate a zone based on the current story context"""
         prompt = GenerateZone().build_prompt({
             'direction': direction,
             'current_zone_info': current_zone_info,
             'exit_location_name': exit_location_name,
             'location_desc': location_desc,
-            'story_type': story_config.type,
-            'world_info': story_config.world_info,
-            'world_mood': story_config.world_mood,
-            'story_context': story_config.context,
+            'world_mood': context.world_mood,
             'catalogue': catalogue,
         })
         
@@ -178,7 +207,7 @@ class WorldBuilding():
             request_body['max_length'] = 750
         elif self.backend == 'openai':
             request_body['max_tokens'] = 750
-        result = self.io_util.synchronous_request(request_body, prompt=prompt)
+        result = self.io_util.synchronous_request(request_body, prompt=prompt, context=context.to_prompt_string())
         try:
             return json.loads(parse_utils.sanitize_json(result))
         except json.JSONDecodeError as exc:
@@ -221,14 +250,17 @@ class WorldBuilding():
             print(exc)
             return None, None, None
         
-    def generate_start_zone(self, location_desc: str, story_type: str, story_context: str, world_info: dict) -> Zone:
+    def generate_start_zone(self, location_desc: str, context: WorldGenerationContext) -> Zone:
         """ Generate a zone based on the current story context"""
-        prompt = StartZone().build_prompt({
-            'location_desc': location_desc,
-            'story_type': story_type,
-            'world_info': world_info,
-            'story_context': story_context,
-        })
+
+        prompt = self.pre_json_prompt
+        prompt += self.create_zone_prompt.format(
+            context = '{context}',
+            direction='',
+            zone_info='',
+            exit_location='',
+            location_desc=location_desc,
+            zone_template=self.zone_template)
         
         request_body = deepcopy(self.default_body)
         if self.backend == 'kobold_cpp':
@@ -237,7 +269,7 @@ class WorldBuilding():
         elif self.backend == 'openai':
             request_body['max_tokens'] = 750
         request_body['grammar'] = self.json_grammar
-        result = self.io_util.synchronous_request(request_body, prompt=prompt)
+        result = self.io_util.synchronous_request(request_body, prompt=prompt, context=context.to_prompt_string())
         try:
             json_result = json.loads(parse_utils.sanitize_json(result))
             return zone.from_json(json_result)
@@ -246,19 +278,17 @@ class WorldBuilding():
             return None
         
 
-    def generate_world_items(self, story_context: str, story_type: str, world_info: str, world_mood: int) -> dict:
+    def generate_world_items(self, world_generation_context: WorldGenerationContext) -> dict:
         """ Since 0.16.1 returns a json array, rather than a list of items"""
-        prompt = self.world_items_prompt.format(story_context=story_context,
-                                                story_type=story_type,
-                                                world_info=world_info,
-                                                world_mood=parse_utils.mood_string_from_int(world_mood),
+        prompt = self.world_items_prompt.format(context = '{context}',
+                                                item_template=self.item_template,
                                                 item_types=self.item_types)
         request_body = deepcopy(self.default_body)
         if self.backend == 'kobold_cpp':
             request_body = self._kobold_generation_prompt(request_body)
         request_body['grammar'] = self.json_grammar
 
-        result = self.io_util.synchronous_request(request_body, prompt=prompt)
+        result = self.io_util.synchronous_request(request_body, prompt=prompt, context=world_generation_context.to_prompt_string())
         try:
             return json.loads(parse_utils.sanitize_json(result))["items"]
             #return parse_utils.load_items(self._validate_items(json_result["items"]))
@@ -266,29 +296,26 @@ class WorldBuilding():
             print(exc)
             return None
     
-    def generate_world_creatures(self, story_context: str, story_type: str, world_info: str, world_mood: int):
+    def generate_world_creatures(self, world_generation_context: WorldGenerationContext) -> dict:
         """ Since 0.16.1 returns a json array, rather than a list of creatures"""
-        prompt = self.world_creatures_prompt.format(story_context=story_context,
-                                                story_type=story_type,
-                                                world_info=world_info,
-                                                world_mood=parse_utils.mood_string_from_int(world_mood))
+        prompt = self.world_creatures_prompt.format(context = '{context}',
+                                                creature_template=self.creature_template)
         request_body = deepcopy(self.default_body)
         if self.backend == 'kobold_cpp':
             request_body = self._kobold_generation_prompt(request_body)
         request_body['grammar'] = self.json_grammar
 
-        result = self.io_util.synchronous_request(request_body, prompt=prompt)
+        result = self.io_util.synchronous_request(request_body, prompt=prompt, context=world_generation_context.to_prompt_string())
         try:
             return json.loads(parse_utils.sanitize_json(result))["creatures"]
         except json.JSONDecodeError as exc:
             print(exc)
             return None
     
-    def generate_random_spawn(self, location: Location, story_context: str, story_type: str, world_info: str, zone_info: dict, world_creatures: list, world_items: list):
+    def generate_random_spawn(self, location: Location, context: WorldGenerationContext, zone_info: dict, world_creatures: list, world_items: list):
         location_info = {'name': location.title, 'description': location.look(short=True), 'exits': location.exits}
-        prompt = self.player_enter_prompt.format(story_context=story_context,
-                                                story_type=story_type,
-                                                world_info=world_info,
+        prompt = self.player_enter_prompt.format(context = '{context}',
+                                                npc_template=self.npc_template,
                                                 zone_info=zone_info,
                                                 location_info=location_info)
         request_body = deepcopy(self.default_body)
@@ -296,7 +323,7 @@ class WorldBuilding():
             request_body = self._kobold_generation_prompt(request_body)
         request_body['grammar'] = self.json_grammar
         
-        result = self.io_util.synchronous_request(request_body, prompt=prompt)
+        result = self.io_util.synchronous_request(request_body, prompt=prompt, context=context.to_prompt_string())
         try:
             json_result = json.loads(parse_utils.sanitize_json(result))
             creatures = json_result["npcs"]
@@ -314,16 +341,14 @@ class WorldBuilding():
             print(exc)
             return None
         
-    def generate_note_lore(self, story_context: str, story_type: str, world_info: str, zone_info: str) -> str:
+    def generate_note_lore(self, context: WorldGenerationContext, zone_info: str) -> str:
         """ Generate a note with story lore."""
-        prompt = self.note_lore_prompt.format(story_context=story_context,
-                                                story_type=story_type,
-                                                world_info=world_info,
+        prompt = self.note_lore_prompt.format(context = '{context}',
                                                 zone_info=zone_info)
         request_body = deepcopy(self.default_body)
         if self.backend == 'kobold_cpp':
             request_body = self._kobold_generation_prompt(request_body)
-        result = self.io_util.synchronous_request(request_body, prompt=prompt)
+        result = self.io_util.synchronous_request(request_body, prompt=prompt, context=context.to_prompt_string())
         try:
             return parse_utils.trim_response(result)
         except Exception as exc:

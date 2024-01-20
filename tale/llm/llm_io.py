@@ -13,7 +13,6 @@ class IoUtil():
         self.backend = config['BACKEND']
         self.url = backend_config['URL']
         self.endpoint = backend_config['ENDPOINT']
-        
         if self.backend != 'kobold_cpp':
             headers = json.loads(backend_config['OPENAI_HEADERS'])
             headers['Authorization'] = f"Bearer {backend_config['OPENAI_API_KEY']}"
@@ -33,11 +32,10 @@ class IoUtil():
             # TODO: temp fix for openai
             request_body.pop('grammar')
             request_body['response_format'] = self.openai_json_format
-        request_body = self.io_adapter._set_prompt(request_body, prompt, context)
-        print(request_body)
+        request_body = self.io_adapter.set_prompt(request_body, prompt, context)
         response = requests.post(self.url + self.endpoint, headers=self.headers, data=json.dumps(request_body))
         if response.status_code == 200:
-            return self.io_adapter._parse_result(response.text)
+            return self.io_adapter.parse_result(response.text)
         return ''
     
     def asynchronous_request(self, request_body: dict, prompt: str, context: str = '') -> str:
@@ -46,8 +44,9 @@ class IoUtil():
         return self.stream_request(request_body, wait=True, prompt=prompt, context=context)
 
     def stream_request(self, request_body: dict, prompt: str, context: str = '', io = None, wait: bool = False) -> str:
+        print("context 1 " + context)
         if self.io_adapter:
-            request_body = self.io_adapter._set_prompt(request_body, prompt, context)
+            request_body = self.io_adapter.set_prompt(request_body, prompt, context)
             return self.io_adapter.stream_request(request_body, io, wait)
         # fall back if no io adapter
         return self.synchronous_request(request_body=request_body, prompt=prompt, context=context)

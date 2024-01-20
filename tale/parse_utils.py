@@ -347,6 +347,8 @@ def sanitize_json(result: str) -> str:
         return ''
     result = result.replace('```json', '') #.replace('\\"', '"').replace('"\\n"', '","').replace('\\n', '').replace('}\n{', '},{').replace('}{', '},{').replace('\\r', '').replace('\\t', '').replace('"{', '{').replace('}"', '}').replace('"\\', '"').replace('\\”', '"').replace('" "', '","').replace(':,',':').replace('},]', '}]').replace('},}', '}}')
     result = result.split('```')[0]
+    if not result.endswith('}') and not result.endswith(']'):
+        result = result + '}'
     #print('sanitized json: ' + result)
     return result
 

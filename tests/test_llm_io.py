@@ -34,6 +34,7 @@ class TestLlmIo():
 
     def test_set_prompt_kobold_cpp(self):
         config_file = self._load_config()
+        config_file['BACKEND'] = 'kobold_cpp'
         backend_config = self._load_backend_config('kobold_cpp')
         prompt = config_file['BASE_PROMPT']
         assert('### Instruction' not in prompt)
@@ -43,9 +44,10 @@ class TestLlmIo():
         request_body = json.loads(backend_config['DEFAULT_BODY'])
 
         io_util = IoUtil(config=config_file, backend_config=backend_config)
-        result = io_util.io_adapter._set_prompt(request_body=request_body, prompt=prompt, context='')
+        result = io_util.io_adapter.set_prompt(request_body=request_body, prompt=prompt, context='context')
         assert(config_file['USER_START'] in result['prompt'])
         assert(config_file['USER_END'] in result['prompt'])
+        assert(result['memory'] == '<context>context</context>')
 
     def test_set_prompt_openai(self):
         config_file = self._load_config()
@@ -58,7 +60,7 @@ class TestLlmIo():
         assert('USER_END' not in prompt)
         request_body = json.loads(backend_config['DEFAULT_BODY'])
         io_util = IoUtil(config=config_file, backend_config=backend_config)
-        result = io_util.io_adapter._set_prompt(request_body=request_body, prompt=prompt, context='')
+        result = io_util.io_adapter.set_prompt(request_body=request_body, prompt=prompt, context='')
         assert(config_file['USER_START'] in result['messages'][1]['content'])
         assert(config_file['USER_END'] in result['messages'][1]['content'])
 
@@ -75,13 +77,15 @@ class TestLlmIo():
         request_body = json.loads(backend_config['DEFAULT_BODY'])
 
         io_util = IoUtil(config=config_file, backend_config=backend_config)
-        result = io_util.io_adapter._set_prompt(request_body=request_body, prompt=prompt, context='')
+        result = io_util.io_adapter.set_prompt(request_body=request_body, prompt=prompt, context='context')
         assert(config_file['USER_START'] in result['messages'][1]['content'])
         assert(config_file['USER_END'] in result['messages'][1]['content'])
+        assert(result['messages'][0]['content'] == '<context>context</context>')
 
     @responses.activate
     def test_error_response(self):
         config_file = self._load_config()
+        config_file['BACKEND'] = 'kobold_cpp'
         backend_config = self._load_backend_config('kobold_cpp')
         responses.add(responses.POST, backend_config['URL'] + backend_config['ENDPOINT'],
                     json={'results':['']}, status=500)
