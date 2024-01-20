@@ -145,6 +145,4 @@ class LlamaCppAdapter(AbstractIoAdapter):
             prompt = prompt.replace('<context>{context}</context>', '')
             request_body['messages'][0]['content'] = f'<context>{context}</context>'
         request_body['messages'][1]['content'] = prompt
-        print("context " + context)
-        print (request_body)
         return request_body
