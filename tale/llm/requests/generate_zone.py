@@ -22,7 +22,7 @@ class GenerateZone(LlmRequest):
 
         prompt = llm_config.params['PRE_JSON_PROMPT']
         prompt += llm_config.params['CREATE_ZONE_PROMPT'].format(
-            context='',
+            context='{context}',
             mood = parse_utils.mood_string_from_int(random.gauss(world_mood, 2)),
             direction=direction,
             zone_info=json.dumps(current_zone_info),
