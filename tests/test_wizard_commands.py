@@ -65,17 +65,30 @@ class TestWizardCommands():
     def test_set_description_item(self):
         location = Location('test_room')
         item = Item('test_item')
-        player = Player('test', 'f')
-        player.privileges.add('wizard')
-        location.init_inventory([player, item])
+        location.init_inventory([self.test_player, item])
         parse_result = ParseResult(verb='set_description', args=['test_item', 'test description'])
-        wizard.do_set_description(player, parse_result, self.context)
+        wizard.do_set_description(self.test_player, parse_result, self.context)
         assert(item.description == 'test description')
 
     def test_set_description_no_args(self):
         parse_result = ParseResult(verb='set_description', args=[])
         with pytest.raises(ParseError, match="You need to specify the object and the description"):
             wizard.do_set_description(self.test_player, parse_result, self.context)
+
+    def test_set_description_not_found(self):
+        location = Location('test_room')
+        location.init_inventory([self.test_player])
+        parse_result = ParseResult(verb='set_description', args=['unknown', 'test description'])
+        with pytest.raises(ParseError, match="No object or location found"):
+            wizard.do_set_description(self.test_player, parse_result, self.context)
+
+    def test_set_goal(self):
+        location = Location('test_room')
+        npc = LivingNpc('test_npc', 'f')
+        location.init_inventory([self.test_player, npc])
+        parse_result = ParseResult(verb='set_goal', args=['test_npc', 'test goal'])
+        wizard.do_set_goal(self.test_player, parse_result, self.context)
+        assert(npc.goal == 'test goal')
 
 class TestEnrichCommand():
     

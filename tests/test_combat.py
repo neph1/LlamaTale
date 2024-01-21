@@ -72,7 +72,7 @@ class TestCombat():
         ctx = util.Context(driver=FakeDriver(), clock=None, config=None, player_connection=None)
         rat = LivingNpc(name='Giant Rat', gender='m', age=4, personality='Sneaky and nasty')
         
-        remains = combat.produce_remains(ctx, rat)
+        remains = rat.do_on_death(ctx)
         assert(remains)
         remains.location.remove(remains, None)
 
