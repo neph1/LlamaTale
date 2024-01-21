@@ -11,13 +11,15 @@ class DialogueContext(BaseContext):
             speaker_card: str,
             speaker_name: str,
             target_name: str,
-            target_description: str):
+            target_description: str,
+            conversation: str = '',):
         super().__init__(story_context)
         self.location_description = location_description
         self.speaker_card = speaker_card
         self.speaker_name = speaker_name
         self.target_name = target_name
         self.target_description = target_description
+        self.conversation = conversation.replace('<break>', '\n')#llm_config.params['USER_END'] + '\n' + llm_config.params['USER_START'])
 
 
     def to_prompt_string(self) -> str:

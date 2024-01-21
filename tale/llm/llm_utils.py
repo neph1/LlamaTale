@@ -121,9 +121,9 @@ class LlmUtil():
                                            speaker_card=character_card,
                                            speaker_name=character_name,
                                            target_name=target,
-                                           target_description=target_description)
+                                           target_description=target_description,
+                                           conversation=conversation)
         return self._character.generate_dialogue(context=dialogue_context,
-                                                conversation=conversation,
                                                 sentiment=sentiment,
                                                 event_history=event_history,
                                                 short_len=short_len)
