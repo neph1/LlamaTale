@@ -17,6 +17,7 @@ from types import ModuleType
 from typing import Generator, Optional
 
 from tale import parse_utils
+from tale.llm.LivingNpc import LivingNpc
 
 from . import wizcmd, disabled_in_gamemode
 from .. import base, lang, util, pubsub, races, __version__
@@ -852,3 +853,16 @@ def do_set_description(player: Player, parsed: base.ParseResult, ctx: util.Conte
     except ValueError as x:
         raise ActionRefused(str(x))
 
+@wizcmd("set_goal")
+def do_set_goal(player: Player, parsed: base.ParseResult, ctx: util.Context) -> None:
+    """Set a goal for a LivingNpc."""
+    if len(parsed.args) != 2:
+        raise ParseError("You need to specify the character and the goal")
+    try:
+        character = player.location.search_living(parsed.args[0])
+        if not character or not isinstance(character, LivingNpc):
+            raise ParseError("No LivingNpc found")
+        character.goal = parsed.args[1]
+        player.tell("%s goal set to %s" % (character, parsed.args[1]))
+    except ValueError as x:
+        raise ActionRefused(str(x))
