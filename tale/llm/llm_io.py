@@ -44,7 +44,6 @@ class IoUtil():
         return self.stream_request(request_body, wait=True, prompt=prompt, context=context)
 
     def stream_request(self, request_body: dict, prompt: str, context: str = '', io = None, wait: bool = False) -> str:
-        print("context 1 " + context)
         if self.io_adapter:
             request_body = self.io_adapter.set_prompt(request_body, prompt, context)
             return self.io_adapter.stream_request(request_body, io, wait)
