@@ -1034,6 +1034,7 @@ class Living(MudObject):
         self.is_pet = False   # set this to True if creature is/becomes someone's pet
         self.__wielding = None   # type: Optional[Weapon]
         self.__wearing = dict()  # type: Dict[str, wearable.Wearable]
+        self.should_produce_remains = False
 
         super().__init__(name, title=title, descr=descr, short_descr=short_descr)
 
@@ -1435,9 +1436,9 @@ class Living(MudObject):
         self.stats.hp -= damage_to_attacker
         victim.stats.hp -= damage_to_defender
         if self.stats.hp < 1:
-            combat.produce_remains(util.Context, self)
+            self.do_on_death(util.Context)
         if victim.stats.hp < 1:
-            combat.produce_remains(util.Context, victim)  
+            victim.do_on_death(util.Context)  
         return c
 
     def allow_give_money(self, amount: float, actor: Optional['Living']) -> None:
@@ -1563,6 +1564,16 @@ class Living(MudObject):
     def get_worn_items(self) -> Iterable[Wearable]:
         """Return all items that are currently worn."""
         return self.__wearing.values()
+    
+    def do_on_death(self, ctx: util.Context) -> Container:
+        """Called when the living dies."""
+        if not self.should_produce_remains:
+            return None
+        remains = Container(f"remains of {self.title}")
+        remains.init_inventory(self.inventory)
+        self.location.insert(remains, None)
+        self.destroy(ctx)
+        return remains
 
 
 class Container(Item):

@@ -210,6 +210,11 @@ class Player(base.Living, pubsub.Listener):
             else:
                 self.tell("%s was found in %s." % (lang.capital(obj.name), known_container.name))
 
+    def do_on_death(self, ctx: util.Context) -> Optional[base.Item]:
+        """Called when the player dies. Returns the remains of the player."""
+        self.tell("You die.")
+        self.location.tell("%s dies." % self.title, exclude_living=self)
+
     def activate_transcript(self, file: str, vfs: VirtualFileSystem) -> None:
         if self.transcript:
             raise ActionRefused("There's already a transcript being made to " + self.transcript.name)
