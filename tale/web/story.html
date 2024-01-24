@@ -23,31 +23,54 @@
         <div id="top-container">
             <h1 title="version: {story_version} -- author: {story_author} -- {story_author_email}"><img src="static/logo.png" id="img-logo"> {story_name}</h1>
 
-            <div class="location-container">
-                <img class="location-image" id="location-image" onerror="imageError()"/>
-                <div class="location">
-                    Location: &nbsp;<span id="player-location">...</span> <!-- &nbsp;&nbsp; turns: &nbsp;<span id="player-turns">...</span> -->
-                </div>
-            </div>
+            
         </div>
         
         <noscript>
             <h2>Your browser doesn't have Javascript or it is disabled. You can't use this web interface without it.</h2>
         </noscript>
-        <div class="story">
+        <div class="story" id="storyFrame">
             
-            <div class="textframe" id="textframe"></div>
-            <form method="POST" accept-charset="UTF-8" action="input" id="cmd-form" class="flex-container">
-                <select id="action-dropdown" class="action-dropdown"></select>
-                <select id="npc-dropdown" class="npc-dropdown"></select>
-                <input type="text" name="cmd" id="input-cmd" autofocus autocomplete="off" />
-                <input type="submit" value="&#9166;" onclick="submit_cmd(); return false;" readonly/>
-                <input type="submit" value="&RightArrowBar;" name="autocomplete" id="button-autocomplete" onclick="autocomplete_cmd(); return false;" readonly/>
-                <input type="submit" value="&#128682" name="quit" id="button-quit" onclick="quit_clicked(); return false;" readonly/>
 
-            </form>
-            <input type="file" id="loadCharacterInput" accept=".json, .png, .jpeg, .jpg">
-            <input type="button" id="saveButton" value="Save story" onclick="showSaveDialog()" readonly/>
+            <div id="text-container">
+                <div class="textframe" id="textframe"></div>
+
+                <form method="POST" accept-charset="UTF-8" action="input" id="cmd-form" class="flex-container">
+                    <select id="action-dropdown" class="action-dropdown"></select>
+                    <select id="npc-dropdown" class="npc-dropdown"></select>
+                    <input type="text" name="cmd" id="input-cmd" autofocus autocomplete="off" />
+                    <input type="submit" value="&#9166;" onclick="submit_cmd(); return false;" readonly/>
+                    <input type="submit" value="&RightArrowBar;" name="autocomplete" id="button-autocomplete" onclick="autocomplete_cmd(); return false;" readonly/>
+                    <input type="submit" value="&#128682" name="quit" id="button-quit" onclick="quit_clicked(); return false;" readonly/>
+
+                </form>
+                <input type="file" id="loadCharacterInput" accept=".json, .png, .jpeg, .jpg">
+                <input type="button" id="saveButton" value="Save story" onclick="showSaveDialog()" readonly/>
+            </div>
+            <div class="location-container">
+                <div >
+                    <img class="location-image" id="location-image" onerror="imageError()"/>
+                    <div id="npc-images">
+                        <img class="npc-image" id="npc-image0"/>
+                        <img class="npc-image" id="npc-image1"/>
+                        <img class="npc-image" id="npc-image2"/>
+                        <img class="npc-image" id="npc-image3"/>
+                    </div>
+                </div>
+                <div class="location">
+                    Location: &nbsp;<span id="player-location">...</span>
+                </div>
+                <div class="location">
+                    Present: &nbsp;<span id="npcs-in-location">...</span>
+                </div>
+                <div class="location">
+                    Items (visible): &nbsp;<span id="items-in-location">...</span>
+                </div>
+                <div class="location">
+                    Exits (visible): &nbsp;<span id="exits-in-location">...</span>
+                </div>
+            </div>
+            
         </div>
     </div>
 </body>

@@ -1565,7 +1565,7 @@ class Living(MudObject):
         """Return all items that are currently worn."""
         return self.__wearing.values()
     
-    def do_on_death(self, ctx: util.Context) -> Container:
+    def do_on_death(self, ctx: util.Context) -> 'Container':
         """Called when the living dies."""
         if not self.should_produce_remains:
             return None

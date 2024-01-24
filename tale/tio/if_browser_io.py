@@ -355,8 +355,12 @@ class TaleWsgiAppBase:
                 if conn.io.dont_echo_next_cmd:
                     special.append("noecho")
                 npc_names = ''
+                items = ''
+                exits = ''
                 if location:
-                    npc_names = ','.join([l.name for l in location.livings if l.alive and l != conn.player])
+                    npc_names = ','.join([l.name for l in location.livings if l.alive and l.visible and l != conn.player])
+                    items = ','.join([i.name for i in location.items if i.visible])
+                    exits = ','.join([e.name for e in location.exits.values() if e.visible])
                 response = {
                     "text": "\n".join(html),
                     "special": special,
@@ -364,6 +368,8 @@ class TaleWsgiAppBase:
                     "location": location.title if location else "???",
                     "location_image": location.avatar if location and location.avatar else "",
                     "npcs": npc_names if location else '',
+                    "items": items if location else '',
+                    "exits": exits if location else '',
                 }
                 result = "event: text\nid: {event_id}\ndata: {data}\n\n"\
                     .format(event_id=str(time.time()), data=json.dumps(response))
