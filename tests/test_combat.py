@@ -71,11 +71,17 @@ class TestCombat():
     def test_produce_remains(self):
         ctx = util.Context(driver=FakeDriver(), clock=None, config=None, player_connection=None)
         rat = LivingNpc(name='Giant Rat', gender='m', age=4, personality='Sneaky and nasty')
-        
+        rat.should_produce_remains = True
         remains = rat.do_on_death(ctx)
         assert(remains)
         remains.location.remove(remains, None)
 
+    def test_not_produce_remains(self):
+        ctx = util.Context(driver=FakeDriver(), clock=None, config=None, player_connection=None)
+        bunny = LivingNpc(name='Bunny rabbit', gender='m', age=4, personality='Nice and fluffy')
+        bunny.should_produce_remains = False
+        remains = bunny.do_on_death(ctx)
+        assert(not remains)
 
     def _assert_combat(self, attacker, defender, text, damage_to_attacker, damage_to_defender):
         assert(damage_to_attacker >= 0)

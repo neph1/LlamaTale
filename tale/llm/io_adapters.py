@@ -8,6 +8,7 @@ import aiohttp
 import requests
 
 from tale.errors import LlmResponseException
+from tale.player import PlayerConnection
 
 
 class AbstractIoAdapter(ABC):
@@ -40,7 +41,7 @@ class KoboldCppAdapter(AbstractIoAdapter):
         super().__init__(url, stream_endpoint, user_start_prompt, user_end_prompt)
         self.data_endpoint = data_endpoint
 
-    def stream_request(self, request_body: dict, io = None, wait: bool = False) -> str:
+    def stream_request(self, request_body: dict, io: PlayerConnection = None, wait: bool = False) -> str:
         result = asyncio.run(self._do_stream_request(self.url + self.stream_endpoint, request_body))
 
         try:
@@ -59,7 +60,7 @@ class KoboldCppAdapter(AbstractIoAdapter):
                 else:
                     print("Error occurred:", response.status)
 
-    def _do_process_result(self, url, io = None, wait: bool = False) -> str:
+    def _do_process_result(self, url, io: PlayerConnection, wait: bool = False) -> str:
         """ Process the result from the stream endpoint """
         tries = 0
         old_text = ''
@@ -94,10 +95,10 @@ class KoboldCppAdapter(AbstractIoAdapter):
     
 class LlamaCppAdapter(AbstractIoAdapter):
 
-    def stream_request(self, request_body: dict, io = None, wait: bool = False) -> str:
+    def stream_request(self, request_body: dict, io: PlayerConnection = None, wait: bool = False) -> str:
         return asyncio.run(self._do_stream_request(self.url + self.stream_endpoint, request_body, io = io))
 
-    async def _do_stream_request(self, url: str, request_body: dict, io = None) -> str:
+    async def _do_stream_request(self, url: str, request_body: dict, io: PlayerConnection) -> str:
         """ Send request to stream endpoint async to not block the main thread"""
         request_body['stream'] = True
         text = ''
@@ -126,7 +127,6 @@ class LlamaCppAdapter(AbstractIoAdapter):
                                 text += content
                     while len(lines) == 0:
                         await asyncio.sleep(0.15)
-                    
         return text
             
     def parse_result(self, result: str) -> str:
@@ -142,7 +142,7 @@ class LlamaCppAdapter(AbstractIoAdapter):
         if self.user_end_prompt:
             prompt = prompt + self.user_end_prompt
         if context:
-            prompt = prompt.replace('<context>{context}</context>', '')
-            request_body['messages'][0]['content'] = f'<context>{context}</context>'
+            prompt = prompt.replace('<context>{context}</context>', f'<context>{context}</context>')
+            #request_body['messages'][0]['content'] = f'<context>{context}</context>'
         request_body['messages'][1]['content'] = prompt
         return request_body

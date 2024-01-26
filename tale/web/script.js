@@ -69,14 +69,13 @@ function process_text(json)
                 inputfield.type = "password";       // may not work in all browsers...
                 inputfield.style.color = "gray";
             }
-        }
+                    }
         if(json["text"]) {
             document.getElementById("player-location").innerHTML = json["location"];
             if (json.hasOwnProperty("npcs")) {
                 let npcs = json["npcs"];
                 populateNpcDropdown(npcs);
                 document.getElementById('npcs-in-location').innerHTML = npcs;
-                populateNpcImages(npcs);
             }
             if(json.hasOwnProperty("items")) {
                 document.getElementById('items-in-location').innerHTML = json["items"];
@@ -246,11 +245,16 @@ function populateNpcImages(csvString) {
     //     npcImage.src = '';
     //     npcImage.classList.toggle('hidden');
     // }
+    if (npcsArray.length < 4) {
+        // make sure npcsArray has 4 elements
+        for (let i = npcsArray.length; i < 4; i++) {
+            npcsArray.push('');
+        }
+    }
     let max_length = Math.min(4, npcsArray.length)
     for (let i = 0; i < max_length; i++) {
         let npc = npcsArray[i].trim();
         var npcImage = document.getElementById('npc-image' + i);
-        console.log('npc: ' + npc);
         if (npc === '') {
             npcImage.src = '';
             npcImage.classList.toggle('hidden');

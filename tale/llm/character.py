@@ -34,7 +34,6 @@ class CharacterBuilding():
 
     def generate_dialogue(self,
                           context: DialogueContext,
-                          conversation: str,
                           sentiment = '', 
                           event_history = '',
                           short_len : bool=False):

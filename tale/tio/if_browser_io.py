@@ -360,7 +360,7 @@ class TaleWsgiAppBase:
                 if location:
                     npc_names = ','.join([l.name for l in location.livings if l.alive and l.visible and l != conn.player])
                     items = ','.join([i.name for i in location.items if i.visible])
-                    exits = ','.join([e.name for e in location.exits.values() if e.visible])
+                    exits = ','.join(list(set([e.name for e in location.exits.values() if e.visible])))
                 response = {
                     "text": "\n".join(html),
                     "special": special,
