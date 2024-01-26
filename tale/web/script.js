@@ -69,11 +69,19 @@ function process_text(json)
                 inputfield.type = "password";       // may not work in all browsers...
                 inputfield.style.color = "gray";
             }
-        }
+                    }
         if(json["text"]) {
             document.getElementById("player-location").innerHTML = json["location"];
             if (json.hasOwnProperty("npcs")) {
-                populateNpcDropdown(json["npcs"]);
+                let npcs = json["npcs"];
+                populateNpcDropdown(npcs);
+                document.getElementById('npcs-in-location').innerHTML = npcs;
+            }
+            if(json.hasOwnProperty("items")) {
+                document.getElementById('items-in-location').innerHTML = json["items"];
+            }
+            if(json.hasOwnProperty("exits")) {
+                document.getElementById('exits-in-location').innerHTML = json["exits"];
             }
             setLocationImage(json["location"].toLowerCase().replace(/ /g, '_') + '.jpg');
             txtdiv.innerHTML += json["text"];
@@ -186,7 +194,7 @@ function updateImage() {
 
 function populateNpcDropdown(csvString) {
     // Split the comma-separated string into an array
-    var optionsArray = csvString.split(',');
+    var npcsArray = csvString.split(',');
 
     // Get the dropdown element
     var dropdown = document.getElementById('npc-dropdown');
@@ -197,7 +205,7 @@ function populateNpcDropdown(csvString) {
     option.value = none_action;
     option.text = none_action;
     dropdown.add(option);
-    optionsArray.forEach(function (optionValue) {
+    npcsArray.forEach(function (optionValue) {
         var option = document.createElement('option');
         let npc = optionValue.trim();
         option.value = npc;
@@ -228,4 +236,81 @@ function populateActionDropdown() {
         }
     });
 
+}
+
+function populateNpcImages(csvString) {
+    let npcsArray = csvString.split(',');
+    // for (let i=0; i < 4; i++) {
+    //     var npcImage = document.getElementById('npc-image' + i);
+    //     npcImage.src = '';
+    //     npcImage.classList.toggle('hidden');
+    // }
+    if (npcsArray.length < 4) {
+        // make sure npcsArray has 4 elements
+        for (let i = npcsArray.length; i < 4; i++) {
+            npcsArray.push('');
+        }
+    }
+    let max_length = Math.min(4, npcsArray.length)
+    for (let i = 0; i < max_length; i++) {
+        let npc = npcsArray[i].trim();
+        var npcImage = document.getElementById('npc-image' + i);
+        if (npc === '') {
+            npcImage.src = '';
+            npcImage.classList.toggle('hidden');
+        } else {
+            let name = npc.toLowerCase().replace(/ /g, '_');
+            // checkImageExistence(name, function(exists, imageUrl) {
+            //     if (exists) {
+            //         npcImage.src = imageUrl;
+            //     } else {
+            //         console.log('Image does not exist');
+            //     }
+            // });
+            npcImage.src = 'static/resources/' + name + '.jpg';
+            npcImage.alt=npc;
+            npcImage.classList.toggle('visible');
+        }
+        
+        npcImage.onerror = function() {
+            // Handle image not found
+            console.log('Image not found for NPC: ' + npc);
+            npcImage.classList.toggle('hidden');
+        };
+    }
+}
+
+function checkImageExistence(imageName, callback) {
+    const image = new Image();
+
+    // Array of possible image formats to check
+    const formats = ['jpg'];
+
+    // Recursive function to try each format
+    function tryFormat(index) {
+        if (index >= formats.length) {
+            // No more formats to try, image does not exist
+            callback(false);
+            return;
+        }
+
+        // Set the source to the current format
+        image.src = 'static/resources/' + `${imageName}.${formats[index]}`;
+
+        // Check for the onload event
+        image.onload = function() {
+            // Image exists, callback with true
+            console.log('Image found for NPC: ' + imageName + ' at ' + this.src);
+            callback(true, this.src);
+        };
+
+        // Check for the onerror event
+        image.onerror = function() {
+            // Image does not exist in the current format, try the next format
+            tryFormat(index + 1);
+        };
+    }
+
+    // Start checking with the first format
+    tryFormat(0);
 }

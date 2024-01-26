@@ -91,13 +91,3 @@ class Combat():
         else:
             texts.append(f'{actor1.title} barely misses')
         return texts, 0
-
-def produce_remains(context: Context, actor: 'base.Living'):
-    """ Creates a container with the inventory of the Living
-    and places it in the living's location. 
-    """
-    remains = base.Container(f"remains of {actor.title}")
-    remains.init_inventory(actor.inventory)
-    actor.location.insert(remains, None)
-    actor.destroy(context)
-    return remains

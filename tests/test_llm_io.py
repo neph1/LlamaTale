@@ -80,7 +80,8 @@ class TestLlmIo():
         result = io_util.io_adapter.set_prompt(request_body=request_body, prompt=prompt, context='context')
         assert(config_file['USER_START'] in result['messages'][1]['content'])
         assert(config_file['USER_END'] in result['messages'][1]['content'])
-        assert(result['messages'][0]['content'] == '<context>context</context>')
+        assert('<context>context</context>' in result['messages'][1]['content'])
+        assert(result['messages'][0]['content'] != '<context>context</context>')
 
     @responses.activate
     def test_error_response(self):

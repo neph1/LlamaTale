@@ -136,6 +136,16 @@ class StoryBase:
         player.tell("Goodbye! We hope you enjoyed playing.")
         player.tell("\n")
 
+    def story_success(self, player) -> None:
+        """called when the player has successfully completed the story"""
+        player.tell("Congratulations! You have successfully completed the story.")
+        player.tell("\n")
+
+    def story_failure(self, player) -> None:
+        """called when the player has failed to complete the story"""
+        player.tell("You have failed to complete the story.")
+        player.tell("\n")
+
     def _verify(self, driver) -> None:
         """verify correctness and compatibility of the story configuration"""
         if not isinstance(self.config, StoryConfig):

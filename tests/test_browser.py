@@ -5,7 +5,6 @@ from wsgiref.simple_server import WSGIServer
 from tale.player import PlayerConnection
 from tale.tio.if_browser_io import HttpIo, TaleWsgiApp
 from tale.tio.mud_browser_io import TaleMudWsgiApp
-from tale.web.web_utils import create_chat_container
 from tests.supportstuff import FakeDriver
 
 
@@ -35,13 +34,6 @@ class TestHttpIo:
         http_io.render_output([("Bloated Murklin <:> Hello World!", True)])
 
         result = http_io.get_html_to_browser()[0]
-        assert "chat-container" in result
-        assert '<div class="user-name" content="Bloated Murklin"></div>' in result
-        assert '<div class="text-field" type="text">Hello World!</div>' in result
-        
-    def test_create_chat_container(self):
-        result = create_chat_container("Bloated Murklin <:> Hello World!")
-
         assert "chat-container" in result
         assert '<div class="user-name" content="Bloated Murklin"></div>' in result
         assert '<div class="text-field" type="text">Hello World!</div>' in result

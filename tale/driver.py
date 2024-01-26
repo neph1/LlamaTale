@@ -953,3 +953,6 @@ class Driver(pubsub.Listener):
                     text = self.llm_util.generate_note_lore(zone_info=zone.get_info())
                     item.text = text
         return True
+    
+    def do_on_player_death(self, player: player.Player) -> None:
+        pass

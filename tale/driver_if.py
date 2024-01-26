@@ -442,6 +442,10 @@ class IFDriver(driver.Driver):
             if self.wizard_override:
                 saved_player.privileges.add("wizard")
             return saved_player
+        
+    def do_on_player_death(self, player: Player) -> None:
+        self.story.story_failure()
+        self._stop_driver()
 
 
 class SavegameExistingObjectsFinder:
@@ -488,3 +492,4 @@ class SavegameExistingObjectsFinder:
         if exit.name != name or savegames.qual_baseclassname(exit) != baseclassname:
             raise errors.TaleError("exit/door inconsistency for vnum " + str(vnum))
         return exit
+

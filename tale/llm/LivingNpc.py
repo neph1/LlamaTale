@@ -16,7 +16,7 @@ class LivingNpc(Living):
     """An NPC with extra fields to define personality and help LLM generate dialogue"""
 
     def __init__(self, name: str, gender: str, *,
-                 title: str="", descr: str="", short_descr: str="", age: int, personality: str="", occupation: str="", race: str=""):
+                 title: str="", descr: str="", short_descr: str="", age: int = -1, personality: str="", occupation: str="", race: str=""):
         super(LivingNpc, self).__init__(name=name, gender=gender, title=title, descr=descr, short_descr=short_descr, race=race)
         self.age = age
         self.personality = personality
@@ -211,6 +211,8 @@ class LivingNpc(Living):
             return None
         
         defered_actions = []
+        if action.get('goal', ''):
+            self.goal = action['goal']
         if action.get('text', ''):
             text = action['text']
             tell_hash = llm_cache.cache_tell('{actor.title} says: "{response}"'.format(actor=self, response=unpad_text(text)))
@@ -284,6 +286,7 @@ class LivingNpc(Living):
                 occupation=self.occupation,
                 race=self.stats.race,
                 quest=self.quest,
+                goal=self.goal,
                 wearing=','.join([f'"{str(i.name)}"' for i in self.get_worn_items()]),
                 items=','.join(items))
     

@@ -17,7 +17,6 @@ class Automatic1111(ImageGeneratorBase):
                 self.config = yaml.safe_load(stream)
             except yaml.YAMLError as exc:
                 print(exc)
-        print(self.config)
          
 
     def generate_image(self, prompt: str, save_path: str, image_name: str) -> bool:

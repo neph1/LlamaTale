@@ -48,13 +48,14 @@ pre {
     border-radius: 5px;
 }
 .location {
-    text-align: right;
+    text-align: left;
     margin-bottom: 4pt;
     font-style: italic;
 }
 .location > span {
     color: green;
 }
+
 #textframe {
     border: 1px solid gainsboro;
     overflow: auto;
@@ -150,17 +151,19 @@ p, pre {
 }
 
 .location-image {
-    width: 240px;
-    height: 150px;
+    flex: 0 0 512px;
+    height: auto;
     border-radius: 10px;
     margin-right: 10px;
-    visibility: hidden;
+    z-index: 1;
 }
 
 .location-container {
+    width: 512px;
     margin-top: 20px;
     margin-left: auto;
     flex-direction: column;
+    position: relative;
 }
 
 .npc-dropdown {
@@ -205,4 +208,36 @@ p, pre {
     background: #fff;
     padding: 20px;
     border-radius: 8px;
+}
+
+#storyFrame {
+    display: flex;
+    padding: auto;
+    max-width: 100%;
+    box-sizing: border-box;
+}
+
+#text-container {
+    flex: 1;
+    overflow: auto;
+    margin-right: 10px;
+}
+
+#npc-images {
+    display: flex;
+    position: absolute;
+    bottom: 266px;
+}
+
+.npc-image {
+    width: 96px;
+    height: auto;
+    opacity: 0;
+    transition: opacity 1s ease;
+    margin: 10px;
+    border-radius: 10px;
+}
+
+.npc-image.visible {
+    opacity: 1;
 }

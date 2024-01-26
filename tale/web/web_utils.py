@@ -6,6 +6,7 @@ dialogue_splitter = ' &lt;:&gt; '
 
 web_resources_path = '../../tale/web' # the game is run from the stories directory
 resource_folder = 'resources'
+static_folder = 'static/resources'
 
 def create_chat_container(text: str) -> str:
     separated = text.split(dialogue_splitter)
@@ -15,10 +16,19 @@ def create_chat_container(text: str) -> str:
         return text
     name = separated[0]
     content = separated[1]
+    image_name = separated[0].lower().replace(' ', '_')
+    if _check_file_exists(image_name + '.gif'):
+        image_file = image_name + '.gif'
+    elif _check_file_exists(image_name + '.png'):
+        image_file = image_name + '.png'
+    elif _check_file_exists(image_name + '.jpg'):
+        image_file = image_name + '.jpg'
+    else:
+        image_file = 'default.jpg'
     image_file = separated[0].lower().replace(' ', '_') + '.jpg'
     html = '<div class="chat-container">\n'
     html += '<div class="user-name" content="%s"></div>\n' % name
-    html += '<img class="user-image" src="static/resources/%s" alt="%s"/>\n' % (image_file, name)
+    html += '<img class="user-image" src="%s/%s" alt="%s"/>\n' % (static_folder, image_file, name)
     html += '<div class="text-field" type="text">%s</div>\n' % content
     html += '</div>\n'
     return html
@@ -52,3 +62,6 @@ def clear_resources():
 def copy_single_image(gamepath: str, image_name: str):
     # copy a single image to the resources folder in the web folder
     shutil.copy(os.path.join(gamepath, "resources", image_name), os.path.join(web_resources_path, resource_folder))
+
+def _check_file_exists(filename: str) -> bool:
+    return os.path.exists(os.path.join(web_resources_path, "resources", filename))

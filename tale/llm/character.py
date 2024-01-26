@@ -34,17 +34,15 @@ class CharacterBuilding():
 
     def generate_dialogue(self,
                           context: DialogueContext,
-                          conversation: str,
                           sentiment = '', 
                           event_history = '',
                           short_len : bool=False):
         prompt = self.pre_prompt
 
         #formatted_conversation = llm_config.params['USER_START']
-        formatted_conversation = conversation.replace('<break>', '\n')#llm_config.params['USER_END'] + '\n' + llm_config.params['USER_START'])
         prompt += self.dialogue_prompt.format(
                 context = '{context}',
-                previous_conversation=formatted_conversation,
+                previous_conversation=context.conversation,
                 character2=context.speaker_name,
                 character1=context.target_name,
                 dialogue_template=self.dialogue_template,
