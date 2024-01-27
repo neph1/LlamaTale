@@ -227,11 +227,21 @@ class Catalogue():
         self._creatures.append(creature)
         return True
     
-    def get_creatures(self) -> dict:
+    def get_creatures(self) -> []:
         return self._creatures
     
-    def get_items(self) -> dict:
+    def get_items(self) -> []:
         return self._items
+    
+    def get_item(self, name: str) -> dict:
+        for item in self._items:
+            if item['name'] == name:
+                return item
+            
+    def get_creature(self, name: str) -> dict:
+        for creature in self._creatures:
+            if creature['name'] == name:
+                return creature
     
     def to_json(self) -> dict:
         return dict(items=self._items, creatures=self._creatures)

@@ -3,9 +3,10 @@
 
 import pytest
 import tale
-from tale.base import Item, Location, ParseResult
+from tale.base import Item, Location, ParseResult, Weapon
 from tale.cmds import wizard, wizcmd
 from tale.errors import ParseError
+from tale.items.basic import Food
 from tale.llm.LivingNpc import LivingNpc
 from tale.llm.llm_ext import DynamicStory
 from tale.llm.llm_utils import LlmUtil
@@ -89,6 +90,42 @@ class TestWizardCommands():
         parse_result = ParseResult(verb='set_goal', args=['test_npc', 'test goal'])
         wizard.do_set_goal(self.test_player, parse_result, self.context)
         assert(npc.goal == 'test goal')
+
+    def test_create_item(self):
+        location = Location('test_room')
+        location.init_inventory([self.test_player])
+        parse_result = ParseResult(verb='create_item', args=['Item', 'test_item', 'test description'])
+        wizard.do_create_item(self.test_player, parse_result, self.context)
+        assert(len(location.items) == 1)
+        item = list(location.items)[0]
+        assert(item.name == 'test_item')
+        assert(item.short_description == 'test description')
+
+    def test_create_food(self):
+        location = Location('test_room')
+        location.init_inventory([self.test_player])
+        parse_result = ParseResult(verb='create_item', args=['Food', 'test_food', 'tasty test food'])
+        wizard.do_create_item(self.test_player, parse_result, self.context)
+        assert(len(location.items) == 1)
+        item = list(location.items)[0]
+        assert(isinstance(item, Food))
+
+    def test_create_weapon(self):
+        location = Location('test_room')
+        location.init_inventory([self.test_player])
+        parse_result = ParseResult(verb='create_item', args=['Weapon', 'test_weapon', 'pointy test weapon'])
+        wizard.do_create_item(self.test_player, parse_result, self.context)
+        assert(len(location.items) == 1)
+        item = list(location.items)[0]
+        assert(isinstance(item, Weapon))
+        assert(item.name == 'test_weapon')
+
+    def test_create_item_no_args(self):
+        parse_result = ParseResult(verb='create_item', args=[])
+        with pytest.raises(ParseError, match="You need to define an item type. Name and description are optional"):
+            wizard.do_create_item(self.test_player, parse_result, self.context)
+
+
 
 class TestEnrichCommand():
     
