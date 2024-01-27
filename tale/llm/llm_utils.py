@@ -112,7 +112,6 @@ class LlmUtil():
                           target_description: str='', 
                           sentiment = '', 
                           location_description = '',
-                          event_history='',
                           short_len : bool=False):
         dialogue_context = DialogueContext(story_context=self.__story_context,
                                            location_description=location_description,
@@ -123,7 +122,6 @@ class LlmUtil():
                                            conversation=conversation)
         return self._character.generate_dialogue(context=dialogue_context,
                                                 sentiment=sentiment,
-                                                event_history=event_history,
                                                 short_len=short_len)
     
     def update_memory(self, rolling_prompt: str, response_text: str):

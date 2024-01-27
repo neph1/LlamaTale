@@ -34,8 +34,8 @@ class LivingNpc(Living):
 
     def notify_action(self, parsed: ParseResult, actor: Living) -> None:
         # store even our own events.
-        event_hash = llm_cache.cache_event(unpad_text(parsed.unparsed))
-        self._observed_events.append(event_hash)
+        #event_hash = llm_cache.cache_event(unpad_text(parsed.unparsed))
+        #self._observed_events.append(event_hash)
         if actor is self or parsed.verb in self.verbs:
             return  # avoid reacting to ourselves, or reacting to verbs we already have a handler for
         greet = False
@@ -80,8 +80,8 @@ class LivingNpc(Living):
             self._clear_quest()
     
     def do_say(self, what_happened: str, actor: Living) -> None:
-        tell_hash = llm_cache.cache_tell('{actor.title} says {what_happened}'.format(actor=actor, what_happened=unpad_text(what_happened)))
-        self._conversations.append(tell_hash)
+        tell_hash = llm_cache.cache_event('{actor.title} says {what_happened}'.format(actor=actor, what_happened=unpad_text(what_happened)))
+        self._observed_events.append(tell_hash)
         short_len = False if isinstance(actor, Player) else True
         item = None
         sentiment = None
@@ -90,14 +90,13 @@ class LivingNpc(Living):
                 response = self.autonomous_action()
             else:
                 response, item, sentiment = mud_context.driver.llm_util.generate_dialogue(
-                    conversation=llm_cache.get_tells(self._conversations),
+                    conversation=llm_cache.get_events(self._observed_events),
                     character_card = self.character_card,
                     character_name = self.title,
                     target = actor.title,
                     target_description = actor.short_description,
                     sentiment = self.sentiments.get(actor.title, ''),
                     location_description=self.location.look(exclude_living=self),
-                    event_history=llm_cache.get_events(self._observed_events),
                     short_len=short_len)
             if response:
                 if not self.avatar:
@@ -108,8 +107,8 @@ class LivingNpc(Living):
         if not response:
             raise LlmResponseException("Failed to parse dialogue")
 
-        tell_hash = llm_cache.cache_tell('{actor.title} says: {response}'.format(actor=self, response=unpad_text(response)))
-        self._conversations.append(tell_hash)
+        tell_hash = llm_cache.cache_event('{actor.title} says: {response}'.format(actor=self, response=unpad_text(response)))
+        self._observed_events.append(tell_hash)
         self._defer_result(response, verb='say')
         if item:
             self.handle_item_result(ItemHandlingResult(item=item, from_=self.title, to=actor.title), actor)
@@ -215,14 +214,16 @@ class LivingNpc(Living):
             self.goal = action['goal']
         if action.get('text', ''):
             text = action['text']
-            tell_hash = llm_cache.cache_tell('{actor.title} says: "{response}"'.format(actor=self, response=unpad_text(text)))
-            self._conversations.append(tell_hash)
+            tell_hash = llm_cache.cache_event('{actor.title} says: "{response}"'.format(actor=self, response=unpad_text(text)))
+            self._observed_events.append(tell_hash)
             #if mud_context.config.custom_resources:
             if action.get('target'):
                 target = self.location.search_living(action['target'])
                 if target:
-                    #target.tell(text, evoke=False)
+                    target.tell(text, evoke=False)
                     target.notify_action(ParseResult(verb='say', unparsed=text, who_list=[target]), actor=self)
+            else:
+                self.tell_others(text, evoke=False)
             defered_actions.append(f'"{text}"')
         if not action.get('action', ''):
             return '\n'.join(defered_actions)
@@ -233,15 +234,15 @@ class LivingNpc(Living):
                 exit = None
             if exit:
                 self.move(target=exit.target, actor=self, direction_names=exit.names)
-        elif action['action'] == 'give':
+        elif action['action'] == 'give' and action['item'] and action['target']:
             result = ItemHandlingResult(item=action['item'], to=action['target'], from_=self.title)
             self.handle_item_result(result, actor=self)
-        elif action['action'] == 'take':
+        elif action['action'] == 'take' and action['item']:
             item = self.search_item(action['item'], include_location=True, include_inventory=False) # Type: Item
             if item:
                 item.move(target=self, actor=self)
                 defered_actions.append(f"{self.title} takes {item.title}")
-        elif action['action'] == 'attack':
+        elif action['action'] == 'attack' and action['target']:
             target = self.location.search_living(action['target'])
             if target:
                 self.start_attack(target)
@@ -256,12 +257,12 @@ class LivingNpc(Living):
         else:
             action = f"{self.title} : {action}"
         self.deferred_actions.add(action)
-        mud_context.driver.defer(1.0, self.tell_action_deferred)
+        self.tell_action_deferred()
+        #mud_context.driver.defer(1.0, self.tell_action_deferred)
 
     def tell_action_deferred(self):
         actions = '\n'.join(self.deferred_actions)
         deferred_action = ParseResult(verb='idle-action', unparsed=actions, who_info=None)
-        self.tell_others(actions + '\n')
         self.location._notify_action_all(deferred_action, actor=self)
         self.deferred_actions.clear()
 
@@ -294,7 +295,6 @@ class LivingNpc(Living):
         return dict(
                     known_locations=self.known_locations,
                     observed_events=self._observed_events,
-                    conversations=self._conversations,
                     sentiments=self.sentiments,
                     action_history=self.action_history,
                     planned_actions=self.planned_actions,
@@ -303,8 +303,7 @@ class LivingNpc(Living):
     
     def load_memory(self, memory: dict):
         self.known_locations = memory.get('known_locations', {})
-        self._observed_events = memory.get('observed_events', [])
-        self._conversations = memory.get('conversations', [])
+        self._observed_events = memory.get('observed_events', []) + memory.get('conversations', [])
         self.sentiments = memory.get('sentiments', {})
         self.action_history = memory.get('action_history', [])
         self.planned_actions = memory.get('planned_actions', [])

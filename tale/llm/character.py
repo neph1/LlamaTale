@@ -35,7 +35,6 @@ class CharacterBuilding():
     def generate_dialogue(self,
                           context: DialogueContext,
                           sentiment = '', 
-                          event_history = '',
                           short_len : bool=False):
         prompt = self.pre_prompt
 
@@ -46,7 +45,6 @@ class CharacterBuilding():
                 character2=context.speaker_name,
                 character1=context.target_name,
                 dialogue_template=self.dialogue_template,
-                history=event_history,
                 sentiment=sentiment)
         request_body = deepcopy(self.default_body)
         request_body['grammar'] = self.json_grammar
@@ -102,7 +100,7 @@ class CharacterBuilding():
             character=character_card,
             items=items,
             characters=json.dumps(characters),
-            history=event_history,
+            history=event_history.replace('<break>', '\n'),
             sentiments=json.dumps(sentiments))
         request_body = deepcopy(self.default_body)
         if self.backend == 'kobold_cpp':
@@ -135,7 +133,7 @@ class CharacterBuilding():
             character=character_card,
             acting_character_name=acting_character_name,
             story_context=story_context,
-            history=event_history,
+            history=event_history.replace('<break>', '\n'),
             sentiment=sentiment)
         request_body = deepcopy(self.default_body)
         text = self.io_util.synchronous_request(request_body, prompt=prompt)
@@ -146,6 +144,7 @@ class CharacterBuilding():
         prompt += self.free_form_action_prompt.format(
             context = '{context}',
             character_name=action_context.character_name,
+            previous_events=action_context.event_history.replace('<break>', '\n'),
             action_template=self.action_template)
         request_body = deepcopy(self.default_body)
         request_body['grammar'] = self.json_grammar

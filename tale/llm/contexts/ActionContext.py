@@ -12,7 +12,7 @@ class ActionContext(BaseContext):
         self.story_type = story_type
         self.character_name = character_name
         self.character_card = character_card
-        self.event_history = event_history
+        self.event_history = event_history.replace('<break>', '\n')
         self.location = location
 
 
