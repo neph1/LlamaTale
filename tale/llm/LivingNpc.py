@@ -1,8 +1,9 @@
 from tale.llm.item_handling_result import ItemHandlingResult
 import tale.llm.llm_cache as llm_cache
-from tale import lang, mud_context
+from tale import lang, mud_context, story
 from tale.base import ContainingType, Living, ParseResult
 from tale.errors import LlmResponseException
+from tale.llm.responses.ActionResponse import ActionResponse
 from tale.player import Player
 
 
@@ -30,12 +31,12 @@ class LivingNpc(Living):
         self.goal = None # type: str # a free form string describing the goal of the NPC
         self.quest = None # type: Quest # a quest object
         self.deferred_actions = set() # type: set[str]
+        self.example_voice = '' # type: str
         self.autonomous = False
+        self.output_thoughts = False
 
     def notify_action(self, parsed: ParseResult, actor: Living) -> None:
         # store even our own events.
-        #event_hash = llm_cache.cache_event(unpad_text(parsed.unparsed))
-        #self._observed_events.append(event_hash)
         if actor is self or parsed.verb in self.verbs:
             return  # avoid reacting to ourselves, or reacting to verbs we already have a handler for
         greet = False
@@ -57,6 +58,8 @@ class LivingNpc(Living):
             self.do_say(parsed.unparsed, actor)
             
         elif (targeted and parsed.verb == "idle-action") or parsed.verb == "location-event":
+            event_hash = llm_cache.cache_event(unpad_text(parsed.unparsed))
+            self._observed_events.append(event_hash)
             self._do_react(parsed, actor)
         elif targeted and parsed.verb == "give":
             parsed_split = parsed.unparsed.split(" to ")
@@ -73,8 +76,13 @@ class LivingNpc(Living):
                 self.quest.check_completion({"item":result.item, "npc":result.to})
             self.do_say(parsed.unparsed, actor)
         elif parsed.verb == 'attack' and targeted:
+            event_hash = llm_cache.cache_event(unpad_text(parsed.unparsed))
+            self._observed_events.append(event_hash)
             # TODO: should llm decide sentiment?
             self.sentiments[actor.title] = 'hostile'
+        else:
+            event_hash = llm_cache.cache_event(unpad_text(parsed.unparsed))
+            self._observed_events.append(event_hash)
         if self.quest and self.quest.is_completed():
             # do last to give npc chance to react   
             self._clear_quest()
@@ -205,48 +213,57 @@ class LivingNpc(Living):
         action = mud_context.driver.llm_util.free_form_action(character_card=self.character_card,
                                             character_name=self.title,
                                             location=self.location,
-                                            event_history=llm_cache.get_events(self._observed_events))
+                                            event_history=llm_cache.get_events(self._observed_events)) # type: ActionResponse
         if not action:
             return None
         
         defered_actions = []
-        if action.get('goal', ''):
-            self.goal = action['goal']
-        if action.get('text', ''):
-            text = action['text']
+        if action.goal:
+            self.goal = action.goal
+        if self.output_thoughts and action.thoughts:
+            self.tell_others('\n *<it><rev> ' + action.thoughts + '</> *', evoke=False)
+        if action.text:
+            text = action.text
             tell_hash = llm_cache.cache_event('{actor.title} says: "{response}"'.format(actor=self, response=unpad_text(text)))
             self._observed_events.append(tell_hash)
             #if mud_context.config.custom_resources:
-            if action.get('target'):
-                target = self.location.search_living(action['target'])
+            if action.target:
+                target = self.location.search_living(action.target)
                 if target:
-                    target.tell(text, evoke=False)
+                    target.tell('\n' + text, evoke=False)
                     target.notify_action(ParseResult(verb='say', unparsed=text, who_list=[target]), actor=self)
+                else:
+                    self.tell_others('\n' + text, evoke=False)
             else:
-                self.tell_others(text, evoke=False)
+                self.tell_others('\n' + text, evoke=False)
             defered_actions.append(f'"{text}"')
-        if not action.get('action', ''):
+        if not action.action:
             return '\n'.join(defered_actions)
-        if action['action'] == 'move':
+        if action.action == 'move':
             try:
-                exit = self.location.exits[action['target']]
+                exit = self.location.exits[action.target]
             except KeyError:
                 exit = None
             if exit:
                 self.move(target=exit.target, actor=self, direction_names=exit.names)
-        elif action['action'] == 'give' and action['item'] and action['target']:
-            result = ItemHandlingResult(item=action['item'], to=action['target'], from_=self.title)
+        elif action.action == 'give' and action.item and action.target:
+            result = ItemHandlingResult(item=action.item, to=action.target, from_=self.title)
             self.handle_item_result(result, actor=self)
-        elif action['action'] == 'take' and action['item']:
-            item = self.search_item(action['item'], include_location=True, include_inventory=False) # Type: Item
+        elif action.action == 'take' and action.item:
+            item = self.search_item(action.item, include_location=True, include_inventory=False) # Type: Item
             if item:
                 item.move(target=self, actor=self)
                 defered_actions.append(f"{self.title} takes {item.title}")
-        elif action['action'] == 'attack' and action['target']:
-            target = self.location.search_living(action['target'])
+        elif action.action == 'attack' and action.target:
+            target = self.location.search_living(action.target)
             if target:
                 self.start_attack(target)
                 defered_actions.append(f"{self.title} attacks {target.title}")
+        elif action.action == 'wear' and action.item:
+            item = self.search_item(action.item, include_location=True, include_inventory=False)
+            if item:
+                self.set_wearable(item)
+                defered_actions.append(f"{self.title} wears {item.title}")
 
         return '\n'.join(defered_actions)
     
@@ -257,8 +274,10 @@ class LivingNpc(Living):
         else:
             action = f"{self.title} : {action}"
         self.deferred_actions.add(action)
-        self.tell_action_deferred()
-        #mud_context.driver.defer(1.0, self.tell_action_deferred)
+        if mud_context.config.server_tick_method == story.TickMethod.COMMAND:
+            self.tell_action_deferred()
+        else:
+            mud_context.driver.defer(1.0, self.tell_action_deferred)
 
     def tell_action_deferred(self):
         actions = '\n'.join(self.deferred_actions)
@@ -278,7 +297,7 @@ class LivingNpc(Living):
         items = []
         for i in self.inventory:
             items.append(f'"{str(i.name)}"')
-        return '{{"name":"{name}", "gender":"{gender}","age":{age},"occupation":"{occupation}","personality":"{personality}","appearance":"{description}","items":[{items}], "race":"{race}", "quest":"{quest}", "wearing":"{wearing}"}}'.format(
+        return '{{"name":"{name}", "gender":"{gender}","age":{age},"occupation":"{occupation}","personality":"{personality}","appearance":"{description}","items":[{items}], "race":"{race}", "quest":"{quest}", "example_voice":"{example_voice}", "wearing":"{wearing}", "wielding":"{wielding}"}}'.format(
                 name=self.title,
                 gender=lang.gender_string(self.gender),
                 age=self.age,
@@ -288,7 +307,9 @@ class LivingNpc(Living):
                 race=self.stats.race,
                 quest=self.quest,
                 goal=self.goal,
+                example_voice=self.example_voice,
                 wearing=','.join([f'"{str(i.name)}"' for i in self.get_worn_items()]),
+                wielding=self.wielding.to_dict() if self.wielding else None,
                 items=','.join(items))
     
     def dump_memory(self) -> dict:

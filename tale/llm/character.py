@@ -12,6 +12,7 @@ from tale.llm import llm_config
 from tale.llm.contexts.ActionContext import ActionContext
 from tale.llm.llm_io import IoUtil
 from tale.llm.contexts.DialogueContext import DialogueContext
+from tale.llm.responses.ActionResponse import ActionResponse
 from tale.load_character import CharacterV2
 
 
@@ -139,7 +140,7 @@ class CharacterBuilding():
         text = self.io_util.synchronous_request(request_body, prompt=prompt)
         return parse_utils.trim_response(text) + "\n"
     
-    def free_form_action(self, action_context: ActionContext):
+    def free_form_action(self, action_context: ActionContext) -> ActionResponse:
         prompt = self.pre_prompt
         prompt += self.free_form_action_prompt.format(
             context = '{context}',
@@ -153,32 +154,8 @@ class CharacterBuilding():
             if not text:
                 return None
             response = json.loads(parse_utils.sanitize_json(text))
-            return self._sanitize_free_form_response(response)
+            return ActionResponse(response)
         except Exception as exc:
             print('Failed to parse action ' + str(exc))
             return None
-            
         
-    def _sanitize_free_form_response(self, action: dict):
-        if action.get('text'):
-            if isinstance(action['text'], list):
-                action['text'] = action['text'][0]
-        if action.get('target'):
-            target_name = action['target']
-            if isinstance(target_name, list):
-                action['target'] = target_name[0]
-            elif isinstance(target_name, dict):
-                action['target'] = target_name.get('name', '')
-        if action.get('item'):
-            item_name = action['item']
-            if isinstance(item_name, list):
-                action['item'] = item_name[0]
-            elif isinstance(item_name, dict):
-                action['item'] = item_name.get('name', '')
-        if action.get('action'):
-            action_name = action['action']
-            if isinstance(action_name, list):
-                action['action'] = action_name[0]
-            elif isinstance(action_name, dict):
-                action['action'] = action_name.get('action', '')
-        return action

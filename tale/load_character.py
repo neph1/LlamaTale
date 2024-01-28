@@ -47,7 +47,9 @@ class CharacterV2():
                  hp: int=10,
                  aliases: list=[],
                  avatar: str = '',
-                 wearing: str= '') -> None:
+                 wearing: str= '',
+                 wielding: str='',
+                 items: str = '') -> None:
         self.name = name
         self.race = race
         self.gender = gender
@@ -61,6 +63,9 @@ class CharacterV2():
         self.hp = hp
         self.avatar = avatar
         self.wearing = wearing
+        self.wielding = wielding
+        self.items = items
+        self.autonomous = False
         if aliases:
             self.aliases = aliases
         
@@ -69,7 +74,7 @@ class CharacterV2():
         self.title = json.get('title', json.get('name'))
         self.race = json.get('race', 'human').lower()
         self.gender = json.get('gender', 'f')[0].lower()
-        description = json.get('description')
+        description = json.get('description', '')
         self.description = description
         self.appearance = json.get('appearance', description.split(';')[0])
         self.personality = json.get('personality', '')
@@ -80,6 +85,9 @@ class CharacterV2():
         self.aliases = json.get('aliases', [])
         self.avatar = json.get('avatar', '')
         self.wearing = json.get('wearing', '')
+        self.wielding = json.get('wielding', '')
+        self.items = json.get('items', [])
         self.autonomous = json.get('autonomous', False)
+        self.output_thoughts = json.get('output_thoughts', False)
         return self
         

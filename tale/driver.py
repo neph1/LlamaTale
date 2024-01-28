@@ -858,12 +858,14 @@ class Driver(pubsub.Listener):
                         race = character.race,
                         occupation = character.occupation)
         npc.autonomous = character.autonomous
+        npc.output_thoughts = character.output_thoughts
         wearing = character.wearing.split(',')
         for item in wearing:
             if item:
                 wearable = base.Wearable(name=item.lower().strip())
                 npc.set_wearable(wearable)
-        
+        if character.wielding:
+            npc.wielding = base.Weapon(name=character.wielding.lower())
         npc.following = player
         npc.stats.hp = character.hp
         if isinstance(self.story, DynamicStory):

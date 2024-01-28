@@ -7,7 +7,7 @@ from tale import mud_context
 import tale
 
 from tale.llm import llm_cache
-from tale.base import Exit, Item, Living, Location, ParseResult
+from tale.base import Exit, Item, Living, Location, ParseResult, Weapon
 from tale.coord import Coord
 from tale.llm.LivingNpc import LivingNpc
 from tale.llm.item_handling_result import ItemHandlingResult
@@ -22,6 +22,7 @@ class TestLivingNpc():
 
     drink = Item("ale", "jug of ale", descr="Looks and smells like strong ale.")
     story = DynamicStory()
+    story.config.server_tick_method = 'TIMER'
     mud_context.config = story.config
 
     def test_handle_item_result_player(self):
@@ -66,12 +67,16 @@ class TestLivingNpc():
 
     def test_character_card(self):
         npc = LivingNpc(name='test', gender='m', age=42, personality='')
-        npc.init_inventory([self.drink])
+        knife = Weapon("knife", "knife", descr="A sharp knife.")
+        npc.wielding = knife
+        npc.init_inventory([self.drink, knife])
         card = npc.character_card
         assert('ale' in card)
         json_card = json.loads(card)
         assert(json_card['name'] == 'test')
-        assert(json_card['items'][0] == 'ale')
+        assert('ale' in json_card['items'])
+        assert('knife' in json_card['items'])
+        assert(eval(json_card['wielding']) == knife.to_dict())
 
     def test_wearing(self):
         npc = LivingNpc(name='test', gender='m', age=42, personality='')
@@ -84,7 +89,6 @@ class TestLivingNpc():
         npc = LivingNpc(name='test', gender='m', age=42, personality='')
         
         npc._observed_events = [llm_cache.cache_event('test_event'), llm_cache.cache_event('test_event 2')]
-        npc._conversations = [llm_cache.cache_tell('test_tell'), llm_cache.cache_tell('test_tell_2'),llm_cache.cache_tell('test_tell_3')]
         npc.sentiments = {'test': 'neutral'}
         memories_json = npc.dump_memory()
         memories = json.loads(json.dumps(memories_json))
@@ -95,11 +99,9 @@ class TestLivingNpc():
 
         assert(memories['known_locations'] == {})
         assert(memories['observed_events'] == list(npc_clean._observed_events))
-        assert(memories['conversations'] == npc_clean._conversations)
         assert(memories['sentiments'] == npc_clean.sentiments)
 
-        assert(llm_cache.get_events(npc_clean._observed_events) == 'test_event, test_event 2')
-        assert(llm_cache.get_tells(npc_clean._conversations) == 'test_tell<break>test_tell_2<break>test_tell_3')
+        assert(llm_cache.get_events(npc_clean._observed_events) == 'test_event<break>test_event 2')
 
     def test_avatar_not_exists(self):
         npc = LivingNpc(name='test', gender='m', age=42, personality='')
@@ -110,7 +112,7 @@ class TestLivingNpc():
         npc = LivingNpc(name='test', gender='m', age=42, personality='')
         npc._observed_events = [llm_cache.cache_event('test_event'), llm_cache.cache_event('test_event 2')]
         assert(npc.get_observed_events(1) == 'test_event 2')
-        assert(npc.get_observed_events(2) == 'test_event, test_event 2')
+        assert(npc.get_observed_events(2) == 'test_event<break>test_event 2')
 
 
     # def test_avatar_exists(self):
@@ -145,6 +147,7 @@ class TestLivingNpcActions():
     llm_util.backend = dummy_config['BACKEND']
     driver.llm_util = llm_util
     story = DynamicStory()
+    story.config.server_tick_method = 'TIMER'
     driver.story = story
     mud_context.config = story.config
     mud_context.driver = driver

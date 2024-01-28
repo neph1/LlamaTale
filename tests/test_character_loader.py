@@ -54,4 +54,5 @@ class TestCharacterLoader():
         assert(character.appearance == 'test appearance')
         assert(character.description == 'test description')
         assert(character.aliases == ['alias1', 'alias2'])
+        assert(character.autonomous == False)
         
