@@ -22,7 +22,6 @@ class TestLivingNpc():
 
     drink = Item("ale", "jug of ale", descr="Looks and smells like strong ale.")
     story = DynamicStory()
-    story.config.server_tick_method = 'TIMER'
     mud_context.config = story.config
 
     def test_handle_item_result_player(self):
@@ -147,7 +146,6 @@ class TestLivingNpcActions():
     llm_util.backend = dummy_config['BACKEND']
     driver.llm_util = llm_util
     story = DynamicStory()
-    story.config.server_tick_method = 'TIMER'
     driver.story = story
     mud_context.config = story.config
     mud_context.driver = driver
@@ -160,11 +158,13 @@ class TestLivingNpcActions():
                   json={'results':[{'text':'{"response": "Hello there, how can I assist you today?", "sentiment":"kind"}'}]}, status=200)
         npc.do_say(what_happened='something', actor=npc2)
         assert(npc.sentiments['actor'] == 'kind')
-        assert(len(npc._conversations) == 2)
+        assert(len(npc._observed_events) == 2)
 
     @responses.activate
     def test_idle_action(self):
+        mud_context.config.server_tick_method = 'TIMER'
         npc = LivingNpc(name='test', gender='f', age=35, personality='')
+        npc.autonomous = False
         responses.add(responses.POST, self.dummy_backend_config['URL'] + self.dummy_backend_config['ENDPOINT'],
                   json={'results':[{'text':'"sits down on a chair"'}]}, status=200)
         self.llm_util._character.io_util.response = []
