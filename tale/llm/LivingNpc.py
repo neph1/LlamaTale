@@ -221,12 +221,11 @@ class LivingNpc(Living):
         if action.goal:
             self.goal = action.goal
         if self.output_thoughts and action.thoughts:
-            self.tell_others('\n *<it><rev> ' + action.thoughts + '</> *', evoke=False)
+            self.tell_others(f'\n{self.title} thinks: *<it><rev> ' + action.thoughts + '</> *', evoke=False)
         if action.text:
             text = action.text
             tell_hash = llm_cache.cache_event('{actor.title} says: "{response}"'.format(actor=self, response=unpad_text(text)))
             self._observed_events.append(tell_hash)
-            #if mud_context.config.custom_resources:
             if action.target:
                 target = self.location.search_living(action.target)
                 if target:
@@ -269,6 +268,8 @@ class LivingNpc(Living):
     
 
     def _defer_result(self, action: str, verb: str="idle-action"):
+        """ Defer an action to be performed at the next tick, 
+            or immediately if the server tick method is set to command"""
         if mud_context.config.custom_resources and self.avatar:
             action = pad_text_for_avatar(text=action, npc_name=self.title)
         else:
@@ -277,12 +278,13 @@ class LivingNpc(Living):
         if mud_context.config.server_tick_method == story.TickMethod.COMMAND:
             self.tell_action_deferred()
         else:
-            mud_context.driver.defer(1.0, self.tell_action_deferred)
+            mud_context.driver.defer(0.5, self.tell_action_deferred)
 
     def tell_action_deferred(self):
-        actions = '\n'.join(self.deferred_actions)
+        actions = '\n'.join(self.deferred_actions) + '\n'
         deferred_action = ParseResult(verb='idle-action', unparsed=actions, who_info=None)
         self.location._notify_action_all(deferred_action, actor=self)
+        self.tell_others(actions)
         self.deferred_actions.clear()
 
     def get_observed_events(self, amount: int) -> list:

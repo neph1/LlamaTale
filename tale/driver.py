@@ -872,7 +872,7 @@ class Driver(pubsub.Listener):
             dynamic_story = typing.cast(DynamicStory, self.story)
             dynamic_story.world.add_npc(npc)
         player.location.insert(npc, None)
-        player.location.tell("%s arrives." % npc.title)
+        player.location.tell("%s arrives." % npc.title, extra_context=f'Location:{player.location.description}; {npc.character_card}')
         return npc
 
     @property
