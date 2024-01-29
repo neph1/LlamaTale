@@ -12,6 +12,7 @@ from tale.llm import llm_config
 from tale.llm.contexts.ActionContext import ActionContext
 from tale.llm.llm_io import IoUtil
 from tale.llm.contexts.DialogueContext import DialogueContext
+from tale.llm.responses.ActionResponse import ActionResponse
 from tale.load_character import CharacterV2
 
 
@@ -35,7 +36,6 @@ class CharacterBuilding():
     def generate_dialogue(self,
                           context: DialogueContext,
                           sentiment = '', 
-                          event_history = '',
                           short_len : bool=False):
         prompt = self.pre_prompt
 
@@ -46,7 +46,6 @@ class CharacterBuilding():
                 character2=context.speaker_name,
                 character1=context.target_name,
                 dialogue_template=self.dialogue_template,
-                history=event_history,
                 sentiment=sentiment)
         request_body = deepcopy(self.default_body)
         request_body['grammar'] = self.json_grammar
@@ -102,7 +101,7 @@ class CharacterBuilding():
             character=character_card,
             items=items,
             characters=json.dumps(characters),
-            history=event_history,
+            history=event_history.replace('<break>', '\n'),
             sentiments=json.dumps(sentiments))
         request_body = deepcopy(self.default_body)
         if self.backend == 'kobold_cpp':
@@ -135,17 +134,18 @@ class CharacterBuilding():
             character=character_card,
             acting_character_name=acting_character_name,
             story_context=story_context,
-            history=event_history,
+            history=event_history.replace('<break>', '\n'),
             sentiment=sentiment)
         request_body = deepcopy(self.default_body)
         text = self.io_util.synchronous_request(request_body, prompt=prompt)
         return parse_utils.trim_response(text) + "\n"
     
-    def free_form_action(self, action_context: ActionContext):
+    def free_form_action(self, action_context: ActionContext) -> ActionResponse:
         prompt = self.pre_prompt
         prompt += self.free_form_action_prompt.format(
             context = '{context}',
             character_name=action_context.character_name,
+            previous_events=action_context.event_history.replace('<break>', '\n'),
             action_template=self.action_template)
         request_body = deepcopy(self.default_body)
         request_body['grammar'] = self.json_grammar
@@ -154,32 +154,8 @@ class CharacterBuilding():
             if not text:
                 return None
             response = json.loads(parse_utils.sanitize_json(text))
-            return self._sanitize_free_form_response(response)
+            return ActionResponse(response)
         except Exception as exc:
             print('Failed to parse action ' + str(exc))
             return None
-            
         
-    def _sanitize_free_form_response(self, action: dict):
-        if action.get('text'):
-            if isinstance(action['text'], list):
-                action['text'] = action['text'][0]
-        if action.get('target'):
-            target_name = action['target']
-            if isinstance(target_name, list):
-                action['target'] = target_name[0]
-            elif isinstance(target_name, dict):
-                action['target'] = target_name.get('name', '')
-        if action.get('item'):
-            item_name = action['item']
-            if isinstance(item_name, list):
-                action['item'] = item_name[0]
-            elif isinstance(item_name, dict):
-                action['item'] = item_name.get('name', '')
-        if action.get('action'):
-            action_name = action['action']
-            if isinstance(action_name, list):
-                action['action'] = action_name[0]
-            elif isinstance(action_name, dict):
-                action['action'] = action_name.get('action', '')
-        return action

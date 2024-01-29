@@ -14,6 +14,7 @@ from tale.coord import Coord
 from tale.json_story import JsonStory
 from tale.llm.llm_io import IoUtil
 from tale.llm.llm_utils import LlmUtil
+from tale.llm.responses.ActionResponse import ActionResponse
 from tale.npc_defs import StationaryMob
 from tale.races import UnarmedAttack
 from tale.util import MoneyFormatterFantasy
@@ -110,31 +111,31 @@ class TestLlmUtils():
         self.llm_util._character.io_util.response = '{"action":"test_action", "text":"test response", "target":"test target", "item":"test item"}'
         location = Location(name='Test Location')
         self.llm_util.set_story(self.story)
-        result = self.llm_util.free_form_action(location=location, character_name='', character_card='', event_history='')
+        result = self.llm_util.free_form_action(location=location, character_name='', character_card='', event_history='') # type: ActionResponse
         assert(result)
-        assert(result["action"] == 'test_action')
-        assert(result["text"] == 'test response')
-        assert(result["target"] == 'test target')
-        assert(result["item"] == 'test item')
+        assert(result.action == 'test_action')
+        assert(result.text == 'test response')
+        assert(result.target == 'test target')
+        assert(result.item == 'test item')
 
     def test_free_form_action_lists(self):
         self.llm_util._character.io_util.response = '{"action":["test_action"], "text":["test response"], "target":["test target"], "item":["test item"]}'
         location = Location(name='Test Location')
         self.llm_util.set_story(self.story)
-        result = self.llm_util.free_form_action(location=location, character_name='', character_card='', event_history='')
+        result = self.llm_util.free_form_action(location=location, character_name='', character_card='', event_history='') # type: ActionResponse
         assert(result)
-        assert(result["action"] == 'test_action')
-        assert(result["text"] == 'test response')
-        assert(result["target"] == 'test target')
-        assert(result["item"] == 'test item')
+        assert(result.action == 'test_action')
+        assert(result.text == 'test response')
+        assert(result.target == 'test target')
+        assert(result.item == 'test item')
 
     def test_free_form_action_dict(self):
         self.llm_util._character.io_util.response = '{"action":{"action":"test_action"}, "target":{"name":"test target"}}'
         location = Location(name='Test Location')
         self.llm_util.set_story(self.story)
-        result = self.llm_util.free_form_action(location=location, character_name='', character_card='', event_history='')
-        assert(result["action"] == 'test_action')
-        assert(result["target"] == 'test target')
+        result = self.llm_util.free_form_action(location=location, character_name='', character_card='', event_history='') # type: ActionResponse
+        assert(result.action == 'test_action')
+        assert(result.target == 'test target')
 
     def test_init_image_gen(self):
         self.llm_util._init_image_gen("Automatic1111")

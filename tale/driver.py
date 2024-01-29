@@ -858,19 +858,21 @@ class Driver(pubsub.Listener):
                         race = character.race,
                         occupation = character.occupation)
         npc.autonomous = character.autonomous
+        npc.output_thoughts = character.output_thoughts
         wearing = character.wearing.split(',')
         for item in wearing:
             if item:
                 wearable = base.Wearable(name=item.lower().strip())
                 npc.set_wearable(wearable)
-        
+        if character.wielding:
+            npc.wielding = base.Weapon(name=character.wielding.lower())
         npc.following = player
         npc.stats.hp = character.hp
         if isinstance(self.story, DynamicStory):
             dynamic_story = typing.cast(DynamicStory, self.story)
             dynamic_story.world.add_npc(npc)
         player.location.insert(npc, None)
-        player.location.tell("%s arrives." % npc.title)
+        player.location.tell("%s arrives." % npc.title, extra_context=f'Location:{player.location.description}; {npc.character_card}')
         return npc
 
     @property

@@ -480,6 +480,7 @@ class TaleWsgiAppBase:
     def modify_web_page(self, player_connection: PlayerConnection, html_content: str) -> None:
         """Modify the html before it is sent to the browser."""
         if not "wizard" in player_connection.player.privileges:
+            html_content = html_content.replace('<label for="fileInput">Load character:</label>', '')
             html_content = html_content.replace('<input type="file" id="loadCharacterInput" accept=".json, .png, .jpeg, .jpg">', '')
         return html_content
 

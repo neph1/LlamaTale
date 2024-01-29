@@ -866,3 +866,27 @@ def do_set_goal(player: Player, parsed: base.ParseResult, ctx: util.Context) -> 
         player.tell("%s goal set to %s" % (character, parsed.args[1]))
     except ValueError as x:
         raise ActionRefused(str(x))
+
+@wizcmd("create_item")
+def do_create_item(player: Player, parsed: base.ParseResult, ctx: util.Context) -> None:
+    """Create an item in the current location."""
+    if len(parsed.args) < 1:
+        raise ParseError("You need to define an item type. Name and description are optional")
+    item_dict = dict()
+    item_dict['type'] = parsed.args[0]
+    if len(parsed.args) > 1:
+        item_dict['name'] = parsed.args[1]
+    if len(parsed.args) > 2:
+        item_dict['short_descr'] = parsed.args[2]
+    catalogue_item = ctx.driver.story._catalogue.get_item(item_dict['type'])
+    item = None
+    if catalogue_item:
+        item = parse_utils.load_items([catalogue_item])[catalogue_item['name']]
+        item.short_description = item_dict.get('short_descr', '')
+    if not item:
+        item = list(parse_utils.load_items([item_dict]).values())[0]
+    if item:
+        player.location.insert(item, actor=None)
+        player.tell(item.name + ' added.', evoke=False)
+    else:
+        raise ParseError("Item could not be added")

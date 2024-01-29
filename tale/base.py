@@ -619,12 +619,13 @@ class Weapon(Item):
         return "<Weapon '%s' #%d @ 0x%x>" % (self.name, self.vnum, id(self))
     
     def to_dict(self) -> Dict[str, Any]:
-        return {**super().to_dict(),**{
+        dict_values = {**super().to_dict(),**{
             "wc": self.wc,
             "base_damage": self.base_damage,
             "bonus_damage": self.bonus_damage,
             "weapon_type": self.type.name,
         }}
+        return {key: value for key, value in dict_values.items() if value != 0}
 
 
 class Armour(Item):
@@ -643,10 +644,11 @@ class Wearable(Item):
         self.wear_location = wear_location
 
     def to_dict(self) -> Dict[str, Any]:
-        return {**super().to_dict(),**{
+        dict_values =  {**super().to_dict(),**{
             "ac": self.ac,
             "wear_location": self.wear_location.name,
         }}
+        return {key: value for key, value in dict_values.items() if value != 0}
 
 class Location(MudObject):
     """

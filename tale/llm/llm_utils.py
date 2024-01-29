@@ -13,6 +13,7 @@ from tale.llm.llm_ext import DynamicStory
 from tale.llm.llm_io import IoUtil
 from tale.llm.contexts.DialogueContext import DialogueContext
 from tale.llm.quest_building import QuestBuilding
+from tale.llm.responses.ActionResponse import ActionResponse
 from tale.llm.story_building import StoryBuilding
 from tale.llm.world_building import WorldBuilding
 from tale.player_utils import TextBuffer
@@ -112,7 +113,6 @@ class LlmUtil():
                           target_description: str='', 
                           sentiment = '', 
                           location_description = '',
-                          event_history='',
                           short_len : bool=False):
         dialogue_context = DialogueContext(story_context=self.__story_context,
                                            location_description=location_description,
@@ -123,7 +123,6 @@ class LlmUtil():
                                            conversation=conversation)
         return self._character.generate_dialogue(context=dialogue_context,
                                                 sentiment=sentiment,
-                                                event_history=event_history,
                                                 short_len=short_len)
     
     def update_memory(self, rolling_prompt: str, response_text: str):
@@ -231,7 +230,7 @@ class LlmUtil():
             copy_single_image('./', image_name + '.jpg')
         return result
 
-    def free_form_action(self, location: Location, character_name: str,  character_card: str = '', event_history: str = ''):
+    def free_form_action(self, location: Location, character_name: str,  character_card: str = '', event_history: str = '') -> ActionResponse:
         action_context = ActionContext(story_context=self.__story_context,
                                        story_type=self.__story_type,
                                        character_name=character_name,

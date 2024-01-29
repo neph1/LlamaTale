@@ -1,6 +1,3 @@
-
-
-
 from tale.base import Item
 
 
