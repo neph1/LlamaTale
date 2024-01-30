@@ -5,8 +5,6 @@
 
 import json
 import os
-
-import yaml
 from tale import parse_utils
 from tale.base import Item, Weapon
 from tale.items.basic import Note
@@ -15,11 +13,8 @@ from tale.weapon_type import WeaponType
 def load() -> dict:
     items = dict()
     with open(os.path.realpath(os.path.join(os.path.dirname(__file__), "../../generic_items.json")), "r") as file:
-        try:
-            items = yaml.safe_load(file)
-        except yaml.YAMLError as exc:
-            print(exc)
-        return items
+        items = json.load(file, strict=False)
+    return items
 
 items = load()
 

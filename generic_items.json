@@ -64,11 +64,28 @@
         "value": 100
       }
     ],
+    "fantasy_items": [
+        {
+            "name": "Potion of healing",
+            "short_descr": "A potion of healing",
+            "weight": 0.5,
+            "value": 50,
+            "effect": 10,
+            "type": "Health"
+        }
+    ],
     "generic_various": [
       {
         "name": "Note",
         "weight": 0.1,
         "type": "Note"
+      },
+      {
+        "name": "Bread",
+        "weight": 0.5,
+        "short_descr": "A loaf of bread",
+        "effect": 10,
+        "type": "Food"
       }
     ]
   }
