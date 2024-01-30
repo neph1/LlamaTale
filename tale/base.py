@@ -1569,11 +1569,11 @@ class Living(MudObject):
     
     def do_on_death(self, ctx: util.Context) -> 'Container':
         """Called when the living dies."""
-        if not self.should_produce_remains:
-            return None
-        remains = Container(f"remains of {self.title}")
-        remains.init_inventory(self.inventory)
-        self.location.insert(remains, None)
+        remains = None
+        if self.should_produce_remains:
+            remains = Container(f"remains of {self.title}")
+            remains.init_inventory(self.inventory)
+            self.location.insert(remains, None)
         self.destroy(ctx)
         return remains
 
