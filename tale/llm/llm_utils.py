@@ -149,13 +149,20 @@ class LlmUtil():
                                                             story_type=self.__story_type,
                                                             world_info=self.__world_info,
                                                             world_mood=self.__story.config.world_mood)
-        return self._world_building.build_location(location, 
+        location = self._world_building.build_location(location, 
                                                     exit_location_name, 
                                                     zone_info,
                                                     context=world_generation_context,
                                                     world_creatures=world_creatures,
                                                     world_items=world_items,
                                                     neighbors=neighbors)
+        
+        if not location.avatar and self.__story.config.image_gen:
+            result = self.generate_image(location.name, location.description)
+            if result:
+                location.avatar = location.name + '.jpg'
+        return location
+                    
      
     def perform_idle_action(self, character_name: str, location: Location, character_card: str = '', sentiments: dict = {}, last_action: str = '', event_history: str = '') -> list:
         return self._character.perform_idle_action(character_name, location, self.__story_context, character_card, sentiments, last_action, event_history=event_history)

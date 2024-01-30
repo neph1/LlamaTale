@@ -652,11 +652,6 @@ class Driver(pubsub.Listener):
             if zone and zone.name != new_zone.name:
                 player.tell(f"You're entering {new_zone.name}:{new_zone.description}")
 
-        if self.story.config.custom_resources and not target_location.avatar:
-            result = self.llm_util.generate_image(target_location.name, target_location.description)
-            if result:
-                target_location.avatar = target_location.name
-                    
         if xt.enter_msg:
             player.tell(xt.enter_msg, end=True, evoke=False, short_len=True)
             player.tell("\n")
