@@ -20,7 +20,8 @@ class Cellar(Location):
     def spawn_rat(self, ctx: Context) -> None:
         rat_skull = Item("rat_skull", "giant rat skull", descr="It's a giant rat's bloody skull.")
         if not self.rat or self.rat.alive == False:
-            self.rat = Rat("giant rat", random.choice("m"), descr="A vicious looking, giant, rat", race="giant rat")
+            self.rat = Rat("giant rat", random.choice("m"), descr="A vicious looking, giant rat", race="giant rat")
+            self.rat.should_produce_remains = True
             self.rat.init_inventory([rat_skull])
             self.rat.move(self)
 
