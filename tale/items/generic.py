@@ -3,35 +3,40 @@
 """
 
 
+import json
+import os
+
+import yaml
+from tale import parse_utils
 from tale.base import Item, Weapon
 from tale.items.basic import Note
 from tale.weapon_type import WeaponType
 
-generic_weapons = [
-     Weapon(name="Dagger", weapon_type=WeaponType.ONE_HANDED, short_descr='A steel dagger', base_damage=1).to_dict(),
-     Weapon(name="Club", weapon_type=WeaponType.ONE_HANDED, short_descr='A wooden club', base_damage=1).to_dict(),
-]
+def load() -> dict:
+    items = dict()
+    with open(os.path.realpath(os.path.join(os.path.dirname(__file__), "../../generic_items.json")), "r") as file:
+        try:
+            items = yaml.safe_load(file)
+        except yaml.YAMLError as exc:
+            print(exc)
+        return items
 
-fantasy_weapons = [
-    Weapon(name="Sword", weapon_type=WeaponType.ONE_HANDED, short_descr='A plain sword', base_damage=2).to_dict(),
-    Weapon(name="Spear", weapon_type=WeaponType.TWO_HANDED, short_descr='A spear', base_damage=3).to_dict(),
-    Weapon(name='Crossbow', weapon_type=WeaponType.TWO_HANDED_RANGED, short_descr='A simple crossbow', base_damage=2).to_dict(),
-]
+items = load()
 
-modern_weapons = [
-    Weapon(name="Rusty pipe", weapon_type=WeaponType.ONE_HANDED, short_descr='A left-over piece of plumbing', base_damage=1).to_dict(),
-    Weapon(name='Semi-automatic pistol', weapon_type=WeaponType.ONE_HANDED_RANGED, short_descr='A pistol that has seen better days.', base_damage=2).to_dict(),
-]
-
-generic_various = [
-    Note(name="Note", weight=0.1).to_dict()
-]
-
+generic_weapons = items.get('generic_weapons', [])
+fantasy_weapons = items.get('fantasy_weapons', [])
+modern_weapons = items.get('modern_weapons', [])
+scifi_weapons = items.get('scifi_weapons', [])
+fantasy_items = items.get('fantasy_items', [])
+modern_items = items.get('modern_items', [])
+scifi_items = items.get('scifi_items', [])
+generic_various = items.get('generic_various', [])
 
 generic_items = {
-    'fantasy': [*generic_weapons, *fantasy_weapons, *generic_various],
-    'modern': [*generic_weapons, *modern_weapons, *generic_various],
-    'postapoc': [*generic_weapons, *modern_weapons, *generic_various],
+    'fantasy': [*generic_weapons, *fantasy_weapons, *fantasy_items, *generic_various],
+    'modern': [*generic_weapons, *modern_weapons, *modern_items, *generic_various],
+    'postapoc': [*generic_weapons, *modern_weapons, *modern_items, *generic_various],
+    'scifi': [*generic_weapons, *scifi_weapons, *scifi_items, *modern_weapons, *modern_items, *generic_various],
     '': [*generic_weapons, *generic_various],
 }
 

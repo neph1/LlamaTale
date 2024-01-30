@@ -1,0 +1,74 @@
+{
+    "generic_weapons": [
+      {
+        "name": "Dagger",
+        "weapon_type": "ONE_HANDED",
+        "short_descr": "A steel dagger",
+        "base_damage": 1,
+        "weight": 0.5,
+        "type": "Weapon"
+      },
+      {
+        "name": "Club",
+        "weapon_type": "ONE_HANDED",
+        "short_descr": "A wooden club",
+        "base_damage": 1,
+        "weight": 1,
+        "type": "Weapon"
+      }
+    ],
+    "fantasy_weapons": [
+      {
+        "name": "Sword",
+        "weapon_type": "ONE_HANDED",
+        "short_descr": "A plain sword",
+        "base_damage": 2,
+        "weight": 3,
+        "value": 20,
+        "type": "Weapon"
+      },
+      {
+        "name": "Spear",
+        "weapon_type": "TWO_HANDED",
+        "short_descr": "A spear",
+        "base_damage": 3,
+        "weight": 4,
+        "value": 10,
+        "type": "Weapon"
+      },
+      {
+        "name": "Crossbow",
+        "weapon_type": "TWO_HANDED_RANGED",
+        "short_descr": "A simple crossbow",
+        "base_damage": 2,
+        "weight": 5,
+        "value": 50,
+        "type": "Weapon"
+      }
+    ],
+    "modern_weapons": [
+      {
+        "name": "Rusty pipe",
+        "weapon_type": "ONE_HANDED",
+        "short_descr": "A left-over piece of plumbing",
+        "base_damage": 1,
+        "weight": 3,
+        "value": 1
+      },
+      {
+        "name": "Semi-automatic pistol",
+        "weapon_type": "ONE_HANDED_RANGED",
+        "short_descr": "A pistol that has seen better days.",
+        "base_damage": 2,
+        "weight": 2,
+        "value": 100
+      }
+    ],
+    "generic_various": [
+      {
+        "name": "Note",
+        "weight": 0.1,
+        "type": "Note"
+      }
+    ]
+  }
