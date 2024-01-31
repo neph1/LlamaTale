@@ -12,6 +12,9 @@ def generate_hash(item: str) -> int:
 def cache_event(event: str, event_hash: int = -1) -> int:
     """ Adds an event to the cache. 
     Generates a hash if none supplied"""
+    if not isinstance(event, str):
+        print('cache_look received non-string look: ' + str(event) + ' of type ' + str(type(event)) + '. Converting to string.')
+        event = str(event)
     if event_hash == -1:
         event_hash = generate_hash(event)
     if event_cache.get(event_hash) == None:
@@ -25,6 +28,9 @@ def get_events(event_hashes: [int]) -> str:
 def cache_look(look: str, look_hash: int = -1) -> int:
     """ Adds an event to the cache. 
     Generates a hash if none supplied"""
+    if not isinstance(look, str):
+        print('cache_look received non-string look: ' + str(look) + ' of type ' + str(type(look)) + '. Converting to string.')
+        look = str(look)
     if look_hash == -1:
         look_hash = generate_hash(look)
     if look_cache.get(look_hash) == None:

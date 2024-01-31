@@ -57,6 +57,21 @@ class TestLlmCache():
         with open("tests/files/test_cache.json", "w") as fp:
             json.dump(json_dump, fp, indent=4)
 
+    def test_cache_wrong_type(self):
+        """ Test cache_look function with wrong type """
+        hash = llm_cache.cache_look(1337)
+        assert llm_cache.get_looks([hash]) == "1337"
+
+        hash = llm_cache.cache_look(True)
+        assert llm_cache.get_looks([hash]) == "True"
+
+        hash = llm_cache.cache_event(1337)
+        assert llm_cache.get_events([hash]) == "1337"
+
+        hash = llm_cache.cache_event(True)
+        assert llm_cache.get_events([hash]) == "True"
+
+    
 
 
     
