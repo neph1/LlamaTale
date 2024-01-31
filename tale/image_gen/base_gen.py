@@ -1,10 +1,11 @@
+from abc import ABC
 import os
 import io
 import base64
 from PIL import Image
 
 
-class ImageGeneratorBase():
+class ImageGeneratorBase(ABC):
 
     def __init__(self, endpoint: str, address: str = 'localhost', port: int = 7860) -> None:
         self.address = address
