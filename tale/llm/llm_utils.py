@@ -88,7 +88,7 @@ class LlmUtil():
         if cached_look:
             return output_template.format(message=message, text=cached_look), rolling_prompt
         trimmed_message = parse_utils.remove_special_chars(str(message))
-        story_context = EvokeContext(story_context=self.__story_context, history=rolling_prompt if not skip_history or alt_prompt else '', extra_context=extra_context)
+        story_context = EvokeContext(story_context=self.__story_context, history=rolling_prompt if not (skip_history or alt_prompt) else '', extra_context=extra_context)
         prompt = self.pre_prompt
         prompt += alt_prompt or (self.evoke_prompt.format(
             context = '{context}',
@@ -227,7 +227,7 @@ class LlmUtil():
     def generate_note_lore(self, zone_info: dict) -> str:
         return self._world_building.generate_note_lore(context=self._get_world_context(), 
                                                         zone_info=zone_info)
-    
+    # visible for testing
     def generate_image(self, character_name: str, character_appearance: dict = '', save_path: str = "./resources", copy_file: bool = True) -> bool:
         if not self._image_gen:
             return False
