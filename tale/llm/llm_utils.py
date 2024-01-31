@@ -149,7 +149,7 @@ class LlmUtil():
                                                             story_type=self.__story_type,
                                                             world_info=self.__world_info,
                                                             world_mood=self.__story.config.world_mood)
-        location = self._world_building.build_location(location, 
+        new_locations, exits, npcs = self._world_building.build_location(location, 
                                                     exit_location_name, 
                                                     zone_info,
                                                     context=world_generation_context,
@@ -161,7 +161,7 @@ class LlmUtil():
             result = self.generate_image(location.name, location.description)
             if result:
                 location.avatar = location.name + '.jpg'
-        return location
+        return new_locations, exits, npcs
                     
      
     def perform_idle_action(self, character_name: str, location: Location, character_card: str = '', sentiments: dict = {}, last_action: str = '', event_history: str = '') -> list:
