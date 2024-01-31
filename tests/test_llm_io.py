@@ -95,6 +95,16 @@ class TestLlmIo():
         response = io_util.synchronous_request(request_body=json.loads(backend_config['DEFAULT_BODY']), prompt='test evoke', context='')
         assert(response == '')
 
+    def test_openai_grammar(self):
+        config_file = self._load_config()
+        config_file['BACKEND'] = 'openai'
+        backend_config = self._load_backend_config('openai')
+        io_util = IoUtil(config=config_file, backend_config=backend_config)
+        request_body = request_body = json.loads(backend_config['DEFAULT_BODY'])
+        request_body['grammar'] = 'test grammar'
+        response = io_util.synchronous_request(request_body=request_body, prompt='test evoke', context='')
+        assert(request_body['grammar_string'])
+
     @responses.activate
     def test_stream_kobold_cpp(self):
         config = {'BACKEND':'kobold_cpp', 'USER_START':'', 'USER_END':''}

@@ -74,6 +74,7 @@ class TestCombat():
         rat.should_produce_remains = True
         remains = rat.do_on_death(ctx)
         assert(remains)
+        assert(remains.location == rat.location)
         remains.location.remove(remains, None)
 
     def test_not_produce_remains(self):

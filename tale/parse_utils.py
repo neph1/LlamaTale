@@ -99,16 +99,16 @@ def load_items(json_items: [], locations = {}) -> dict:
             new_item = _init_money(item)
         elif item_type == 'Health':
             new_item = _init_health(item)
-            new_item.healing_effect=item.get('value', 10)
+            new_item.healing_effect=item.get('effect', 10)
         elif item_type == 'Food':
             new_item = _init_food(item)
-            new_item.affect_fullness=item.get('value', 10)
+            new_item.affect_fullness=item.get('effect', 10)
             new_item.poisoned=item.get('poisoned', False)
         elif item_type == 'Weapon':
             new_item = _init_weapon(item)
         elif item_type == 'Drink':
             new_item = _init_drink(item)
-            new_item.affect_thirst=item.get('value', 10)
+            new_item.affect_thirst=item.get('effect', 10)
             new_item.poisoned=item.get('poisoned', False)
         elif item_type == 'Container' or item_type == 'Boxlike':
             new_item = _init_boxlike(item)
@@ -319,7 +319,7 @@ def _init_wearable(item: dict):
                     value=item.get('value', 1))
     
 def set_note(note: Note, item: dict):
-    note.text = item['text']
+    note.text = item.get('text', '')
 
 def remove_special_chars(message: str):
     re.sub('[^A-Za-z0-9 .,_\-\'\"]+', '', message)

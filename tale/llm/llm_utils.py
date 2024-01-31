@@ -88,7 +88,7 @@ class LlmUtil():
         if cached_look:
             return output_template.format(message=message, text=cached_look), rolling_prompt
         trimmed_message = parse_utils.remove_special_chars(str(message))
-        story_context = EvokeContext(story_context=self.__story_context, history=rolling_prompt if not skip_history or alt_prompt else '', extra_context=extra_context)
+        story_context = EvokeContext(story_context=self.__story_context, history=rolling_prompt if not (skip_history or alt_prompt) else '', extra_context=extra_context)
         prompt = self.pre_prompt
         prompt += alt_prompt or (self.evoke_prompt.format(
             context = '{context}',
@@ -149,13 +149,20 @@ class LlmUtil():
                                                             story_type=self.__story_type,
                                                             world_info=self.__world_info,
                                                             world_mood=self.__story.config.world_mood)
-        return self._world_building.build_location(location, 
+        new_locations, exits, npcs = self._world_building.build_location(location, 
                                                     exit_location_name, 
                                                     zone_info,
                                                     context=world_generation_context,
                                                     world_creatures=world_creatures,
                                                     world_items=world_items,
                                                     neighbors=neighbors)
+        
+        if not location.avatar and self.__story.config.image_gen:
+            result = self.generate_image(location.name, location.description)
+            if result:
+                location.avatar = location.name + '.jpg'
+        return new_locations, exits, npcs
+                    
      
     def perform_idle_action(self, character_name: str, location: Location, character_card: str = '', sentiments: dict = {}, last_action: str = '', event_history: str = '') -> list:
         return self._character.perform_idle_action(character_name, location, self.__story_context, character_card, sentiments, last_action, event_history=event_history)
@@ -220,7 +227,7 @@ class LlmUtil():
     def generate_note_lore(self, zone_info: dict) -> str:
         return self._world_building.generate_note_lore(context=self._get_world_context(), 
                                                         zone_info=zone_info)
-    
+    # visible for testing
     def generate_image(self, character_name: str, character_appearance: dict = '', save_path: str = "./resources", copy_file: bool = True) -> bool:
         if not self._image_gen:
             return False
