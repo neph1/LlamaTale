@@ -3,7 +3,7 @@ import json
 import os
 import sys
 import yaml
-from tale.base import Location
+from tale.base import Location, MudObject
 from tale.image_gen.base_gen import ImageGeneratorBase
 from tale.llm.character import CharacterBuilding
 from tale.llm.contexts.ActionContext import ActionContext
@@ -16,6 +16,7 @@ from tale.llm.quest_building import QuestBuilding
 from tale.llm.responses.ActionResponse import ActionResponse
 from tale.llm.story_building import StoryBuilding
 from tale.llm.world_building import WorldBuilding
+from tale.player import PlayerConnection
 from tale.player_utils import TextBuffer
 import tale.parse_utils as parse_utils
 import tale.llm.llm_cache as llm_cache
@@ -47,29 +48,32 @@ class LlmUtil():
         self.word_limit = config_file['WORD_LIMIT']
         self.short_word_limit = config_file['SHORT_WORD_LIMIT']
         self.story_background_prompt = config_file['STORY_BACKGROUND_PROMPT'] # type: str
-        self.json_grammar = config_file['JSON_GRAMMAR'] # type: str
         self.__story = None # type: DynamicStory
         self.io_util = io_util or IoUtil(config=config_file, backend_config=backend_config)
         self.stream = backend_config['STREAM']
-        self.connection = None
+        self.connection = None # type: PlayerConnection
         self._image_gen = None # type: ImageGeneratorBase
         self.__story_context = ''
         self.__story_type = ''
         self.__world_info = ''
+        json_grammar_key = backend_config['JSON_GRAMMAR_KEY']
         
         #self._look_hashes = dict() # type: dict[int, str] # location hashes for look command. currently never cleared.
         self._world_building = WorldBuilding(default_body=self.default_body,
                                              io_util=self.io_util,
-                                             backend=self.backend)
+                                             backend=self.backend,
+                                             json_grammar_key=json_grammar_key)
         self._character = CharacterBuilding(backend=self.backend,
                                     io_util=self.io_util,
-                                    default_body=self.default_body)
+                                    default_body=self.default_body,
+                                             json_grammar_key=json_grammar_key)
         self._story_building = StoryBuilding(default_body=self.default_body,
                                              io_util=self.io_util,
                                              backend=self.backend)
         self._quest_building = QuestBuilding(default_body=self.default_body,
                                              io_util=self.io_util,
-                                             backend=self.backend)
+                                             backend=self.backend,
+                                             json_grammar_key=json_grammar_key)
 
     def evoke(self, message: str, short_len: bool=False, rolling_prompt: str = '', alt_prompt: str = '', extra_context: str = '', skip_history: bool = True):
         """Evoke a response from LLM. Async if stream is True, otherwise synchronous.
@@ -135,9 +139,7 @@ class LlmUtil():
     def generate_character(self, story_context: str = '', keywords: list = [], story_type: str = ''):
         character = self._character.generate_character(story_context, keywords, story_type)
         if not character.avatar and self.__story.config.image_gen:
-            result = self.generate_image(character.name, character.appearance)
-            if result:
-                character.avatar = character.name + '.jpg'
+            self.generate_image(character.name, character.appearance)
         return character
     
     def get_neighbor_or_generate_zone(self, current_zone: Zone, current_location: Location, target_location: Location) -> Zone:
@@ -158,9 +160,7 @@ class LlmUtil():
                                                     neighbors=neighbors)
         
         if not location.avatar and self.__story.config.image_gen:
-            result = self.generate_image(location.name, location.description)
-            if result:
-                location.avatar = location.name + '.jpg'
+            self.generate_image(location.name, location.description)
         return new_locations, exits, npcs
                     
      
@@ -228,14 +228,20 @@ class LlmUtil():
         return self._world_building.generate_note_lore(context=self._get_world_context(), 
                                                         zone_info=zone_info)
     # visible for testing
-    def generate_image(self, character_name: str, character_appearance: dict = '', save_path: str = "./resources", copy_file: bool = True) -> bool:
+    def generate_image(self, name: str, description: dict = '', save_path: str = "./resources", copy_file: bool = True, target: MudObject = None) -> bool:
         if not self._image_gen:
             return False
-        image_name = character_name.lower().replace(' ', '_')
-        result = self._image_gen.generate_image(prompt=character_appearance, save_path=save_path , image_name=image_name)
-        if result and copy_file:
-            copy_single_image('./', image_name + '.jpg')
-        return result
+        image_name = name.lower().replace(' ', '_')
+        if self._image_gen.generate_in_background:
+            on_complete = lambda : self.connection.io.send_data('{"data":"result", "id":"image"}'.format(result=image_name, image=name)) if self.connection else None
+            self._image_gen.generate_background(prompt=description, save_path=save_path , image_name=image_name, on_complete=on_complete)
+        else:
+            result = self._image_gen.generate_image(prompt=description, save_path=save_path , image_name=image_name)
+            if result and copy_file:
+                copy_single_image('./', image_name + '.jpg')
+            if result and target:
+                target.avatar = name + '.jpg'
+            return result
 
     def free_form_action(self, location: Location, character_name: str,  character_card: str = '', event_history: str = '') -> ActionResponse:
         action_context = ActionContext(story_context=self.__story_context,

@@ -18,7 +18,7 @@ from tale.load_character import CharacterV2
 
 class CharacterBuilding():
 
-    def __init__(self, backend: str, io_util: IoUtil, default_body: dict):
+    def __init__(self, backend: str, io_util: IoUtil, default_body: dict, json_grammar_key: str = ''):
         self.pre_prompt = llm_config.params['PRE_PROMPT']
         self.dialogue_prompt = llm_config.params['DIALOGUE_PROMPT']
         self.character_prompt = llm_config.params['CREATE_CHARACTER_PROMPT']
@@ -30,6 +30,7 @@ class CharacterBuilding():
         self.idle_action_prompt = llm_config.params['IDLE_ACTION_PROMPT']
         self.free_form_action_prompt = llm_config.params['ACTION_PROMPT']
         self.json_grammar = llm_config.params['JSON_GRAMMAR']
+        self.json_grammar_key = json_grammar_key
         self.dialogue_template = llm_config.params['DIALOGUE_TEMPLATE']
         self.action_template = llm_config.params['ACTION_TEMPLATE']
 
@@ -71,7 +72,8 @@ class CharacterBuilding():
                                               world_info='',
                                               keywords=', '.join(keywords))
         request_body = deepcopy(self.default_body)
-        request_body['grammar'] = self.json_grammar
+        if self.json_grammar_key:
+            request_body[self.json_grammar_key] = self.json_grammar
         result = self.io_util.synchronous_request(request_body, prompt=prompt)
         try:
             json_result = json.loads(parse_utils.sanitize_json(result))
@@ -148,7 +150,8 @@ class CharacterBuilding():
             previous_events=action_context.event_history.replace('<break>', '\n'),
             action_template=self.action_template)
         request_body = deepcopy(self.default_body)
-        request_body['grammar'] = self.json_grammar
+        if self.json_grammar_key:
+            request_body[self.json_grammar_key] = self.json_grammar
         try :
             text = self.io_util.synchronous_request(request_body, prompt=prompt, context=action_context.to_prompt_string())
             if not text:

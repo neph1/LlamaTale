@@ -28,9 +28,9 @@ class IoUtil():
 
     def synchronous_request(self, request_body: dict, prompt: str, context: str = '') -> str:
         """ Send request to backend and return the result """
-        if request_body.get('grammar', None) and self.backend == 'openai':
+        if request_body.get('grammar_string', None) and 'openai' in self.url:
             # TODO: temp fix for openai
-            request_body['grammar_string'] = request_body.pop('grammar')
+            request_body.pop('grammar_string')
             request_body['response_format'] = self.openai_json_format
         request_body = self.io_adapter.set_prompt(request_body, prompt, context)
         response = requests.post(self.url + self.endpoint, headers=self.headers, data=json.dumps(request_body))

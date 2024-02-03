@@ -10,12 +10,13 @@ from tale.quest import Quest, QuestType
 
 class QuestBuilding():
 
-    def __init__(self, backend: str, io_util: IoUtil, default_body: dict):
+    def __init__(self, backend: str, io_util: IoUtil, default_body: dict, json_grammar_key: str = ''):
         self.default_body = default_body
         self.pre_prompt = llm_config.params['PRE_PROMPT']
         self.backend = backend
         self.io_util = io_util
         self.json_grammar = llm_config.params['JSON_GRAMMAR']
+        self.json_grammar_key = json_grammar_key # Type: str
         self.quest_prompt = llm_config.params['QUEST_PROMPT']
         self.note_quest_prompt = llm_config.params['NOTE_QUEST_PROMPT']
         self.note_lore_prompt = llm_config.params['NOTE_LORE_PROMPT']
@@ -39,7 +40,8 @@ class QuestBuilding():
             context='{context}',
             zone_info=zone_info)
         request_body = deepcopy(self.default_body)
-        request_body['grammar'] = self.json_grammar
+        if self.json_grammar_key:
+            request_body[self.json_grammar_key] = self.json_grammar
         text = self.io_util.synchronous_request(request_body, prompt=prompt, context=context)
         quest_data = json.loads(parse_utils.sanitize_json(text))
         return Quest(name=quest_data['name'], type=QuestType[quest_data['type'].upper()], reason=quest_data['reason'], target=quest_data['target'])
