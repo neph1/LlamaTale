@@ -735,7 +735,7 @@ def do_examine(player: Player, parsed: base.ParseResult, ctx: util.Context) -> N
             last_action = living.action_history[-1:] if len(living.action_history) > 0 else 'Nothing'
             observed_event = living.get_observed_events(1) if len(living._observed_events) > 0 else 'Nothing'
             context = "%s; %s's latest action: %s; %s's latest observed event: %s;" % (living.description, living.title, last_action, living.title, observed_event)
-            player_tell("You look closely at %s" % (living.title), evoke=True)
+            player_tell("You look closely at %s" % (living.title), evoke=True, extra_context=context)
             return True
         if living.description:
             player_tell(living.description, evoke=True, short_len=False)
@@ -1740,15 +1740,18 @@ def do_wear(player: Player, parsed: base.ParseResult, ctx: util.Context) -> None
     """Wear an item."""
     if len(parsed.args) < 1:
         raise ParseError("You need to specify the item to wear")
+    wear_location = None
+    
     try:
         item = str(parsed.args[0])
     except ValueError as x:
         raise ActionRefused(str(x))
+
     if len(parsed.args) == 2:
         try:
             parsed_loc = str(parsed.args[1])
             wear_location = WearLocation[parsed_loc.upper()]
-        except ValueError:
+        except Exception:
             raise ActionRefused("Invalid location")
         
 
@@ -1756,6 +1759,33 @@ def do_wear(player: Player, parsed: base.ParseResult, ctx: util.Context) -> None
     if not result:
         raise ActionRefused("You don't have that item")
     player.set_wearable(result[0], wear_location=wear_location)
+
+@cmd("remove")
+def do_remove(player: Player, parsed: base.ParseResult, ctx: util.Context) -> None:
+    """Remove an item."""
+    if len(parsed.args) < 1:
+        raise ParseError("You need to specify the item to wear")
+    wear_location = None
+    item = None
+    try:
+        arg1 = str(parsed.args[0])
+        try:
+            wear_location = WearLocation[arg1.upper()]
+        except Exception:
+            pass
+        if not wear_location:
+            item = arg1
+    except ValueError as x:
+        raise ActionRefused(str(x))
+
+    if wear_location:
+        player.set_wearable(None, wear_location=wear_location)
+    elif item:
+        location = player.get_wearable_location(item)
+        if not location:
+            raise ActionRefused("You're not wearing that item")
+        player.set_wearable(None, wear_location=location)
+
 
 @cmd("save_story")
 def do_save(player: Player, parsed: base.ParseResult, ctx: util.Context) -> None:

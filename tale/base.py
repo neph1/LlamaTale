@@ -1563,6 +1563,13 @@ class Living(MudObject):
         """Return the wearable item at the given location, or None if no item is worn there."""
         return self.__wearing.get(location)
     
+    def get_wearable_location(self, wearable: str) -> Optional[wearable.WearLocation]:
+        """Return the location where the given wearable is worn, or None if it's not worn."""
+        for loc, item in self.__wearing.items():
+            if item.name == wearable:
+                return loc
+        return None
+    
     def get_worn_items(self) -> Iterable[Wearable]:
         """Return all items that are currently worn."""
         return self.__wearing.values()
