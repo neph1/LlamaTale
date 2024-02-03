@@ -1756,7 +1756,7 @@ def do_wear(player: Player, parsed: base.ParseResult, ctx: util.Context) -> None
         
 
     result = player.locate_item(item, include_location=False)
-    if not result:
+    if result == (None, None):
         raise ActionRefused("You don't have that item")
     player.set_wearable(result[0], wear_location=wear_location)
 

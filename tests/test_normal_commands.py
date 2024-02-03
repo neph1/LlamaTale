@@ -3,9 +3,9 @@ import cmd
 import pytest
 import tale
 from tale import wearable
-from tale.base import Item, Location, ParseResult, Wearable
+from tale.base import Item, Location, ParseResult, Weapon, Wearable
 from tale.cmds import normal
-from tale.errors import ParseError
+from tale.errors import ActionRefused, ParseError
 from tale.llm.LivingNpc import LivingNpc
 from tale.llm.llm_ext import DynamicStory
 from tale.llm.llm_utils import LlmUtil
@@ -93,6 +93,19 @@ class TestExamineCommand():
         normal.do_remove(self.test_player, parse_result, self.context)
         assert not item2 in self.test_player.get_worn_items()
 
+    def test_wear_wrong_args(self):
+        parse_result = ParseResult(verb='wear', args=[])
+        with pytest.raises(ParseError, match="You need to specify the item to wear"):
+            normal.do_wear(self.test_player, parse_result, self.context)
+
+        parse_result = ParseResult(verb='wear', args=['fancy gloves'])
+        with pytest.raises(ActionRefused, match="You don't have that item"):
+            normal.do_wear(self.test_player, parse_result, self.context)
+
+        parse_result = ParseResult(verb='wear', args=['fancy gloves', 'upper arm'])
+        with pytest.raises(ActionRefused, match="Invalid location"):
+            normal.do_wear(self.test_player, parse_result, self.context)
+
     def test_wear_part(self):
         item = Wearable('test hat', descr='a fancy test hat')
         self.io_util.set_response('test_hat worn')
@@ -100,3 +113,15 @@ class TestExamineCommand():
         self.test_player.insert(item, actor=None)
         normal.do_wear(self.test_player, parse_result, self.context)
         assert item in self.test_player.get_worn_items()
+
+    def test_wield(self):
+        item = Weapon('test sword', descr='a fancy test sword')
+        self.io_util.set_response('test_sword wielded')
+        parse_result = ParseResult(verb='wield', args=['test sword'])
+        self.test_player.insert(item, actor=None)
+        normal.do_wield(self.test_player, parse_result, self.context)
+        assert self.test_player.wielding == item
+
+        parse_result = ParseResult(verb='unwield', args=['test sword'])
+        normal.do_unwield(self.test_player, parse_result, self.context)
+        assert self.test_player.wielding != item
