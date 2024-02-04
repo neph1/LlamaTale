@@ -1,6 +1,4 @@
 import json
-import os
-import shutil
 
 import responses
 from tale import mud_context
@@ -17,7 +15,7 @@ from tale.llm.llm_utils import LlmUtil
 from tale.player import Player
 from tale.wearable import WearLocation
 from tale.zone import Zone
-from tests.supportstuff import FakeDriver, FakeIoUtil
+from tests.supportstuff import FakeDriver
 class TestLivingNpc():
 
     drink = Item("ale", "jug of ale", descr="Looks and smells like strong ale.")
@@ -83,6 +81,12 @@ class TestLivingNpc():
         npc.set_wearable(hat, wear_location=WearLocation.HEAD)
         assert npc.get_wearable( WearLocation.HEAD) == hat
         assert list(npc.get_worn_items()) == [hat]
+
+        location = npc.get_wearable_location(hat.name)
+        assert location == WearLocation.HEAD
+
+        npc.set_wearable(None, wear_location=WearLocation.HEAD)
+        assert npc.get_wearable(WearLocation.HEAD) == None
 
     def test_memory(self):
         npc = LivingNpc(name='test', gender='m', age=42, personality='')

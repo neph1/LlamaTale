@@ -17,12 +17,13 @@ from tale.zone import Zone
 
 class WorldBuilding():
 
-    def __init__(self, io_util: IoUtil, default_body: dict, backend: str = 'kobold_cpp'):
+    def __init__(self, io_util: IoUtil, default_body: dict, backend: str = 'kobold_cpp', json_grammar_key: str = ''):
         self.story_background_prompt = llm_config.params['STORY_BACKGROUND_PROMPT'] # Type: str
         self.backend = backend
         self.io_util = io_util
         self.default_body = default_body
         self.json_grammar = llm_config.params['JSON_GRAMMAR'] # Type: str
+        self.json_grammar_key = json_grammar_key # Type: str
         self.world_items_prompt = llm_config.params['WORLD_ITEMS'] # Type: str
         self.world_creatures_prompt = llm_config.params['WORLD_CREATURES'] # Type: str
         self.player_enter_prompt = llm_config.params['PLAYER_ENTER_PROMPT'] # Type: str
@@ -203,10 +204,6 @@ class WorldBuilding():
         })
         
         request_body = deepcopy(self.default_body)
-        if self.backend == 'kobold_cpp':
-            request_body['max_length'] = 750
-        elif self.backend == 'openai':
-            request_body['max_tokens'] = 750
         result = self.io_util.synchronous_request(request_body, prompt=prompt, context=context.to_prompt_string())
         try:
             return json.loads(parse_utils.sanitize_json(result))
@@ -240,7 +237,8 @@ class WorldBuilding():
         request_body = deepcopy(self.default_body)
         if self.backend == 'kobold_cpp':
             request_body = self._kobold_generation_prompt(request_body)
-        request_body['grammar'] = self.json_grammar
+        if self.json_grammar_key:
+            request_body[self.json_grammar_key] = self.json_grammar
         result = self.io_util.synchronous_request(request_body, prompt=prompt)
         try:
             json_result = json.loads(parse_utils.sanitize_json(result))
@@ -268,7 +266,8 @@ class WorldBuilding():
             request_body['max_length'] = 750
         elif self.backend == 'openai':
             request_body['max_tokens'] = 750
-        request_body['grammar'] = self.json_grammar
+        if self.json_grammar_key:
+            request_body[self.json_grammar_key] = self.json_grammar
         result = self.io_util.synchronous_request(request_body, prompt=prompt, context=context.to_prompt_string())
         try:
             json_result = json.loads(parse_utils.sanitize_json(result))
@@ -286,7 +285,8 @@ class WorldBuilding():
         request_body = deepcopy(self.default_body)
         if self.backend == 'kobold_cpp':
             request_body = self._kobold_generation_prompt(request_body)
-        request_body['grammar'] = self.json_grammar
+        if self.json_grammar_key:
+            request_body[self.json_grammar_key] = self.json_grammar
 
         result = self.io_util.synchronous_request(request_body, prompt=prompt, context=world_generation_context.to_prompt_string())
         try:
@@ -303,7 +303,8 @@ class WorldBuilding():
         request_body = deepcopy(self.default_body)
         if self.backend == 'kobold_cpp':
             request_body = self._kobold_generation_prompt(request_body)
-        request_body['grammar'] = self.json_grammar
+        if self.json_grammar_key:
+            request_body[self.json_grammar_key] = self.json_grammar
 
         result = self.io_util.synchronous_request(request_body, prompt=prompt, context=world_generation_context.to_prompt_string())
         try:
@@ -321,7 +322,8 @@ class WorldBuilding():
         request_body = deepcopy(self.default_body)
         if self.backend == 'kobold_cpp':
             request_body = self._kobold_generation_prompt(request_body)
-        request_body['grammar'] = self.json_grammar
+        if self.json_grammar_key:
+            request_body[self.json_grammar_key] = self.json_grammar
         
         result = self.io_util.synchronous_request(request_body, prompt=prompt, context=context.to_prompt_string())
         try:
@@ -363,7 +365,8 @@ class WorldBuilding():
         request_body['top_p'] = 0.6
         request_body['top_k'] = 0
         request_body['rep_pen'] = 1.0
-        request_body['grammar'] = self.json_grammar
+        if self.json_grammar_key:
+            request_body[self.json_grammar_key] = self.json_grammar
         #request_body['banned_tokens'] = ['```']
         return request_body
     

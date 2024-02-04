@@ -13,10 +13,6 @@ from tale.tio.iobase import IoAdapterBase
 
 class TestLlmIo():
 
-
-    
-    
-
     def _load_config(self) -> dict:
         with open(os.path.realpath(os.path.join(os.path.dirname(__file__), "../llm_config.yaml")), "r") as stream:
             try:
@@ -95,15 +91,61 @@ class TestLlmIo():
         response = io_util.synchronous_request(request_body=json.loads(backend_config['DEFAULT_BODY']), prompt='test evoke', context='')
         assert(response == '')
 
+    @responses.activate
     def test_openai_grammar(self):
         config_file = self._load_config()
         config_file['BACKEND'] = 'openai'
         backend_config = self._load_backend_config('openai')
+        responses.add(responses.POST, backend_config['URL'] + backend_config['ENDPOINT'],
+                    json={'results':['']}, status=500)
+        io_util = IoUtil(config=config_file, backend_config=backend_config)
+        request_body = request_body = json.loads(backend_config['DEFAULT_BODY'])
+        request_body['grammar_string'] = 'test grammar'
+        response = io_util.synchronous_request(request_body=request_body, prompt='test evoke', context='')
+        assert not request_body.get('grammar_string', None)
+        assert request_body['response_format']
+
+    @responses.activate
+    def test_openai_local_grammar(self):
+        config_file = self._load_config()
+        config_file['BACKEND'] = 'openai'
+        backend_config = self._load_backend_config('openai')
+        backend_config['URL'] = 'http://localhost:5001'
+        responses.add(responses.POST, backend_config['URL'] + backend_config['ENDPOINT'],
+                    json={'results':['']}, status=500)
+        io_util = IoUtil(config=config_file, backend_config=backend_config)
+        request_body = request_body = json.loads(backend_config['DEFAULT_BODY'])
+        request_body['grammar_string'] = 'test grammar'
+        response = io_util.synchronous_request(request_body=request_body, prompt='test evoke', context='')
+        assert request_body['grammar_string']
+        assert not request_body.get('response_format', None)
+
+
+    @responses.activate
+    def test_llamacpp_grammar(self):
+        backend_config = self._load_backend_config('llama_cpp')
+        responses.add(responses.POST, backend_config['URL'] + backend_config['ENDPOINT'],
+                    json={'results':['']}, status=500)
+        config_file = self._load_config()
+        config_file['BACKEND'] = 'llama_cpp'
         io_util = IoUtil(config=config_file, backend_config=backend_config)
         request_body = request_body = json.loads(backend_config['DEFAULT_BODY'])
         request_body['grammar'] = 'test grammar'
         response = io_util.synchronous_request(request_body=request_body, prompt='test evoke', context='')
-        assert(request_body['grammar_string'])
+        assert request_body['grammar'] == 'test grammar'
+
+    @responses.activate
+    def test_koboldcpp_grammar(self):
+        config_file = self._load_config()
+        config_file['BACKEND'] = 'kobold_cpp'
+        backend_config = self._load_backend_config('kobold_cpp')
+        responses.add(responses.POST, backend_config['URL'] + backend_config['ENDPOINT'],
+                    json={'results':['']}, status=500)
+        io_util = IoUtil(config=config_file, backend_config=backend_config)
+        request_body = request_body = json.loads(backend_config['DEFAULT_BODY'])
+        request_body['grammar'] = 'test grammar'
+        response = io_util.synchronous_request(request_body=request_body, prompt='test evoke', context='')
+        assert request_body['grammar'] == 'test grammar'
 
     @responses.activate
     def test_stream_kobold_cpp(self):

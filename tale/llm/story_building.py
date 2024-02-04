@@ -20,14 +20,3 @@ class StoryBuilding():
         request_body = self.default_body
         return self.io_util.synchronous_request(request_body, prompt=prompt)
     
-    def _kobold_generation_prompt(self, request_body: dict) -> dict:
-        """ changes some parameters for better generation of locations in kobold_cpp"""
-        request_body = request_body.copy()
-        request_body['stop_sequence'] = ['\n\n']
-        request_body['temperature'] = 0.5
-        request_body['top_p'] = 0.6
-        request_body['top_k'] = 0
-        request_body['rep_pen'] = 1.0
-        request_body['grammar'] = self.json_grammar
-        #request_body['banned_tokens'] = ['```']
-        return request_body

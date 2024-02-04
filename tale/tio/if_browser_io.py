@@ -68,6 +68,7 @@ class HttpIo(iobase.IoAdapterBase):
         self.__html_special = []       # type: List[str]   # special out of band commands (such as 'clear')
         self.__html_to_browser_lock = Lock()
         self.__new_html_available = Event()
+        self.__data_to_browser = []
 
     def destroy(self) -> None:
         self.__new_html_available.set()
@@ -82,6 +83,11 @@ class HttpIo(iobase.IoAdapterBase):
             self.__html_special.append(text)
             self.__new_html_available.set()
 
+    def append_data_to_browser(self, data: str) -> None:
+        with self.__html_to_browser_lock:
+            self.__data_to_browser.append(data)
+            self.__new_html_available.set()
+
     def get_html_to_browser(self) -> List[str]:
         with self.__html_to_browser_lock:
             html, self.__html_to_browser = self.__html_to_browser, []
@@ -91,6 +97,11 @@ class HttpIo(iobase.IoAdapterBase):
         with self.__html_to_browser_lock:
             special, self.__html_special = self.__html_special, []
             return special
+        
+    def get_data_to_browser(self) -> List[str]:
+        with self.__html_to_browser_lock:
+            data, self.__data_to_browser = self.__data_to_browser, []
+            return data
 
     def wait_html_available(self, timeout: float=None) -> None:
         self.__new_html_available.wait(timeout=timeout)
@@ -201,6 +212,9 @@ class HttpIo(iobase.IoAdapterBase):
                     chunk = html_escape(self.smartquotes(chunk), False)
             result.append(chunk)
         return "".join(result)
+    
+    def send_data(self, data: str) -> None:
+        self.append_data_to_browser(data)
 
 
 class TaleWsgiAppBase:
@@ -350,6 +364,7 @@ class TaleWsgiAppBase:
                 break
             html = conn.io.get_html_to_browser()
             special = conn.io.get_html_special()
+            data = conn.io.get_data_to_browser()
             if html or special:
                 location = conn.player.location # type : Optional[Location]
                 if conn.io.dont_echo_next_cmd:
@@ -374,6 +389,11 @@ class TaleWsgiAppBase:
                 result = "event: text\nid: {event_id}\ndata: {data}\n\n"\
                     .format(event_id=str(time.time()), data=json.dumps(response))
                 yield result.encode("utf-8")
+            elif data:
+                for d in data:
+                    result = "event: data\nid: {event_id}\ndata: {data}\n\n"\
+                        .format(event_id=str(time.time()), data=d)
+                    yield result.encode("utf-8")
             else:
                 yield "data: keepalive\n\n".encode("utf-8")
 

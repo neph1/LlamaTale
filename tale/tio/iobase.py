@@ -117,6 +117,10 @@ class IoAdapterBase:
     def pause(self, unpause: bool=False) -> None:
         """pause/ unpause the input loop"""
         raise NotImplementedError("implement this in subclass")
+    
+    def send_data(self, data: str) -> None:
+        """send data to the client. json dict as string"""
+        pass
 
     def tab_complete_get_all_candidates(self, driver) -> List[str]:
         return self.tab_complete("", driver, True)

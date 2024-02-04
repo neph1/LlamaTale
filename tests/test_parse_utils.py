@@ -60,7 +60,7 @@ class TestParseUtils():
         loaded_items = parse_utils.load_items(items['items'])
         assert(len(loaded_items) == 1)
         assert(loaded_items['Woolly gloves'])
-        assert(loaded_items['Woolly gloves'].wear_location == None)
+        assert(loaded_items['Woolly gloves'].wear_location == WearLocation.TORSO)
 
         items_string_with_loc = '{"items": [{"name":"Woolly gloves", "type":"Wearable", "wear_location":"HANDS"}]}'
 
