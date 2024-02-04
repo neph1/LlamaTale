@@ -641,7 +641,8 @@ class Wearable(Item):
     def __init__(self, name: str, weight: int = 0, value: int = 0, ac: int = 0, wear_location: wearable.WearLocation = wearable.WearLocation.TORSO, title: str = "", *, descr: str = "", short_descr: str = "") -> None:
         super().__init__(name, title, descr=descr, short_descr=short_descr, weight=weight, value=value)
         self.ac = ac
-        self.wear_location = wear_location
+        
+        self.wear_location = wear_location if wear_location else wearable.WearLocation.TORSO
 
     def to_dict(self) -> Dict[str, Any]:
         dict_values =  {**super().to_dict(),**{
@@ -1551,7 +1552,7 @@ class Living(MudObject):
             loc = wear_location if wear_location else wearable.wear_location
             self.__wearing[loc] = wearable
             self.tell_others("{Actor} puts on %s." % wearable.title, evoke=True, short_len=True)
-            self.tell("You put on %s." % wearable.title)
+            self.tell("You put on %s. %s" % (wearable.title, wear_location))
         elif wear_location:
             item = self.__wearing.pop(wear_location, None)
             if item:
@@ -1561,7 +1562,7 @@ class Living(MudObject):
 
     def get_wearable(self, location: wearable.WearLocation) -> Optional[Wearable]:
         """Return the wearable item at the given location, or None if no item is worn there."""
-        return self.__wearing.get(location)
+        return self.__wearing.get(location, None)
     
     def get_wearable_location(self, wearable: str) -> Optional[wearable.WearLocation]:
         """Return the location where the given wearable is worn, or None if it's not worn."""

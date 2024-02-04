@@ -82,6 +82,12 @@ class TestLivingNpc():
         assert npc.get_wearable( WearLocation.HEAD) == hat
         assert list(npc.get_worn_items()) == [hat]
 
+        location = npc.get_wearable_location(hat.name)
+        assert location == WearLocation.HEAD
+
+        npc.set_wearable(None, wear_location=WearLocation.HEAD)
+        assert npc.get_wearable(WearLocation.HEAD) == None
+
     def test_memory(self):
         npc = LivingNpc(name='test', gender='m', age=42, personality='')
         
