@@ -15,6 +15,7 @@ class Automatic1111(ImageGeneratorBase):
         with open(os.path.realpath(os.path.join(os.path.dirname(__file__), "../../automatic1111_config.yaml")), "r") as stream:
             try:
                 self.config = yaml.safe_load(stream)
+                self.generate_in_background = self.config['GENERATE_IN_BACKGROUND']
             except yaml.YAMLError as exc:
                 print(exc)
          

@@ -13,7 +13,7 @@ def cache_event(event: str, event_hash: int = -1) -> int:
     """ Adds an event to the cache. 
     Generates a hash if none supplied"""
     if not isinstance(event, str):
-        print('cache_look received non-string look: ' + str(event) + ' of type ' + str(type(event)) + '. Converting to string.')
+        print('cache_event received non-string look: ' + str(event) + ' of type ' + str(type(event)) + '. Converting to string.')
         event = str(event)
     if event_hash == -1:
         event_hash = generate_hash(event)

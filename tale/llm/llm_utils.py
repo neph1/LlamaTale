@@ -23,7 +23,6 @@ import tale.llm.llm_cache as llm_cache
 from tale.quest import Quest
 from tale.web.web_utils import copy_single_image
 from tale.zone import Zone
-from tale.image_gen.automatic1111 import Automatic1111
 
 class LlmUtil():
     """ Prepares prompts for various LLM requests"""
@@ -233,14 +232,22 @@ class LlmUtil():
             return False
         image_name = name.lower().replace(' ', '_')
         if self._image_gen.generate_in_background:
-            on_complete = lambda : self.connection.io.send_data('{"data":"result", "id":"image"}'.format(result=image_name, image=name)) if self.connection else None
-            self._image_gen.generate_background(prompt=description, save_path=save_path , image_name=image_name, on_complete=on_complete)
+
+            def on_complete():
+                 if self.connection:
+                    self.connection.io.send_data('{"data":"result", "id":"image"}'.format(result=image_name, image=name))
+                 if copy_file:  
+                    copy_single_image('./', image_name + '.jpg')
+                 if target:
+                    target.avatar = image_name + '.jpg'
+            #on_complete = lambda : self.connection.io.send_data('{"data":"result", "id":"image"}'.format(result=image_name, image=name)) if self.connection else None;copy_single_image('./', image_name + '.jpg') if copy_file else None;target.avatar = name + '.jpg' if target else None
+            return self._image_gen.generate_background(prompt=description, save_path=save_path , image_name=image_name, on_complete=on_complete)
         else:
             result = self._image_gen.generate_image(prompt=description, save_path=save_path , image_name=image_name)
             if result and copy_file:
                 copy_single_image('./', image_name + '.jpg')
             if result and target:
-                target.avatar = name + '.jpg'
+                target.avatar = image_name + '.jpg'
             return result
 
     def free_form_action(self, location: Location, character_name: str,  character_card: str = '', event_history: str = '') -> ActionResponse:
