@@ -63,5 +63,12 @@ class TestHttpIo:
             result = wsgi_app.modify_web_page(connection, contents)
         
         assert save_button not in result
+
+    def test_send_data(self):
+        http_io = HttpIo(player_connection=self.player_conn, wsgi_server=self.wsgi_server)
+
+        http_io.send_data('{"test": "test"}')
+
+        assert http_io.get_data_to_browser()[0] == '{"test": "test"}'
         
 
