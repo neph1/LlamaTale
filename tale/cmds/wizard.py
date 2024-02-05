@@ -838,32 +838,37 @@ def do_set_visible(player: Player, parsed: base.ParseResult, ctx: util.Context) 
 @wizcmd("set_description")
 def do_set_description(player: Player, parsed: base.ParseResult, ctx: util.Context) -> None:
     """Set description of any object."""
-    if len(parsed.args) != 2:
+    if len(parsed.args) < 2:
         raise ParseError("You need to specify the object and the description")
     try:
-        object = player.location.search_living(parsed.args[0])
+        arg1 = parsed.args[0]
+        object = player.location.search_living(arg1)
         if not object:
-            object = player.search_item(parsed.args[0], include_inventory=True, include_location=True)
-        if not object and player.location.name == parsed.args[0]:
+            object = player.search_item(arg1, include_inventory=True, include_location=True)
+        if not object and player.location.name == arg1:
             object = player.location
         if not object:
             raise ParseError("No object or location found")
-        object.description = parsed.args[1]
-        player.tell("%s description set to %s" % (object, parsed.args[1]))
+        description = parsed.unparsed.replace(arg1, '').strip()
+        object.description = description
+        player.tell("%s description set to %s" % (object, description))
     except ValueError as x:
         raise ActionRefused(str(x))
 
 @wizcmd("set_goal")
 def do_set_goal(player: Player, parsed: base.ParseResult, ctx: util.Context) -> None:
     """Set a goal for a LivingNpc."""
-    if len(parsed.args) != 2:
-        raise ParseError("You need to specify the character and the goal")
+    if not parsed.who_1:
+        raise ParseError("You need to specify a character")
+    if len(parsed.args) < 2:
+        raise ParseError("You need to specify a goal")
     try:
-        character = player.location.search_living(parsed.args[0])
+        character = player.location.search_living(parsed.who_1.name)
         if not character or not isinstance(character, LivingNpc):
             raise ParseError("No LivingNpc found")
-        character.goal = parsed.args[1]
-        player.tell("%s goal set to %s" % (character, parsed.args[1]))
+        goal = parsed.unparsed.replace(parsed.who_1.name, '').strip()
+        character.goal = goal
+        player.tell("%s goal set to %s" % (character, goal))
     except ValueError as x:
         raise ActionRefused(str(x))
 
