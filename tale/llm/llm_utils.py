@@ -250,7 +250,7 @@ class LlmUtil():
                 target.avatar = image_name + '.jpg'
             return result
 
-    def free_form_action(self, location: Location, character_name: str,  character_card: str = '', event_history: str = '') -> ActionResponse:
+    def free_form_action(self, location: Location, character_name: str,  character_card: str = '', event_history: str = '') -> list:
         action_context = ActionContext(story_context=self.__story_context,
                                        story_type=self.__story_type,
                                        character_name=character_name,

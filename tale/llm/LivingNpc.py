@@ -137,7 +137,7 @@ class LivingNpc(Living):
                                             sentiment=self.sentiments.get(actor.name, '') if actor else '')
         if action:
             self.action_history.append(action)
-            self._defer_result(action, verb='idle-action')
+            self._defer_result(action, verb='reaction')
 
     def handle_item_result(self, result: ItemHandlingResult, actor: Living) -> bool:
         if result.to == self.title:
@@ -210,13 +210,21 @@ class LivingNpc(Living):
             #self.location.notify_action(result, actor=self)
 
     def autonomous_action(self) -> str:
-        action = mud_context.driver.llm_util.free_form_action(character_card=self.character_card,
+        actions = mud_context.driver.llm_util.free_form_action(character_card=self.character_card,
                                             character_name=self.title,
                                             location=self.location,
-                                            event_history=llm_cache.get_events(self._observed_events)) # type: ActionResponse
-        if not action:
+                                            event_history=llm_cache.get_events(self._observed_events)) # type: [ActionResponse]
+        if not actions:
             return None
         
+        self.planned_actions.append(actions)
+        
+        defered_actions = []
+        defered_actions.extend(self._parse_action(actions.pop(0)))
+        
+        return '\n'.join(defered_actions)
+    
+    def _parse_action(self, action):
         defered_actions = []
         if action.goal:
             self.goal = action.goal
@@ -237,7 +245,7 @@ class LivingNpc(Living):
                 self.tell_others('\n' + text, evoke=False)
             defered_actions.append(f'"{text}"')
         if not action.action:
-            return '\n'.join(defered_actions)
+            return defered_actions
         if action.action == 'move':
             try:
                 exit = self.location.exits[action.target]
@@ -263,9 +271,7 @@ class LivingNpc(Living):
             if item:
                 self.set_wearable(item)
                 defered_actions.append(f"{self.title} wears {item.title}")
-
-        return '\n'.join(defered_actions)
-    
+        return defered_actions
 
     def _defer_result(self, action: str, verb: str="idle-action"):
         """ Defer an action to be performed at the next tick, 

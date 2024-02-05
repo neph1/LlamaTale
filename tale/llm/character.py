@@ -142,7 +142,7 @@ class CharacterBuilding():
         text = self.io_util.synchronous_request(request_body, prompt=prompt)
         return parse_utils.trim_response(text) + "\n"
     
-    def free_form_action(self, action_context: ActionContext) -> ActionResponse:
+    def free_form_action(self, action_context: ActionContext) -> list:
         prompt = self.pre_prompt
         prompt += self.free_form_action_prompt.format(
             context = '{context}',
@@ -157,7 +157,12 @@ class CharacterBuilding():
             if not text:
                 return None
             response = json.loads(parse_utils.sanitize_json(text))
-            return ActionResponse(response)
+            if isinstance(response, dict):
+                return [ActionResponse(response)]
+            actions = []
+            for action in response:
+                actions.append(ActionResponse(action))
+            return actions
         except Exception as exc:
             print('Failed to parse action ' + str(exc))
             return None
