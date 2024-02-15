@@ -240,12 +240,7 @@ class LivingNpc(Living):
             if action.target:
                 target = self.location.search_living(action.target)
                 if target:
-                    target.tell('\n' + text, evoke=False)
                     target.notify_action(ParseResult(verb='say', unparsed=text, who_list=[target]), actor=self)
-                else:
-                    self.tell_others('\n' + text, evoke=False)
-            else:
-                self.tell_others('\n' + text, evoke=False)
             defered_actions.append(f'"{text}"')
         if not action.action:
             return defered_actions

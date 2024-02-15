@@ -153,7 +153,6 @@ class TestLivingNpcActions():
     driver.story = story
     mud_context.config = story.config
     mud_context.driver = driver
-    mud_context.config.server_tick_method = 'TIMER'
 
     @responses.activate
     def test_do_say(self):
@@ -167,7 +166,7 @@ class TestLivingNpcActions():
 
     @responses.activate
     def test_idle_action(self):
-        
+        mud_context.config.server_tick_method = 'TIMER'
         npc = LivingNpc(name='test', gender='f', age=35, personality='')
         npc.autonomous = False
         responses.add(responses.POST, self.dummy_backend_config['URL'] + self.dummy_backend_config['ENDPOINT'],
@@ -179,6 +178,7 @@ class TestLivingNpcActions():
 
     @responses.activate
     def test_do_react(self):
+        mud_context.config.server_tick_method = 'TIMER'
         npc = LivingNpc(name='test', gender='m', age=44, personality='')
         npc2 = LivingNpc(name="actor", gender='f', age=32, personality='')
         action = ParseResult(verb='idle-action', unparsed='something happened', who_list=[npc])
