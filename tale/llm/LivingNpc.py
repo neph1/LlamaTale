@@ -1,4 +1,5 @@
 from tale.llm.item_handling_result import ItemHandlingResult
+from tale.llm import llm_config
 import tale.llm.llm_cache as llm_cache
 from tale import lang, mud_context, story
 from tale.base import ContainingType, Living, ParseResult
@@ -60,7 +61,8 @@ class LivingNpc(Living):
         elif (targeted and parsed.verb == "idle-action") or parsed.verb == "location-event":
             event_hash = llm_cache.cache_event(unpad_text(parsed.unparsed))
             self._observed_events.append(event_hash)
-            self._do_react(parsed, actor)
+            if not self.deferred_actions or llm_config.params['UNLIMITED_REACTS']:
+                self._do_react(parsed, actor)
         elif targeted and parsed.verb == "give":
             parsed_split = parsed.unparsed.split(" to ")
             
@@ -137,7 +139,7 @@ class LivingNpc(Living):
                                             sentiment=self.sentiments.get(actor.name, '') if actor else '')
         if action:
             self.action_history.append(action)
-            self._defer_result(action, verb='reaction')
+            self._defer_result(action, verb='idle-action')
 
     def handle_item_result(self, result: ItemHandlingResult, actor: Living) -> bool:
         if result.to == self.title:
