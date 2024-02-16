@@ -178,13 +178,25 @@ class TestLivingNpcActions():
 
     @responses.activate
     def test_do_react(self):
+        mud_context.config.server_tick_method = 'TIMER'
+        npc = LivingNpc(name='test', gender='m', age=44, personality='')
+        npc2 = LivingNpc(name="actor", gender='f', age=32, personality='')
+        action = ParseResult(verb='idle-action', unparsed='something happened', who_list=[npc])
+        responses.add(responses.POST, self.dummy_backend_config['URL'] + self.dummy_backend_config['ENDPOINT'],
+                  json={'results':[{'text':'"test happens back!"'}]}, status=200)
+        npc.notify_action(action, npc2)
+        assert(npc.deferred_actions == {'test : test happens back\n'})
+
+    @responses.activate
+    def test_do_react_deferred_exists(self):
         action = ParseResult(verb='idle-action', unparsed='something happened', who_info=None)
         npc = LivingNpc(name='test', gender='m', age=44, personality='')
+        npc.deferred_actions = {'test : existing action\n'}
         npc2 = LivingNpc(name="actor", gender='f', age=32, personality='')
         responses.add(responses.POST, self.dummy_backend_config['URL'] + self.dummy_backend_config['ENDPOINT'],
                   json={'results':[{'text':'"test happens back!"'}]}, status=200)
-        npc._do_react(action, npc2)
-        assert(npc.deferred_actions == {'test : test happens back\n'})
+        npc.notify_action(action, npc2)
+        assert(npc.deferred_actions == {'test : existing action\n'})
 
     @responses.activate
     def test_take_action(self):

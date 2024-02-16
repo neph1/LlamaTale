@@ -61,6 +61,8 @@ class CharacterBuilding():
             if not isinstance(item, str):
                 item = None
         except Exception as exc:
+            print(f'Failed to parse dialogue {exc}')
+            print(response)
             return None, None, None
         
         return text, item, new_sentiment
@@ -165,5 +167,6 @@ class CharacterBuilding():
             return actions
         except Exception as exc:
             print('Failed to parse action ' + str(exc))
+            print(text)
             return None
         
