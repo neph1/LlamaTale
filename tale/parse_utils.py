@@ -10,7 +10,6 @@ from tale.races import UnarmedAttack
 from tale.story import GameMode, MoneyType, TickMethod, StoryConfig
 from tale.weapon_type import WeaponType
 from tale.wearable import WearLocation
-from tale.zone import Zone
 import json
 import re
 import sys
@@ -86,7 +85,7 @@ def location_from_json(json_object: dict):
     location.built = json_object.get('built', True)
     return location
 
-def load_items(json_items: [], locations = {}) -> dict:
+def load_items(json_items: list, locations = {}) -> dict:
     """
         Loads and returns a dict of items from a supplied json dict
         Inserts into locations if supplied and has location
@@ -131,7 +130,7 @@ def load_items(json_items: [], locations = {}) -> dict:
             _insert(new_item, locations, item['location'])
     return items
 
-def load_npcs(json_npcs: [], locations = {}) -> dict:
+def load_npcs(json_npcs: list, locations = {}) -> dict:
     """
         Loads npcs and returns a dict from a supplied json dict
         May be custom classes, but be sure the class is available
@@ -636,7 +635,7 @@ def load_stats(json_stats: dict) -> Stats:
     stats.strength = json_stats['strength']
     stats.dexterity = json_stats['dexterity']
     if json_stats.get('unarmed_attack'):
-        stats.unarmed_attack = UnarmedAttack[json_stats['unarmed_attack'].upper()]
+        stats.unarmed_attack = Weapon(UnarmedAttack[json_stats['unarmed_attack'].upper()], WeaponType.UNARMED)
     if json_stats['weapon_skills']:
         json_skills = json_stats['weapon_skills']
         stats.weapon_skills = {}

@@ -997,7 +997,7 @@ class Stats:
         self.size = r.size
         self.hp = r.hp
         self.max_hp = r.hp
-        self.unarmed_attack = Weapon(name=r.unarmed_attack.name)
+        self.unarmed_attack = Weapon(r.unarmed_attack.name, weapon_type=WeaponType.UNARMED)
 
     def get_weapon_skill(self, weapon_type: WeaponType) -> int:
         return self.weapon_skills.get(weapon_type, 0)
