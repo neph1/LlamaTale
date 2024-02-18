@@ -75,6 +75,12 @@ class TestLivingNpc():
         assert('knife' in json_card['items'])
         assert(eval(json_card['wielding']) == knife.to_dict())
 
+        npc.wielding = None
+        card = npc.character_card
+        json_card = json.loads(card)
+        assert(eval(json_card['wielding']) == npc.stats.unarmed_attack.to_dict())
+
+
     def test_wearing(self):
         npc = LivingNpc(name='test', gender='m', age=42, personality='')
         hat = Item("hat", "hat", descr="A big hat.")

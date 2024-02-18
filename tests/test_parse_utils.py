@@ -1,11 +1,12 @@
 import datetime
 import json
 from tale import json_story, mud_context, util
-from tale.base import Exit, Location, Weapon, Wearable
+from tale.base import Exit, Living, Location, Weapon, Wearable
 from tale.coord import Coord
 from tale.driver_if import IFDriver
 from tale.items.basic import Boxlike, Drink, Food, Health, Money
 from tale.story import GameMode, MoneyType
+from tale.weapon_type import WeaponType
 from tale.wearable import WearLocation
 from tale.zone import Zone
 import tale.parse_utils as parse_utils
@@ -77,6 +78,8 @@ class TestParseUtils():
         driver = IFDriver(screen_delay=99, gui=False, web=True, wizard_override=True)
         driver.game_clock = util.GameDateTime(datetime.datetime(year=2023, month=1, day=1), 1)
         mud_context.driver = driver
+
+
         
         locations = {}
         locations['Royal grotto'] = Location('Royal grotto', 'A small grotto, fit for a kobold king')
@@ -84,16 +87,26 @@ class TestParseUtils():
         npcs = parse_utils.load_npcs(npcs_json, locations)
         assert(len(npcs) == 3)
 
+
         npc = npcs['Kobbo']
         assert(npc.title == 'Kobbo the King')
         assert(npc.location == locations['Royal grotto'])
         assert(npc.aliases.pop() == 'kobbo')
+        assert(isinstance(npc.stats.unarmed_attack, Weapon))
         npc2 = npcs['generated name']
         assert(npc2.name == 'generated name')
         assert(npc2.title == 'generated name')
         assert(npc2.aliases.pop() == 'generated')
+        assert(npc2.location == locations['Royal grotto'])
         npc3 = npcs['name']
+        assert(npc3.location == locations['Royal grotto'])
         assert(npc3.name == 'name')
+
+
+        saved_npcs = parse_utils.save_npcs(npcs.values())
+
+
+
 
     def test_load_npcs_generated(self):
         driver = IFDriver(screen_delay=99, gui=False, web=True, wizard_override=True)
@@ -310,3 +323,14 @@ class TestParseUtils():
         response = '*'  
         trimmed = parse_utils.trim_response(response)
         assert(trimmed == '')      
+
+    def test_save_and_load_stats(self):
+        npc = Living('test', gender='m')
+        unarmed = npc.stats.unarmed_attack
+        npc.stats.set_weapon_skill(WeaponType.UNARMED, 10)
+        json_stats = parse_utils.save_stats(npc.stats)
+        assert(json_stats['unarmed_attack'] == 'FISTS')
+        
+        loaded_stats = parse_utils.load_stats(json_stats)
+        assert(isinstance(loaded_stats.unarmed_attack, Weapon))
+        assert(loaded_stats.get_weapon_skill(WeaponType.UNARMED) == 10)
