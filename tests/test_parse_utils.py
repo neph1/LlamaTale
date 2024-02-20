@@ -326,7 +326,6 @@ class TestParseUtils():
 
     def test_save_and_load_stats(self):
         npc = Living('test', gender='m')
-        unarmed = npc.stats.unarmed_attack
         npc.stats.set_weapon_skill(WeaponType.UNARMED, 10)
         json_stats = parse_utils.save_stats(npc.stats)
         assert(json_stats['unarmed_attack'] == 'FISTS')
