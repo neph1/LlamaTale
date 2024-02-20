@@ -1,6 +1,8 @@
+import base64
 import json
 import responses
 from tale.image_gen.automatic1111 import Automatic1111
+from tale.image_gen.comfyui import ComfyUi
 from tale.llm.LivingNpc import LivingNpc
 from tale.llm.llm_utils import LlmUtil
 from tale.thread_utils import do_in_background
@@ -95,3 +97,45 @@ class TestAutomaticError():
         result = do_in_background(lambda_task)
 
         assert result == False
+
+class TestComfyUi():
+
+    history_response = '[{ "outputs": { "node_id_1": { "images": [ { "filename": "image1.jpg", "subfolder": "", "type": "output" } ] } } }]'
+
+
+    def setup_method(self):
+        with open('./tests/files/test.jpg', 'rb') as file:
+            file_response = file.read()
+        responses.add(responses.POST, 'http://127.0.0.1:8188/prompt', json=json.loads('{"prompt_id":0}'), status=200)
+        responses.add(responses.GET, 'http://127.0.0.1:8188/queue', json=json.loads('{"queue_pending":[], "queue_running":[]}'), status=200)
+        responses.add(responses.GET, 'http://127.0.0.1:8188/history',
+                  json=json.loads(self.history_response), status=200)
+        responses.add(responses.GET, 'http://127.0.0.1:8188/view',
+                  body=file_response, status=200)
+        self.image_generator = ComfyUi()
+
+    def test_image_gen_config(self):
+        image_generator = ComfyUi()
+        assert image_generator.config['ALWAYS_PROMPT'] == 'closeup'
+        assert image_generator.config['NEGATIVE_PROMPT'] == 'text, watermark, logo'
+        assert image_generator.config['SEED'] == -1
+        assert image_generator.config['SAMPLER'] == 'euler'
+        assert image_generator.config['STEPS'] == 30
+        assert image_generator.config['CFG_SCALE'] == 7.0
+        assert image_generator.config['WIDTH'] == 512
+        assert image_generator.config['HEIGHT'] == 512
+
+    @responses.activate
+    def test_image_gen(self):
+        result = self.image_generator.generate_image("Test image", "./tests/files", "test")
+        assert result == True
+
+    @responses.activate
+    def test_generate_avatar_npc(self):
+        llm_util = LlmUtil(FakeIoUtil()) # type: LlmUtil
+        llm_util._init_image_gen("ComfyUi")
+        npc = LivingNpc('test', 'f', age=30)
+        assert npc.avatar == None
+        result = llm_util.generate_image(description='test prompt', name='test name2', save_path='./tests/files', copy_file=False, target=npc)
+        assert npc.avatar == 'test_name2.jpg'
+        assert result == True
