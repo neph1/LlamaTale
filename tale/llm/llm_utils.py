@@ -138,7 +138,7 @@ class LlmUtil():
     def generate_character(self, story_context: str = '', keywords: list = [], story_type: str = ''):
         character = self._character.generate_character(story_context, keywords, story_type)
         if not character.avatar and self.__story.config.image_gen:
-            self.generate_image(character.name, character.appearance)
+            self.generate_image(character.name, f"{character.description}. Wearing: {','.join(character.wearing)}. Holding: {character.wielding}" )
         return character
     
     def get_neighbor_or_generate_zone(self, current_zone: Zone, current_location: Location, target_location: Location) -> Zone:
@@ -227,7 +227,7 @@ class LlmUtil():
         return self._world_building.generate_note_lore(context=self._get_world_context(), 
                                                         zone_info=zone_info)
     # visible for testing
-    def generate_image(self, name: str, description: dict = '', save_path: str = "./resources", copy_file: bool = True, target: MudObject = None) -> bool:
+    def generate_image(self, name: str, description: dict = '', save_path: str = "./resources", copy_file: bool = True, target: MudObject = None, id: str = None) -> bool:
         if not self._image_gen:
             return False
         image_name = name.lower().replace(' ', '_')
@@ -235,7 +235,7 @@ class LlmUtil():
 
             def on_complete():
                  if self.connection:
-                    self.connection.io.send_data('{"data":"result", "id":"image"}'.format(result=image_name, image=name))
+                    self.connection.io.send_data('{"data":"result", "id":"image"}'.format(result=image_name, image=id if id else name))
                  if copy_file:  
                     copy_single_image('./', image_name + '.jpg')
                  if target:
