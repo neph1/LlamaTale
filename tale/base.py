@@ -45,7 +45,7 @@ from weakref import WeakValueDictionary
 from collections import OrderedDict
 from textwrap import dedent
 from types import ModuleType
-from typing import Iterable, Any, Sequence, Optional, Set, Dict, Union, FrozenSet, Tuple, List, Type, no_type_check
+from typing import Callable, Iterable, Any, Sequence, Optional, Set, Dict, Union, FrozenSet, Tuple, List, Type, no_type_check
 from tale import resources_utils
 
 from tale.coord import Coord
@@ -1038,6 +1038,7 @@ class Living(MudObject):
         self.__wielding = None   # type: Optional[Weapon]
         self.__wearing = dict()  # type: Dict[str, wearable.Wearable]
         self.should_produce_remains = False
+        self.on_death_callback = None   # type: Callable[['Living']]
 
         super().__init__(name, title=title, descr=descr, short_descr=short_descr)
 
@@ -1582,6 +1583,8 @@ class Living(MudObject):
             remains = Container(f"remains of {self.title}")
             remains.init_inventory(self.inventory)
             self.location.insert(remains, None)
+        if self.on_death_callback:
+            self.on_death_callback(self)
         self.destroy(ctx)
         return remains
 

@@ -7,6 +7,7 @@ from tale.items.basic import Boxlike, Drink, Food, Health, Money, Note
 from tale.llm.LivingNpc import LivingNpc
 from tale.npc_defs import StationaryMob, StationaryNpc
 from tale.races import UnarmedAttack
+from tale.spawner import MobSpawner
 from tale.story import GameMode, MoneyType, TickMethod, StoryConfig
 from tale.weapon_type import WeaponType
 from tale.wearable import WearLocation
@@ -684,3 +685,11 @@ def save_weaponskills(weaponskills: dict) -> dict:
     for skill in weaponskills.keys():
         json_skills[skill.value] = weaponskills[skill]
     return json_skills
+
+def load_mob_spawners(json_spawners: list, locations: dict) -> list:
+    spawners = []
+    for spawner in json_spawners:
+        location = locations[spawner['location']]
+        mob_spawner = MobSpawner(spawner['mob_type'], location, spawner['spawn_rate'], spawner['spawn_limit'])
+        spawners.append(mob_spawner)
+    return spawners
