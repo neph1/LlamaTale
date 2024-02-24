@@ -279,10 +279,10 @@ class LivingNpc(Living):
         else:
             action = f"{self.title} : {action}"
         self.deferred_actions.add(action)
-        if mud_context.config.server_tick_method == story.TickMethod.COMMAND:
-            self.tell_action_deferred()
-        else:
-            mud_context.driver.defer(0.5, self.tell_action_deferred)
+        #if mud_context.config.server_tick_method == story.TickMethod.COMMAND:
+        self.tell_action_deferred()
+        #else:
+        #    mud_context.driver.defer(0.5, self.tell_action_deferred)
 
     def tell_action_deferred(self):
         actions = '\n'.join(self.deferred_actions) + '\n'
