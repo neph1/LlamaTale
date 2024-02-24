@@ -31,6 +31,14 @@ class TestJsonStory():
         assert(npc.stats.level == 1)
         assert(npc.stats.strength == 3)
         assert(self.story.get_item('hoodie').location.name == 'Cave entrance')
+
+        mob_spawner = self.story.world.mob_spawners[0]
+        assert(mob_spawner.mob_type == 'bat')
+        assert(mob_spawner.location.name == 'Cave entrance')
+        assert(mob_spawner.spawn_rate == 60)
+        assert(mob_spawner.spawn_limit == 5)
+        assert(mob_spawner.spawned == 0)
+
         zone_info = self.story.zone_info('Cave')
         assert(zone_info['description'] == 'A dark cave')
         assert(zone_info['races'] == ['kobold', 'bat', 'giant rat'])

@@ -1584,7 +1584,7 @@ class Living(MudObject):
             remains.init_inventory(self.inventory)
             self.location.insert(remains, None)
         if self.on_death_callback:
-            self.on_death_callback(self)
+            self.on_death_callback()
         self.destroy(ctx)
         return remains
 

@@ -828,7 +828,7 @@ class Driver(pubsub.Listener):
             self.deferreds = [d for d in self.deferreds if d.owner is not owner]
             heapq.heapify(self.deferreds)
 
-    def register_periodicals(self, obj: base.MudObject) -> None:
+    def register_periodicals(self, obj: Any) -> None:
         for func, period in util.get_periodicals(obj).items():
             assert len(period) == 3
             mud_context.driver.defer(period, func)

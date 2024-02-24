@@ -9,6 +9,7 @@ from tale.npc_defs import StationaryMob, StationaryNpc
 from tale.races import UnarmedAttack
 from tale.spawner import MobSpawner
 from tale.story import GameMode, MoneyType, TickMethod, StoryConfig
+from tale.util import call_periodically, call_periodically_method
 from tale.weapon_type import WeaponType
 from tale.wearable import WearLocation
 import json
@@ -146,32 +147,8 @@ def load_npcs(json_npcs: list, locations = {}) -> dict:
                 name = npc['name'].replace('the','').replace('The','').strip()
         else:
             name = npc['name']
-        if 'npc' in npc_type.lower():
-            
-            new_npc = StationaryNpc(name=name, 
-                                gender=lang.validate_gender(npc.get('gender', 'm')[0]), 
-                                race=npc.get('race', 'human').lower(), 
-                                title=npc.get('title', name), 
-                                descr=npc.get('descr', ''), 
-                                short_descr=npc.get('short_descr', npc.get('description', '')), 
-                                age=npc.get('age', 0), 
-                                personality=npc.get('personality', ''), 
-                                occupation=npc.get('occupation', ''))
-            new_npc.aliases.add(name.split(' ')[0].lower())
-            new_npc.stats.set_weapon_skill(WeaponType.UNARMED, random.randint(10, 30))
-            new_npc.stats.level = npc.get('level', 1)
-        else:
+        new_npc = _load_npc(npc, name, npc_type)
 
-            new_npc = StationaryMob(name=npc['name'], 
-                                gender=lang.validate_gender(npc.get('gender', 'm')[0]), 
-                                race=npc.get('race', 'human').lower(), 
-                                title=npc.get('title', npc['name']), 
-                                descr=npc.get('descr', ''), 
-                                short_descr=npc.get('short_descr', npc.get('description', '')))
-            new_npc.aliases.add(name.split(' ')[0].lower())
-            new_npc.stats.set_weapon_skill(WeaponType.UNARMED, random.randint(10, 30))
-            new_npc.stats.level = npc.get('level', 1)
-        new_npc.autonomous = npc.get('autonomous', False)
         if npc.get('stats', None):
             new_npc.stats = load_stats(npc['stats'])
 
@@ -183,6 +160,34 @@ def load_npcs(json_npcs: list, locations = {}) -> dict:
 
         npcs[name] = new_npc
     return npcs
+
+def _load_npc(npc: dict, name: str = None, npc_type: str = 'Mob'):
+    if 'npc' in npc_type.lower():
+        new_npc = StationaryNpc(name=name, 
+                            gender=lang.validate_gender(npc.get('gender', 'm')[0]), 
+                            race=npc.get('race', 'human').lower(), 
+                            title=npc.get('title', name), 
+                            descr=npc.get('descr', ''), 
+                            short_descr=npc.get('short_descr', npc.get('description', '')), 
+                            age=npc.get('age', 0), 
+                            personality=npc.get('personality', ''), 
+                            occupation=npc.get('occupation', ''))
+        new_npc.aliases.add(name.split(' ')[0].lower())
+        new_npc.stats.set_weapon_skill(WeaponType.UNARMED, random.randint(10, 30))
+        new_npc.stats.level = npc.get('level', 1)
+    else:
+
+        new_npc = StationaryMob(name=npc['name'], 
+                            gender=lang.validate_gender(npc.get('gender', 'm')[0]), 
+                            race=npc.get('race', 'human').lower(), 
+                            title=npc.get('title', npc['name']), 
+                            descr=npc.get('descr', ''), 
+                            short_descr=npc.get('short_descr', npc.get('description', '')))
+        new_npc.aliases.add(name.split(' ')[0].lower())
+        new_npc.stats.set_weapon_skill(WeaponType.UNARMED, random.randint(10, 30))
+        new_npc.stats.level = npc.get('level', 1)
+    new_npc.autonomous = npc.get('autonomous', False)
+    return new_npc
 
 def load_story_config(json_file: dict):
     config = StoryConfig()
@@ -686,10 +691,24 @@ def save_weaponskills(weaponskills: dict) -> dict:
         json_skills[skill.value] = weaponskills[skill]
     return json_skills
 
-def load_mob_spawners(json_spawners: list, locations: dict) -> list:
+def load_mob_spawners(json_spawners: list, locations: dict, creatures: list) -> list:
     spawners = []
     for spawner in json_spawners:
         location = locations[spawner['location']]
-        mob_spawner = MobSpawner(spawner['mob_type'], location, spawner['spawn_rate'], spawner['spawn_limit'])
+        if not location:
+            print(f"Location {spawner['location']} not found")
+            continue
+        mob_type = spawner['mob_type']
+        mob = None
+        for creature in creatures:
+            if creature['name'] == mob_type:
+                mob = _load_npc(creature, mob_type)
+                break
+        if not mob:
+            print(f"Mob {mob_type} not in catalogue")
+            continue
+        mob_spawner = MobSpawner(mob, location, spawner['spawn_rate'], spawner['spawn_limit'])
+        #MyClass.do_idle_action = call_periodically(my_class_instance.interval1, my_class_instance.interval2)(MyClass.do_idle_action)
+
         spawners.append(mob_spawner)
     return spawners

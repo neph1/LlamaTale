@@ -1,28 +1,48 @@
 
 
+from functools import wraps
+import random
+import time
 from typing import Type
+
+from click import Context
+from tale import mud_context, util
 from tale.base import Living, Location
+from tale.errors import TaleError
 from tale.util import call_periodically
 
-
 class MobSpawner():
-    def __init__(self, mob_type: Type['Living'] , location: Location, spawn_rate: int, spawn_limit: int):
-        self.mob_type = mob_type # type 
+    def __init__(self, mob_type: Living , location: Location, spawn_rate: int, spawn_limit: int):
+        self.mob_type = mob_type # type 'Living'
         self.location = location
         self.spawn_rate = spawn_rate
         self.spawn_limit = spawn_limit
         self.spawned = 0
+        self.max_spawns = -1
+        self.randomize_gender = True
+        self.randomize_stats = True
+        self.time = 0
+        mud_context.driver.register_periodicals(self)
 
+    @call_periodically(15)
     def spawn(self):
+        self.time += 15
+        if self.time < self.spawn_rate:
+            return
+        self.time -= self.spawn_rate
+        if self.max_spawns == 0:
+            return None
         if self.spawned < self.spawn_limit:
             self.spawned += 1
-            mob = self.mob_type()
-            mob.do_on_death = self.remove_mob
+            if self.max_spawns > 0:
+                self.max_spawns -= 1
+            mob = self._clone_mob()
+            mob.do_on_death = lambda ctx: self.remove_mob()
             self.location.insert(mob)
             return mob
         return None
     
-    def remove_mob(self, mob):
+    def remove_mob(self):
         self.spawned -= 1
 
     def reset(self):
@@ -35,7 +55,11 @@ class MobSpawner():
             "location": self.location.name,
             "spawn_rate": self.spawn_rate,
             "spawn_limit": self.spawn_limit,
-            "spawned": self.spawned
+            "spawned": self.spawned,
+            "max_spawns": self.max_spawns,
+            "randomize_gender": self.randomize_gender,
+            "randomize_stats": self.randomize_stats
+
         }
     
     def from_json(self, data):
@@ -44,7 +68,15 @@ class MobSpawner():
         self.spawn_rate = data["spawn_rate"]
         self.spawn_limit = data["spawn_limit"]
         self.spawned = data["spawned"]
+        self.max_spawns = data["max_spawns"]
+        self.randomize_gender = data["randomize_gender"]
+        self.randomize_stats = data["randomize_stats"]
 
+    def _clone_mob(self):
+        gender = self.mob_type.gender
+        if self.randomize_gender:
+            gender = "m" if random.randint(0, 1) == 0 else "f"
+        return self.mob_type.__class__(self.mob_type.name, gender)
 # Example usage
 # spawner = MobSpawner("Zombie", 50, 10)
 # spawner.spawn = call_periodically(40, 60)(spawner.spawn)

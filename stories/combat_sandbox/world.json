@@ -1,0 +1,105 @@
+{
+    "story": {
+        "name": "Combat Sandbox"
+    },
+    "zones": {
+        "Arena": {
+            "description": "Arena",
+            "level": 1,
+            "mood": 3,
+            "races": [],
+            "items": [],
+            "size": 5,
+            "center": [
+                0,
+                0,
+                0
+            ],
+            "name": "Arena",
+            "locations": [
+                {
+                    "name": "Pit",
+                    "descr": "A large pit in the center of the arena. It is filled with sand and blood.",
+                    "short_descr": "",
+                    "exits": [],
+                    "world_location": [
+                        "0",
+                        "0",
+                        "0"
+                    ],
+                    "built": false
+                }
+            ]
+        }
+    },
+    "world": {
+        "npcs": {
+        },
+        "items": {
+            "sword": {
+                "name": "sword",
+                "title": "sword",
+                "short_descr": "A rusty sword",
+                "descr": "A sword that has seen better days. It's stained with blood and rust and the blade is chipped.",
+                "location": "Pit",
+                "type": "Weapon",
+                "wc": 1,
+                "weapon_type": "ONE_HANDED",
+                "base_damage": 1,
+                "bonus_damage": 0,
+                "weight": 0.0,
+                "value": 1
+            },
+            "breast_plate": {
+                "name": "breast_plate",
+                "title": "Breast Plate",
+                "short_descr": "A battered breast plate",
+                "descr": "A battered breast plate that has seen better days. It's dented and scratched, but it's better than nothing.",
+                "location": "Pit",
+                "type": "Wearable",
+                "weight": 0.0,
+                "value": 1,
+                "ac": 2,
+                "wear_location": "TORSO"
+            }
+        },
+        "spawners": [
+            {
+                "mob_type": "giant rat",
+                "location": "Pit",
+                "spawn_rate": 15,
+                "spawn_limit": 2,
+                "spawned": 0
+            }
+        ]
+    },
+    "catalogue": {
+        "items": [],
+        "creatures": [
+            {
+                "name": "giant rat",
+                "short_descr": "A giant, rabid rat",
+                "descr": "A giant, rabid rat is here, gnashing its teeth and looking for something to eat.",
+                "type": "Mob",
+                "gender": "m",
+                "level": 1,
+                "stats": {
+                    "ac": 0,
+                    "hp": 5,
+                    "max_hp": 5,
+                    "level": 1,
+                    "weapon_skills": {
+                        "6": 24
+                    },
+                    "gender": "m",
+                    "alignment": 0,
+                    "weight": 72.0,
+                    "xp": 0,
+                    "strength": 3,
+                    "dexterity": 3,
+                    "unarmed_attack": "BITE"
+                    }
+                }
+        ]
+    }
+}

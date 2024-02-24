@@ -1,0 +1,30 @@
+{
+    "name": "Combat Sandbox",
+    "author": "test author",
+    "author_address": "",
+    "version": "1.0",
+    "supported_modes": [
+        "IF"
+    ],
+    "player_name": "player",
+    "player_gender": "f",
+    "player_race": "human",
+    "player_money": 0.0,
+    "money_type": "NOTHING",
+    "server_tick_method": "TIMER",
+    "server_tick_time": 5.0,
+    "gametime_to_realtime": 1,
+    "display_gametime": false,
+    "startlocation_player": "Arena.Pit",
+    "startlocation_wizard": "Arena.Pit",
+    "zones": [
+        "Arena"
+    ],
+    "server_mode": "IF",
+    "npcs": "guests",
+    "items": "",
+    "context": "",
+    "type": "A combat arena",
+    "world_info": "",
+    "world_mood": 0
+}
