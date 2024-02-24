@@ -3,6 +3,7 @@ from tale.base import Weapon
 from tale.llm.LivingNpc import LivingNpc
 from tale.combat import Combat
 from tale.weapon_type import WeaponType
+from tale.wearable import WearLocation
 from tests.supportstuff import FakeDriver
 import tale.combat as combat
 import tale.util as util
@@ -119,3 +120,22 @@ class TestCombat():
         assert('A large arena' in combat_prompt)
         assert('Giant Rat' in combat_prompt)
 
+    def test_resolve_body_part(self):
+        attacker = LivingNpc(name='attacker', gender='f', age=37, personality='A fierce fighter')
+        defender = LivingNpc(name='defender', gender='m', age=42, personality='A ranged fighter')
+
+        combat = Combat(attacker, defender)
+
+        body_part = combat.resolve_body_part(attacker, size_factor=1.0)
+
+        assert isinstance(body_part, WearLocation)
+
+        body_part = combat.resolve_body_part(attacker, size_factor=1000.0)
+
+        assert body_part != WearLocation.FEET
+        assert body_part != WearLocation.LEGS
+
+        body_part = combat.resolve_body_part(attacker, size_factor=0.001)
+
+        assert body_part != WearLocation.HEAD
+        assert body_part != WearLocation.TORSO

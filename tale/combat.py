@@ -6,9 +6,15 @@ Util class for combat related functions.
 
 import random
 from tale import weapon_type
+from tale.races import BodyType
 import tale.util as util
 import tale.base as base
 from tale.util import Context
+from tale.wearable import WearLocation
+from tale.wearable import WearLocation
+import random
+from collections import Counter
+import random
 
 class Combat():
 
@@ -37,8 +43,39 @@ class Combat():
             weapon = actor.wielding
             return actor.stats.wc + 1 + random.randint(1, weapon.base_damage) + weapon.bonus_damage
 
-    def _calculate_armor_bonus(self, actor: 'base.Living'):
+    def _calculate_armor_bonus(self, actor: 'base.Living', body_part: WearLocation = None):
+            if body_part:
+                wearable = actor.get_wearable(body_part)
+                return wearable.ac if wearable else 1
             return actor.stats.ac + 1
+    
+    def resolve_body_part(self, defender: 'base.Living', size_factor: float, target_part: WearLocation = None) -> WearLocation:
+        """ Resolve the body part that was hit. """
+        if defender.stats.bodytype != BodyType.HUMANOID:
+            return WearLocation.FULL_BODY
+
+        locations = list(WearLocation)[1:-1]
+        probability_distribution = self.create_probability_distribution(locations, size_factor=size_factor, target_part=target_part)
+        
+        return random.choices(list(probability_distribution.keys()), list(probability_distribution.values()))[0]
+            
+    def create_probability_distribution(self, locations, size_factor: float = 1.0, target_part: WearLocation = None):
+        distribution = Counter(locations)
+        total_items = sum(distribution.values())
+        
+        if size_factor != 1.0:
+            distribution[WearLocation.HEAD] *= size_factor
+            distribution[WearLocation.TORSO] *= size_factor
+            distribution[WearLocation.LEGS] /= size_factor
+            distribution[WearLocation.FEET] /= size_factor
+        
+        if target_part:
+            distribution[target_part] *= 2
+
+        probability_distribution = {location: count / (total_items + 2) for location, count in distribution.items()}
+        total_probability = sum(probability_distribution.values())
+        normalized_distribution = {location: probability / total_probability for location, probability in probability_distribution.items()}
+        return normalized_distribution
     
     def resolve_attack(self) -> (str, int, int):
         """ Both attacker and defender attack each other once.
@@ -74,13 +111,14 @@ class Combat():
                 block_result = self._calculate_block_success(actor1, actor2)
             
             if block_result < 0:
-                texts.append(f'{actor2.title} blocks')
+                texts.append(f'but {actor2.title} blocks')
             else:
                 actor1_strength = self._calculate_weapon_bonus(actor1) * actor1.stats.size.order
-                actor2_strength = self._calculate_armor_bonus(actor2) * actor2.stats.size.order
+                body_part = self.resolve_body_part(actor2, actor1.stats.size.order / actor2.stats.size.order)
+                actor2_strength = self._calculate_armor_bonus(actor2, body_part) * actor2.stats.size.order
                 damage_to_defender = int(max(0, actor1_strength - actor2_strength))
                 if damage_to_defender > 0:
-                    texts.append(f', {actor2.title} is injured')
+                    texts.append(f', {actor2.title} is injured in the {body_part.name.lower()}')
                 else:
                     texts.append(f', {actor2.title} is unharmed')
                 return texts, damage_to_defender

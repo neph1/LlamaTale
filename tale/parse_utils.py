@@ -9,7 +9,6 @@ from tale.npc_defs import StationaryMob, StationaryNpc
 from tale.races import UnarmedAttack
 from tale.spawner import MobSpawner
 from tale.story import GameMode, MoneyType, TickMethod, StoryConfig
-from tale.util import call_periodically, call_periodically_method
 from tale.weapon_type import WeaponType
 from tale.wearable import WearLocation
 import json
@@ -708,7 +707,5 @@ def load_mob_spawners(json_spawners: list, locations: dict, creatures: list) -> 
             print(f"Mob {mob_type} not in catalogue")
             continue
         mob_spawner = MobSpawner(mob, location, spawner['spawn_rate'], spawner['spawn_limit'])
-        #MyClass.do_idle_action = call_periodically(my_class_instance.interval1, my_class_instance.interval2)(MyClass.do_idle_action)
-
         spawners.append(mob_spawner)
     return spawners
