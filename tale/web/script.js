@@ -72,11 +72,13 @@ function process_text(json)
                     }
         if(json["text"]) {
             document.getElementById("player-location").innerHTML = json["location"];
+            txtdiv.innerHTML += json["text"];
+            if(!document.smoothscrolling_busy) smoothscroll(txtdiv, 0);
             if (json.hasOwnProperty("npcs")) {
                 let npcs = json["npcs"];
                 populateNpcDropdown(npcs);
                 document.getElementById('npcs-in-location').innerHTML = npcs;
-            }
+                            }
             if(json.hasOwnProperty("items")) {
                 document.getElementById('items-in-location').innerHTML = json["items"];
             }
@@ -84,8 +86,12 @@ function process_text(json)
                 document.getElementById('exits-in-location').innerHTML = json["exits"];
             }
             setLocationImage(json["location"].toLowerCase().replace(/ /g, '_') + '.jpg');
-            txtdiv.innerHTML += json["text"];
-            if(!document.smoothscrolling_busy) smoothscroll(txtdiv, 0);
+            
+        }
+        if(json.hasOwnProperty("data")) {
+            id = json["id"]; // where to put the image
+            data = json["data"];   // the image data
+            document.getElementById(id).src = data;
         }
     }
 }
@@ -119,11 +125,10 @@ function submit_cmd()
         cmd_input.value = selectedAction + ' ' + cmd_input.value;
     }
     if (selectedNpc && selectedNpc !== 'None') {
-        const trimmed_name = selectedNpc.replace(/ /g, '_');
         if (cmd_input.value.includes('say')) {
-            npcAddress = ' to ' + trimmed_name;
+            npcAddress = ' to ' + selectedNpc;
         } else {
-            npcAddress = ' ' + trimmed_name;
+            npcAddress = ' ' + selectedNpc;
         }
     }
     var encoded_cmd = encodeURIComponent(cmd_input.value + npcAddress);
@@ -193,14 +198,12 @@ function updateImage() {
 }
 
 function populateNpcDropdown(csvString) {
-    // Split the comma-separated string into an array
     var npcsArray = csvString.split(',');
 
-    // Get the dropdown element
     var dropdown = document.getElementById('npc-dropdown');
     let lastSelected = dropdown.value;
     dropdown.innerHTML = '';
-    // Loop through the options array and add each option to the dropdown
+    
     var option = document.createElement('option');
     option.value = none_action;
     option.text = none_action;
@@ -223,7 +226,7 @@ function populateActionDropdown() {
     let lastSelected = dropdown.value;
     dropdown.innerHTML = '';
     // Loop through the options array and add each option to the dropdown
-    var actions = [none_action, 'say', 'give', 'take', 'use', 'attack', 'look', 'examine', 'open', 'close', 'loot', 'wear', 'wield'];
+    var actions = [none_action, 'say', 'give', 'take', 'use', 'attack', 'look', 'examine', 'open', 'close', 'loot', 'wear', 'wield', 'remove', 'drop', 'inventory', 'help'];
     actions.forEach(function (action) {
         var option = document.createElement('option');
         option.value = action;
@@ -251,32 +254,42 @@ function populateNpcImages(csvString) {
             npcsArray.push('');
         }
     }
+    for (let i = 0; i < 4; i++) {
+        var npcImage = document.getElementById('npc-image' + i);
+        if (npcImage.src !== '' && !(npcImage.src in npcsArray)) {
+            npcImage.src = '';
+        }
+    }
     let max_length = Math.min(4, npcsArray.length)
     for (let i = 0; i < max_length; i++) {
         let npc = npcsArray[i].trim();
         var npcImage = document.getElementById('npc-image' + i);
         if (npc === '') {
-            npcImage.src = '';
-            npcImage.classList.toggle('hidden');
-        } else {
-            let name = npc.toLowerCase().replace(/ /g, '_');
-            // checkImageExistence(name, function(exists, imageUrl) {
-            //     if (exists) {
-            //         npcImage.src = imageUrl;
-            //     } else {
-            //         console.log('Image does not exist');
-            //     }
-            // });
-            npcImage.src = 'static/resources/' + name + '.jpg';
-            npcImage.alt=npc;
-            npcImage.classList.toggle('visible');
+            continue;
         }
+        let name = npc.toLowerCase().replace(/ /g, '_');
+        // checkImageExistence(name, function(exists, imageUrl) {
+        //     if (exists) {
+        //         npcImage.src = imageUrl;
+        //     } else {
+        //         console.log('Image does not exist');
+        //     }
+        // });
+        npcImage.src = 'static/resources/' + name + '.jpg';
+        npcImage.alt=npc;
+        npcImage.classList.toggle('visible');
         
         npcImage.onerror = function() {
             // Handle image not found
             console.log('Image not found for NPC: ' + npc);
             npcImage.classList.toggle('hidden');
         };
+    }
+    for (let i = 0; i < 4; i++) {
+        var npcImage = document.getElementById('npc-image' + i);
+        if (npcImage.src === '') {
+            npcImage.classList.toggle('hidden');
+        }
     }
 }
 
