@@ -157,6 +157,13 @@
     },
     "catalogue": {
         "items": [],
-        "creatures": []
+        "creatures": [
+            {
+                "name": "bat",
+                "short_descr": "A bat",
+                "descr": "A small bat",
+                "type": "Mob"
+            }
+        ]
     }
 }

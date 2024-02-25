@@ -24,7 +24,7 @@ class TestMobSpawnerUnitTests():
 
     def test_remove_mob(self):
         self.spawner.spawned = 2
-        self.spawner.remove_mob(None)
+        self.spawner.remove_mob()
         assert self.spawner.spawned == 1
 
 
