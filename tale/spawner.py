@@ -5,7 +5,6 @@ import random
 import time
 from typing import Type
 
-from click import Context
 from tale import mud_context, util
 from tale.base import Living, Location
 from tale.errors import TaleError
