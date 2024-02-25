@@ -914,12 +914,12 @@ class Driver(pubsub.Listener):
     def build_location(self, targetLocation: base.Location, zone: Zone, player: player.Player):
         dynamic_story = typing.cast(DynamicStory, self.story)
         neighbor_locations = dynamic_story.neighbors_for_location(targetLocation)
-        new_locations, exits, npcs = self.llm_util.build_location(location=targetLocation, 
+        new_locations, exits, npcs, spawner = self.llm_util.build_location(location=targetLocation, 
                                                         exit_location_name=player.location.name, 
                                                         zone_info=zone.get_info(),
                                                         world_creatures=dynamic_story.catalogue._creatures,
                                                         world_items=dynamic_story.catalogue._items,
-                                                        neighbors=neighbor_locations,)
+                                                        neighbors=neighbor_locations)
         if not new_locations:
             return False
         for location in new_locations:
@@ -949,6 +949,8 @@ class Driver(pubsub.Listener):
                 else:
                     text = self.llm_util.generate_note_lore(zone_info=zone.get_info())
                     item.text = text
+        if spawner:
+            dynamic_story.world.add_mob_spawner(spawner)
         return True
     
     def do_on_player_death(self, player: player.Player) -> None:

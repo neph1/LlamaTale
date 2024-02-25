@@ -58,9 +58,15 @@ class TestMobSpawner():
         assert mob
         assert mob.location == self.location
         assert mob.name == self.mob.name
+        assert mob.aggressive == False
         assert len(self.location.livings) == 1
         assert spawner.spawned == 1
 
         mob.do_on_death(ctx=self.ctx)
 
         assert spawner.spawned == 0
+
+        self.mob.aggressive = True
+
+        mob = spawner.spawn()
+        assert mob.aggressive == True

@@ -76,7 +76,6 @@ class MobSpawner():
         gender = self.mob_type.gender
         if self.randomize_gender:
             gender = "m" if random.randint(0, 1) == 0 else "f"
-        return self.mob_type.__class__(self.mob_type.name, gender)
-# Example usage
-# spawner = MobSpawner("Zombie", 50, 10)
-# spawner.spawn = call_periodically(40, 60)(spawner.spawn)
+        mob = self.mob_type.__class__(self.mob_type.name, gender)
+        mob.aggressive = self.mob_type.aggressive
+        return mob

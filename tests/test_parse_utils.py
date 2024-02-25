@@ -322,6 +322,14 @@ class TestParseUtils():
 
         response = '*'  
         trimmed = parse_utils.trim_response(response)
+        assert(trimmed == '')
+
+        response = '\n'  
+        trimmed = parse_utils.trim_response(response)
+        assert(trimmed == '')
+
+        response = '\n\n'  
+        trimmed = parse_utils.trim_response(response)
         assert(trimmed == '')      
 
     def test_save_and_load_stats(self):

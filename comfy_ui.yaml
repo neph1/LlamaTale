@@ -8,4 +8,4 @@ WIDTH: 512
 HEIGHT: 512
 SCHEDULER: "normal"
 MODEL: "v1-5-pruned-emaonly.safetensors"
-GENERATE_IN_BACKGROUND: True
+GENERATE_IN_BACKGROUND: False

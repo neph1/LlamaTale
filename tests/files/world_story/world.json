@@ -163,6 +163,12 @@
                 "short_descr": "A bat",
                 "descr": "A small bat",
                 "type": "Mob"
+            },
+            {
+                "name": "wolf",
+                "short_descr": "A wolf",
+                "descr": "A wolf",
+                "type": "Mob"
             }
         ]
     }

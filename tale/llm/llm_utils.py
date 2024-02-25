@@ -2,6 +2,7 @@ from copy import deepcopy
 import json
 import os
 import sys
+from typing import Any, Tuple
 import yaml
 from tale.base import Location, MudObject
 from tale.image_gen.base_gen import ImageGeneratorBase
@@ -144,23 +145,23 @@ class LlmUtil():
     def get_neighbor_or_generate_zone(self, current_zone: Zone, current_location: Location, target_location: Location) -> Zone:
         return self._world_building.get_neighbor_or_generate_zone(current_zone, current_location, target_location, self.__story)
 
-    def build_location(self, location: Location, exit_location_name: str, zone_info: dict, world_items: dict = {}, world_creatures: dict = {}, neighbors: dict = {}) -> (list, list, list):
+    def build_location(self, location: Location, exit_location_name: str, zone_info: dict, world_items: dict = {}, world_creatures: dict = {}, neighbors: dict = {}) -> Tuple[list, list, list, Any]:
         """ Generate a location based on the current story context"""
         world_generation_context = WorldGenerationContext(story_context=self.__story_context,
                                                             story_type=self.__story_type,
                                                             world_info=self.__world_info,
                                                             world_mood=self.__story.config.world_mood)
-        new_locations, exits, npcs = self._world_building.build_location(location, 
+        new_locations, exits, npcs, spawner = self._world_building.build_location(location, 
                                                     exit_location_name, 
                                                     zone_info,
                                                     context=world_generation_context,
-                                                    world_creatures=world_creatures,
-                                                    world_items=world_items,
+                                                    world_creatures=world_creatures if world_creatures else self.__story.catalogue._creatures,
+                                                    world_items=world_items if world_items else self.__story.catalogue._items,
                                                     neighbors=neighbors)
         
         if not location.avatar and self.__story.config.image_gen:
             self.generate_image(location.name, location.description)
-        return new_locations, exits, npcs
+        return new_locations, exits, npcs, spawner
                     
      
     def perform_idle_action(self, character_name: str, location: Location, character_card: str = '', sentiments: dict = {}, last_action: str = '', event_history: str = '') -> list:

@@ -2,6 +2,7 @@
 from copy import deepcopy
 import json
 import random
+from typing import Any, Tuple
 from tale import parse_utils, races
 from tale import zone
 from tale.base import Location
@@ -12,6 +13,7 @@ from tale.llm.llm_ext import DynamicStory
 from tale.llm.llm_io import IoUtil
 from tale.llm.requests.generate_zone import GenerateZone
 from tale.llm.requests.start_location import StartLocation
+from tale.spawner import MobSpawner
 from tale.zone import Zone
 
 
@@ -48,7 +50,7 @@ class WorldBuilding():
                        context: WorldGenerationContext,
                        world_items: dict = {}, 
                        world_creatures: dict = {},
-                       neighbors: dict = {}) -> (list, list, list):
+                       neighbors: dict = {}) -> Tuple[list, list, list, Any]:
         """ Build 'up' a previously generated location.
             Returns lists of new locations, exits, and npcs."""
         
@@ -92,12 +94,16 @@ class WorldBuilding():
         result = self.io_util.synchronous_request(request_body, prompt=prompt, context=context.to_prompt_string())
         try:
             json_result = json.loads(parse_utils.sanitize_json(result))
-            return self._validate_location(json_result, location, exit_location_name, world_items, world_creatures, neighbors)
+            new_locations, exits, npcs = self._validate_location(json_result, location, exit_location_name, world_items, world_creatures, neighbors)
+            spawner = None
+            if npcs and world_creatures:
+                spawner = self._try_generate_spawner(location, npcs, world_creatures)
+            return new_locations, exits, npcs, spawner
         except json.JSONDecodeError as exc:
             print(exc)
-            return None, None, None
+            return None, None, None, None
         except Exception as exc:
-            return None, None, None
+            return None, None, None, None
         
     def _validate_location(self, json_result: dict, 
                            location_to_build: Location, 
@@ -405,4 +411,11 @@ class WorldBuilding():
             creature["type"] = "Mob"
             new_creatures[creature["name"]] = creature
         return new_creatures
+    
+    def _try_generate_spawner(self, location: Location, npcs: list, world_creatures: list):
+        for npc in npcs:
+            for world_creature in world_creatures:
+                if npc.name == world_creature['name'].lower():
+                    mob_spawner = MobSpawner(npc, location, 30, 2)
+                    return mob_spawner
         

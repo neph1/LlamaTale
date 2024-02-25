@@ -186,6 +186,7 @@ def _load_npc(npc: dict, name: str = None, npc_type: str = 'Mob'):
         new_npc.stats.set_weapon_skill(WeaponType.UNARMED, random.randint(10, 30))
         new_npc.stats.level = npc.get('level', 1)
     new_npc.autonomous = npc.get('autonomous', False)
+    new_npc.aggressive = npc.get('aggressive', False)
     return new_npc
 
 def load_story_config(json_file: dict):

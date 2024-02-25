@@ -15,7 +15,7 @@ from tale.llm.llm_utils import LlmUtil
 from tale.player import Player
 from tale.wearable import WearLocation
 from tale.zone import Zone
-from tests.supportstuff import FakeDriver
+from tests.supportstuff import FakeDriver, MsgTraceNPC
 class TestLivingNpc():
 
     drink = Item("ale", "jug of ale", descr="Looks and smells like strong ale.")
@@ -164,7 +164,8 @@ class TestLivingNpcActions():
         self.location = Location("test_room")
         self.npc = LivingNpc(name='test', gender='f', age=35, personality='')
         self.npc2 = LivingNpc(name="actor", gender='f', age=42, personality='')
-        self.location.init_inventory([self.npc, self.npc2])
+        self.msg_trace_npc = MsgTraceNPC("fritz", "m", race="human")
+        self.location.init_inventory([self.npc, self.npc2, self.msg_trace_npc])
 
     @responses.activate
     def test_do_say(self):
@@ -173,6 +174,7 @@ class TestLivingNpcActions():
         self.npc.do_say(what_happened='something', actor=self.npc2)
         assert(self.npc.sentiments['actor'] == 'kind')
         assert(len(self.npc._observed_events) == 2)
+        assert ["test : Hello there, how can I assist you today?\n"] == self.msg_trace_npc.messages
 
     @responses.activate
     def test_idle_action(self):
@@ -184,6 +186,7 @@ class TestLivingNpcActions():
         action = self.npc.idle_action()
         assert(action == 'sits down on a chair\n')
         assert(llm_cache.get_events(self.npc2._observed_events) == 'test : sits down on a chair\n\n')
+        assert ["test : sits down on a chair\n\n"] == self.msg_trace_npc.messages
 
     @responses.activate
     def test_do_react(self):
@@ -193,6 +196,7 @@ class TestLivingNpcActions():
                   json={'results':[{'text':'"test happens back!"'}]}, status=200)
         self.npc.notify_action(action, self.npc2)
         assert(llm_cache.get_events(self.npc2._observed_events) == 'test : test happens back\n\n')
+        assert ["test : test happens back\n\n"] == self.msg_trace_npc.messages
 
     @responses.activate
     def test_do_react_deferred_exists(self):
@@ -222,6 +226,7 @@ class TestLivingNpcActions():
         self.npc.autonomous_action()
         assert self.npc.search_item('test item', include_location=False) == None
         assert(self.npc2.search_item('test item', include_location=False))
+        assert ["test : Test gives test item to test\n"] == self.msg_trace_npc.messages
 
     @responses.activate
     def test_move_action(self):
@@ -232,6 +237,7 @@ class TestLivingNpcActions():
                   json={'results':[{'text':'{"action":"move", "target":"room 2"}'}]}, status=200)
         self.npc.autonomous_action()
         assert(self.npc.location == location2)
+        assert ["Test leaves towards room 2."] == self.msg_trace_npc.messages
 
     @responses.activate
     def test_attack(self):
