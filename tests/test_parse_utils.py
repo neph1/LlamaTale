@@ -5,6 +5,7 @@ from tale.base import Exit, Living, Location, Weapon, Wearable
 from tale.coord import Coord
 from tale.driver_if import IFDriver
 from tale.items.basic import Boxlike, Drink, Food, Health, Money
+from tale.races import BodyType
 from tale.story import GameMode, MoneyType
 from tale.weapon_type import WeaponType
 from tale.wearable import WearLocation
@@ -112,12 +113,14 @@ class TestParseUtils():
         driver = IFDriver(screen_delay=99, gui=False, web=True, wizard_override=True)
         driver.game_clock = util.GameDateTime(datetime.datetime(year=2023, month=1, day=1), 1)
         mud_context.driver = driver
-        npcs_string = '{"npcs": [{"name": "Rosewood Fairy", "sentiment": "friendly", "race": "Fae", "gender": "female", "level": 5, "description": "A delicate creature with wings as soft as rose petals, offering quests and guidance."}]}'
+        npcs_string = '{"npcs": [{"name": "Rosewood Fairy", "sentiment": "friendly", "race": "Fae", "gender": "female", "level": 5, "description": "A delicate creature with wings as soft as rose petals, offering quests and guidance.", "stats":{ "bodytype":"WINGED_MAN"}}]}'
         npcs = json.loads(npcs_string)
         assert(len(npcs) == 1)
         loaded_npcs = parse_utils.load_npcs(npcs['npcs'])
         assert(len(loaded_npcs) == 1)
-        assert(loaded_npcs['Rosewood Fairy'])
+        fairy = loaded_npcs['Rosewood Fairy'] # type: Living
+        assert(fairy)
+        assert(fairy.stats.bodytype == BodyType.WINGED_MAN)
 
 
     def test_load_story_config(self):

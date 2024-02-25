@@ -6,7 +6,7 @@ from tale.coord import Coord
 from tale.items.basic import Boxlike, Drink, Food, Health, Money, Note
 from tale.llm.LivingNpc import LivingNpc
 from tale.npc_defs import StationaryMob, StationaryNpc
-from tale.races import UnarmedAttack
+from tale.races import BodyType, UnarmedAttack
 from tale.spawner import MobSpawner
 from tale.story import GameMode, MoneyType, TickMethod, StoryConfig
 from tale.weapon_type import WeaponType
@@ -624,30 +624,34 @@ def save_stats(stats: Stats) -> dict:
     json_stats['strength'] = stats.strength
     json_stats['dexterity'] = stats.dexterity
     json_stats['unarmed_attack'] = stats.unarmed_attack.name.upper()
+    json_stats['race'] = stats.race
+    json_stats['bodytype'] = stats.bodytype.name
     return json_stats
 
 
 def load_stats(json_stats: dict) -> Stats:
     stats = Stats()
-    stats.ac = json_stats['ac']
-    stats.hp = json_stats['hp']
-    stats.max_hp = json_stats['max_hp']
-    stats.level = json_stats['level']
-    stats.gender = json_stats['gender']
-    stats.alignment = json_stats['alignment']
-    stats.weight = json_stats['weight']
-    stats.level = json_stats['level']
-    stats.xp = json_stats['xp']
-    stats.strength = json_stats['strength']
-    stats.dexterity = json_stats['dexterity']
+    stats.ac = json_stats.get('ac')
+    stats.hp = json_stats.get('hp')
+    stats.max_hp = json_stats.get('max_hp')
+    stats.level = json_stats.get('level')
+    stats.gender = json_stats.get('gender')
+    stats.alignment = json_stats.get('alignment')
+    stats.weight = json_stats.get('weight')
+    stats.level = json_stats.get('level')
+    stats.xp = json_stats.get('xp')
+    stats.strength = json_stats.get('strength')
+    stats.dexterity = json_stats.get('dexterity')
+    stats.race = json_stats.get('race', 'human')
+    if json_stats.get('bodytype'):
+        stats.bodytype = BodyType[json_stats.get('bodytype', BodyType.HUMANOID.name)]
     if json_stats.get('unarmed_attack'):
         stats.unarmed_attack = Weapon(UnarmedAttack[json_stats['unarmed_attack'].upper()], WeaponType.UNARMED)
-    if json_stats['weapon_skills']:
+    if json_stats.get('weapon_skills'):
         json_skills = json_stats['weapon_skills']
         stats.weapon_skills = {}
         for skill in json_skills.keys():
             int_skill = int(skill)
-
             stats.weapon_skills[WeaponType(int_skill)] = json_skills[skill]
     return stats
     

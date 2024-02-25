@@ -1430,9 +1430,17 @@ class Living(MudObject):
         combat_prompt, attacker_msg = mud_context.driver.prepare_combat_prompt(attacker=self, 
                               defender=victim, 
                               location_title = self.location.title,
+                              combat_result = result,
                               attacker_msg = attacker_msg)
         
-        combat_context = CombatContext(attacker=self, defender=victim, location=self.location)
+        combat_context = CombatContext(attacker_name=self.name,
+                                        attacker_health=self.stats.hp / self.stats.max_hp, 
+                                        attacker_weapon=self.wielding.name, 
+                                        defender_name=victim.name, 
+                                        defender_health=victim.stats.hp / victim.stats.max_hp, 
+                                        defender_weapon=victim.wielding.name, 
+                                        location_description=self.location.description)
+
         victim.location.tell(room_msg,
                              evoke=True,
                              short_len=False,

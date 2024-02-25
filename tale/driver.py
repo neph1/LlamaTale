@@ -884,6 +884,7 @@ class Driver(pubsub.Listener):
                               attacker: base.Living, 
                               defender: base.Living, 
                               location_title: str,
+                              combat_result: str,
                               attacker_msg: str):
         """ TODO: A bad work around. Need to find a better way to do this."""
 
@@ -901,7 +902,7 @@ class Driver(pubsub.Listener):
         return self.llm_util.combat_prompt.format(attacker=attacker_name, 
                                                     victim=victim_name,
                                                     location=location_title,
-                                                    input_text='',
+                                                    input_text=combat_result,
                                                     context=''), attacker_msg
 
     def build_location(self, targetLocation: base.Location, zone: Zone, player: player.Player):

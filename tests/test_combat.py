@@ -112,11 +112,13 @@ class TestCombat():
         combat_prompt, msg = driver.prepare_combat_prompt(attacker=attacker, 
                                                      defender=rat,
                                                      attacker_msg='attacker hits',
+                                                     combat_result='attacker hits',
                                                      location_title='the arena')
         
         assert(lang.capital(attacker.title) in combat_prompt)
         assert('the arena' in combat_prompt)
         assert(lang.capital(rat.title) in combat_prompt)
+        assert('attacker hits' in combat_prompt)
         assert msg == 'attacker hits'
 
     def test_combat_context(self):
@@ -124,7 +126,7 @@ class TestCombat():
         attacker = LivingNpc(name='attacker', gender='f', age=37, personality='A fierce fighter')
         defender = LivingNpc(name='defender', gender='m', age=42, personality='A ranged fighter')
 
-        combat_context = CombatContext(attacker=attacker, defender=defender, location=location)
+        combat_context = CombatContext(attacker_name=attacker.name, attacker_health=attacker.stats.hp / attacker.stats.max_hp, attacker_weapon=attacker.wielding.name, defender_name=defender.name, defender_health=defender.stats.hp / defender.stats.max_hp, defender_weapon=defender.wielding.name, location_description=location.description)
 
         context_string = combat_context.to_prompt_string()
         assert location.description in context_string
