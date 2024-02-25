@@ -23,8 +23,9 @@
     "server_mode": "IF",
     "npcs": "",
     "items": "",
-    "context": "",
+    "context": "A training ground for combat.",
     "type": "A combat arena",
     "world_info": "A multidimensional combat arena existing between the planes.",
-    "world_mood": 0
+    "world_mood": 0,
+    "custom_resources": true
 }

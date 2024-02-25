@@ -112,7 +112,7 @@ class CharacterBuilding():
             request_body['banned_tokens'] = ['You']
 
         text = self.io_util.synchronous_request(request_body, prompt=prompt)
-        return parse_utils.trim_response(text) + "\n"
+        return (parse_utils.trim_response(text)) if text else None
     
     def perform_travel_action(self, character_name: str, location: Location, locations: list, directions: list, character_card: str = ''):
         if location.name in locations:
