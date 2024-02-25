@@ -184,9 +184,9 @@ class TestLivingNpcActions():
                   json={'results':[{'text':'"sits down on a chair"'}]}, status=200)
         self.llm_util._character.io_util.response = []
         action = self.npc.idle_action()
-        assert(action == 'sits down on a chair\n')
-        assert(llm_cache.get_events(self.npc2._observed_events) == 'test : sits down on a chair\n\n')
-        assert ["test : sits down on a chair\n\n"] == self.msg_trace_npc.messages
+        assert(action == 'sits down on a chair')
+        assert(llm_cache.get_events(self.npc2._observed_events) == 'test : sits down on a chair\n')
+        assert ["test : sits down on a chair\n"] == self.msg_trace_npc.messages
 
     @responses.activate
     def test_do_react(self):

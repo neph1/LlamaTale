@@ -70,7 +70,7 @@ class TestLlmUtils():
         self.llm_util._character.io_util.response = 'Walk to the left'
         location = Location(name='Test Location')
         actions = self.llm_util.perform_idle_action(character_name='Norhardt', location = location, character_card= '{}', sentiments= {}, last_action= '')
-        assert(actions == 'Walk to the left\n')
+        assert(actions == 'Walk to the left')
 
     def test_perform_travel_action(self):
         # mostly testing that prompt works
@@ -207,7 +207,7 @@ class TestWorldBuilding():
     def test_generate_start_location(self):
         self.llm_util._world_building.io_util.response='{"name": "Greenhaven", "exits": [{"direction": "north", "name": "Misty Meadows", "description": "A lush and misty area filled with rolling hills and sparkling streams. The air is crisp and refreshing, and the gentle chirping of birds can be heard throughout."}, {"direction": "south", "name": "Riverdale", "description": "A bustling town nestled near a winding river. The smell of freshly baked bread and roasting meats fills the air, and the sound of laughter and chatter can be heard from the local tavern."}, {"direction": "east", "name": "Forest of Shadows", "description": "A dark and eerie forest filled with twisted trees and mysterious creatures. The air is thick with an ominous energy, and the rustling of leaves can be heard in the distance."}], "items": [], "npcs": []}'
         location = Location(name='', descr='on a small road outside a village')
-        new_locations, exits, npcs = self.llm_util._world_building.generate_start_location(location, 
+        new_locations, exits, npcs, _ = self.llm_util._world_building.generate_start_location(location, 
                                                        story_type='',
                                                        story_context='', 
                                                        zone_info={},
@@ -224,7 +224,7 @@ class TestWorldBuilding():
     def test_generate_start_location_2(self):
         self.llm_util._world_building.io_util.response='{"name": "Oakwood Glade", "exits": [{"direction": "north", "name": "Moonlit Mire", "description": "A dark and eerie bog, home to strange creatures and hidden treasures."}, {"direction": "south", "name": "Raven\'s Peak", "description": "A rugged mountain peak, shrouded in mystery."}, {"direction": "west", "name": "Willow\'s Edge", "description": "A secluded grove, filled with ancient magic."}], "items": [{"name": "Rare Flower", "type": "Other", "short_descr": "A delicate, glowing flower, said to have healing properties."}, {"name": "Mystic Staff", "type": "Wearable", "short_descr": "A staff imbued with ancient magic, granting the wielder incredible power."}, {"name": "Glimmering Gem", "type": "Money", "short_descr": "A rare and valuable gemstone, sought after by collectors."}], "npcs": [{"name": "Eira", "sentiment": "friendly", "race": "female", "level": 5, "description": "A wise and gentle druid, known for her healing magic."}]}'
         location = Location(name='', descr='on a small road outside a village')
-        new_locations, exits, npcs = self.llm_util._world_building.generate_start_location(location, 
+        new_locations, exits, npcs, _ = self.llm_util._world_building.generate_start_location(location, 
                                                        story_type='',
                                                        story_context='', 
                                                        zone_info={},

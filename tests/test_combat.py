@@ -1,4 +1,5 @@
 import tale
+from tale import lang
 from tale.base import Location, Weapon
 from tale.llm.LivingNpc import LivingNpc
 from tale.combat import Combat
@@ -108,14 +109,15 @@ class TestCombat():
         rat = LivingNpc(name='Giant Rat', gender='m', age=4, personality='Sneaky and nasty')
 
 
-        combat_prompt = driver.prepare_combat_prompt(attacker_name=attacker.name, 
-                                                     victim_name=rat.name,
+        combat_prompt, msg = driver.prepare_combat_prompt(attacker=attacker, 
+                                                     defender=rat,
                                                      attacker_msg='attacker hits',
                                                      location_title='the arena')
         
-        assert(attacker.name in combat_prompt)
+        assert(lang.capital(attacker.title) in combat_prompt)
         assert('the arena' in combat_prompt)
-        assert(rat.name in combat_prompt)
+        assert(lang.capital(rat.title) in combat_prompt)
+        assert msg == 'attacker hits'
 
     def test_combat_context(self):
         location = Location('Test Location', 'Test Location')
