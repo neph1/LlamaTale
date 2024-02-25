@@ -1,13 +1,13 @@
-from tale import driver
-from tale.base import Weapon
+import tale
+from tale.base import Location, Weapon
 from tale.llm.LivingNpc import LivingNpc
 from tale.combat import Combat
+from tale.llm.contexts.CombatContext import CombatContext
 from tale.weapon_type import WeaponType
 from tale.wearable import WearLocation
 from tests.supportstuff import FakeDriver
-import tale.combat as combat
+from tale.wearable import WearLocation
 import tale.util as util
-import tale.combat
 
 
 
@@ -108,17 +108,29 @@ class TestCombat():
         rat = LivingNpc(name='Giant Rat', gender='m', age=4, personality='Sneaky and nasty')
 
 
-        combat_prompt = driver.prepare_combat_prompt(attacker=attacker, 
-                                                     victim=rat,
+        combat_prompt = driver.prepare_combat_prompt(attacker_name=attacker.name, 
+                                                     victim_name=rat.name,
                                                      attacker_msg='attacker hits',
-                                                     location_title='the arena',
-                                                     location_description='A large arena')
+                                                     location_title='the arena')
         
-        assert('Bow' in combat_prompt)
-        assert('attacker hits' in combat_prompt)
+        assert(attacker.name in combat_prompt)
         assert('the arena' in combat_prompt)
-        assert('A large arena' in combat_prompt)
-        assert('Giant Rat' in combat_prompt)
+        assert(rat.name in combat_prompt)
+
+    def test_combat_context(self):
+        location = Location('Test Location', 'Test Location')
+        attacker = LivingNpc(name='attacker', gender='f', age=37, personality='A fierce fighter')
+        defender = LivingNpc(name='defender', gender='m', age=42, personality='A ranged fighter')
+
+        combat_context = CombatContext(attacker=attacker, defender=defender, location=location)
+
+        context_string = combat_context.to_prompt_string()
+        assert location.description in context_string
+        assert attacker.name in context_string
+        assert str(attacker.stats.hp / attacker.stats.max_hp) in context_string
+        assert defender.name in context_string
+        assert str(defender.stats.hp / defender.stats.max_hp) in context_string
+
 
     def test_resolve_body_part(self):
         attacker = LivingNpc(name='attacker', gender='f', age=37, personality='A fierce fighter')

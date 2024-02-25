@@ -2,7 +2,6 @@
 class CombatContext():
 
     def __init__(self, attacker: 'Living', defender: 'Living', location: 'Location') -> None:
-
         self.victim_info = {"name": defender.name, 
                        "health": defender.stats.hp / defender.stats.max_hp, 
                        "weapon": defender.wielding.title}

@@ -1426,12 +1426,11 @@ class Living(MudObject):
         victim_msg = "%s attacks you. %s" % (attacker_name, result)
         attacker_msg = "You attack %s! %s" % (victim_name, result)
         victim.tell(victim_msg, evoke=True, short_len=False)
-        
+
         combat_prompt = mud_context.driver.prepare_combat_prompt(attacker=self, 
-                              victim=victim, 
-                              location_title = self.location.title, 
-                              location_description = self.location.description,
-                              attacker_msg = attacker_msg)
+                              defender=victim, 
+                              location_title = self.location.title,
+                              attacker_msg = attacker_msg), attacker_msg
         
         combat_context = CombatContext(attacker=self, defender=victim, location=self.location)
         victim.location.tell(room_msg,

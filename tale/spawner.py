@@ -52,7 +52,7 @@ class MobSpawner():
 
     def to_json(self):
         return {
-            "mob_type": self.mob_type.__name__,
+            "mob_type": self.mob_type.name,
             "location": self.location.name,
             "spawn_rate": self.spawn_rate,
             "spawn_limit": self.spawn_limit,

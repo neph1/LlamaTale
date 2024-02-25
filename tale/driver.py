@@ -881,27 +881,28 @@ class Driver(pubsub.Listener):
         return int(hours), int(minutes), int(seconds)
     
     def prepare_combat_prompt(self, 
-                              attacker: LivingNpc, 
-                              victim: LivingNpc, 
-                              location_title: str, 
-                              location_description: str, 
+                              attacker: base.Living, 
+                              defender: base.Living, 
+                              location_title: str,
                               attacker_msg: str):
         """ TODO: A bad work around. Need to find a better way to do this."""
-        attacker_name = lang.capital(attacker.title)
-        victim_name = lang.capital(victim.title)
 
-        if isinstance(attacker, player.Player):
-            attacker_name += " (as 'You')"
+        attacker_name = lang.capital(attacker.title)
+        victim_name = lang.capital(defender.title)
+
+        if isinstance(self, player.Player):
             attacker_msg.replace(attacker_name, "you")
-        if isinstance(victim, player.Player):
-            victim_name += " (as 'You')"
+            attacker_name += " (as 'You')"
+        if isinstance(defender, player.Player):
             attacker_msg.replace(victim_name, "you")
+            victim_name += " (as 'You')"
+        
 
         return self.llm_util.combat_prompt.format(attacker=attacker_name, 
                                                     victim=victim_name,
                                                     location=location_title,
                                                     input_text='',
-                                                    context='')
+                                                    context=''), attacker_msg
 
     def build_location(self, targetLocation: base.Location, zone: Zone, player: player.Player):
         dynamic_story = typing.cast(DynamicStory, self.story)

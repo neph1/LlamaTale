@@ -204,13 +204,12 @@ class LivingNpc(Living):
         if len(self.planned_actions) > 0:
             action = self.planned_actions.pop(0)
             if isinstance(action, list):
-                action = action[0] if len(action) > 0 else ''
-            if action:
+                action = action[0] if len(action) > 0 else None
+            if action :
                 self.action_history.append(action)
                 self._defer_result(action)
                 return action
         return None
-            #self.location.notify_action(result, actor=self)
 
     def autonomous_action(self) -> str:
         actions = mud_context.driver.llm_util.free_form_action(character_card=self.character_card,

@@ -35,14 +35,21 @@ class MockMob:
         self.location = None
         self.gender = gender
         self.name = name
+        self.aggressive = False
+        self.title = name
+        self.description = "Mock Mob"
 
 class MockLocation:
     def __init__(self):
         self.mobs = []
+        self.description = "Mock Location"
 
     def insert(self, mob):
         self.mobs.append(mob)
         mob.location = self
+
+    def tell(self, msg, extra_context):
+        pass
 
 
 class TestMobSpawner():

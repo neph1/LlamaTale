@@ -474,7 +474,7 @@ class TestWorldBuilding():
         assert(rocky_cliffs.name == 'Rocky Cliffs')
 
         context = WorldGenerationContext(story_context='', story_type='', world_info='', world_mood=0)
-        new_locations, exits, npcs2 = self.llm_util._world_building.build_location(rocky_cliffs, 
+        new_locations, exits, npcs2, spawner = self.llm_util._world_building.build_location(rocky_cliffs, 
                                                                             'Rocky Cliffs', 
                                                                             context=context,
                                                                             zone_info={})
