@@ -897,19 +897,11 @@ class Driver(pubsub.Listener):
             victim_name += " (as 'You')"
             attacker_msg.replace(victim_name, "you")
 
-        victim_info = {"name": victim_name, 
-                       "health": victim.stats.hp / victim.stats.max_hp, 
-                       "weapon": victim.wielding.title}
-
-        attacker_info = {"name": attacker_name, 
-                         "health": attacker.stats.hp / attacker.stats.max_hp, 
-                         "weapon": attacker.wielding.title}
-
-        return self.llm_util.combat_prompt.format(attacker=attacker_info, 
-                                                    victim=victim_info,
-                                                    attacker_msg=attacker_msg,
+        return self.llm_util.combat_prompt.format(attacker=attacker_name, 
+                                                    victim=victim_name,
                                                     location=location_title,
-                                                    location_description=location_description)
+                                                    input_text='',
+                                                    context='')
 
     def build_location(self, targetLocation: base.Location, zone: Zone, player: player.Player):
         dynamic_story = typing.cast(DynamicStory, self.story)

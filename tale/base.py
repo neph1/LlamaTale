@@ -49,6 +49,7 @@ from typing import Callable, Iterable, Any, Sequence, Optional, Set, Dict, Union
 from tale import resources_utils
 
 from tale.coord import Coord
+from tale.llm.contexts.CombatContext import CombatContext
 
 from . import lang
 from . import mud_context
@@ -1027,6 +1028,7 @@ class Living(MudObject):
         self.location = _limbo  # type: Location  # set transitional location
         self.privileges = set()  # type: Set[str] # probably only used for Players though
         self.aggressive = False
+        self.attacking = False
         self.money = 0.0  # the currency is determined by util.MoneyFormatter set in the driver
         self.default_verb = "examine"
         self.__inventory = set()   # type: Set[Item]
@@ -1430,13 +1432,16 @@ class Living(MudObject):
                               location_title = self.location.title, 
                               location_description = self.location.description,
                               attacker_msg = attacker_msg)
+        
+        combat_context = CombatContext(attacker=self, defender=victim, location=self.location)
         victim.location.tell(room_msg,
                              exclude_living=victim,
                              specific_targets={self},
                              specific_target_msg=attacker_msg,
                              evoke=True,
                              short_len=False,
-                             alt_prompt=combat_prompt)
+                             alt_prompt=combat_prompt,
+                             extra_context=combat_context.to_prompt_string())
         self.stats.hp -= damage_to_attacker
         victim.stats.hp -= damage_to_defender
         if self.stats.hp < 1:

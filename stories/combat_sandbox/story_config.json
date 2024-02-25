@@ -21,10 +21,10 @@
         "Arena"
     ],
     "server_mode": "IF",
-    "npcs": "guests",
+    "npcs": "",
     "items": "",
     "context": "",
     "type": "A combat arena",
-    "world_info": "",
+    "world_info": "A multidimensional combat arena existing between the planes.",
     "world_mood": 0
 }

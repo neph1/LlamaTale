@@ -39,6 +39,7 @@ class MobSpawner():
             mob = self._clone_mob()
             mob.do_on_death = lambda ctx: self.remove_mob()
             self.location.insert(mob)
+            self.location.tell("%s arrives." % mob.title, extra_context=f'Location:{self.location.description}; {mob.title}: {mob.description}')
             return mob
         return None
     

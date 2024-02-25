@@ -31,6 +31,15 @@ class Story(JsonStory):
         player.tell("<bright>Hello, %s! Welcome to %s.</>" % (player.title, self.config.name), end=True)
         player.tell("\n")
         return ""
+    
+    def init_player(self, player: Player) -> None:
+        """
+        Called by the game driver when it has created the player object (after successful login).
+        You can set the hint texts on the player object, or change the state object, etc.
+        """
+        player.stats.set_weapon_skill(weapon_type=WeaponType.ONE_HANDED, value=45)
+        player.stats.set_weapon_skill(weapon_type=WeaponType.TWO_HANDED, value=15)
+        player.stats.set_weapon_skill(weapon_type=WeaponType.UNARMED, value=35)
 
 if __name__ == "__main__":
     # story is invoked as a script, start it in the Tale Driver.

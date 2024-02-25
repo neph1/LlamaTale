@@ -94,10 +94,10 @@ class LlmUtil():
         trimmed_message = parse_utils.remove_special_chars(str(message))
         story_context = EvokeContext(story_context=self.__story_context, history=rolling_prompt if not (skip_history or alt_prompt) else '', extra_context=extra_context)
         prompt = self.pre_prompt
-        prompt += alt_prompt or (self.evoke_prompt.format(
+        prompt += (alt_prompt or self.evoke_prompt).format(
             context = '{context}',
             max_words=self.word_limit if not short_len else self.short_word_limit,
-            input_text=str(trimmed_message)))
+            input_text=str(trimmed_message))
         request_body = deepcopy(self.default_body)
 
         if not self.stream:

@@ -79,10 +79,11 @@
             {
                 "name": "giant rat",
                 "short_descr": "A giant, rabid rat",
-                "descr": "A giant, rabid rat is here, gnashing its teeth and looking for something to eat.",
+                "descr": "A giant, rabid rat, gnashing its teeth.",
                 "type": "Mob",
                 "gender": "m",
                 "level": 1,
+                "aggressive": true,
                 "stats": {
                     "ac": 0,
                     "hp": 5,
