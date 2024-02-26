@@ -38,6 +38,7 @@ class MockMob:
         self.aggressive = False
         self.title = name
         self.description = "Mock Mob"
+        self.should_produce_remains = False
 
 class MockLocation:
     def __init__(self):
