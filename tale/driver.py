@@ -828,7 +828,7 @@ class Driver(pubsub.Listener):
             self.deferreds = [d for d in self.deferreds if d.owner is not owner]
             heapq.heapify(self.deferreds)
 
-    def register_periodicals(self, obj: base.MudObject) -> None:
+    def register_periodicals(self, obj: Any) -> None:
         for func, period in util.get_periodicals(obj).items():
             assert len(period) == 3
             mud_context.driver.defer(period, func)
@@ -881,45 +881,39 @@ class Driver(pubsub.Listener):
         return int(hours), int(minutes), int(seconds)
     
     def prepare_combat_prompt(self, 
-                              attacker: LivingNpc, 
-                              victim: LivingNpc, 
-                              location_title: str, 
-                              location_description: str, 
+                              attacker: base.Living, 
+                              defender: base.Living, 
+                              location_title: str,
+                              combat_result: str,
                               attacker_msg: str):
         """ TODO: A bad work around. Need to find a better way to do this."""
+
         attacker_name = lang.capital(attacker.title)
-        victim_name = lang.capital(victim.title)
+        victim_name = lang.capital(defender.title)
 
-        if isinstance(attacker, player.Player):
-            attacker_name += " (as 'You')"
+        if isinstance(self, player.Player):
             attacker_msg.replace(attacker_name, "you")
-        if isinstance(victim, player.Player):
-            victim_name += " (as 'You')"
+            attacker_name += " (as 'You')"
+        if isinstance(defender, player.Player):
             attacker_msg.replace(victim_name, "you")
+            victim_name += " (as 'You')"
+        
 
-        victim_info = {"name": victim_name, 
-                       "health": victim.stats.hp / victim.stats.max_hp, 
-                       "weapon": victim.wielding.title}
-
-        attacker_info = {"name": attacker_name, 
-                         "health": attacker.stats.hp / attacker.stats.max_hp, 
-                         "weapon": attacker.wielding.title}
-
-        return self.llm_util.combat_prompt.format(attacker=attacker_info, 
-                                                    victim=victim_info,
-                                                    attacker_msg=attacker_msg,
+        return self.llm_util.combat_prompt.format(attacker=attacker_name, 
+                                                    victim=victim_name,
                                                     location=location_title,
-                                                    location_description=location_description)
+                                                    input_text=combat_result,
+                                                    context=''), attacker_msg
 
     def build_location(self, targetLocation: base.Location, zone: Zone, player: player.Player):
         dynamic_story = typing.cast(DynamicStory, self.story)
         neighbor_locations = dynamic_story.neighbors_for_location(targetLocation)
-        new_locations, exits, npcs = self.llm_util.build_location(location=targetLocation, 
+        new_locations, exits, npcs, spawner = self.llm_util.build_location(location=targetLocation, 
                                                         exit_location_name=player.location.name, 
                                                         zone_info=zone.get_info(),
                                                         world_creatures=dynamic_story.catalogue._creatures,
                                                         world_items=dynamic_story.catalogue._items,
-                                                        neighbors=neighbor_locations,)
+                                                        neighbors=neighbor_locations)
         if not new_locations:
             return False
         for location in new_locations:
@@ -949,6 +943,8 @@ class Driver(pubsub.Listener):
                 else:
                     text = self.llm_util.generate_note_lore(zone_info=zone.get_info())
                     item.text = text
+        if spawner:
+            dynamic_story.world.add_mob_spawner(spawner)
         return True
     
     def do_on_player_death(self, player: player.Player) -> None:

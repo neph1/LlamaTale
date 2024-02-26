@@ -1,10 +1,9 @@
 from tale.llm.item_handling_result import ItemHandlingResult
 from tale.llm import llm_config
 import tale.llm.llm_cache as llm_cache
-from tale import lang, mud_context, story
+from tale import lang, mud_context
 from tale.base import ContainingType, Living, ParseResult
 from tale.errors import LlmResponseException
-from tale.llm.responses.ActionResponse import ActionResponse
 from tale.player import Player
 
 
@@ -204,13 +203,12 @@ class LivingNpc(Living):
         if len(self.planned_actions) > 0:
             action = self.planned_actions.pop(0)
             if isinstance(action, list):
-                action = action[0] if len(action) > 0 else ''
-            if action:
+                action = action[0] if len(action) > 0 else None
+            if action :
                 self.action_history.append(action)
                 self._defer_result(action)
                 return action
         return None
-            #self.location.notify_action(result, actor=self)
 
     def autonomous_action(self) -> str:
         actions = mud_context.driver.llm_util.free_form_action(character_card=self.character_card,
@@ -279,10 +277,7 @@ class LivingNpc(Living):
         else:
             action = f"{self.title} : {action}"
         self.deferred_actions.add(action)
-        if mud_context.config.server_tick_method == story.TickMethod.COMMAND:
-            self.tell_action_deferred()
-        else:
-            mud_context.driver.defer(0.5, self.tell_action_deferred)
+        self.tell_action_deferred()
 
     def tell_action_deferred(self):
         actions = '\n'.join(self.deferred_actions) + '\n'

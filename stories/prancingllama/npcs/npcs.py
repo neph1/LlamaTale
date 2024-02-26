@@ -109,14 +109,25 @@ class Rat(Living):
         self.aggressive = False
         self.stats.strength = 1
         self.stats.agility = 5
+        self.title = "giant rat"
         self.stats.set_weapon_skill(weapon_type=WeaponType.UNARMED, value=25)
+        self.target = None
 
     @call_periodically(10, 25)
     def do_idle_action(self, ctx: Context) -> None:
+        if self.aggressive and self.target:
+            self.start_attack(self.target)
         action = "{Actor} " + random.choice(["sniffs", "scratches", "hisses", "looks menacing"])
         if self.avatar:
            action = pad_text_for_avatar(action, self.name)
         self.tell_others(action, evoke=False, short_len=True)
+
+    def handle_verb(self, parsed: ParseResult, actor: Living) -> bool:
+        if parsed.verb == "attack":
+            self.aggressive = True
+            self.target = actor
+            return True
+        return False
 
         
 

@@ -1,12 +1,14 @@
-from tale import driver
-from tale.base import Weapon
+import tale
+from tale import lang
+from tale.base import Location, Weapon
 from tale.llm.LivingNpc import LivingNpc
 from tale.combat import Combat
+from tale.llm.contexts.CombatContext import CombatContext
 from tale.weapon_type import WeaponType
+from tale.wearable import WearLocation
 from tests.supportstuff import FakeDriver
-import tale.combat as combat
+from tale.wearable import WearLocation
 import tale.util as util
-import tale.combat
 
 
 
@@ -73,6 +75,7 @@ class TestCombat():
         rat = LivingNpc(name='Giant Rat', gender='m', age=4, personality='Sneaky and nasty')
         rat.should_produce_remains = True
         remains = rat.do_on_death(ctx)
+        assert not rat.alive
         assert(remains)
         assert(remains.location == rat.location)
         remains.location.remove(remains, None)
@@ -82,6 +85,7 @@ class TestCombat():
         bunny = LivingNpc(name='Bunny rabbit', gender='m', age=4, personality='Nice and fluffy')
         bunny.should_produce_remains = False
         remains = bunny.do_on_death(ctx)
+        assert not bunny.alive
         assert(not remains)
 
     def _assert_combat(self, attacker, defender, text, damage_to_attacker, damage_to_defender):
@@ -107,15 +111,49 @@ class TestCombat():
         rat = LivingNpc(name='Giant Rat', gender='m', age=4, personality='Sneaky and nasty')
 
 
-        combat_prompt = driver.prepare_combat_prompt(attacker=attacker, 
-                                                     victim=rat,
+        combat_prompt, msg = driver.prepare_combat_prompt(attacker=attacker, 
+                                                     defender=rat,
                                                      attacker_msg='attacker hits',
-                                                     location_title='the arena',
-                                                     location_description='A large arena')
+                                                     combat_result='attacker hits',
+                                                     location_title='the arena')
         
-        assert('Bow' in combat_prompt)
-        assert('attacker hits' in combat_prompt)
+        assert(lang.capital(attacker.title) in combat_prompt)
         assert('the arena' in combat_prompt)
-        assert('A large arena' in combat_prompt)
-        assert('Giant Rat' in combat_prompt)
+        assert(lang.capital(rat.title) in combat_prompt)
+        assert('attacker hits' in combat_prompt)
+        assert msg == 'attacker hits'
 
+    def test_combat_context(self):
+        location = Location('Test Location', 'Test Location')
+        attacker = LivingNpc(name='attacker', gender='f', age=37, personality='A fierce fighter')
+        defender = LivingNpc(name='defender', gender='m', age=42, personality='A ranged fighter')
+
+        combat_context = CombatContext(attacker_name=attacker.name, attacker_health=attacker.stats.hp / attacker.stats.max_hp, attacker_weapon=attacker.wielding.name, defender_name=defender.name, defender_health=defender.stats.hp / defender.stats.max_hp, defender_weapon=defender.wielding.name, location_description=location.description)
+
+        context_string = combat_context.to_prompt_string()
+        assert location.description in context_string
+        assert attacker.name in context_string
+        assert str(attacker.stats.hp / attacker.stats.max_hp) in context_string
+        assert defender.name in context_string
+        assert str(defender.stats.hp / defender.stats.max_hp) in context_string
+
+
+    def test_resolve_body_part(self):
+        attacker = LivingNpc(name='attacker', gender='f', age=37, personality='A fierce fighter')
+        defender = LivingNpc(name='defender', gender='m', age=42, personality='A ranged fighter')
+
+        combat = Combat(attacker, defender)
+
+        body_part = combat.resolve_body_part(attacker, size_factor=1.0)
+
+        assert isinstance(body_part, WearLocation)
+
+        body_part = combat.resolve_body_part(attacker, size_factor=1000.0)
+
+        assert body_part != WearLocation.FEET
+        assert body_part != WearLocation.LEGS
+
+        body_part = combat.resolve_body_part(attacker, size_factor=0.001)
+
+        assert body_part != WearLocation.HEAD
+        assert body_part != WearLocation.TORSO

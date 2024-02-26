@@ -2,6 +2,7 @@ from copy import deepcopy
 import json
 import os
 import sys
+from typing import Any, Tuple
 import yaml
 from tale.base import Location, MudObject
 from tale.image_gen.base_gen import ImageGeneratorBase
@@ -93,10 +94,10 @@ class LlmUtil():
         trimmed_message = parse_utils.remove_special_chars(str(message))
         story_context = EvokeContext(story_context=self.__story_context, history=rolling_prompt if not (skip_history or alt_prompt) else '', extra_context=extra_context)
         prompt = self.pre_prompt
-        prompt += alt_prompt or (self.evoke_prompt.format(
+        prompt += (alt_prompt or self.evoke_prompt).format(
             context = '{context}',
             max_words=self.word_limit if not short_len else self.short_word_limit,
-            input_text=str(trimmed_message)))
+            input_text=str(trimmed_message))
         request_body = deepcopy(self.default_body)
 
         if not self.stream:
@@ -138,29 +139,29 @@ class LlmUtil():
     def generate_character(self, story_context: str = '', keywords: list = [], story_type: str = ''):
         character = self._character.generate_character(story_context, keywords, story_type)
         if not character.avatar and self.__story.config.image_gen:
-            self.generate_image(character.name, character.appearance)
+            self.generate_image(character.name, f"{character.description}. Wearing: {','.join(character.wearing)}. Holding: {character.wielding}" )
         return character
     
     def get_neighbor_or_generate_zone(self, current_zone: Zone, current_location: Location, target_location: Location) -> Zone:
         return self._world_building.get_neighbor_or_generate_zone(current_zone, current_location, target_location, self.__story)
 
-    def build_location(self, location: Location, exit_location_name: str, zone_info: dict, world_items: dict = {}, world_creatures: dict = {}, neighbors: dict = {}) -> (list, list, list):
+    def build_location(self, location: Location, exit_location_name: str, zone_info: dict, world_items: dict = {}, world_creatures: dict = {}, neighbors: dict = {}) -> Tuple[list, list, list, Any]:
         """ Generate a location based on the current story context"""
         world_generation_context = WorldGenerationContext(story_context=self.__story_context,
                                                             story_type=self.__story_type,
                                                             world_info=self.__world_info,
                                                             world_mood=self.__story.config.world_mood)
-        new_locations, exits, npcs = self._world_building.build_location(location, 
+        new_locations, exits, npcs, spawner = self._world_building.build_location(location, 
                                                     exit_location_name, 
                                                     zone_info,
                                                     context=world_generation_context,
-                                                    world_creatures=world_creatures,
-                                                    world_items=world_items,
+                                                    world_creatures=world_creatures if world_creatures else self.__story.catalogue._creatures,
+                                                    world_items=world_items if world_items else self.__story.catalogue._items,
                                                     neighbors=neighbors)
         
         if not location.avatar and self.__story.config.image_gen:
             self.generate_image(location.name, location.description)
-        return new_locations, exits, npcs
+        return new_locations, exits, npcs, spawner
                     
      
     def perform_idle_action(self, character_name: str, location: Location, character_card: str = '', sentiments: dict = {}, last_action: str = '', event_history: str = '') -> list:
@@ -227,7 +228,7 @@ class LlmUtil():
         return self._world_building.generate_note_lore(context=self._get_world_context(), 
                                                         zone_info=zone_info)
     # visible for testing
-    def generate_image(self, name: str, description: dict = '', save_path: str = "./resources", copy_file: bool = True, target: MudObject = None) -> bool:
+    def generate_image(self, name: str, description: dict = '', save_path: str = "./resources", copy_file: bool = True, target: MudObject = None, id: str = None) -> bool:
         if not self._image_gen:
             return False
         image_name = name.lower().replace(' ', '_')
@@ -235,7 +236,7 @@ class LlmUtil():
 
             def on_complete():
                  if self.connection:
-                    self.connection.io.send_data('{"data":"result", "id":"image"}'.format(result=image_name, image=name))
+                    self.connection.io.send_data('{"data":"result", "id":"image"}'.format(result=image_name, image=id if id else name))
                  if copy_file:  
                     copy_single_image('./', image_name + '.jpg')
                  if target:

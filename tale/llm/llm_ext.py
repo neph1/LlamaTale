@@ -7,6 +7,7 @@ from tale.base import Item, Living, Location
 from tale.coord import Coord
 from tale.llm.LivingNpc import LivingNpc
 from tale.quest import Quest, QuestType
+from tale.spawner import MobSpawner
 from tale.story import StoryBase
 
 from tale.zone import Zone
@@ -171,14 +172,7 @@ class WorldInfo():
         self._npcs  = dict() # type: dict[str, Living]
         self._locations = dict() # type: dict[str, Location]
         self._grid = dict() # type: dict[Coord, Location]
-
-    @property
-    def npcs(self) -> dict:
-        return self._npcs
-
-    @npcs.setter
-    def npcs(self, value: dict):
-        self._npcs = value
+        self._mob_spawners = [] # type: list[MobSpawner]
 
     def get_npc(self, npc: str) -> Living:
         return self._npcs[npc]
@@ -189,6 +183,29 @@ class WorldInfo():
         self._npcs[npc.name] = npc
         return True
     
+    def add_mob_spawner(self, spawner: MobSpawner) -> bool:
+        if spawner in self._mob_spawners:
+            return False
+        self._mob_spawners.append(spawner)
+        return True
+    
+    def remove_mob_spawner(self, spawner: MobSpawner) -> bool:
+        if spawner in self._mob_spawners:
+            self._mob_spawners.remove(spawner)
+            return True
+        return False
+   
+    def get_item(self, item: str) -> Item:
+        return self._items[item]
+    
+    @property
+    def npcs(self) -> dict:
+        return self._npcs
+
+    @npcs.setter
+    def npcs(self, value: dict):
+        self._npcs = value
+ 
     @property
     def items(self) -> dict:
         return self._items
@@ -197,13 +214,20 @@ class WorldInfo():
     def items(self, value: dict):
         self._items = value
 
-    def get_item(self, item: str) -> Item:
-        return self._items[item]
+    @property 
+    def mob_spawners(self) -> list:
+        return self._mob_spawners
     
+    @mob_spawners.setter
+    def mob_spawners(self, value: list):
+        self._mob_spawners = value
+
     def to_json(self) -> dict:
         return dict(
-                    npcs=parse_utils.save_npcs(self._npcs.values()),
-                    items=parse_utils.save_items(self._items.values()))
+            npcs=parse_utils.save_npcs(self._npcs.values()),
+            items=parse_utils.save_items(self._items.values()),
+            mob_spawners=[spawner.to_json() for spawner in self._mob_spawners]
+        )
     
 class Catalogue():
     """ A catalogue of all creatures and items in the world. Used by

@@ -6,7 +6,8 @@ from tale.coord import Coord
 from tale.items.basic import Boxlike, Drink, Food, Health, Money, Note
 from tale.llm.LivingNpc import LivingNpc
 from tale.npc_defs import StationaryMob, StationaryNpc
-from tale.races import UnarmedAttack
+from tale.races import BodyType, UnarmedAttack
+from tale.spawner import MobSpawner
 from tale.story import GameMode, MoneyType, TickMethod, StoryConfig
 from tale.weapon_type import WeaponType
 from tale.wearable import WearLocation
@@ -145,32 +146,8 @@ def load_npcs(json_npcs: list, locations = {}) -> dict:
                 name = npc['name'].replace('the','').replace('The','').strip()
         else:
             name = npc['name']
-        if 'npc' in npc_type.lower():
-            
-            new_npc = StationaryNpc(name=name, 
-                                gender=lang.validate_gender(npc.get('gender', 'm')[0]), 
-                                race=npc.get('race', 'human').lower(), 
-                                title=npc.get('title', name), 
-                                descr=npc.get('descr', ''), 
-                                short_descr=npc.get('short_descr', npc.get('description', '')), 
-                                age=npc.get('age', 0), 
-                                personality=npc.get('personality', ''), 
-                                occupation=npc.get('occupation', ''))
-            new_npc.aliases.add(name.split(' ')[0].lower())
-            new_npc.stats.set_weapon_skill(WeaponType.UNARMED, random.randint(10, 30))
-            new_npc.stats.level = npc.get('level', 1)
-        else:
+        new_npc = _load_npc(npc, name, npc_type)
 
-            new_npc = StationaryMob(name=npc['name'], 
-                                gender=lang.validate_gender(npc.get('gender', 'm')[0]), 
-                                race=npc.get('race', 'human').lower(), 
-                                title=npc.get('title', npc['name']), 
-                                descr=npc.get('descr', ''), 
-                                short_descr=npc.get('short_descr', npc.get('description', '')))
-            new_npc.aliases.add(name.split(' ')[0].lower())
-            new_npc.stats.set_weapon_skill(WeaponType.UNARMED, random.randint(10, 30))
-            new_npc.stats.level = npc.get('level', 1)
-        new_npc.autonomous = npc.get('autonomous', False)
         if npc.get('stats', None):
             new_npc.stats = load_stats(npc['stats'])
 
@@ -182,6 +159,35 @@ def load_npcs(json_npcs: list, locations = {}) -> dict:
 
         npcs[name] = new_npc
     return npcs
+
+def _load_npc(npc: dict, name: str = None, npc_type: str = 'Mob'):
+    if 'npc' in npc_type.lower():
+        new_npc = StationaryNpc(name=name, 
+                            gender=lang.validate_gender(npc.get('gender', 'm')[0]), 
+                            race=npc.get('race', 'human').lower(), 
+                            title=npc.get('title', name), 
+                            descr=npc.get('descr', ''), 
+                            short_descr=npc.get('short_descr', npc.get('description', '')), 
+                            age=npc.get('age', 0), 
+                            personality=npc.get('personality', ''), 
+                            occupation=npc.get('occupation', ''))
+        new_npc.aliases.add(name.split(' ')[0].lower())
+        new_npc.stats.set_weapon_skill(WeaponType.UNARMED, random.randint(10, 30))
+        new_npc.stats.level = npc.get('level', 1)
+    else:
+
+        new_npc = StationaryMob(name=npc['name'], 
+                            gender=lang.validate_gender(npc.get('gender', 'm')[0]), 
+                            race=npc.get('race', 'human').lower(), 
+                            title=npc.get('title', npc['name']), 
+                            descr=npc.get('descr', ''), 
+                            short_descr=npc.get('short_descr', npc.get('description', '')))
+        new_npc.aliases.add(name.split(' ')[0].lower())
+        new_npc.stats.set_weapon_skill(WeaponType.UNARMED, random.randint(10, 30))
+        new_npc.stats.level = npc.get('level', 1)
+    new_npc.autonomous = npc.get('autonomous', False)
+    new_npc.aggressive = npc.get('aggressive', False)
+    return new_npc
 
 def load_story_config(json_file: dict):
     config = StoryConfig()
@@ -618,30 +624,34 @@ def save_stats(stats: Stats) -> dict:
     json_stats['strength'] = stats.strength
     json_stats['dexterity'] = stats.dexterity
     json_stats['unarmed_attack'] = stats.unarmed_attack.name.upper()
+    json_stats['race'] = stats.race
+    json_stats['bodytype'] = stats.bodytype.name
     return json_stats
 
 
 def load_stats(json_stats: dict) -> Stats:
     stats = Stats()
-    stats.ac = json_stats['ac']
-    stats.hp = json_stats['hp']
-    stats.max_hp = json_stats['max_hp']
-    stats.level = json_stats['level']
-    stats.gender = json_stats['gender']
-    stats.alignment = json_stats['alignment']
-    stats.weight = json_stats['weight']
-    stats.level = json_stats['level']
-    stats.xp = json_stats['xp']
-    stats.strength = json_stats['strength']
-    stats.dexterity = json_stats['dexterity']
+    stats.ac = json_stats.get('ac')
+    stats.hp = json_stats.get('hp')
+    stats.max_hp = json_stats.get('max_hp')
+    stats.level = json_stats.get('level')
+    stats.gender = json_stats.get('gender')
+    stats.alignment = json_stats.get('alignment')
+    stats.weight = json_stats.get('weight')
+    stats.level = json_stats.get('level')
+    stats.xp = json_stats.get('xp')
+    stats.strength = json_stats.get('strength')
+    stats.dexterity = json_stats.get('dexterity')
+    stats.race = json_stats.get('race', 'human')
+    if json_stats.get('bodytype'):
+        stats.bodytype = BodyType[json_stats.get('bodytype', BodyType.HUMANOID.name)]
     if json_stats.get('unarmed_attack'):
         stats.unarmed_attack = Weapon(UnarmedAttack[json_stats['unarmed_attack'].upper()], WeaponType.UNARMED)
-    if json_stats['weapon_skills']:
+    if json_stats.get('weapon_skills'):
         json_skills = json_stats['weapon_skills']
         stats.weapon_skills = {}
         for skill in json_skills.keys():
             int_skill = int(skill)
-
             stats.weapon_skills[WeaponType(int_skill)] = json_skills[skill]
     return stats
     
@@ -684,3 +694,23 @@ def save_weaponskills(weaponskills: dict) -> dict:
     for skill in weaponskills.keys():
         json_skills[skill.value] = weaponskills[skill]
     return json_skills
+
+def load_mob_spawners(json_spawners: list, locations: dict, creatures: list) -> list:
+    spawners = []
+    for spawner in json_spawners:
+        location = locations[spawner['location']]
+        if not location:
+            print(f"Location {spawner['location']} not found")
+            continue
+        mob_type = spawner['mob_type']
+        mob = None
+        for creature in creatures:
+            if creature['name'] == mob_type:
+                mob = _load_npc(creature, mob_type)
+                break
+        if not mob:
+            print(f"Mob {mob_type} not in catalogue")
+            continue
+        mob_spawner = MobSpawner(mob, location, spawner['spawn_rate'], spawner['spawn_limit'])
+        spawners.append(mob_spawner)
+    return spawners

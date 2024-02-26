@@ -45,10 +45,11 @@ from weakref import WeakValueDictionary
 from collections import OrderedDict
 from textwrap import dedent
 from types import ModuleType
-from typing import Iterable, Any, Sequence, Optional, Set, Dict, Union, FrozenSet, Tuple, List, Type, no_type_check
+from typing import Callable, Iterable, Any, Sequence, Optional, Set, Dict, Union, FrozenSet, Tuple, List, Type, no_type_check
 from tale import resources_utils
 
 from tale.coord import Coord
+from tale.llm.contexts.CombatContext import CombatContext
 
 from . import lang
 from . import mud_context
@@ -1027,6 +1028,7 @@ class Living(MudObject):
         self.location = _limbo  # type: Location  # set transitional location
         self.privileges = set()  # type: Set[str] # probably only used for Players though
         self.aggressive = False
+        self.attacking = False
         self.money = 0.0  # the currency is determined by util.MoneyFormatter set in the driver
         self.default_verb = "examine"
         self.__inventory = set()   # type: Set[Item]
@@ -1038,6 +1040,7 @@ class Living(MudObject):
         self.__wielding = None   # type: Optional[Weapon]
         self.__wearing = dict()  # type: Dict[str, wearable.Wearable]
         self.should_produce_remains = False
+        self.on_death_callback = None   # type: Callable[['Living']]
 
         super().__init__(name, title=title, descr=descr, short_descr=short_descr)
 
@@ -1422,20 +1425,27 @@ class Living(MudObject):
         room_msg = "%s attacks %s! %s" % (attacker_name, victim_name, result)
         victim_msg = "%s attacks you. %s" % (attacker_name, result)
         attacker_msg = "You attack %s! %s" % (victim_name, result)
-        victim.tell(victim_msg, evoke=True, short_len=False)
-        
-        combat_prompt = mud_context.driver.prepare_combat_prompt(attacker=self, 
-                              victim=victim, 
-                              location_title = self.location.title, 
-                              location_description = self.location.description,
+        #victim.tell(victim_msg, evoke=True, short_len=False)
+
+        combat_prompt, attacker_msg = mud_context.driver.prepare_combat_prompt(attacker=self, 
+                              defender=victim, 
+                              location_title = self.location.title,
+                              combat_result = result,
                               attacker_msg = attacker_msg)
+        
+        combat_context = CombatContext(attacker_name=self.name,
+                                        attacker_health=self.stats.hp / self.stats.max_hp, 
+                                        attacker_weapon=self.wielding.name, 
+                                        defender_name=victim.name, 
+                                        defender_health=victim.stats.hp / victim.stats.max_hp, 
+                                        defender_weapon=victim.wielding.name, 
+                                        location_description=self.location.description)
+
         victim.location.tell(room_msg,
-                             exclude_living=victim,
-                             specific_targets={self},
-                             specific_target_msg=attacker_msg,
                              evoke=True,
                              short_len=False,
-                             alt_prompt=combat_prompt)
+                             alt_prompt=combat_prompt,
+                             extra_context=combat_context.to_prompt_string())
         self.stats.hp -= damage_to_attacker
         victim.stats.hp -= damage_to_defender
         if self.stats.hp < 1:
@@ -1578,10 +1588,13 @@ class Living(MudObject):
     def do_on_death(self, ctx: util.Context) -> 'Container':
         """Called when the living dies."""
         remains = None
+        self.alive = False
         if self.should_produce_remains:
             remains = Container(f"remains of {self.title}")
             remains.init_inventory(self.inventory)
             self.location.insert(remains, None)
+        if self.on_death_callback:
+            self.on_death_callback()
         self.destroy(ctx)
         return remains
 

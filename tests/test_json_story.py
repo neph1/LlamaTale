@@ -9,6 +9,7 @@ from tale import util
 from tale.base import Location
 from tale.driver_if import IFDriver
 from tale.json_story import JsonStory
+from tale.spawner import MobSpawner
 
 class TestJsonStory():
     driver = IFDriver(screen_delay=99, gui=False, web=True, wizard_override=True)
@@ -31,6 +32,14 @@ class TestJsonStory():
         assert(npc.stats.level == 1)
         assert(npc.stats.strength == 3)
         assert(self.story.get_item('hoodie').location.name == 'Cave entrance')
+
+        mob_spawner = self.story.world.mob_spawners[0] # type: MobSpawner
+        assert(mob_spawner.mob_type.name == 'bat')
+        assert(mob_spawner.location.name == 'Cave entrance')
+        assert(mob_spawner.spawn_rate == 60)
+        assert(mob_spawner.spawn_limit == 5)
+        assert(mob_spawner.spawned == 0)
+
         zone_info = self.story.zone_info('Cave')
         assert(zone_info['description'] == 'A dark cave')
         assert(zone_info['races'] == ['kobold', 'bat', 'giant rat'])

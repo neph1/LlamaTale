@@ -144,10 +144,32 @@
                 "value": 1,
                 "wear_location": "TORSO"
             }
-        }
+        },
+        "spawners": [
+            {
+                "mob_type": "bat",
+                "location": "Cave entrance",
+                "spawn_rate": 60,
+                "spawn_limit": 5,
+                "spawned": 0
+            }
+        ]
     },
     "catalogue": {
         "items": [],
-        "creatures": []
+        "creatures": [
+            {
+                "name": "bat",
+                "short_descr": "A bat",
+                "descr": "A small bat",
+                "type": "Mob"
+            },
+            {
+                "name": "wolf",
+                "short_descr": "A wolf",
+                "descr": "A wolf",
+                "type": "Mob"
+            }
+        ]
     }
 }
