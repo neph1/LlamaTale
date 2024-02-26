@@ -98,7 +98,8 @@
                     "xp": 0,
                     "strength": 3,
                     "dexterity": 3,
-                    "unarmed_attack": "BITE"
+                    "unarmed_attack": "BITE",
+                    "bodytype": "QUADRUPED"
                     }
                 }
         ]
