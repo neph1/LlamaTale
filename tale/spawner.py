@@ -2,12 +2,9 @@
 
 from functools import wraps
 import random
-import time
-from typing import Type
 
-from tale import mud_context, util
+from tale import mud_context
 from tale.base import Living, Location
-from tale.errors import TaleError
 from tale.util import call_periodically
 
 class MobSpawner():
@@ -78,4 +75,5 @@ class MobSpawner():
             gender = "m" if random.randint(0, 1) == 0 else "f"
         mob = self.mob_type.__class__(self.mob_type.name, gender)
         mob.aggressive = self.mob_type.aggressive
+        mob.should_produce_remains = self.mob_type.should_produce_remains
         return mob
