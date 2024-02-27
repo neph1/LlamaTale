@@ -1,5 +1,7 @@
 import enum
 
+from tale.races import BodyType
+
 class WearLocation(enum.Enum):
     FULL_BODY = 0 # robes etc, covers TORSO, ARMS, LEGS
     HEAD = 1
@@ -19,9 +21,9 @@ class WearLocation(enum.Enum):
         return value in cls._member_names_
 
 def body_parts_for_bodytype(bodytype: str) -> list:
-    if bodytype == 'HUMANOID' or bodytype == 'SEMI_BIPEDAL':
-        return WearLocation[1:-3]
-    if bodytype == 'QUADRUPED':
+    if bodytype == BodyType.HUMANOID or bodytype == BodyType.SEMI_BIPEDAL:
+        return list(WearLocation)[1:-3]
+    if bodytype == BodyType.QUADRUPED:
         return [WearLocation.HEAD, WearLocation.LEGS, WearLocation.TORSO, WearLocation.FEET, WearLocation.NECK]
     return None
 

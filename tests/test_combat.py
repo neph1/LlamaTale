@@ -4,6 +4,7 @@ from tale.base import Location, Weapon
 from tale.llm.LivingNpc import LivingNpc
 from tale.combat import Combat
 from tale.llm.contexts.CombatContext import CombatContext
+from tale.races import BodyType
 from tale.weapon_type import WeaponType
 from tale.wearable import WearLocation
 from tests.supportstuff import FakeDriver
@@ -149,6 +150,8 @@ class TestCombat():
 
         assert isinstance(body_part, WearLocation)
 
+        assert body_part != WearLocation.FULL_BODY
+
         body_part = combat.resolve_body_part(defender, size_factor=1000.0)
 
         assert body_part != WearLocation.FEET
@@ -162,7 +165,7 @@ class TestCombat():
     def test_resolve_body_part_quadruped(self):
         attacker = LivingNpc(name='attacker', gender='f', age=37, personality='A fierce fighter')
         defender = LivingNpc(name='giant rat', gender='m', age=2, personality='A squeeky fighter')
-        defender.stats.bodytype = 'QUADRUPED'
+        defender.stats.bodytype = BodyType.QUADRUPED
 
         combat = Combat(attacker, defender)
 
@@ -177,22 +180,22 @@ class TestCombat():
         defender = LivingNpc(name='giant rat', gender='m', age=2, personality='A squeeky fighter')
         combat = Combat(attacker, defender)
 
-        defender.stats.bodytype = 'BIPED'
+        defender.stats.bodytype = BodyType.BIPED
         body_part = combat.resolve_body_part(defender, size_factor=1.0)
 
         assert body_part == WearLocation.FULL_BODY
 
-        defender.stats.bodytype = 'INSECTOID'
+        defender.stats.bodytype = BodyType.INSECTOID
         body_part = combat.resolve_body_part(defender, size_factor=1.0)
 
         assert body_part == WearLocation.FULL_BODY
 
-        defender.stats.bodytype = 'AVIAN'
+        defender.stats.bodytype = BodyType.AVIAN
         body_part = combat.resolve_body_part(defender, size_factor=1.0)
 
         assert body_part == WearLocation.FULL_BODY
 
-        defender.stats.bodytype = 'FISH'
+        defender.stats.bodytype = BodyType.FISH
         body_part = combat.resolve_body_part(defender, size_factor=1.0)
 
         assert body_part == WearLocation.FULL_BODY

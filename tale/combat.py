@@ -54,10 +54,12 @@ class Combat():
     def resolve_body_part(self, defender: 'base.Living', size_factor: float, target_part: WearLocation = None) -> WearLocation:
         """ Resolve the body part that was hit. """
         body_parts = body_parts_for_bodytype(defender.stats.bodytype)
+        print("body type: ", defender.stats.bodytype)
+        print("body parts: ", body_parts)
         if not body_parts:
             body_parts = [WearLocation.FULL_BODY]
-
-        locations = list(body_parts)
+        print("body parts 2: ", body_parts)
+        locations = body_parts
         probability_distribution = self.create_probability_distribution(locations, size_factor=size_factor, target_part=target_part)
         
         return random.choices(list(probability_distribution.keys()), list(probability_distribution.values()))[0]
@@ -72,7 +74,7 @@ class Combat():
             if WearLocation.TORSO in distribution:
                 distribution[WearLocation.TORSO] *= size_factor
             if WearLocation.LEGS in distribution:
-                distribution[WearLocation.LEGS] *= size_factor
+                distribution[WearLocation.LEGS] /= size_factor
             if WearLocation.FEET in distribution:
                 distribution[WearLocation.FEET] /= size_factor
         

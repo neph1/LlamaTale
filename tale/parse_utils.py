@@ -625,7 +625,7 @@ def save_stats(stats: Stats) -> dict:
     json_stats['dexterity'] = stats.dexterity
     json_stats['unarmed_attack'] = stats.unarmed_attack.name.upper()
     json_stats['race'] = stats.race
-    json_stats['bodytype'] = stats.bodytype.name
+    json_stats['bodytype'] = stats.bodytype.name.upper()
     return json_stats
 
 
@@ -644,7 +644,8 @@ def load_stats(json_stats: dict) -> Stats:
     stats.dexterity = json_stats.get('dexterity')
     stats.race = json_stats.get('race', 'human')
     if json_stats.get('bodytype'):
-        stats.bodytype = BodyType[json_stats.get('bodytype', BodyType.HUMANOID.name)]
+        stats.bodytype = BodyType[json_stats['bodytype'].upper()]
+        print(f"Bodytype: {stats.bodytype} from {json_stats['bodytype']}")
     if json_stats.get('unarmed_attack'):
         stats.unarmed_attack = Weapon(UnarmedAttack[json_stats['unarmed_attack'].upper()], WeaponType.UNARMED)
     if json_stats.get('weapon_skills'):
