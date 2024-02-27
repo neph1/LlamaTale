@@ -10,7 +10,7 @@ from tale.races import BodyType
 import tale.util as util
 import tale.base as base
 from tale.util import Context
-from tale.wearable import WearLocation
+from tale.wearable import WearLocation, body_parts_for_bodytype
 from tale.wearable import WearLocation
 import random
 from collections import Counter
@@ -51,10 +51,11 @@ class Combat():
     
     def resolve_body_part(self, defender: 'base.Living', size_factor: float, target_part: WearLocation = None) -> WearLocation:
         """ Resolve the body part that was hit. """
-        if defender.stats.bodytype != BodyType.HUMANOID:
-            return WearLocation.FULL_BODY
+        body_parts = body_parts_for_bodytype(defender.stats.bodytype)
+        if not body_parts:
+            body_parts = [WearLocation.FULL_BODY]
 
-        locations = list(WearLocation)[1:-1]
+        locations = list(body_parts)
         probability_distribution = self.create_probability_distribution(locations, size_factor=size_factor, target_part=target_part)
         
         return random.choices(list(probability_distribution.keys()), list(probability_distribution.values()))[0]
@@ -64,10 +65,14 @@ class Combat():
         total_items = sum(distribution.values())
         
         if size_factor != 1.0:
-            distribution[WearLocation.HEAD] *= size_factor
-            distribution[WearLocation.TORSO] *= size_factor
-            distribution[WearLocation.LEGS] /= size_factor
-            distribution[WearLocation.FEET] /= size_factor
+            if WearLocation.HEAD in distribution:
+                distribution[WearLocation.HEAD] *= size_factor
+            if WearLocation.TORSO in distribution:
+                distribution[WearLocation.TORSO] *= size_factor
+            if WearLocation.LEGS in distribution:
+                distribution[WearLocation.LEGS] *= size_factor
+            if WearLocation.FEET in distribution:
+                distribution[WearLocation.FEET] /= size_factor
         
         if target_part:
             distribution[target_part] *= 2

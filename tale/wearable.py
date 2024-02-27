@@ -18,6 +18,13 @@ class WearLocation(enum.Enum):
     def has_value(cls, value):
         return value in cls._member_names_
 
+def body_parts_for_bodytype(bodytype: str) -> list:
+    if bodytype == 'HUMANOID' or bodytype == 'SEMI_BIPEDAL':
+        return WearLocation[1:-3]
+    if bodytype == 'QUADRUPED':
+        return [WearLocation.HEAD, WearLocation.LEGS, WearLocation.TORSO, WearLocation.FEET, WearLocation.NECK]
+    return None
+
 # Mostly 'copilot' generated wearable types
 wearables_fantasy = {
     'robe': {

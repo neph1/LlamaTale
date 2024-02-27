@@ -763,7 +763,6 @@ _races = {
     }
 }
 
-
 # Races that can be chosen by players. Can be changed in story configuration.
 playable_races = {'human', 'dwarf', 'elf', 'dark-elf', 'half-elf', 'half-orc', 'halfling', 'orc', 'goblin', 'hobbit'}
 

@@ -144,16 +144,56 @@ class TestCombat():
 
         combat = Combat(attacker, defender)
 
-        body_part = combat.resolve_body_part(attacker, size_factor=1.0)
+        body_part = combat.resolve_body_part(defender, size_factor=1.0)
 
         assert isinstance(body_part, WearLocation)
 
-        body_part = combat.resolve_body_part(attacker, size_factor=1000.0)
+        body_part = combat.resolve_body_part(defender, size_factor=1000.0)
 
         assert body_part != WearLocation.FEET
         assert body_part != WearLocation.LEGS
 
-        body_part = combat.resolve_body_part(attacker, size_factor=0.001)
+        body_part = combat.resolve_body_part(defender, size_factor=0.001)
 
         assert body_part != WearLocation.HEAD
         assert body_part != WearLocation.TORSO
+
+    def test_resolve_body_part_quadruped(self):
+        attacker = LivingNpc(name='attacker', gender='f', age=37, personality='A fierce fighter')
+        defender = LivingNpc(name='giant rat', gender='m', age=2, personality='A squeeky fighter')
+        defender.stats.bodytype = 'QUADRUPED'
+
+        combat = Combat(attacker, defender)
+
+        body_part = combat.resolve_body_part(defender, size_factor=1.0)
+
+        assert body_part != WearLocation.FULL_BODY
+        assert body_part != WearLocation.BACK
+        assert body_part != WearLocation.HANDS
+
+    def test_resolbe_body_part_others(self):
+        attacker = LivingNpc(name='attacker', gender='f', age=37, personality='A fierce fighter')
+        defender = LivingNpc(name='giant rat', gender='m', age=2, personality='A squeeky fighter')
+        combat = Combat(attacker, defender)
+
+        defender.stats.bodytype = 'BIPED'
+        body_part = combat.resolve_body_part(defender, size_factor=1.0)
+
+        assert body_part == WearLocation.FULL_BODY
+
+        defender.stats.bodytype = 'INSECTOID'
+        body_part = combat.resolve_body_part(defender, size_factor=1.0)
+
+        assert body_part == WearLocation.FULL_BODY
+
+        defender.stats.bodytype = 'AVIAN'
+        body_part = combat.resolve_body_part(defender, size_factor=1.0)
+
+        assert body_part == WearLocation.FULL_BODY
+
+        defender.stats.bodytype = 'FISH'
+        body_part = combat.resolve_body_part(defender, size_factor=1.0)
+
+        assert body_part == WearLocation.FULL_BODY
+
+
