@@ -75,7 +75,7 @@ class TestCombat():
         ctx = util.Context(driver=FakeDriver(), clock=None, config=None, player_connection=None)
         rat = LivingNpc(name='Giant Rat', gender='m', age=4, personality='Sneaky and nasty')
         rat.should_produce_remains = True
-        remains = rat.do_on_death(ctx)
+        remains = rat.do_on_death()
         assert not rat.alive
         assert(remains)
         assert(remains.location == rat.location)
@@ -85,7 +85,7 @@ class TestCombat():
         ctx = util.Context(driver=FakeDriver(), clock=None, config=None, player_connection=None)
         bunny = LivingNpc(name='Bunny rabbit', gender='m', age=4, personality='Nice and fluffy')
         bunny.should_produce_remains = False
-        remains = bunny.do_on_death(ctx)
+        remains = bunny.do_on_death()
         assert not bunny.alive
         assert(not remains)
 

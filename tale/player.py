@@ -210,7 +210,7 @@ class Player(base.Living, pubsub.Listener):
             else:
                 self.tell("%s was found in %s." % (lang.capital(obj.name), known_container.name))
 
-    def do_on_death(self, ctx: util.Context) -> Optional[base.Item]:
+    def do_on_death(self) -> Optional[base.Item]:
         """Called when the player dies. Returns the remains of the player."""
         self.tell("You die.")
         self.location.tell("%s dies." % self.title, exclude_living=self)

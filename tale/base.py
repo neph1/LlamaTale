@@ -1453,9 +1453,9 @@ class Living(MudObject):
         self.stats.hp -= damage_to_attacker
         defender.stats.hp -= damage_to_defender
         if self.stats.hp < 1:
-            self.do_on_death(util.Context)
+            mud_context.driver.defer(0.1, self.do_on_death)
         if defender.stats.hp < 1:
-            defender.do_on_death(util.Context)  
+            mud_context.driver.defer(0.1, defender.do_on_death)
         return c
 
     def allow_give_money(self, amount: float, actor: Optional['Living']) -> None:
@@ -1589,7 +1589,7 @@ class Living(MudObject):
         """Return all items that are currently worn."""
         return self.__wearing.values()
     
-    def do_on_death(self, ctx: util.Context) -> 'Container':
+    def do_on_death(self) -> 'Container':
         """Called when the living dies."""
         remains = None
         self.alive = False
@@ -1599,7 +1599,7 @@ class Living(MudObject):
             self.location.insert(remains, None)
         if self.on_death_callback:
             self.on_death_callback()
-        self.destroy(ctx)
+        self.destroy(util.Context)
         return remains
 
 

@@ -70,7 +70,7 @@ class TestMobSpawner():
         assert len(self.location.livings) == 1
         assert spawner.spawned == 1
 
-        mob.do_on_death(ctx=self.ctx)
+        mob.do_on_death()
 
         assert spawner.spawned == 0
 
