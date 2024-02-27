@@ -428,5 +428,9 @@ BODY_PARTS = {
     "cheek": "on the cheek",
     "side": "in the side",
     "everywhere": "everywhere",
-    "shoulder": "on the shoulder"
+    "shoulder": "on the shoulder",
+    "feet": "on the feet",
+    "tail": "on the tail",
+    "wing": "on the wing",
+    "wings": "on the wings"
 }

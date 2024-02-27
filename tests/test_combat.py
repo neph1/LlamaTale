@@ -9,6 +9,7 @@ from tale.wearable import WearLocation
 from tests.supportstuff import FakeDriver
 from tale.wearable import WearLocation
 import tale.util as util
+from tests.test_mudobjects import PubsubCollector
 
 
 
@@ -120,9 +121,6 @@ class TestCombat():
         assert(lang.capital(attacker.title) in combat_prompt)
         assert('the arena' in combat_prompt)
         assert(lang.capital(rat.title) in combat_prompt)
-        assert(lang.capital(attacker.title) in combat_prompt)
-        assert('the arena' in combat_prompt)
-        assert(lang.capital(rat.title) in combat_prompt)
         assert('attacker hits' in combat_prompt)
         assert msg == 'attacker hits'
 
@@ -200,3 +198,24 @@ class TestCombat():
         assert body_part == WearLocation.FULL_BODY
 
 
+    def test_parse_attack(self):
+        attacker = LivingNpc(name='attacker', gender='f', age=37, personality='A fierce fighter')
+        defender = LivingNpc(name='giant rat', gender='m', age=2, personality='A squeeky fighter')
+        location = Location('Test Location', 'Test Location')
+        location.init_inventory([attacker, defender])
+
+        command = "attack giant rat head"
+        parsed = attacker.parse(command, external_verbs=[])
+
+        assert parsed.verb == 'attack'
+        assert parsed.args == ['giant rat', 'head']
+
+        assert parsed.args[1].upper() in WearLocation.__members__
+
+        command = "attack giant rat tail"
+        parsed = attacker.parse(command, external_verbs=[])
+
+        assert parsed.verb == 'attack'
+        assert parsed.args == ['giant rat', 'tail']
+
+        assert parsed.args[1].upper() not in WearLocation.__members__

@@ -15,13 +15,18 @@ import random
 
 class Combat():
 
-    def __init__(self, attacker: 'base.Living', defender: 'base.Living') -> None:
+    def __init__(self, attacker: 'base.Living', defender: 'base.Living', target_body_part: WearLocation = None) -> None:
         self.attacker = attacker
         self.defender = defender
+        self.target_body_part = target_body_part
     
     def _calculate_attack_success(self, actor: 'base.Living') -> int:
-        """ Calculate the success of an attack. <5 is a critical hit."""
-        return random.randrange(0, 100) - actor.stats.get_weapon_skill(actor.wielding.type)
+        """ Calculate the success of an attack. <5 is a critical hit.
+        Lower chance for attacker if trying to hit a specific body part."""
+        chance = actor.stats.get_weapon_skill(actor.wielding.type)
+        if self.target_body_part and actor == self.attacker:
+            chance *= 1.2
+        return random.randrange(0, 100) - chance
     
     def _calculate_block_success(self, actor1: 'base.Living', actor2: 'base.Living') -> int:
         """ Calculate the chance of blocking an attack.
@@ -116,7 +121,7 @@ class Combat():
                 texts.append(f'but {actor2.title} blocks')
             else:
                 actor1_strength = self._calculate_weapon_bonus(actor1) * actor1.stats.size.order
-                body_part = self.resolve_body_part(actor2, actor1.stats.size.order / actor2.stats.size.order)
+                body_part = self.resolve_body_part(actor2, actor1.stats.size.order / actor2.stats.size.order, target_part=self.target_body_part)
                 actor2_strength = self._calculate_armor_bonus(actor2, body_part) * actor2.stats.size.order
                 damage_to_defender = int(max(0, actor1_strength - actor2_strength))
                 if damage_to_defender > 0:

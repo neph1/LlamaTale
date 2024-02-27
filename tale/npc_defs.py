@@ -41,7 +41,7 @@ class StationaryMob(LivingNpc):
             self.idle_action()
 
     def do_attack(self, target: Living) -> None:
-        self.start_attack(victim=target)
+        self.start_attack(defender=target)
         
 class RoamingMob(StationaryMob):
     
