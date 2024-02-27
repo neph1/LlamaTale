@@ -120,6 +120,9 @@ class TestCombat():
         assert(lang.capital(attacker.title) in combat_prompt)
         assert('the arena' in combat_prompt)
         assert(lang.capital(rat.title) in combat_prompt)
+        assert(lang.capital(attacker.title) in combat_prompt)
+        assert('the arena' in combat_prompt)
+        assert(lang.capital(rat.title) in combat_prompt)
         assert('attacker hits' in combat_prompt)
         assert msg == 'attacker hits'
 

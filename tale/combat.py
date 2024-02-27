@@ -6,10 +6,7 @@ Util class for combat related functions.
 
 import random
 from tale import weapon_type
-from tale.races import BodyType
-import tale.util as util
 import tale.base as base
-from tale.util import Context
 from tale.wearable import WearLocation, body_parts_for_bodytype
 from tale.wearable import WearLocation
 import random
