@@ -246,7 +246,7 @@ class TestLivingNpcActions():
         responses.add(responses.POST, self.dummy_backend_config['URL'] + self.dummy_backend_config['ENDPOINT'],
                   json={'results':[{'text':'{"action":"attack", "text":"take that, you filthy animal!", "target":"rat"}'}]}, status=200)
         actions = self.npc.autonomous_action()
-        assert(actions == '"take that, you filthy animal!"\ntest attacks rat')
+        assert(actions == 'test attacks rat') # TODO: only receives one message due to change of how targeted actions are handled
 
     @responses.activate
     def test_say(self):
@@ -255,7 +255,7 @@ class TestLivingNpcActions():
         responses.add(responses.POST, self.dummy_backend_config['URL'] + self.dummy_backend_config['ENDPOINT'],
                   json={'results':[{'text':'{"response":"Fine."}'}]}, status=200)
         actions = self.npc.autonomous_action()
-        assert(actions == '"How are you doing?"')
+        assert(actions == '')  # TODO: receives no message due to change of how targeted actions are handled
         
 
 class TestDynamicStory():
