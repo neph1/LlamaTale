@@ -73,7 +73,7 @@ class MobSpawner():
         gender = self.mob_type.gender
         if self.randomize_gender:
             gender = "m" if random.randint(0, 1) == 0 else "f"
-        mob = self.mob_type.__class__(self.mob_type.name, gender)
+        mob = self.mob_type.__class__(self.mob_type.name, gender, race=self.mob_type.stats.race)
         mob.aggressive = self.mob_type.aggressive
         mob.should_produce_remains = self.mob_type.should_produce_remains
         return mob

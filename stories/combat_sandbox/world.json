@@ -99,7 +99,7 @@
                     "strength": 3,
                     "dexterity": 3,
                     "unarmed_attack": "BITE",
-                    "bodytype": "QUADRUPED"
+                    "race": "giant rat"
                     }
                 }
         ]
