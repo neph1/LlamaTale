@@ -30,7 +30,7 @@ class TestMobSpawnerUnitTests():
 
 # Mock classes for testing
 class MockMob:
-    def __init__(self, name: str = 'Mock Mob', gender: str = 'n'):
+    def __init__(self, name: str = 'Mock Mob', gender: str = 'n', race: str = 'human'):
         self.do_on_death = None
         self.location = None
         self.gender = gender
@@ -39,7 +39,7 @@ class MockMob:
         self.title = name
         self.description = "Mock Mob"
         self.should_produce_remains = False
-        self.stats = Stats.from_race('human')
+        self.stats = Stats.from_race(race)
 
 class MockLocation:
     def __init__(self):
