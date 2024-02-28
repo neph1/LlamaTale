@@ -33,7 +33,7 @@ class MobSpawner():
             if self.max_spawns > 0:
                 self.max_spawns -= 1
             mob = self._clone_mob()
-            mob.do_on_death = lambda ctx: self.remove_mob()
+            mob.on_death_callback = lambda: self.remove_mob()
             self.location.insert(mob)
             self.location.tell("%s arrives." % mob.title, extra_context=f'Location:{self.location.description}; {mob.title}: {mob.description}')
             return mob
@@ -73,7 +73,7 @@ class MobSpawner():
         gender = self.mob_type.gender
         if self.randomize_gender:
             gender = "m" if random.randint(0, 1) == 0 else "f"
-        mob = self.mob_type.__class__(self.mob_type.name, gender)
+        mob = self.mob_type.__class__(self.mob_type.name, gender, race=self.mob_type.stats.race)
         mob.aggressive = self.mob_type.aggressive
         mob.should_produce_remains = self.mob_type.should_produce_remains
         return mob

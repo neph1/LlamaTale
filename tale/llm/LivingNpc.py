@@ -238,8 +238,12 @@ class LivingNpc(Living):
             if action.target:
                 target = self.location.search_living(action.target)
                 if target:
+                    target.tell(text, evoke=False)
                     target.notify_action(ParseResult(verb='say', unparsed=text, who_list=[target]), actor=self)
-            defered_actions.append(f'"{text}"')
+                else:
+                    defered_actions.append(f'"{text}"')
+            else:
+                defered_actions.append(f'"{text}"')
         if not action.action:
             return defered_actions
         if action.action == 'move':
@@ -282,8 +286,8 @@ class LivingNpc(Living):
     def tell_action_deferred(self):
         actions = '\n'.join(self.deferred_actions) + '\n'
         deferred_action = ParseResult(verb='idle-action', unparsed=actions, who_info=None)
-        self.location._notify_action_all(deferred_action, actor=self)
         self.tell_others(actions)
+        self.location._notify_action_all(deferred_action, actor=self)
         self.deferred_actions.clear()
 
     def get_observed_events(self, amount: int) -> list:

@@ -4,11 +4,13 @@ from tale.base import Location, Weapon
 from tale.llm.LivingNpc import LivingNpc
 from tale.combat import Combat
 from tale.llm.contexts.CombatContext import CombatContext
+from tale.races import BodyType
 from tale.weapon_type import WeaponType
 from tale.wearable import WearLocation
 from tests.supportstuff import FakeDriver
 from tale.wearable import WearLocation
 import tale.util as util
+from tests.test_mudobjects import PubsubCollector
 
 
 
@@ -74,7 +76,7 @@ class TestCombat():
         ctx = util.Context(driver=FakeDriver(), clock=None, config=None, player_connection=None)
         rat = LivingNpc(name='Giant Rat', gender='m', age=4, personality='Sneaky and nasty')
         rat.should_produce_remains = True
-        remains = rat.do_on_death(ctx)
+        remains = rat.do_on_death()
         assert not rat.alive
         assert(remains)
         assert(remains.location == rat.location)
@@ -84,7 +86,7 @@ class TestCombat():
         ctx = util.Context(driver=FakeDriver(), clock=None, config=None, player_connection=None)
         bunny = LivingNpc(name='Bunny rabbit', gender='m', age=4, personality='Nice and fluffy')
         bunny.should_produce_remains = False
-        remains = bunny.do_on_death(ctx)
+        remains = bunny.do_on_death()
         assert not bunny.alive
         assert(not remains)
 
@@ -144,16 +146,79 @@ class TestCombat():
 
         combat = Combat(attacker, defender)
 
-        body_part = combat.resolve_body_part(attacker, size_factor=1.0)
+        body_part = combat.resolve_body_part(defender, size_factor=1.0)
 
         assert isinstance(body_part, WearLocation)
 
-        body_part = combat.resolve_body_part(attacker, size_factor=1000.0)
+        assert body_part != WearLocation.FULL_BODY
+
+        body_part = combat.resolve_body_part(defender, size_factor=1000.0)
 
         assert body_part != WearLocation.FEET
         assert body_part != WearLocation.LEGS
 
-        body_part = combat.resolve_body_part(attacker, size_factor=0.001)
+        body_part = combat.resolve_body_part(defender, size_factor=0.001)
 
         assert body_part != WearLocation.HEAD
         assert body_part != WearLocation.TORSO
+
+    def test_resolve_body_part_quadruped(self):
+        attacker = LivingNpc(name='attacker', gender='f', age=37, personality='A fierce fighter')
+        defender = LivingNpc(name='giant rat', gender='m', age=2, personality='A squeeky fighter')
+        defender.stats.bodytype = BodyType.QUADRUPED
+
+        combat = Combat(attacker, defender)
+
+        body_part = combat.resolve_body_part(defender, size_factor=1.0)
+
+        assert body_part != WearLocation.FULL_BODY
+        assert body_part != WearLocation.BACK
+        assert body_part != WearLocation.HANDS
+
+    def test_resolbe_body_part_others(self):
+        attacker = LivingNpc(name='attacker', gender='f', age=37, personality='A fierce fighter')
+        defender = LivingNpc(name='giant rat', gender='m', age=2, personality='A squeeky fighter')
+        combat = Combat(attacker, defender)
+
+        defender.stats.bodytype = BodyType.BIPED
+        body_part = combat.resolve_body_part(defender, size_factor=1.0)
+
+        assert body_part == WearLocation.FULL_BODY
+
+        defender.stats.bodytype = BodyType.INSECTOID
+        body_part = combat.resolve_body_part(defender, size_factor=1.0)
+
+        assert body_part == WearLocation.FULL_BODY
+
+        defender.stats.bodytype = BodyType.AVIAN
+        body_part = combat.resolve_body_part(defender, size_factor=1.0)
+
+        assert body_part == WearLocation.FULL_BODY
+
+        defender.stats.bodytype = BodyType.FISH
+        body_part = combat.resolve_body_part(defender, size_factor=1.0)
+
+        assert body_part == WearLocation.FULL_BODY
+
+
+    def test_parse_attack(self):
+        attacker = LivingNpc(name='attacker', gender='f', age=37, personality='A fierce fighter')
+        defender = LivingNpc(name='giant rat', gender='m', age=2, personality='A squeeky fighter')
+        location = Location('Test Location', 'Test Location')
+        location.init_inventory([attacker, defender])
+
+        command = "attack giant rat head"
+        parsed = attacker.parse(command, external_verbs=[])
+
+        assert parsed.verb == 'attack'
+        assert parsed.args == ['giant rat', 'head']
+
+        assert parsed.args[1].upper() in WearLocation.__members__
+
+        command = "attack giant rat tail"
+        parsed = attacker.parse(command, external_verbs=[])
+
+        assert parsed.verb == 'attack'
+        assert parsed.args == ['giant rat', 'tail']
+
+        assert parsed.args[1].upper() not in WearLocation.__members__

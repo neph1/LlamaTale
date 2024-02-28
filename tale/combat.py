@@ -6,11 +6,8 @@ Util class for combat related functions.
 
 import random
 from tale import weapon_type
-from tale.races import BodyType
-import tale.util as util
 import tale.base as base
-from tale.util import Context
-from tale.wearable import WearLocation
+from tale.wearable import WearLocation, body_parts_for_bodytype
 from tale.wearable import WearLocation
 import random
 from collections import Counter
@@ -18,13 +15,18 @@ import random
 
 class Combat():
 
-    def __init__(self, attacker: 'base.Living', defender: 'base.Living') -> None:
+    def __init__(self, attacker: 'base.Living', defender: 'base.Living', target_body_part: WearLocation = None) -> None:
         self.attacker = attacker
         self.defender = defender
+        self.target_body_part = target_body_part
     
     def _calculate_attack_success(self, actor: 'base.Living') -> int:
-        """ Calculate the success of an attack. <5 is a critical hit."""
-        return random.randrange(0, 100) - actor.stats.get_weapon_skill(actor.wielding.type)
+        """ Calculate the success of an attack. <5 is a critical hit.
+        Lower chance for attacker if trying to hit a specific body part."""
+        chance = actor.stats.get_weapon_skill(actor.wielding.type)
+        if self.target_body_part and actor == self.attacker:
+            chance *= 1.2
+        return random.randrange(0, 100) - chance
     
     def _calculate_block_success(self, actor1: 'base.Living', actor2: 'base.Living') -> int:
         """ Calculate the chance of blocking an attack.
@@ -51,10 +53,10 @@ class Combat():
     
     def resolve_body_part(self, defender: 'base.Living', size_factor: float, target_part: WearLocation = None) -> WearLocation:
         """ Resolve the body part that was hit. """
-        if defender.stats.bodytype != BodyType.HUMANOID:
-            return WearLocation.FULL_BODY
-
-        locations = list(WearLocation)[1:-1]
+        body_parts = body_parts_for_bodytype(defender.stats.bodytype)
+        if not body_parts:
+            body_parts = [WearLocation.FULL_BODY]
+        locations = body_parts
         probability_distribution = self.create_probability_distribution(locations, size_factor=size_factor, target_part=target_part)
         
         return random.choices(list(probability_distribution.keys()), list(probability_distribution.values()))[0]
@@ -64,10 +66,14 @@ class Combat():
         total_items = sum(distribution.values())
         
         if size_factor != 1.0:
-            distribution[WearLocation.HEAD] *= size_factor
-            distribution[WearLocation.TORSO] *= size_factor
-            distribution[WearLocation.LEGS] /= size_factor
-            distribution[WearLocation.FEET] /= size_factor
+            if WearLocation.HEAD in distribution:
+                distribution[WearLocation.HEAD] *= size_factor
+            if WearLocation.TORSO in distribution:
+                distribution[WearLocation.TORSO] *= size_factor
+            if WearLocation.LEGS in distribution:
+                distribution[WearLocation.LEGS] /= size_factor
+            if WearLocation.FEET in distribution:
+                distribution[WearLocation.FEET] /= size_factor
         
         if target_part:
             distribution[target_part] *= 2
@@ -114,7 +120,7 @@ class Combat():
                 texts.append(f'but {actor2.title} blocks')
             else:
                 actor1_strength = self._calculate_weapon_bonus(actor1) * actor1.stats.size.order
-                body_part = self.resolve_body_part(actor2, actor1.stats.size.order / actor2.stats.size.order)
+                body_part = self.resolve_body_part(actor2, actor1.stats.size.order / actor2.stats.size.order, target_part=self.target_body_part)
                 actor2_strength = self._calculate_armor_bonus(actor2, body_part) * actor2.stats.size.order
                 damage_to_defender = int(max(0, actor1_strength - actor2_strength))
                 if damage_to_defender > 0:

@@ -1270,7 +1270,11 @@ class Living(MudObject):
         if attacking:
             for thing in who:
                 if isinstance(thing, Living):
-                    pending_actions.send(lambda victim=thing: self.start_attack(victim))
+                    body_part = None
+                    if len(parsed.args) == 2:
+                        arg = parsed.args[1].upper()
+                        body_part = arg if arg in wearable.WearLocation.__members__ else None
+                    pending_actions.send(lambda victim=thing: self.start_attack(victim, target_body_part=body_part))
         elif parsed.verb in verbdefs.AGGRESSIVE_VERBS:
             # usually monsters immediately attack,
             # other npcs may choose to attack or to ignore it
@@ -1415,11 +1419,11 @@ class Living(MudObject):
                         break
         return (found, containing_object) if found else (None, None)
 
-    def start_attack(self, victim: 'Living') -> combat.Combat:
+    def start_attack(self, defender: 'Living', target_body_part: wearable.WearLocation= None) -> combat.Combat:
         """Starts attacking the given living for one round."""
         attacker_name = lang.capital(self.title)
-        victim_name = lang.capital(victim.title)
-        c = combat.Combat(self, victim)
+        victim_name = lang.capital(defender.title)
+        c = combat.Combat(self, defender, target_body_part=target_body_part)
         result, damage_to_attacker, damage_to_defender = c.resolve_attack()
         
         room_msg = "%s attacks %s! %s" % (attacker_name, victim_name, result)
@@ -1428,7 +1432,7 @@ class Living(MudObject):
         #victim.tell(victim_msg, evoke=True, short_len=False)
 
         combat_prompt, attacker_msg = mud_context.driver.prepare_combat_prompt(attacker=self, 
-                              defender=victim, 
+                              defender=defender, 
                               location_title = self.location.title,
                               combat_result = result,
                               attacker_msg = attacker_msg)
@@ -1436,22 +1440,22 @@ class Living(MudObject):
         combat_context = CombatContext(attacker_name=self.name,
                                         attacker_health=self.stats.hp / self.stats.max_hp, 
                                         attacker_weapon=self.wielding.name, 
-                                        defender_name=victim.name, 
-                                        defender_health=victim.stats.hp / victim.stats.max_hp, 
-                                        defender_weapon=victim.wielding.name, 
+                                        defender_name=defender.name, 
+                                        defender_health=defender.stats.hp / defender.stats.max_hp, 
+                                        defender_weapon=defender.wielding.name, 
                                         location_description=self.location.description)
 
-        victim.location.tell(room_msg,
+        defender.location.tell(room_msg,
                              evoke=True,
                              short_len=False,
                              alt_prompt=combat_prompt,
                              extra_context=combat_context.to_prompt_string())
         self.stats.hp -= damage_to_attacker
-        victim.stats.hp -= damage_to_defender
+        defender.stats.hp -= damage_to_defender
         if self.stats.hp < 1:
-            self.do_on_death(util.Context)
-        if victim.stats.hp < 1:
-            victim.do_on_death(util.Context)  
+            mud_context.driver.defer(0.1, self.do_on_death)
+        if defender.stats.hp < 1:
+            mud_context.driver.defer(0.1, defender.do_on_death)
         return c
 
     def allow_give_money(self, amount: float, actor: Optional['Living']) -> None:
@@ -1585,7 +1589,7 @@ class Living(MudObject):
         """Return all items that are currently worn."""
         return self.__wearing.values()
     
-    def do_on_death(self, ctx: util.Context) -> 'Container':
+    def do_on_death(self) -> 'Container':
         """Called when the living dies."""
         remains = None
         self.alive = False
@@ -1595,7 +1599,7 @@ class Living(MudObject):
             self.location.insert(remains, None)
         if self.on_death_callback:
             self.on_death_callback()
-        self.destroy(ctx)
+        self.destroy(util.Context)
         return remains
 
 
