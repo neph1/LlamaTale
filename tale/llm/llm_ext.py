@@ -7,7 +7,7 @@ from tale.base import Item, Living, Location
 from tale.coord import Coord
 from tale.llm.LivingNpc import LivingNpc
 from tale.quest import Quest, QuestType
-from tale.spawner import MobSpawner
+from tale.mob_spawner import MobSpawner
 from tale.story import StoryBase
 
 from tale.zone import Zone

@@ -4,6 +4,7 @@ import tale.llm.llm_cache as llm_cache
 from tale import lang, mud_context
 from tale.base import ContainingType, Living, ParseResult
 from tale.errors import LlmResponseException
+from tale.llm.responses.ActionResponse import ActionResponse
 from tale.player import Player
 
 
@@ -225,7 +226,7 @@ class LivingNpc(Living):
         
         return '\n'.join(defered_actions)
     
-    def _parse_action(self, action):
+    def _parse_action(self, action: ActionResponse):
         defered_actions = []
         if action.goal:
             self.goal = action.goal
