@@ -17,6 +17,8 @@ class StationaryNpc(LivingNpc):
     @call_periodically(30, 60)
     def do_idle_action(self, ctx: Context) -> None:
         """ Perform an idle action if a player is in the same location."""
+        if not self.location or self.location.name == 'Limbo':
+            return
         player_names = ctx.driver.all_players.keys()
         player_in_location = any(name == living.name for name in player_names for living in self.location.livings)
         
@@ -32,6 +34,8 @@ class StationaryMob(LivingNpc):
 
     @call_periodically(30, 60)
     def do_idle_action(self, ctx: Context) -> None:
+        if not self.location or self.location.name == 'Limbo':
+            return
         player_in_location = any(isinstance(living, Player) for living in self.location.livings)
         if player_in_location and self.aggressive and not self.attacking:
             for liv in self.location.livings:
@@ -52,6 +56,8 @@ class RoamingMob(StationaryMob):
 
     @call_periodically(40, 180)
     def do_random_move(self, ctx: Context) -> None:
+        if not self.location or self.location.name == 'Limbo':
+            return
         direction = self.select_random_move()
         if direction:
             self.move(direction.target, self, direction_names=direction.names)
