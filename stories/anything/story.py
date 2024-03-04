@@ -18,7 +18,7 @@ class Story(DynamicStory):
 
     config = StoryConfig()
     config.name = "The Land of Anything"
-    config.author = "Rickard Edén, neph1@github.com"
+    config.author = "Rickard Edén, github.com/neph1"
     config.author_address = "rickard@mindemia.com"
     config.version = tale.__version__
     config.supported_modes = {GameMode.IF}
@@ -33,6 +33,7 @@ class Story(DynamicStory):
     config.startlocation_wizard = "start_zone.transit"
     config.zones = ["start_zone"]
     config.context = ""
+    config.savegames_enabled = False
 
     def init(self, driver: Driver) -> None:
         """Called by the game driver when it is done with its initial initialization."""
