@@ -1,13 +1,16 @@
-from tale.base import Living, Location, Stats
-from tale.llm.contexts.BaseContext import BaseContext
-from tale.spawner import MobSpawner
-from tale.util import Context
-from tests.supportstuff import FakeDriver
 
+import datetime
+from tale import _MudContext, util
+from tale.base import Item, Living, Location, Remains, Stats
+from tale.driver_if import IFDriver
+from tale.mob_spawner import MobSpawner
 
 class TestMobSpawnerUnitTests():
 
     def setup_method(self):
+        driver = IFDriver(screen_delay=99, gui=False, web=True, wizard_override=True)
+        driver.game_clock = util.GameDateTime(datetime.datetime(year=2023, month=1, day=1), 1)
+        _MudContext.driver = driver
         self.mock_location = MockLocation()
         self.spawner = MobSpawner(MockMob(), self.mock_location, spawn_rate=2, spawn_limit=3)
 
@@ -28,6 +31,13 @@ class TestMobSpawnerUnitTests():
         assert self.spawner.spawned == 1
 
 
+    def test_item_drop(self):
+        spawner = MobSpawner(MockMob(), self.mock_location, spawn_rate=2, spawn_limit=3, drop_items=['test item'], drop_item_probabilities=[1])
+        remains = MockContainer()
+        spawner.remove_mob(remains)
+        assert spawner.spawned == -1
+        assert remains.item_inserted
+
 # Mock classes for testing
 class MockMob:
     def __init__(self, name: str = 'Mock Mob', gender: str = 'n', race: str = 'human'):
@@ -46,20 +56,27 @@ class MockLocation:
         self.mobs = []
         self.description = "Mock Location"
 
-    def insert(self, mob):
+    def insert(self, mob: Living):
         self.mobs.append(mob)
         mob.location = self
 
     def tell(self, msg, extra_context):
         pass
 
+class MockContainer:
+    def __init__(self):
+        self.item_inserted = False
+
+    def insert(self, item, actor: Living):
+        self.item_inserted = True
 
 class TestMobSpawner():
-
-    ctx = Context(driver=FakeDriver(), clock=None, config=None, player_connection=None)
     location = Location(name="Test Location")
 
     mob = Living(name="Test Mob", gender='m')
+    driver = IFDriver(screen_delay=99, gui=False, web=True, wizard_override=True)
+    driver.game_clock = util.GameDateTime(datetime.datetime(year=2023, month=1, day=1), 1)
+    _MudContext.driver = driver
 
     def test_spawn(self):
         spawner = MobSpawner(self.mob, self.location, spawn_rate=2, spawn_limit=3)
@@ -79,3 +96,12 @@ class TestMobSpawner():
 
         mob = spawner.spawn()
         assert mob.aggressive == True
+
+
+    def test_item_drop(self):
+        test_item = Item(name="Test Item")
+        spawner = MobSpawner(self.mob, self.location, spawn_rate=2, spawn_limit=3, drop_items=[test_item], drop_item_probabilities=[1])
+        remains = Remains('Test Remains')
+        spawner.remove_mob(remains)
+        assert remains.inventory_size == 1
+        assert remains.search_item(test_item.name, remains.inventory) == test_item

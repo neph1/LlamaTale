@@ -1,14 +1,12 @@
 
-
-from functools import wraps
 import random
 
 from tale import mud_context
-from tale.base import Living, Location
+from tale.base import Container, Living, Location
 from tale.util import call_periodically
 
 class MobSpawner():
-    def __init__(self, mob_type: Living , location: Location, spawn_rate: int, spawn_limit: int):
+    def __init__(self, mob_type: Living , location: Location, spawn_rate: int, spawn_limit: int, drop_items: list = None, drop_item_probabilities: list = None):
         self.mob_type = mob_type # type 'Living'
         self.location = location
         self.spawn_rate = spawn_rate
@@ -19,6 +17,15 @@ class MobSpawner():
         self.randomize_stats = True
         self.time = 0
         mud_context.driver.register_periodicals(self)
+        self.drop_item_chance = 0.0
+        if drop_items:
+            self.drop_items = drop_items
+            self.drop_item_probabilities = drop_item_probabilities
+            self.drop_item_chance = sum(self.drop_item_probabilities)
+        else:
+            self.drop_items = None
+            self.drop_item_probabilities = None
+            
 
     @call_periodically(15)
     def spawn(self):
@@ -33,14 +40,21 @@ class MobSpawner():
             if self.max_spawns > 0:
                 self.max_spawns -= 1
             mob = self._clone_mob()
-            mob.on_death_callback = lambda: self.remove_mob()
+            mob.should_produce_remains = True
+            mob.on_death_callback = lambda remains: self.remove_mob(remains)
             self.location.insert(mob)
             self.location.tell("%s arrives." % mob.title, extra_context=f'Location:{self.location.description}; {mob.title}: {mob.description}')
             return mob
         return None
     
-    def remove_mob(self):
+    def remove_mob(self, remains: Container = None):
         self.spawned -= 1
+        if remains and self.drop_item_chance > 0:
+            if random.random() < self.drop_item_chance:
+                item = random.choices(self.drop_items, weights=self.drop_item_probabilities)[0]
+                remains.insert(item, actor=None)
+                
+
 
     def reset(self):
         self.spawned = 0
@@ -55,7 +69,9 @@ class MobSpawner():
             "spawned": self.spawned,
             "max_spawns": self.max_spawns,
             "randomize_gender": self.randomize_gender,
-            "randomize_stats": self.randomize_stats
+            "randomize_stats": self.randomize_stats,
+            "drop_items": [item.name for item in self.drop_items] if self.drop_items else None,
+            "drop_item_probabilities": self.drop_item_probabilities if self.drop_item_probabilities else None
 
         }
     
@@ -68,6 +84,8 @@ class MobSpawner():
         self.max_spawns = data["max_spawns"]
         self.randomize_gender = data["randomize_gender"]
         self.randomize_stats = data["randomize_stats"]
+        self.drop_items = data["drop_items"]
+        self.drop_item_probabilities = data["drop_item_probabilities"]
 
     def _clone_mob(self):
         gender = self.mob_type.gender

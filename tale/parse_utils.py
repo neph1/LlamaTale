@@ -7,7 +7,7 @@ from tale.items.basic import Boxlike, Drink, Food, Health, Money, Note
 from tale.llm.LivingNpc import LivingNpc
 from tale.npc_defs import StationaryMob, StationaryNpc
 from tale.races import BodyType, UnarmedAttack
-from tale.spawner import MobSpawner
+from tale.mob_spawner import MobSpawner
 from tale.story import GameMode, MoneyType, TickMethod, StoryConfig
 from tale.weapon_type import WeaponType
 from tale.wearable import WearLocation
@@ -93,43 +93,47 @@ def load_items(json_items: list, locations = {}) -> dict:
     """
     items = {}
     for item in json_items:
-        item_type = item.get('type', 'Item')
-        
-        if item_type == 'Money':
-            new_item = _init_money(item)
-        elif item_type == 'Health':
-            new_item = _init_health(item)
-            new_item.healing_effect=item.get('effect', 10)
-        elif item_type == 'Food':
-            new_item = _init_food(item)
-            new_item.affect_fullness=item.get('effect', 10)
-            new_item.poisoned=item.get('poisoned', False)
-        elif item_type == 'Weapon':
-            new_item = _init_weapon(item)
-        elif item_type == 'Drink':
-            new_item = _init_drink(item)
-            new_item.affect_thirst=item.get('effect', 10)
-            new_item.poisoned=item.get('poisoned', False)
-        elif item_type == 'Container' or item_type == 'Boxlike':
-            new_item = _init_boxlike(item)
-        elif item_type == 'Wearable':
-            new_item = _init_wearable(item)
-        else:
-            module = sys.modules['tale.items.basic']
-            try:
-                clazz = getattr(module, item_type)
-            except AttributeError:
-                try:
-                    clazz = getattr(sys.modules['tale.base'], item_type)
-                except AttributeError:
-                    clazz = getattr(sys.modules['tale.base'], 'Item')
-            new_item = clazz(name=item['name'], title=item.get('title', item['name']), descr=item.get('descr', ''), short_descr=item.get('short_descr', ''))
-            if isinstance(new_item, Note):
-                set_note(new_item, item)
+        new_item = _load_item(item)
         items[item['name']] = new_item
         if locations and item['location']: 
             _insert(new_item, locations, item['location'])
     return items
+
+def _load_item(item: dict):
+    item_type = item.get('type', 'Item')
+        
+    if item_type == 'Money':
+        new_item = _init_money(item)
+    elif item_type == 'Health':
+        new_item = _init_health(item)
+        new_item.healing_effect=item.get('effect', 10)
+    elif item_type == 'Food':
+        new_item = _init_food(item)
+        new_item.affect_fullness=item.get('effect', 10)
+        new_item.poisoned=item.get('poisoned', False)
+    elif item_type == 'Weapon':
+        new_item = _init_weapon(item)
+    elif item_type == 'Drink':
+        new_item = _init_drink(item)
+        new_item.affect_thirst=item.get('effect', 10)
+        new_item.poisoned=item.get('poisoned', False)
+    elif item_type == 'Container' or item_type == 'Boxlike':
+        new_item = _init_boxlike(item)
+    elif item_type == 'Wearable':
+        new_item = _init_wearable(item)
+    else:
+        module = sys.modules['tale.items.basic']
+        try:
+            clazz = getattr(module, item_type)
+        except AttributeError:
+            try:
+                clazz = getattr(sys.modules['tale.base'], item_type)
+            except AttributeError:
+                clazz = getattr(sys.modules['tale.base'], 'Item')
+        new_item = clazz(name=item['name'], title=item.get('title', item['name']), descr=item.get('descr', ''), short_descr=item.get('short_descr', ''))
+        if isinstance(new_item, Note):
+            set_note(new_item, item)
+    return new_item
 
 def load_npcs(json_npcs: list, locations = {}) -> dict:
     """
@@ -701,7 +705,7 @@ def save_weaponskills(weaponskills: dict) -> dict:
         json_skills[skill.value] = weaponskills[skill]
     return json_skills
 
-def load_mob_spawners(json_spawners: list, locations: dict, creatures: list) -> list:
+def load_mob_spawners(json_spawners: list, locations: dict, creatures: list, world_items: list) -> list:
     spawners = []
     for spawner in json_spawners:
         location = locations[spawner['location']]
@@ -717,6 +721,17 @@ def load_mob_spawners(json_spawners: list, locations: dict, creatures: list) -> 
         if not mob:
             print(f"Mob {mob_type} not in catalogue")
             continue
-        mob_spawner = MobSpawner(mob, location, spawner['spawn_rate'], spawner['spawn_limit'])
+        drop_items = spawner.get('drop_items', [])
+        loaded_drop_items = []
+        item_probabilities = []
+        if drop_items:
+            loaded_drop_items = []
+            for item in drop_items:
+                for world_item in world_items:
+                    if item.lower() == world_item['name'].lower():
+                        loaded_drop_items.append(_load_item(world_item))
+            item_probabilities = spawner.get('drop_item_probabilities', [])
+                
+        mob_spawner = MobSpawner(mob, location, spawner['spawn_rate'], spawner['spawn_limit'], drop_items=loaded_drop_items, drop_item_probabilities=item_probabilities)
         spawners.append(mob_spawner)
     return spawners

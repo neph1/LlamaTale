@@ -13,7 +13,7 @@ from tale.llm.llm_ext import DynamicStory
 from tale.llm.llm_io import IoUtil
 from tale.llm.requests.generate_zone import GenerateZone
 from tale.llm.requests.start_location import StartLocation
-from tale.spawner import MobSpawner
+from tale.mob_spawner import MobSpawner
 from tale.zone import Zone
 
 
