@@ -69,12 +69,34 @@
                 "location": "Pit",
                 "spawn_rate": 15,
                 "spawn_limit": 2,
-                "spawned": 0
+                "spawned": 0,
+                "drop_items": [
+                    "money",
+                    "leather_cap"
+                ],
+                "drop_item_probabilities": [
+                    0.5,
+                    0.5
+                ]
             }
         ]
     },
     "catalogue": {
-        "items": [],
+        "items": [{
+            "name":"Money",
+            "title":"Money",
+            "short_descr":"A small pile of coins",
+            "value":10
+        },
+        {
+            "name":"leather_cap",
+            "title":"Leather Cap",
+            "short_descr":"A leather cap",
+            "ac":1,
+            "wear_location":"HEAD",
+            "value":5
+        }
+        ],
         "creatures": [
             {
                 "name": "giant rat",

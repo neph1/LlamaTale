@@ -40,6 +40,7 @@ class MobSpawner():
             if self.max_spawns > 0:
                 self.max_spawns -= 1
             mob = self._clone_mob()
+            mob.should_produce_remains = True
             mob.on_death_callback = lambda remains: self.remove_mob(remains)
             self.location.insert(mob)
             self.location.tell("%s arrives." % mob.title, extra_context=f'Location:{self.location.description}; {mob.title}: {mob.description}')

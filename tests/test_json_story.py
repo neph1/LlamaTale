@@ -9,7 +9,7 @@ from tale import util
 from tale.base import Location
 from tale.driver_if import IFDriver
 from tale.json_story import JsonStory
-from tale.spawner import MobSpawner
+from tale.mob_spawner import MobSpawner
 
 class TestJsonStory():
     driver = IFDriver(screen_delay=99, gui=False, web=True, wizard_override=True)

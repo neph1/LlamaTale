@@ -5,12 +5,14 @@ from tale.base import Exit, Living, Location, Weapon, Wearable
 from tale.coord import Coord
 from tale.driver_if import IFDriver
 from tale.items.basic import Boxlike, Drink, Food, Health, Money
+from tale.mob_spawner import MobSpawner
 from tale.races import BodyType
 from tale.story import GameMode, MoneyType
 from tale.weapon_type import WeaponType
 from tale.wearable import WearLocation
 from tale.zone import Zone
 import tale.parse_utils as parse_utils
+from tests.supportstuff import FakeDriver
 
 
 class TestParseUtils():
@@ -344,3 +346,59 @@ class TestParseUtils():
         loaded_stats = parse_utils.load_stats(json_stats)
         assert(isinstance(loaded_stats.unarmed_attack, Weapon))
         assert(loaded_stats.get_weapon_skill(WeaponType.UNARMED) == 10)
+        
+    def test_load_mob_spawners(self):
+        driver = IFDriver(screen_delay=99, gui=False, web=True, wizard_override=True)
+        driver.game_clock = util.GameDateTime(datetime.datetime(year=2023, month=1, day=1), 1)
+        mud_context.driver = driver
+        json_spawners = [
+            {
+                'location': 'Royal grotto',
+                'mob_type': 'Kobbo',
+                'spawn_rate': 5,
+                'spawn_limit': 10,
+                'drop_items': [
+                    'Sword', 'Potion'
+                ],
+                'drop_item_probabilities': [0.5, 0.3]
+            },
+            {
+                'location': 'Dark forest',
+                'mob_type': 'Goblin',
+                'spawn_rate': 3,
+                'spawn_limit': 5
+            }
+        ]
+        locations = {
+            'Royal grotto': Location('Royal grotto', 'A small grotto, fit for a kobold king'),
+            'Dark forest': Location('Dark forest', 'A dense forest shrouded in darkness')
+        }
+        creatures = [
+            {'name': 'Kobbo', 'title': 'Kobbo the King'},
+            {'name': 'Goblin', 'title': 'Goblin Warrior'}
+        ]
+        world_items = [
+            {'name': 'Sword', 'type': 'Weapon'},
+            {'name': 'Potion', 'type': 'Drink'}
+        ]
+
+        spawners = parse_utils.load_mob_spawners(json_spawners, locations, creatures, world_items)
+
+        assert len(spawners) == 2
+
+        assert isinstance(spawners[0], MobSpawner)
+        assert spawners[0].mob_type.title == 'Kobbo the King'
+        assert spawners[0].location.name == 'Royal grotto'
+        assert spawners[0].spawn_rate == 5
+        assert spawners[0].spawn_limit == 10
+        assert len(spawners[0].drop_items) == 2
+        assert spawners[0].drop_items[0].title == 'Sword'
+        assert spawners[0].drop_items[1].title == 'Potion'
+        assert spawners[0].drop_item_probabilities == [0.5, 0.3]
+
+        assert isinstance(spawners[1], MobSpawner)
+        assert spawners[1].mob_type.title == 'Goblin Warrior'
+        assert spawners[1].location.name == 'Dark forest'
+        assert spawners[1].spawn_rate == 3
+        assert spawners[1].spawn_limit == 5
+        assert spawners[1].drop_items == None
