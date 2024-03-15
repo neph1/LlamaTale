@@ -252,7 +252,7 @@ class WorldBuilding():
             new_locations, exits, npcs = self._validate_location(json_result, location, '')
             return new_locations, exits, npcs, None
         except Exception as exc:
-            print(exc)
+            print(exc.with_traceback())
             return None, None, None, None
         
     def generate_start_zone(self, location_desc: str, context: WorldGenerationContext) -> Zone:

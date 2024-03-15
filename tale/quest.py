@@ -23,7 +23,7 @@ class QuestType(IntEnum):
 class Quest():
     """ A quest can either be initiated by a character, or from a note or book."""
 
-    def __init__(self, name: str, type: QuestType, target: str, reason: str = '', giver: str = '', reward: str = ''):
+    def __init__(self, name: str, type: QuestType, target: str, reason: str = '', giver: str = '', reward: dict = {}):
         self.name = name 
         self.type = type
         self.reason = reason 

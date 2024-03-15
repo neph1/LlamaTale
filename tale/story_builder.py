@@ -1,12 +1,14 @@
 
 
 import json
+import random
 from typing import Generator
 from tale import lang
 from tale.base import Location
 from tale.llm.llm_ext import DynamicStory
 from tale.llm.llm_utils import LlmUtil
 from tale.player import PlayerConnection
+from tale.quest import Quest, QuestType
 from tale.story import StoryConfig
 
 
@@ -116,18 +118,29 @@ class StoryBuilder:
         story.add_zone(zone)
 
         self.connection.output("Generating starting location...")
-        start_location = Location(name="", descr=self.story_info.start_location)
+        initial_start_location = Location(name="", descr=self.story_info.start_location)
         for i in range(3):
-            new_locations, exits, npcs, _ = llm_util.generate_start_location(location=start_location, 
+            new_locations, exits, npcs, _ = llm_util.generate_start_location(location=initial_start_location, 
                                                                 story_type=self.story_info.type, 
                                                                 story_context=story.config.context,
                                                                 world_info=self.story_info.world_info,
                                                                 zone_info=zone.get_info())
             if new_locations:
                 break
+        if len(npcs) > 0:
+            quest_npc = random.choice(list(npcs))
+            quest = Quest(name="Starting Quest",
+                          type=QuestType.GIVE, 
+                          target = random.choice(items),
+                          reason="I need it",
+                          giver=quest_npc)
+            quest_npc.quest = quest
+            
         
         # fugly copy because a Location needs a name to init properly
-        start_location = Location(name=start_location.name, descr=self.story_info.start_location)
+        start_location = Location(name=initial_start_location.name, descr=self.story_info.start_location)
+        start_location.init_inventory(list(initial_start_location.livings) + list(initial_start_location.items))
+
         zone.add_location(start_location)
 
         for location in new_locations:
