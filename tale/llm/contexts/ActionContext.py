@@ -7,17 +7,18 @@ from tale.llm.contexts.BaseContext import BaseContext
 
 class ActionContext(BaseContext):
 
-    def __init__(self, story_context: str, story_type: str, character_name: str, character_card: str, event_history: str, location: Location):
+    def __init__(self, story_context: str, story_type: str, character_name: str, character_card: str, event_history: str, location: Location, actions: list):
         super().__init__(story_context)
         self.story_type = story_type
         self.character_name = character_name
         self.character_card = character_card
         self.event_history = event_history.replace('<break>', '\n')
         self.location = location
+        self.actions = actions
 
 
     def to_prompt_string(self) -> str:
-        actions = ', '.join(['move, say, attack, wear, remove, wield, take, eat, drink, emote'])
+        actions = ', '.join()
         characters = {}
         for living in self.location.livings:
             if living.visible and living.name != self.character_name.lower():
