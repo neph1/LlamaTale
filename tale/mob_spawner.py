@@ -74,18 +74,6 @@ class MobSpawner():
             "drop_item_probabilities": self.drop_item_probabilities if self.drop_item_probabilities else None
 
         }
-    
-    def from_json(self, data):
-        self.mob_type = data["mob_type"]
-        self.location = data["location"]
-        self.spawn_rate = data["spawn_rate"]
-        self.spawn_limit = data["spawn_limit"]
-        self.spawned = data["spawned"]
-        self.max_spawns = data["max_spawns"]
-        self.randomize_gender = data["randomize_gender"]
-        self.randomize_stats = data["randomize_stats"]
-        self.drop_items = data["drop_items"]
-        self.drop_item_probabilities = data["drop_item_probabilities"]
 
     def _clone_mob(self):
         gender = self.mob_type.gender

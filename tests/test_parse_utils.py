@@ -402,3 +402,52 @@ class TestParseUtils():
         assert spawners[1].spawn_rate == 3
         assert spawners[1].spawn_limit == 5
         assert spawners[1].drop_items == None
+
+    def test_load_item_spawners(self):
+        driver = IFDriver(screen_delay=99, gui=False, web=True, wizard_override=True)
+        driver.game_clock = util.GameDateTime(datetime.datetime(year=2023, month=1, day=1), 1)
+        driver.moneyfmt = util.MoneyFormatter.create_for(MoneyType.FANTASY)
+        mud_context.driver = driver
+        json_spawners = [
+            {
+                'items': ['Sword', 'Potion'],
+                'item_probabilities': [0.5, 0.3],
+                'zone': 'Royal grotto',
+                'spawn_rate': 5,
+                'max_items': 10
+            },
+            {
+                'items': ['Gold', 'Potion'],
+                'item_probabilities': [0.5, 0.3],
+                'zone': 'Dark forest',
+                'spawn_rate': 3,
+                'max_items': 5
+            }
+        ]
+        zones = {
+            'Royal grotto': Zone('Royal grotto'),
+            'Dark forest': Zone('Dark forest')
+        }
+        world_items = [
+            {'name': 'Sword', 'type': 'Weapon'},
+            {'name': 'Potion', 'type': 'Drink'},
+            {'name': 'Gold', 'type': 'Money', 'value': 100}
+        ]
+
+        spawners = parse_utils.load_item_spawners(json_spawners, zones, world_items) # type: list[ItemSpawner]
+
+        assert len(spawners) == 2
+
+        assert spawners[0].items[0].title == 'Sword'
+        assert spawners[0].items[1].title == 'Potion'
+        assert spawners[0].item_probabilities[0] == 0.5
+        assert spawners[0].zone.name == 'Royal grotto'
+        assert spawners[0].spawn_rate == 5
+        assert spawners[0].max_items == 10
+
+        assert spawners[1].items[0].title == 'Gold'
+        assert spawners[1].item_probabilities[0] == 0.5
+        assert spawners[1].zone.name == 'Dark forest'
+        assert spawners[1].spawn_rate == 3
+        assert spawners[1].container == None
+        assert spawners[1].max_items == 5

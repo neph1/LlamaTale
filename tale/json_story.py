@@ -41,6 +41,8 @@ class JsonStory(DynamicStory):
                 self._world.items = parse_utils.load_items(world['world']['items'].values(), self.locations)
             if world['world'].get('spawners', None):
                 self._world.mob_spawners = parse_utils.load_mob_spawners(world['world']['spawners'], self.locations, self._catalogue._creatures, self._catalogue._items)
+            if world['world'].get('item_spawners', None):
+                self._world.item_spawners = parse_utils.load_item_spawners(world['world']['item_spawners'], self._zones, self._catalogue._items)
 
         llm_cache.load(parse_utils.load_json(self.path +'llm_cache.json'))
 
