@@ -18,7 +18,7 @@ class ActionContext(BaseContext):
 
 
     def to_prompt_string(self) -> str:
-        actions = ', '.join()
+        actions = ', '.join(self.actions)
         characters = {}
         for living in self.location.livings:
             if living.visible and living.name != self.character_name.lower():

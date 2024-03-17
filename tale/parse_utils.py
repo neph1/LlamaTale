@@ -277,7 +277,7 @@ def _insert(new_item: Item, locations, location: str):
         loc.insert(new_item, None)
 
 def _init_money(item: dict):
-    return Money(name=item['name'], 
+    return Money(item['name'], 
                  value=item.get('value', 10), 
                  title=item.get('title', item['name']), 
                  short_descr=item.get('short_descr', ''))
