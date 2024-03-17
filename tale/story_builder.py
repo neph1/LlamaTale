@@ -39,20 +39,12 @@ class StoryBuilder:
     def ask_start_location(self) -> Generator:
         self.story_info.start_location = yield "input", ("Where does the story start? Describe the starting location.")
 
-    def ask_name(self) -> Generator:
-        self.story_info.name = yield "input", ("Would you like to name the story?")
-
-    def ask_confirm(self) -> Generator:
-        okay = yield "input", ("Confirm the story and venture on?", lang.yesno)
-        return okay
-
     def build(self) -> Generator:
         print("Building story")
         yield from self.ask_story_type()
         yield from self.ask_world_info()
         yield from self.ask_world_mood()
         yield from self.ask_start_location()
-        yield from self.ask_name()
 
         if not self.story_info.name:
             self.story_info.name = "A Tale of Anything"
@@ -156,5 +148,29 @@ class StoryBuilder:
         story.config.startlocation_player = start_location.name
         story.config.startlocation_wizard = start_location.name
 
+
+
         return start_location
+    
+class ExtraStoryContent:
+
+    def ask_extra_items(self):
+        result = yield "input", ("Would you like to generate additional world items? (y/n)", lang.yesno)
+
+    def ask_extra_creatures(self):
+        result = yield "input", ("Would you like to generate additional creatures? (y/n)", lang.yesno)
+
+    def ask_extra_locations(self):
+        result = yield "input", ("Would you like to generate additional locations? (y/n)", lang.yesno)
+        return result
+
+    def build(self) -> Generator:
+        yield from self.ask_extra_items()
+        yield from self.ask_extra_creatures()
+        yield from self.ask_extra_locations()
+
+        if not self.story_info.name:
+            self.story_info.name = "A Tale of Anything"
+
+        return self.story_info
 
