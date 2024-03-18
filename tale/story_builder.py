@@ -128,7 +128,9 @@ class StoryBuilder:
                           giver=quest_npc)
             quest_npc.quest = quest
             
-        
+        for npc in npcs:
+            story.world.add_npc(npc)
+            
         # fugly copy because a Location needs a name to init properly
         start_location = Location(name=initial_start_location.name, descr=self.story_info.start_location)
         start_location.init_inventory(list(initial_start_location.livings) + list(initial_start_location.items))
@@ -140,7 +142,7 @@ class StoryBuilder:
             result = zone.add_location(location)
             if not result:
                 for exit in exits:
-                    if exit.name == location.name:
+                    if exit.name.capitalize() == location.name.capitalize():
                         exits.remove(exit)
         if len(exits) > 0:
             start_location.add_exits(exits)

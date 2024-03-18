@@ -930,6 +930,7 @@ class Driver(pubsub.Listener):
                 # fail silently
                 pass
         for npc in npcs:
+            dynamic_story.world.add_npc(npc)
             if isinstance(npc, StationaryNpc) and random.random() < 0.2:
                 new_quest = dynamic_story.generate_quest(npc)
                 new_quest.giver = npc
