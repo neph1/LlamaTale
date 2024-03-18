@@ -360,6 +360,7 @@ def sanitize_json(result: str) -> str:
     """ Removes special chars from json string. Some common, and some 'creative' ones. """
     if result is None:
         return ''
+    result = result.strip()
     result = result.replace('```json', '') #.replace('\\"', '"').replace('"\\n"', '","').replace('\\n', '').replace('}\n{', '},{').replace('}{', '},{').replace('\\r', '').replace('\\t', '').replace('"{', '{').replace('}"', '}').replace('"\\', '"').replace('\\”', '"').replace('" "', '","').replace(':,',':').replace('},]', '}]').replace('},}', '}}')
     result = result.split('```')[0]
     if not result.endswith('}') and not result.endswith(']'):

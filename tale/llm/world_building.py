@@ -280,7 +280,7 @@ class WorldBuilding():
             json_result = json.loads(parse_utils.sanitize_json(result))
             return zone.from_json(json_result)
         except json.JSONDecodeError as exc:
-            print(exc)
+            print(f'Error generating zone: {exc}')
             return None
         
 
@@ -300,7 +300,7 @@ class WorldBuilding():
             return json.loads(parse_utils.sanitize_json(result))["items"]
             #return parse_utils.load_items(self._validate_items(json_result["items"]))
         except json.JSONDecodeError as exc:
-            print(exc)
+            print(f'Error generating items: {exc}')
             return None
     
     def generate_world_creatures(self, world_generation_context: WorldGenerationContext) -> dict:

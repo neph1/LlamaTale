@@ -451,3 +451,10 @@ class TestParseUtils():
         assert spawners[1].spawn_rate == 3
         assert spawners[1].container == None
         assert spawners[1].max_items == 5
+
+    def test_sanitize_json(self):
+        json_string = '{ "name": "Whispering Woods", "description": "A dense, misty forest teeming with life. The trees whisper secrets to those who listen, and the creatures here are said to possess ancient wisdom. Friendly creatures roam the area, and the air is filled with the sweet scent of enchanted flowers.", "races": [], "items": [], "mood": 5, "level": 1} '
+        sanitized = json.loads(parse_utils.sanitize_json(json_string))
+        assert sanitized['name'] == 'Whispering Woods'
+
+        
