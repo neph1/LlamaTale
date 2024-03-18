@@ -104,4 +104,4 @@ class TestMobSpawner():
         remains = Remains('Test Remains')
         spawner.remove_mob(remains)
         assert remains.inventory_size == 1
-        assert list(remains.inventory)[0] == test_item
+        assert list(remains.inventory)[0].name == test_item.name

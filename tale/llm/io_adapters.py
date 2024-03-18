@@ -37,9 +37,12 @@ class AbstractIoAdapter(ABC):
 
 class KoboldCppAdapter(AbstractIoAdapter):
 
+
+
     def __init__(self, url: str, stream_endpoint: str, data_endpoint: str, user_start_prompt: str, user_end_prompt: str):
         super().__init__(url, stream_endpoint, user_start_prompt, user_end_prompt)
         self.data_endpoint = data_endpoint
+        self.place_context_in_memory = False
 
     def stream_request(self, request_body: dict, io: PlayerConnection = None, wait: bool = False) -> str:
         result = asyncio.run(self._do_stream_request(self.url + self.stream_endpoint, request_body))
@@ -88,9 +91,12 @@ class KoboldCppAdapter(AbstractIoAdapter):
             prompt = prompt.replace('[USER_START]', self.user_start_prompt)
         if self.user_end_prompt:
             prompt = prompt + self.user_end_prompt
-        prompt = prompt.replace('<context>{context}</context>', '')
+        if self.place_context_in_memory:
+            prompt = prompt.replace('<context>{context}</context>', '')
+            request_body['memory'] = f'<context>{context}</context>'
+        else:
+            prompt = prompt.replace('<context>{context}</context>', f'<context>{context}</context>')
         request_body['prompt'] = prompt
-        request_body['memory'] = f'<context>{context}</context>'
         return request_body
     
 class LlamaCppAdapter(AbstractIoAdapter):
