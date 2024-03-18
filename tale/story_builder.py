@@ -145,8 +145,8 @@ class StoryBuilder:
         if len(exits) > 0:
             start_location.add_exits(exits)
         
-        story.config.startlocation_player = start_location.name
-        story.config.startlocation_wizard = start_location.name
+        story.config.startlocation_player = ".".join([start_location.name, zone.title])
+        story.config.startlocation_wizard = ".".join([start_location.name, zone.title])
 
 
 
