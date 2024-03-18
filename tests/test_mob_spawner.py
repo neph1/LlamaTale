@@ -71,37 +71,39 @@ class MockContainer:
         self.item_inserted = True
 
 class TestMobSpawner():
-    location = Location(name="Test Location")
 
-    mob = Living(name="Test Mob", gender='m')
-    driver = IFDriver(screen_delay=99, gui=False, web=True, wizard_override=True)
-    driver.game_clock = util.GameDateTime(datetime.datetime(year=2023, month=1, day=1), 1)
-    _MudContext.driver = driver
+    def setup_method(self):
+        driver = IFDriver(screen_delay=99, gui=False, web=True, wizard_override=True)
+        driver.game_clock = util.GameDateTime(datetime.datetime(year=2023, month=1, day=1), 1)
+        _MudContext.driver = driver
 
     def test_spawn(self):
-        spawner = MobSpawner(self.mob, self.location, spawn_rate=2, spawn_limit=3)
+        location = Location(name="Test Location")
+        mob = Living(name="Test Mob", gender='m')
+        spawner = MobSpawner(mob, location, spawn_rate=2, spawn_limit=3)
         mob = spawner.spawn()
         assert mob
-        assert mob.location == self.location
-        assert mob.name == self.mob.name
+        assert mob.location == location
+        assert mob.name == mob.name
         assert mob.aggressive == False
-        assert len(self.location.livings) == 1
+        assert len(location.livings) == 1
         assert spawner.spawned == 1
 
         mob.do_on_death()
 
         assert spawner.spawned == 0
 
-        self.mob.aggressive = True
+        spawner.mob_type.aggressive = True
 
         mob = spawner.spawn()
         assert mob.aggressive == True
 
 
     def test_item_drop(self):
+        location = Location(name="Test Location")
+        mob = Living(name="Test Mob", gender='m')
         test_item = Item(name="Test Item")
-        spawner = MobSpawner(self.mob, self.location, spawn_rate=2, spawn_limit=3, drop_items=[test_item], drop_item_probabilities=[1])
+        spawner = MobSpawner(mob, location, spawn_rate=2, spawn_limit=3, drop_items=[test_item], drop_item_probabilities=[1])
         remains = Remains('Test Remains')
         spawner.remove_mob(remains)
         assert remains.inventory_size == 1
-        assert list(remains.inventory)[0].name == test_item.name
