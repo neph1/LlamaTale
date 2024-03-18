@@ -93,6 +93,12 @@ class TestStoryBuilder():
         assert(creature["level"] == 3)
         assert(len(story.catalogue._items) == 1)
         assert(story.catalogue._items[0]["name"] == "Enchanted Petals")
+
+        assert(story.config.name == "A Tale of Anything")
+        assert(story.config.type == "a cozy farming simulator set in a fantasy world")
+        assert(story.config.world_info == "a mix between alice in wonderland and the wizard of oz with a dark element")
+        assert(story.config.world_mood == 3)
+        assert(story.config.startlocation_player == "Moonlit Meadows.Greenhaven")
         
         quest = None
         for npc in start_location.livings:

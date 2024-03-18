@@ -144,11 +144,11 @@ class StoryBuilder:
                         exits.remove(exit)
         if len(exits) > 0:
             start_location.add_exits(exits)
-        
-        story.config.startlocation_player = ".".join([start_location.title, zone.name])
-        story.config.startlocation_wizard = ".".join([start_location.title, zone.name])
 
+        start_location_name = ".".join([zone.name, start_location.name.capitalize()])
 
+        story.config.startlocation_player = start_location_name
+        story.config.startlocation_wizard = start_location_name
 
         return start_location
     
