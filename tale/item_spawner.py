@@ -28,9 +28,10 @@ class ItemSpawner():
         if self.container:
             self.container.insert(item, None)
         else:
-            location = random.choice(self.zone.locations) # type: Location
+            location = random.choice(list(self.zone.locations.values())) # type: Location
             if len(location.items) < self.max_items:
                 location.insert(item, None)
+                location.tell(f'{item} appears.')
     
     def to_json(self):
         data = {
