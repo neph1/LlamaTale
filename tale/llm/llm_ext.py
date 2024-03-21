@@ -5,6 +5,7 @@ import shutil
 from tale import parse_utils
 from tale.base import Item, Living, Location
 from tale.coord import Coord
+from tale.item_spawner import ItemSpawner
 from tale.llm.LivingNpc import LivingNpc
 from tale.quest import Quest, QuestType
 from tale.mob_spawner import MobSpawner
@@ -173,6 +174,7 @@ class WorldInfo():
         self._locations = dict() # type: dict[str, Location]
         self._grid = dict() # type: dict[Coord, Location]
         self._mob_spawners = [] # type: list[MobSpawner]
+        self._item_spawners = [] # type: list[ItemSpawner]
 
     def get_npc(self, npc: str) -> Living:
         return self._npcs[npc]
@@ -222,11 +224,20 @@ class WorldInfo():
     def mob_spawners(self, value: list):
         self._mob_spawners = value
 
+    @property
+    def item_spawners(self) -> list:
+        return self._item_spawners
+    
+    @item_spawners.setter
+    def item_spawners(self, value: list):
+        self._item_spawners = value
+
     def to_json(self) -> dict:
         return dict(
             npcs=parse_utils.save_npcs(self._npcs.values()),
             items=parse_utils.save_items(self._items.values()),
-            mob_spawners=[spawner.to_json() for spawner in self._mob_spawners]
+            mob_spawners=[spawner.to_json() for spawner in self._mob_spawners],
+            item_spawners=[spawner.to_json() for spawner in self._item_spawners]
         )
     
 class Catalogue():

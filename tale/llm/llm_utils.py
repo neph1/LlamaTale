@@ -6,6 +6,7 @@ from typing import Any, Tuple
 import yaml
 from tale.base import Location, MudObject
 from tale.image_gen.base_gen import ImageGeneratorBase
+from tale.llm import llm_config
 from tale.llm.character import CharacterBuilding
 from tale.llm.contexts.ActionContext import ActionContext
 from tale.llm.contexts.EvokeContext import EvokeContext
@@ -29,33 +30,29 @@ class LlmUtil():
     """ Prepares prompts for various LLM requests"""
 
     def __init__(self, io_util: IoUtil = None):
-        with open(os.path.realpath(os.path.join(os.path.dirname(__file__), "../../llm_config.yaml")), "r") as stream:
-            try:
-                config_file = yaml.safe_load(stream)
-            except yaml.YAMLError as exc:
-                print(exc)
-        self.backend = config_file['BACKEND']
+        self.backend = llm_config.params['BACKEND']
         with open(os.path.realpath(os.path.join(os.path.dirname(__file__), f"../../backend_{self.backend}.yaml")), "r") as stream:
             try:
                 backend_config = yaml.safe_load(stream)
             except yaml.YAMLError as exc:
                 print(exc)
         self.default_body = json.loads(backend_config['DEFAULT_BODY'])
-        self.memory_size = config_file['MEMORY_SIZE']
-        self.pre_prompt = config_file['PRE_PROMPT'] # type: str
-        self.evoke_prompt = config_file['BASE_PROMPT'] # type: str
-        self.combat_prompt = config_file['COMBAT_PROMPT'] # type: str
-        self.word_limit = config_file['WORD_LIMIT']
-        self.short_word_limit = config_file['SHORT_WORD_LIMIT']
-        self.story_background_prompt = config_file['STORY_BACKGROUND_PROMPT'] # type: str
+        self.memory_size = llm_config.params['MEMORY_SIZE']
+        self.pre_prompt = llm_config.params['PRE_PROMPT'] # type: str
+        self.evoke_prompt = llm_config.params['BASE_PROMPT'] # type: str
+        self.combat_prompt = llm_config.params['COMBAT_PROMPT'] # type: str
+        self.word_limit = llm_config.params['WORD_LIMIT']
+        self.short_word_limit = llm_config.params['SHORT_WORD_LIMIT']
+        self.story_background_prompt = llm_config.params['STORY_BACKGROUND_PROMPT'] # type: str
         self.__story = None # type: DynamicStory
-        self.io_util = io_util or IoUtil(config=config_file, backend_config=backend_config)
+        self.io_util = io_util or IoUtil(config=llm_config.params, backend_config=backend_config)
         self.stream = backend_config['STREAM']
         self.connection = None # type: PlayerConnection
         self._image_gen = None # type: ImageGeneratorBase
         self.__story_context = ''
         self.__story_type = ''
         self.__world_info = ''
+        self.action_list = llm_config.params['ACTION_LIST']
         json_grammar_key = backend_config['JSON_GRAMMAR_KEY']
         
         #self._look_hashes = dict() # type: dict[int, str] # location hashes for look command. currently never cleared.
@@ -257,7 +254,8 @@ class LlmUtil():
                                        character_name=character_name,
                                        character_card=character_card,
                                        event_history=event_history,
-                                       location=location)
+                                       location=location,
+                                       actions=self.action_list)
         return self._character.free_form_action(action_context)
 
   

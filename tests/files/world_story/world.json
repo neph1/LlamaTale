@@ -153,10 +153,26 @@
                 "spawn_limit": 5,
                 "spawned": 0
             }
+        ],
+        "item_spawners": [
+            {
+                "items": ["torch"],
+                "item_probabilities": [1],
+                "zone": "Cave",
+                "spawn_rate": 60,
+                "max_items": 5
+            }
         ]
     },
     "catalogue": {
-        "items": [],
+        "items": [
+            {
+                "name": "torch",
+                "short_descr": "A torch",
+                "descr": "A torch",
+                "type": "Light"
+            }
+        ],
         "creatures": [
             {
                 "name": "bat",

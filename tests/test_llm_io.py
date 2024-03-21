@@ -43,7 +43,10 @@ class TestLlmIo():
         result = io_util.io_adapter.set_prompt(request_body=request_body, prompt=prompt, context='context')
         assert(config_file['USER_START'] in result['prompt'])
         assert(config_file['USER_END'] in result['prompt'])
-        assert(result['memory'] == '<context>context</context>')
+        if io_util.io_adapter.place_context_in_memory:
+            assert(result['memory'] == '<context>context</context>')
+        else:
+            assert('<context>context</context>' in result['prompt'])
 
     def test_set_prompt_openai(self):
         config_file = self._load_config()

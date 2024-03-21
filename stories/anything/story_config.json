@@ -1,0 +1,25 @@
+{
+    "name": "A Tale of Anything",
+    "author": "You",
+    "author_address": "",
+    "version": "1.0",
+    "supported_modes": [
+        "IF"
+    ],
+    "player_name": "",
+    "player_gender": "",
+    "player_race": "human",
+    "player_money": 0,
+    "money_type": "FANTASY",
+    "server_tick_method": "TIMER",
+    "server_tick_time": 0.5,
+    "gametime_to_realtime": 5,
+    "display_gametime": true,
+    "startlocation_player": "start_zone.transit",
+    "startlocation_wizard": "start_zone.transit",
+    "zones": [
+        "start_zone"
+    ],
+    "server_mode": "IF",
+    "save_games_enabled": false
+}

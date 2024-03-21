@@ -1,5 +1,7 @@
 """ Tests zone.py """
 
+import json
+from tale import zone
 from tale.base import Location
 from tale.coord import Coord
 from tale.zone import Zone
@@ -71,3 +73,9 @@ class TestZone():
 
         assert zone.on_edge(distance_long, Coord(1, 0, 0)) == True
         assert zone.on_edge(distance_long, Coord(-1, 0, 0)) == True
+
+    def test_from_json(self):
+        zone_info = '{ "name": "Whispering Woods", "description": "A dense, misty forest teeming with life. The trees whisper secrets to those who listen, and the creatures here are said to possess ancient wisdom. Friendly creatures roam the area, and the air is filled with the sweet scent of enchanted flowers.", "races": [], "items": [], "mood": 5, "level": 1} \n'
+        z = zone.from_json(json.loads(zone_info))
+        assert z.name == 'Whispering Woods'
+        assert z.description.startswith('A dense, misty forest teeming with life. The trees whisper secrets to those who listen, and the creatures here are said to possess ancient wisdom.')

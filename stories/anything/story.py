@@ -5,40 +5,23 @@ from typing import Generator
 
 import tale
 from tale import lang
+from tale import parse_utils
 from tale.driver import Driver
-from tale.llm.llm_ext import DynamicStory
+from tale.json_story import JsonStory
 from tale.main import run_from_cmdline
 from tale.player import Player, PlayerConnection
 from tale.charbuilder import PlayerNaming
 from tale.story import *
 from tale.weapon_type import WeaponType
-from tale.zone import Zone
 
-class Story(DynamicStory):
+class Story(JsonStory):
 
-    config = StoryConfig()
-    config.name = "The Land of Anything"
-    config.author = "Rickard Edén, github.com/neph1"
-    config.author_address = "rickard@mindemia.com"
-    config.version = tale.__version__
-    config.supported_modes = {GameMode.IF}
-    config.player_money = 0
-    config.playable_races = {"human"}
-    config.money_type = MoneyType.FANTASY
-    config.server_tick_method = TickMethod.TIMER
-    config.server_tick_time = 0.5
-    config.gametime_to_realtime = 5
-    config.display_gametime = True
-    config.startlocation_player = "start_zone.transit"
-    config.startlocation_wizard = "start_zone.transit"
-    config.zones = ["start_zone"]
-    config.context = ""
-    config.savegames_enabled = False
+
+    def __init__(self) -> None:
+        super(Story, self).__init__('', parse_utils.load_story_config(parse_utils.load_json('story_config.json')))
 
     def init(self, driver: Driver) -> None:
-        """Called by the game driver when it is done with its initial initialization."""
-        self.driver = driver
-        self._zones = dict() # type: dict(str, Zone)
+        super(Story, self).init(driver)
 
     def init_player(self, player: Player) -> None:
         """

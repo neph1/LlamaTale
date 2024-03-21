@@ -6,7 +6,7 @@ smartypants>=1.8.6
 serpent>=1.23
 aiohttp==3.8.5
 pillow
-packaging==20.3
+packaging>=20.3
 #pillow>=8.3.2
 
 

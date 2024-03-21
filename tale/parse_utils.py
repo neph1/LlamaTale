@@ -3,6 +3,7 @@ from tale import lang
 from tale import zone
 from tale.base import Location, Exit, Item, Stats, Weapon, Wearable
 from tale.coord import Coord
+from tale.item_spawner import ItemSpawner
 from tale.items.basic import Boxlike, Drink, Food, Health, Money, Note
 from tale.llm.LivingNpc import LivingNpc
 from tale.npc_defs import StationaryMob, StationaryNpc
@@ -276,7 +277,7 @@ def _insert(new_item: Item, locations, location: str):
         loc.insert(new_item, None)
 
 def _init_money(item: dict):
-    return Money(name=item['name'], 
+    return Money(item['name'], 
                  value=item.get('value', 10), 
                  title=item.get('title', item['name']), 
                  short_descr=item.get('short_descr', ''))
@@ -359,6 +360,7 @@ def sanitize_json(result: str) -> str:
     """ Removes special chars from json string. Some common, and some 'creative' ones. """
     if result is None:
         return ''
+    result = result.strip()
     result = result.replace('```json', '') #.replace('\\"', '"').replace('"\\n"', '","').replace('\\n', '').replace('}\n{', '},{').replace('}{', '},{').replace('\\r', '').replace('\\t', '').replace('"{', '{').replace('}"', '}').replace('"\\', '"').replace('\\”', '"').replace('" "', '","').replace(':,',':').replace('},]', '}]').replace('},}', '}}')
     result = result.split('```')[0]
     if not result.endswith('}') and not result.endswith(']'):
@@ -734,4 +736,32 @@ def load_mob_spawners(json_spawners: list, locations: dict, creatures: list, wor
                 
         mob_spawner = MobSpawner(mob, location, spawner['spawn_rate'], spawner['spawn_limit'], drop_items=loaded_drop_items, drop_item_probabilities=item_probabilities)
         spawners.append(mob_spawner)
+    return spawners
+
+def load_item_spawners(json_spawners: list, zones: dict, world_items: list) -> list:
+    spawners = []
+    for spawner in json_spawners:
+        zone = zones[spawner['zone']]
+        if not zone:
+            print(f"Zone {spawner['zone']} not found")
+            continue
+        items = spawner['items']
+        
+        loaded_items = []
+        
+        for item in items:
+            world_item = None
+            for world_item in world_items:
+                if item.lower() == world_item['name'].lower():
+                    world_item = _load_item(world_item)
+                    loaded_items.append(world_item)
+                    break
+            if not world_item:
+                print(f"Item {item} not in catalogue")
+            continue
+        container = None
+        if spawner.get('container', None):
+            container = world_items[spawner['container']]
+        item_spawner = ItemSpawner(zone=zone, spawn_rate=spawner['spawn_rate'], container=container, max_items=spawner['max_items'], items=loaded_items, item_probabilities=spawner['item_probabilities'])
+        spawners.append(item_spawner)
     return spawners
