@@ -387,7 +387,7 @@ class TestParseUtils():
         assert len(spawners) == 2
 
         assert isinstance(spawners[0], MobSpawner)
-        assert spawners[0].mob_type.title == 'Kobbo the King'
+        assert spawners[0].mob_type['title'] == 'Kobbo the King'
         assert spawners[0].location.name == 'Royal grotto'
         assert spawners[0].spawn_rate == 5
         assert spawners[0].spawn_limit == 10
@@ -397,7 +397,7 @@ class TestParseUtils():
         assert spawners[0].drop_item_probabilities == [0.5, 0.3]
 
         assert isinstance(spawners[1], MobSpawner)
-        assert spawners[1].mob_type.title == 'Goblin Warrior'
+        assert spawners[1].mob_type['title'] == 'Goblin Warrior'
         assert spawners[1].location.name == 'Dark forest'
         assert spawners[1].spawn_rate == 3
         assert spawners[1].spawn_limit == 5

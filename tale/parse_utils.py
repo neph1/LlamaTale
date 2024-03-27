@@ -151,7 +151,7 @@ def load_npcs(json_npcs: list, locations = {}) -> dict:
                 name = npc['name'].replace('the','').replace('The','').strip()
         else:
             name = npc['name']
-        new_npc = _load_npc(npc, name, npc_type)
+        new_npc = load_npc(npc, name, npc_type)
 
         if locations and npc['location']:
             _insert(new_npc, locations, npc['location'])
@@ -159,7 +159,7 @@ def load_npcs(json_npcs: list, locations = {}) -> dict:
         npcs[name] = new_npc
     return npcs
 
-def _load_npc(npc: dict, name: str = None, npc_type: str = 'Mob'):
+def load_npc(npc: dict, name: str = None, npc_type: str = 'Mob'):
     race = None
     if npc.get('stats', None):
         race = npc['stats'].get('race', None)
@@ -718,7 +718,7 @@ def load_mob_spawners(json_spawners: list, locations: dict, creatures: list, wor
         mob = None
         for creature in creatures:
             if creature['name'] == mob_type:
-                mob = _load_npc(creature, mob_type)
+                mob = creature
                 break
         if not mob:
             print(f"Mob {mob_type} not in catalogue")
