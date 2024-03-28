@@ -94,13 +94,13 @@ def load_items(json_items: list, locations = {}) -> dict:
     """
     items = {}
     for item in json_items:
-        new_item = _load_item(item)
+        new_item = load_item(item)
         items[item['name']] = new_item
         if locations and item['location']: 
             _insert(new_item, locations, item['location'])
     return items
 
-def _load_item(item: dict):
+def load_item(item: dict):
     item_type = item.get('type', 'Item')
         
     if item_type == 'Money':
@@ -731,7 +731,7 @@ def load_mob_spawners(json_spawners: list, locations: dict, creatures: list, wor
             for item in drop_items:
                 for world_item in world_items:
                     if item.lower() == world_item['name'].lower():
-                        loaded_drop_items.append(_load_item(world_item))
+                        loaded_drop_items.append(load_item(world_item))
             item_probabilities = spawner.get('drop_item_probabilities', [])
                 
         mob_spawner = MobSpawner(mob, location, spawner['spawn_rate'], spawner['spawn_limit'], drop_items=loaded_drop_items, drop_item_probabilities=item_probabilities)
@@ -753,7 +753,6 @@ def load_item_spawners(json_spawners: list, zones: dict, world_items: list) -> l
             world_item = None
             for world_item in world_items:
                 if item.lower() == world_item['name'].lower():
-                    world_item = _load_item(world_item)
                     loaded_items.append(world_item)
                     break
             if not world_item:

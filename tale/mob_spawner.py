@@ -62,7 +62,7 @@ class MobSpawner():
 
     def to_json(self):
         return {
-            "mob_type": self.mob_type['race'],
+            "mob_type": self.mob_type['name'],
             "location": self.location.name,
             "spawn_rate": self.spawn_rate,
             "spawn_limit": self.spawn_limit,
@@ -76,7 +76,7 @@ class MobSpawner():
         }
 
     def _clone_mob(self):
-        mob = parse_utils.load_npc(self.mob_type, self.mob_type['race']) # type: 'Living'
+        mob = parse_utils.load_npc(self.mob_type, self.mob_type['name']) # type: 'Living'
         if self.randomize_gender:
             mob.gender = "m" if random.randint(0, 1) == 0 else "f"
         mob.aggressive = self.mob_type['aggressive']

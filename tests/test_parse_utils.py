@@ -438,14 +438,14 @@ class TestParseUtils():
 
         assert len(spawners) == 2
 
-        assert spawners[0].items[0].title == 'Sword'
-        assert spawners[0].items[1].title == 'Potion'
+        assert spawners[0].items[0]['name'] == 'Sword'
+        assert spawners[0].items[1]['name'] == 'Potion'
         assert spawners[0].item_probabilities[0] == 0.5
         assert spawners[0].zone.name == 'Royal grotto'
         assert spawners[0].spawn_rate == 5
         assert spawners[0].max_items == 10
 
-        assert spawners[1].items[0].title == 'Gold'
+        assert spawners[1].items[0]['name'] == 'Gold'
         assert spawners[1].item_probabilities[0] == 0.5
         assert spawners[1].zone.name == 'Dark forest'
         assert spawners[1].spawn_rate == 3

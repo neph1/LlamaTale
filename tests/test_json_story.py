@@ -35,7 +35,7 @@ class TestJsonStory():
         assert(self.story.get_item('hoodie').location.name == 'Cave entrance')
 
         mob_spawner = self.story.world.mob_spawners[0] # type: MobSpawner
-        assert(mob_spawner.mob_type.name == 'bat')
+        assert(mob_spawner.mob_type['name'] == 'bat')
         assert(mob_spawner.location.name == 'Cave entrance')
         assert(mob_spawner.spawn_rate == 60)
         assert(mob_spawner.spawn_limit == 5)
@@ -43,7 +43,7 @@ class TestJsonStory():
 
         zone_info = self.story.zone_info('Cave')
         assert(zone_info['description'] == 'A dark cave')
-        assert(zone_info['races'] == ['kobold', 'bat', 'giant rat'])
+        assert(zone_info['races'] == ['wolf', 'bat'])
         assert(zone_info['items'] == ['torch', 'sword', 'shield'])
         assert(zone_info['level'] == 1)
         assert(zone_info['mood'] == -1)

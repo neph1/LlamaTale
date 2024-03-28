@@ -1,6 +1,6 @@
 import random
 
-from tale import mud_context
+from tale import mud_context, parse_utils
 from tale.base import Container, Location
 from tale.util import call_periodically
 from tale.zone import Zone
@@ -24,7 +24,7 @@ class ItemSpawner():
             return
         self.time -= self.spawn_rate
         item = random.choices(self.items, weights=self.item_probabilities)[0]
-        
+        item = parse_utils.load_item(item)
         if self.container:
             self.container.insert(item, None)
         else:
@@ -35,7 +35,7 @@ class ItemSpawner():
     
     def to_json(self):
         data = {
-            'items': [item.name for item in self.items],
+            'items': [item['name'] for item in self.items],
             'item_probabilities': self.item_probabilities,
             'zone': self.zone.name,
             'spawn_rate': self.spawn_rate,

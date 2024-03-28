@@ -1,5 +1,4 @@
 from tale.items import generic
-from tale.items.basic import Note
 from tale.llm.llm_ext import DynamicStory
 from tale.player import Player
 from tale.story import StoryConfig

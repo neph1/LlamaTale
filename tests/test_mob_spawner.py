@@ -68,7 +68,7 @@ class TestMobSpawner():
 
     def test_spawn(self):
         location = Location(name="Test Location")
-        mob = dict(name="Test Mob", gender='m', race='human', aggressive=False)
+        mob = dict(gender='m', name='human', aggressive=False)
         spawner = MobSpawner(mob, location, spawn_rate=2, spawn_limit=3)
         mob = spawner.spawn()
         assert mob
@@ -90,7 +90,7 @@ class TestMobSpawner():
 
     def test_item_drop(self):
         location = Location(name="Test Location")
-        mob = Living(name="Test Mob", gender='m')
+        mob = dict(gender='m', name='human', aggressive=False)
         test_item = Item(name="Test Item")
         spawner = MobSpawner(mob, location, spawn_rate=2, spawn_limit=3, drop_items=[test_item], drop_item_probabilities=[1])
         remains = Remains('Test Remains')
