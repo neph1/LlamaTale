@@ -1,7 +1,11 @@
 
 
 class Coord():
-    """ Represents a coordinate in 3D space."""
+    """ Represents a coordinate in 3D space.
+    x is west and east, 
+    y is north and south,
+    z is up and down.
+    """
 
     def __init__(self, x:int = 0, y:int = 0, z:int = 0):
         self.x = x

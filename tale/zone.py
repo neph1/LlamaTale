@@ -27,7 +27,7 @@ class Zone():
     def get_location(self, name: str) -> Location:
         return self.locations.get(name, None)
     
-    def get_info(self) -> dict():
+    def get_info(self) -> dict:
         return {"description":self.description,
                 "level":self.level,
                 "mood":self.mood,

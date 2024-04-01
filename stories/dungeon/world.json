@@ -1,0 +1,15 @@
+{
+    "story": {
+        "name": "DungeonPrompter"
+    },
+    "zones": {},
+    "world": {
+        "npcs": {},
+        "items": {
+        }
+    },
+    "catalogue": {
+        "items": [],
+        "creatures": []
+    }
+}

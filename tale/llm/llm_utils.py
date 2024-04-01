@@ -9,6 +9,7 @@ from tale.image_gen.base_gen import ImageGeneratorBase
 from tale.llm import llm_config
 from tale.llm.character import CharacterBuilding
 from tale.llm.contexts.ActionContext import ActionContext
+from tale.llm.contexts.DungeonLocationsContext import DungeonLocationsContext
 from tale.llm.contexts.EvokeContext import EvokeContext
 from tale.llm.contexts.WorldGenerationContext import WorldGenerationContext
 from tale.llm.llm_ext import DynamicStory
@@ -224,6 +225,15 @@ class LlmUtil():
     def generate_note_lore(self, zone_info: dict) -> str:
         return self._world_building.generate_note_lore(context=self._get_world_context(), 
                                                         zone_info=zone_info)
+    
+    def generate_dungeon_locations(self, zone_info: dict, locations: list):
+        return self._world_building.generate_dungeon_locations(context=DungeonLocationsContext(story_context=self.__story_context,
+                                                                                                    story_type=self.__story_type,
+                                                                                                    world_info=self.__world_info,
+                                                                                                    world_mood=self.__story.config.world_mood,
+                                                                                                    zone_info=zone_info,
+                                                                                                    rooms=locations))
+
     # visible for testing
     def generate_image(self, name: str, description: dict = '', save_path: str = "./resources", copy_file: bool = True, target: MudObject = None, id: str = None) -> bool:
         if not self._image_gen:

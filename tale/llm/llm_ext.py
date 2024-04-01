@@ -26,7 +26,6 @@ class DynamicStory(StoryBase):
         return self._zones[name]
     
     def add_zone(self, zone: Zone) -> bool:
-        
         if zone.name in self._zones:
             return False
         self._zones[zone.name] = zone
@@ -88,6 +87,10 @@ class DynamicStory(StoryBase):
     @property
     def world(self) -> 'WorldInfo':
         return self._world
+    
+    @property
+    def grid(self) -> dict:
+        return self._world._grid
     
     @property
     def catalogue(self) -> 'Catalogue':
@@ -232,6 +235,30 @@ class WorldInfo():
     def item_spawners(self, value: list):
         self._item_spawners = value
 
+    def add_mob_spawner(self, spawner: MobSpawner) -> bool:
+        if spawner in self._mob_spawners:
+            return False
+        self._mob_spawners.append(spawner)
+        return True
+    
+    def remove_mob_spawner(self, spawner: MobSpawner) -> bool:
+        if spawner in self._mob_spawners:
+            self._mob_spawners.remove(spawner)
+            return True
+        return False
+    
+    def add_item_spawner(self, spawner: ItemSpawner) -> bool:
+        if spawner in self._item_spawners:
+            return False
+        self._item_spawners.append(spawner)
+        return True
+    
+    def remove_item_spawner(self, spawner: ItemSpawner) -> bool:
+        if spawner in self._item_spawners:
+            self._item_spawners.remove(spawner)
+            return True
+        return False
+    
     def to_json(self) -> dict:
         return dict(
             npcs=parse_utils.save_npcs(self._npcs.values()),

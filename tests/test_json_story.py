@@ -3,7 +3,6 @@ import datetime
 import os
 import shutil
 from tale.coord import Coord
-from tale.item_spawner import ItemSpawner
 from tale.items import generic
 import tale.parse_utils as parse_utils
 from tale import util
@@ -52,7 +51,7 @@ class TestJsonStory():
         generic_items = generic.generic_items['fantasy']
         assert(len(items) == len(generic_items) + 1)
 
-        item_spawner = self.story.world.item_spawners[0] # type: ItemSpawner
+        item_spawner = self.story.world.item_spawners[0]
         assert(item_spawner.zone.name == 'Cave')
         assert(item_spawner.spawn_rate == 60)
         assert(item_spawner.max_items == 5)

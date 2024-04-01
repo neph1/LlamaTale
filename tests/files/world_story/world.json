@@ -8,14 +8,12 @@
             "level": 1,
             "mood": -1,
             "races": [
-                "kobold",
-                "bat",
-                "giant rat"
+                "wolf",
+                "bat"
             ],
             "items": [
                 "torch",
-                "sword",
-                "shield"
+                "Sword"
             ],
             "size": 5,
             "center": [

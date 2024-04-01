@@ -8,6 +8,7 @@ from tale import zone
 from tale.base import Location
 from tale.coord import Coord
 from tale.llm import llm_config
+from tale.llm.contexts.DungeonLocationsContext import DungeonLocationsContext
 from tale.llm.contexts.WorldGenerationContext import WorldGenerationContext
 from tale.llm.llm_ext import DynamicStory
 from tale.llm.llm_io import IoUtil
@@ -30,6 +31,7 @@ class WorldBuilding():
         self.world_creatures_prompt = llm_config.params['WORLD_CREATURES'] # Type: str
         self.player_enter_prompt = llm_config.params['PLAYER_ENTER_PROMPT'] # Type: str
         self.note_lore_prompt = llm_config.params['NOTE_LORE_PROMPT'] # Type: str
+        self.dungeon_locations_prompt = llm_config.params['CREATE_DUNGEON_LOCATIONS'] # Type: str
         self.creature_template = llm_config.params['CREATURE_TEMPLATE'] # Type: str
         self.item_template = llm_config.params['ITEM_TEMPLATE'] # Type: str
         self.exit_template = llm_config.params['EXIT_TEMPLATE'] # Type: str
@@ -42,6 +44,7 @@ class WorldBuilding():
         self.items_prompt = llm_config.params['ITEMS_PROMPT'] # Type: str
         self.create_zone_prompt = llm_config.params['CREATE_ZONE_PROMPT'] # Type: str
         self.zone_template = llm_config.params['ZONE_TEMPLATE'] # Type: str
+        self.dungeon_location_template = llm_config.params['DUNGEON_LOCATION_TEMPLATE'] # Type: str
 
 
     def build_location(self, location: Location, 
@@ -361,6 +364,22 @@ class WorldBuilding():
         try:
             return parse_utils.trim_response(result)
         except Exception as exc:
+            print(exc)
+            return None
+        
+    def generate_dungeon_locations(self, context: DungeonLocationsContext):
+        """ Generate a list of descriptins for locations in a dungeon."""
+        prompt = self.dungeon_locations_prompt.format(context = context.to_prompt_string(), dungeon_location_template=self.dungeon_location_template)
+        request_body = deepcopy(self.default_body)
+        if self.backend == 'kobold_cpp':
+            request_body = self._kobold_generation_prompt(request_body)
+        if self.json_grammar_key:
+            request_body[self.json_grammar_key] = self.json_grammar
+        result = self.io_util.synchronous_request(request_body, prompt=prompt, context=context.to_prompt_string())
+        try:
+            parsed = json.loads(parse_utils.sanitize_json(result))
+            return parsed
+        except json.JSONDecodeError as exc:
             print(exc)
             return None
         
