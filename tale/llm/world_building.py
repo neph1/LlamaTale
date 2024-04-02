@@ -197,6 +197,7 @@ class WorldBuilding():
                                                   target_location.world_location.add(
                                                       direction.multiply(json_result.get('size', 5))))
                         if zone and story.add_zone(zone):
+                            zone.level = (zone.level + 1) if random.random() < 0.5 else zone.level
                             return zone
         return current_zone
 
