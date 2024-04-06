@@ -32,7 +32,6 @@ class ActionContext(BaseContext):
         examples = []
         if items:
             examples.append(f'{{"goal":"", "thoughts":"I want this thing.", "action":"take", "target":{random.choice(items)}, "text":""}}')
-            examples.append(f'{{"goal":"", "thoughts":"I want this thing.", "action":"take", "target":{random.choice(items)}, "text":""}}')
         if exits:
             examples.append(f'{{"goal":"", "thoughts":"I want to go there.", "action":"move", "target":{random.choice(exits)}, "text":""}}')
         if characters:
