@@ -8,43 +8,35 @@ from tale.base import Exit, Location
 from tale.driver import Driver
 from tale.dungeon.dungeon_generator import ItemPopulator, Layout, LayoutGenerator, MobPopulator
 from tale.json_story import JsonStory
-from tale.llm.llm_ext import DynamicStory
 from tale.main import run_from_cmdline
-from tale.player import Player, PlayerConnection
-from tale.charbuilder import PlayerNaming
 from tale.story import *
-from tale.weapon_type import WeaponType
 from tale.zone import Zone
 
-class DungeonStory(JsonStory):
+class Story(JsonStory):
 
     driver = None  # type: Driver
 
     def __init__(self, layout_generator = LayoutGenerator(), mob_populator = MobPopulator(), item_populator = ItemPopulator()) -> None:
-        super(DungeonStory, self).__init__('', parse_utils.load_story_config(parse_utils.load_json('story_config.json')))
+        super(Story, self).__init__('', parse_utils.load_story_config(parse_utils.load_json('story_config.json')))
         self.layout_generator = layout_generator
         self.mob_populator = mob_populator
         self.item_populator = item_populator
+        self.max_depth = 10
         
 
     def init(self, driver: Driver) -> None:
-        super(DungeonStory, self).init(driver)
+        super(Story, self).init(driver)
 
     def add_zone(self, zone: Zone) -> bool:
         first_zone = len(self._zones.values()) == 0
-        if super(DungeonStory, self).add_zone(zone):
-            # generate layout for zone
+        if super(Story, self).add_zone(zone):
+            zone.size_z = 1
             layout = self.layout_generator.generate()
 
             rooms = self._prepare_locations(layout=layout, first_zone=first_zone)
-            described_rooms = self.driver.llm_util.generate_dungeon_locations(zone_info=zone.get_info(), locations=rooms)
-            assert len(described_rooms) == len(rooms)
-            for room in described_rooms:
-                location = Location(name=room['name'], descr=room['descr'])
-                location.world_location = list(layout.cells.values())[room['index']].coord
-                zone.add_location(location=location)
-                self.add_location(zone=zone.name, location=location)
 
+            self._describe_rooms(zone=zone, layout=layout, rooms=rooms)
+            
             self._connect_locations(layout=layout)
 
             mob_spawners = [self.mob_populator.populate(zone=zone, layout=layout)]
@@ -58,24 +50,43 @@ class DungeonStory(JsonStory):
             return True
         return False
     
-    def _prepare_locations(self, layout: Layout, first_zone: bool) -> list:
+    def _describe_rooms(self, zone: Zone, layout: Layout, rooms: list):
+        for i in range(3):
+            described_rooms = self.driver.llm_util.generate_dungeon_locations(zone_info=zone.get_info(), locations=rooms)
+            if described_rooms and len(described_rooms) == len(rooms):
+                break
+        if isinstance(described_rooms, dict):
+            described_rooms = list(described_rooms.values())
+        for room in described_rooms:
+            i = 1
+            if zone.get_location(room['name']):
+                # ensure unique names
+                room['name'] = f'{room["name"]}({i})'
+                i += 1
+            location = Location(name=room['name'], descr=room['description'])
+            location.world_location = list(layout.cells.values())[room['index']].coord
+            zone.add_location(location=location)
+            self.add_location(zone=zone.name, location=location)
+        return described_rooms
+
+    
+    def _prepare_locations(self, layout: Layout, first_zone: bool = False) -> list:
         index = 0
         rooms = []
         for cell in list(layout.cells.values()):
             if cell.is_entrance:
-                room_string = f'{{"index": {index}, "name":{"Entrance to dungeon" if first_zone else "Room with starcase leading up"}}}'
+                room_string = f'{{"index": {index}, "name":{"Entrance to dungeon" if first_zone else "Room with staircase leading up"}}}'
             elif cell.is_exit:
-                room_string = f'{{"index": {index}, "name": "Room with starcase leading down"}}'
+                room_string = f'{{"index": {index}, "name": "Room with staircase leading down"}}'
             elif cell.is_room:
                 room_string = f'{{"index": {index}, "name": ""}}'
             else:
-                room_string = f'{{"index": {index}, "name": "Hallway", "descr": "A hallway"}}'
+                room_string = f'{{"index": {index}, "name": "Hallway", "description": "A hallway"}}'
             rooms.append(room_string)
             index += 1
         return rooms
     
     def _connect_locations(self, layout: Layout) -> None:
-        # get leaf cells in layout
         leaf_cells = [cell for cell in layout.cells.values() if cell.leaf]
         cells_to_parse = leaf_cells.copy()
         while len(cells_to_parse) > 0:
@@ -86,6 +97,9 @@ class DungeonStory(JsonStory):
                 continue
             cell_location = self.world._grid.get(cell.coord.as_tuple(), None)
             parent_location = self.world._grid.get(parent.as_tuple(), None)
+            if cell_location.exits.get(parent_location.name, None):
+                cells_to_parse.remove(cell)
+                continue
             Exit.connect(cell_location, parent_location.name, '', None, parent_location, cell_location.name, '', None)
             cells_to_parse.append(layout.cells[parent.as_tuple()])
             cells_to_parse.remove(cell)

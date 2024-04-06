@@ -23,6 +23,10 @@ class StoryInfo():
 
 
 class StoryBuilderBase:
+
+    def __init__(self, connection: PlayerConnection) -> None:
+        self.story_info = StoryInfo()
+        self.connection = connection
     
     def generate_world_items(self, llm_util: LlmUtil, story_context: str, story_type: str, world_info: str, world_mood: int):
         self.connection.output("Generating world items...")
@@ -95,10 +99,6 @@ class StoryExtrasBuilder():
                 break
 class StoryBuilder(StoryBuilderBase):
 
-    def __init__(self, connection: PlayerConnection) -> None:
-        self.story_info = StoryInfo()
-        self.connection = connection
-        
     def ask_story_type(self) -> Generator:
         self.story_info.type = yield "input", ("What genre would you like your story to be? Ie, 'A post apocalyptic scifi survival adventure', or 'Cozy social simulation with deep characters'")
         
@@ -126,11 +126,13 @@ class StoryBuilder(StoryBuilderBase):
     def validate_mood(self, value: str) -> int:
         min = -5
         max = 5
+        if not value:
+            return 0
         try:
             int_value = (int) (value)
-            if min and int_value < min:
+            if int_value < min:
                 raise ValueError("Only values greater than or equal to {} are allowed. Try again.".format(min))
-            if max and int_value > max:
+            if int_value > max:
                 raise ValueError("Only values less than or equal to {} are allowed. Try again.".format(max))
             return int(value)       
         except ValueError:

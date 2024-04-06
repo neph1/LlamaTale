@@ -457,4 +457,7 @@ class TestParseUtils():
         sanitized = json.loads(parse_utils.sanitize_json(json_string))
         assert sanitized['name'] == 'Whispering Woods'
 
-        
+    def test_mood_string_from_int(self):
+        assert parse_utils.mood_string_from_int(5) == ' uttermost friendly'
+        assert parse_utils.mood_string_from_int(0) == ' neutral'
+        assert parse_utils.mood_string_from_int(-4) == ' extremely hostile'

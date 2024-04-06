@@ -534,7 +534,10 @@ def direction_from_coordinates(direction: Coord):
 def mood_string_from_int(mood: int):
     """ Returns a mood string based on the supplied int"""
 
-    base_mood = 'friendly' if mood > 0 else 'hostile' if mood < 0 else 'neutral'
+    if mood == 0:
+        return ' neutral'
+    
+    base_mood = 'friendly' if mood > 0 else 'hostile'
     
     if abs(mood) > 4:
         return f' uttermost {base_mood}'
