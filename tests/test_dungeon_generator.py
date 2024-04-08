@@ -24,7 +24,7 @@ class TestDungeonGenerator:
 
     def test_add_cell(self):
         dungeon_generator = LayoutGenerator()
-        dungeon_generator.generate_cell(Coord(1, 1, 0))
+        dungeon_generator._generate_cell(Coord(1, 1, 0))
         assert len(dungeon_generator.layout.cells) == 1
 
     def test_place_key(self):
@@ -34,22 +34,23 @@ class TestDungeonGenerator:
         for coord in coords:
             cell = Cell(coord=coord)
             dungeon_generator.layout.cells[coord.as_tuple()] = cell
-        dungeon_generator.get_cell(Coord(1, 0, 0)).leaf = True
+        dungeon_generator._get_cell(Coord(1, 0, 0)).leaf = True
         door = Door(Coord(2, 0, 0), Coord(1, 0, 0))
-        key = dungeon_generator.place_key(door)
+        key = dungeon_generator._place_key(door)
         assert key.__str__() == 'Key: (1, 0, 0) -> (2, 0, 0)'
+        assert key.key_code == door.key_code
         assert len(dungeon_generator.layout.keys) == 1
 
 
     def test_num_neighbors_to_add(self):
         dungeon_generator = LayoutGenerator()
-        num_neighbors = dungeon_generator.num_neighbors_to_add(Coord(1, 1, 0))
+        num_neighbors = dungeon_generator._num_neighbors_to_add(Coord(1, 1, 0))
         assert num_neighbors >= 0 and num_neighbors <= 3
 
     def test_get_cell(self):
         dungeon_generator = LayoutGenerator()
-        dungeon_generator.generate_cell(Coord(1, 1, 0))
-        cell = dungeon_generator.get_cell(Coord(1, 1, 0))
+        dungeon_generator._generate_cell(Coord(1, 1, 0))
+        cell = dungeon_generator._get_cell(Coord(1, 1, 0))
         assert cell is not None
 
     def test_set_exit(self):

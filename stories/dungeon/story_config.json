@@ -1,5 +1,5 @@
 {
-    "name": "",
+    "name": "Dungeon",
     "author": "test author",
     "author_address": "",
     "version": "1.0",
@@ -15,8 +15,8 @@
     "server_tick_time": 5.0,
     "gametime_to_realtime": 1,
     "display_gametime": false,
-    "startlocation_player": "",
-    "startlocation_wizard": "",
+    "startlocation_player": "start_zone.transit",
+    "startlocation_wizard": "start_zone.transit",
     "zones": [
         ""
     ],
