@@ -636,6 +636,9 @@ class Driver(pubsub.Listener):
             for i in range(5):
                 result = self.build_location(target_location, new_zone, player)
                 if result:
+                    # transfer the location from the old zone to the new zone
+                    zone.remove_location(target_location)
+                    new_zone.add_location(target_location)
                     break
 
             if not result:

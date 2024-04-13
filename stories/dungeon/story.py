@@ -25,7 +25,8 @@ class Story(JsonStory):
         self.layout_generator = layout_generator
         self.mob_populator = mob_populator
         self.item_populator = item_populator
-        self.max_depth = 10
+        self.max_depth = 5
+        self.depth = 0
         
 
     def init(self, driver: Driver) -> None:
@@ -101,13 +102,13 @@ class Story(JsonStory):
             item_spawners = [self.item_populator.populate(zone=zone, story=self)]
             for item_spawner in item_spawners:
                 self.world.add_item_spawner(item_spawner)
-                
+            self.depth += 1
             return True
         return False
     
     def _describe_rooms(self, zone: Zone, layout: Layout, rooms: list):
         for i in range(3):
-            described_rooms = self.driver.llm_util.generate_dungeon_locations(zone_info=zone.get_info(), locations=rooms)
+            described_rooms = self.driver.llm_util.generate_dungeon_locations(zone_info=zone.get_info(), locations=rooms, depth = self.depth, max_depth=self.max_depth)
             if described_rooms and len(described_rooms) == len(rooms):
                 break
         if isinstance(described_rooms, dict):
@@ -129,15 +130,16 @@ class Story(JsonStory):
         index = 0
         rooms = []
         for cell in list(layout.cells.values()):
+            if cell.is_dungeon_entrance:
+                rooms.append(f'{{"index": {index}, "name": "Entrance to dungeon"}}')
             if cell.is_entrance:
-                room_string = f'{{"index": {index}, "name":{"Entrance to dungeon" if first_zone else "Room with staircase leading up"}}}'
+                rooms.append(f'{{"index": {index}, "name":{"Room with staircase leading up"}}}')
             elif cell.is_exit:
-                room_string = f'{{"index": {index}, "name": "Room with staircase leading down"}}'
+                rooms.append(f'{{"index": {index}, "name": "Room with staircase leading down"}}')
             elif cell.is_room:
-                room_string = f'{{"index": {index}, "name": ""}}'
+                rooms.append(f'{{"index": {index}, "name": ""}}')
             else:
-                room_string = f'{{"index": {index}, "name": "Hallway", "description": "A hallway"}}'
-            rooms.append(room_string)
+                rooms.append(f'{{"index": {index}, "name": "Hallway", "description": "A hallway"}}')
             index += 1
         return rooms
     

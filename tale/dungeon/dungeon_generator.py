@@ -1,8 +1,10 @@
 
 
 import random
+from tale.base import Container
 from tale.coord import Coord
 from tale.item_spawner import ItemSpawner
+from tale.items.basic import Money
 from tale.llm.llm_ext import DynamicStory
 from tale.mob_spawner import MobSpawner
 from tale.zone import Zone
@@ -10,31 +12,45 @@ from tale.zone import Zone
 
 class LayoutGenerator():
 
-    def __init__(self, start_coord: Coord = Coord(0,0,0), seed: int = None):
+    def __init__(self, seed: int = None, start_coord: Coord = None):
+        """ Allow init for tests """
         self.max_size = 10
         self.min_rooms = 10
         self.max_locked_doors = 1
+        self.unvisited = []
+        self.layout = Layout()
         self.start_coord = start_coord
-        self.layout = Layout(self.start_coord)
-        self.unvisited = [] # type: list[Coord]
         if seed:
             random.seed(seed)
 
-    def generate(self) -> 'Layout':
+    def generate(self, start_coord: Coord = Coord(0,0,0)) -> 'Layout':
+        self.start_coord = start_coord
+        self.layout = Layout(self.start_coord)
         start_location = Cell()
         start_location.is_room = True
         start_location.visited = False
+        start_location.parent = None # block pathfinding across levels
         self.layout.cells[self.start_coord.as_tuple()] = start_location
-        self.unvisited.append(self.start_coord)
+        self.unvisited = [self.start_coord] # type: list[Coord]
         start_cell = self._generate_cell(coord=self.start_coord)
-        start_cell.is_entrance = True
+        if start_coord.z == 0:
+            start_cell.is_dungeon_entrance = True
+        else:
+            start_cell.is_entrance = True
         while len(self.unvisited) > 0:
             coord = self.unvisited.pop()
             self._generate_room(coord)
 
-        self.set_exit()
+        exit_coord = self.set_exit()
+        self.add_connector_cell(exit_coord)
+
         return self.layout
         
+    def add_connector_cell(self, exit_coord: Coord) -> 'Cell':
+        connector_cell = self._generate_cell(exit_coord.add(Coord(0,-1,0)), exit_coord)
+        connector_cell.is_entrance = True
+        connector_cell.leaf = True
+        return connector_cell
 
     def _generate_room(self, coord: Coord):
         cell = self._get_cell(coord) # type: Cell
@@ -72,14 +88,14 @@ class LayoutGenerator():
         new_cell.is_room = random.random() < 0.33
         self.layout.cells[coord.as_tuple()] = new_cell
         self.unvisited.append(coord)
-        if random.random() < 0.25:
+        if parent and random.random() < 0.25:
             door = Door(coord, parent)
             self.layout.doors.append(door)
             new_cell.doors[parent.as_tuple()] = door
-            if self.max_locked_doors > 0 and random.random() < 0.15:
+            if self.max_locked_doors > 0 and random.random() < 0.2:
                 door.locked = True
-                self._place_key(door)
-                self.max_locked_doors -= 1
+                if self._place_key(door):
+                    self.max_locked_doors -= 1
         return new_cell
 
     def _place_key(self, door: 'Door') -> 'Key':
@@ -98,6 +114,8 @@ class LayoutGenerator():
             possible_cells.extend(visited_cells)
         if len(possible_cells) == 0:
             door.locked = False
+            print('no possible cells for key')
+            return None
         key_coord = random.choice(possible_cells)
         key = Key(key_coord, door)
         key.key_code = door.key_code = f'{random.randint(1000,99999)}'
@@ -122,7 +140,7 @@ class LayoutGenerator():
     def _get_cell(self, coord: Coord):
         return self.layout.cells.get(coord.as_tuple(), None)
     
-    def set_exit(self):
+    def set_exit(self) -> Coord:
         candidate_cells = [cell for cell in self.layout.cells.values() if cell.leaf and cell.coord.distance(self.start_coord) > 5]
         if self._get_cell(self.start_coord) in candidate_cells:
             candidate_cells.remove(self._get_cell(self.start_coord))
@@ -132,7 +150,9 @@ class LayoutGenerator():
             candidate_cells = [cell for cell in self.layout.cells.values() if cell.coord.__eq__(self.start_coord) == False]
         exit_cell = random.choice(candidate_cells)
         exit_cell.is_exit = True
+        exit_cell.leaf = False
         self.exit_coord = exit_cell.coord
+        return exit_cell.coord
 
     def print(self):
         for coord, cell in self.layout.cells.items():
@@ -180,6 +200,8 @@ class ItemPopulator():
 
     def __init__(self):
         self.max_items = 2
+        self.max_gold = 5
+        self.container_names = ["Box", "Pouch", "Chest", "Bag"]
 
     def populate(self, zone: Zone, story: DynamicStory):
         item_spawners = list()
@@ -189,19 +211,23 @@ class ItemPopulator():
             item_types = [item_type]
             item_probabilities = [random.random() * 0.15 + 0.5 for i in range(len(zone.items))]
             item_spawners.append(ItemSpawner(zone=zone, items=item_types, item_probabilities=item_probabilities, spawn_rate=30))
+
+        for i in range(self.max_gold):
+            money = Money(name="money", value=random.randrange(5, 25) * zone.level)
+            container = Container(random.choice(self.container_names))
+            container.init_inventory([money])
+            location = random.choice(list(zone.locations.values())) # Location
+            location.insert(container, None)
         return item_spawners
-
-
 
 class Layout():
 
-    def __init__(self, start_coord: Coord):
+    def __init__(self, start_coord: Coord = None):
         self.start_coord = start_coord
         self.cells = dict()
         self.doors = list()
         self.keys = list()
         self.exit_coord = None
-
 
     def get_leaves(self):
         return [cell for cell in self.cells.values() if cell.leaf]
@@ -214,6 +240,7 @@ class Cell():
         self.parent = parent
         self.room = None
         self.visited = False
+        self.is_dungeon_entrance = False
         self.is_room = False
         self.is_corridor = False
         self.is_entrance = False

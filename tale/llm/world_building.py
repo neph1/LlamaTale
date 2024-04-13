@@ -194,8 +194,8 @@ class WorldBuilding():
                                         direction=parse_utils.direction_from_coordinates(direction))  # type: dict
                     if json_result:
                         zone = self.validate_zone(json_result, 
-                                                  target_location.world_location.add(
-                                                      direction.multiply(json_result.get('size', 5))))
+                                                  current_location.world_location.add(
+                                                      direction.multiply(json_result.get('size', current_zone.size_z if direction.z != 0 else current_zone.size))))
                         if zone and story.add_zone(zone):
                             zone.level = (zone.level + 1) if random.random() < 0.5 else zone.level
                             return zone
@@ -379,7 +379,7 @@ class WorldBuilding():
         result = self.io_util.synchronous_request(request_body, prompt=prompt, context=context.to_prompt_string())
         try:
             parsed = json.loads(parse_utils.sanitize_json(result))
-            return parsed
+            return parsed["rooms"]
         except json.JSONDecodeError as exc:
             print(exc)
             return None

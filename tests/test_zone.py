@@ -32,6 +32,12 @@ class TestZone():
         zone.add_location(Location('test'))
         assert zone.get_location('test').name == 'test'
 
+    def test_remove_location(self):
+        zone = Zone('test')
+        zone.add_location(Location('test'))
+        zone.remove_location('test')
+        assert zone.get_location('test') == None
+
     def test_get_info(self):
         zone = Zone('test')
         zone.description = 'test'

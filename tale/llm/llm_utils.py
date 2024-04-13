@@ -226,13 +226,15 @@ class LlmUtil():
         return self._world_building.generate_note_lore(context=self._get_world_context(), 
                                                         zone_info=zone_info)
     
-    def generate_dungeon_locations(self, zone_info: dict, locations: list):
+    def generate_dungeon_locations(self, zone_info: dict, locations: list, depth: int, max_depth: int):
         return self._world_building.generate_dungeon_locations(context=DungeonLocationsContext(story_context=self.__story_context,
                                                                                                     story_type=self.__story_type,
                                                                                                     world_info=self.__world_info,
                                                                                                     world_mood=self.__story.config.world_mood,
                                                                                                     zone_info=zone_info,
-                                                                                                    rooms=locations))
+                                                                                                    rooms=locations,
+                                                                                                    depth=depth,
+                                                                                                    max_depth=max_depth))
 
     # visible for testing
     def generate_image(self, name: str, description: dict = '', save_path: str = "./resources", copy_file: bool = True, target: MudObject = None, id: str = None) -> bool:

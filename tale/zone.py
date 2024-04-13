@@ -24,6 +24,13 @@ class Zone():
             return False
         self.locations[location.name] = location
         return True
+    
+    def remove_location(self, name: str) -> bool:
+        """ Remove a location from the zone. Skip if location does not exist."""
+        if name not in self.locations:
+            return False
+        self.locations[name] = None
+        return True
 
     def get_location(self, name: str) -> Location:
         return self.locations.get(name, None)

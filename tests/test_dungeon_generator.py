@@ -5,13 +5,14 @@ from tale.coord import Coord
 from tale.driver_if import IFDriver
 from tale.dungeon.dungeon_generator import Cell, ItemPopulator, MobPopulator, Layout, LayoutGenerator, Door, Key
 from tale.json_story import JsonStory
+from tale.story import MoneyType
 from tale.zone import Zone
 
 
 class TestDungeonGenerator:
 
     def test_generate_dungeon_with_seed(self):
-        dungeon_generator = LayoutGenerator(seed=26)
+        dungeon_generator = LayoutGenerator(seed=9)
 
         layout = dungeon_generator.generate()
 
@@ -22,14 +23,25 @@ class TestDungeonGenerator:
         assert len(layout.keys) > 0
         assert dungeon_generator.exit_coord is not None
 
+        # generate a couple of layouts
+
+        dungeon_generator = LayoutGenerator(seed=42)
+
+        assert dungeon_generator.generate()
+
+        dungeon_generator = LayoutGenerator(seed=510)
+
+        assert dungeon_generator.generate()
+
+
+
     def test_add_cell(self):
         dungeon_generator = LayoutGenerator()
         dungeon_generator._generate_cell(Coord(1, 1, 0))
         assert len(dungeon_generator.layout.cells) == 1
 
     def test_place_key(self):
-        dungeon_generator = LayoutGenerator(seed=1)
-        leaf_cell = Cell()
+        dungeon_generator = LayoutGenerator(seed=1, start_coord=Coord(0, 0, 0))
         coords = [Coord(0, 0, 0), Coord(1, 0, 0), Coord(2, 0, 0), Coord(3, 0, 0)]
         for coord in coords:
             cell = Cell(coord=coord)
@@ -48,7 +60,7 @@ class TestDungeonGenerator:
         assert num_neighbors >= 0 and num_neighbors <= 3
 
     def test_get_cell(self):
-        dungeon_generator = LayoutGenerator()
+        dungeon_generator = LayoutGenerator(start_coord=Coord(0, 0, 0))
         dungeon_generator._generate_cell(Coord(1, 1, 0))
         cell = dungeon_generator._get_cell(Coord(1, 1, 0))
         assert cell is not None
@@ -57,6 +69,8 @@ class TestDungeonGenerator:
         dungeon_generator = LayoutGenerator()
         dungeon_generator.generate()
         assert dungeon_generator.exit_coord is not None
+
+        assert dungeon_generator.add_connector_cell(dungeon_generator.exit_coord) is not None
 
     def test_print(self, capsys):
         dungeon_generator = LayoutGenerator()
@@ -70,6 +84,7 @@ class TestDungeonPopulator():
     def setup_method(self):
         driver = IFDriver(screen_delay=99, gui=False, web=True, wizard_override=True)
         driver.game_clock = util.GameDateTime(datetime.datetime(year=2023, month=1, day=1), 1)
+        driver.moneyfmt = util.MoneyFormatter.create_for(MoneyType.MODERN)
         self.layout = Layout(Coord(0, 0, 0))
         coords = [Coord(0, 0, 0), Coord(1, 0, 0), Coord(2, 0, 0), Coord(3, 0, 0)]
         for coord in coords:
