@@ -14,6 +14,7 @@ from tale.llm.llm_ext import DynamicStory
 from tale.llm.llm_io import IoUtil
 from tale.llm.requests.generate_zone import GenerateZone
 from tale.llm.requests.start_location import StartLocation
+from tale.llm.responses.LocationDescriptionResponse import LocationDescriptionResponse
 from tale.mob_spawner import MobSpawner
 from tale.zone import Zone
 
@@ -274,9 +275,6 @@ class WorldBuilding():
         request_body = deepcopy(self.default_body)
         if self.backend == 'kobold_cpp':
             request_body = self._kobold_generation_prompt(request_body)
-            request_body['max_length'] = 750
-        elif self.backend == 'openai':
-            request_body['max_tokens'] = 750
         if self.json_grammar_key:
             request_body[self.json_grammar_key] = self.json_grammar
         result = self.io_util.synchronous_request(request_body, prompt=prompt, context=context.to_prompt_string())
@@ -368,7 +366,7 @@ class WorldBuilding():
             print(exc)
             return None
         
-    def generate_dungeon_locations(self, context: DungeonLocationsContext):
+    def generate_dungeon_locations(self, context: DungeonLocationsContext) -> LocationDescriptionResponse:
         """ Generate a list of descriptins for locations in a dungeon."""
         prompt = self.dungeon_locations_prompt.format(context = context.to_prompt_string(), dungeon_location_template=self.dungeon_location_template)
         request_body = deepcopy(self.default_body)
@@ -379,7 +377,7 @@ class WorldBuilding():
         result = self.io_util.synchronous_request(request_body, prompt=prompt, context=context.to_prompt_string())
         try:
             parsed = json.loads(parse_utils.sanitize_json(result))
-            return parsed["rooms"]
+            return LocationDescriptionResponse(parsed)
         except json.JSONDecodeError as exc:
             print(exc)
             return None
@@ -439,4 +437,3 @@ class WorldBuilding():
                 if npc.name == world_creature['name'].lower():
                     mob_spawner = MobSpawner(npc, location, 30, 2)
                     return mob_spawner
-        

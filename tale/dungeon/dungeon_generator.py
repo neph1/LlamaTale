@@ -44,17 +44,20 @@ class LayoutGenerator():
         exit_coord = self.set_exit()
         self.add_connector_cell(exit_coord)
 
+        for door in self.layout.connections:
+            if door.locked:
+                self._place_key(door)
+
         return self.layout
         
     def add_connector_cell(self, exit_coord: Coord) -> 'Cell':
-        connector_cell = self._generate_cell(exit_coord.add(Coord(0,-1,0)), exit_coord)
+        connector_cell = self._generate_cell(exit_coord.add(Coord(0,0,-1)), exit_coord)
         connector_cell.is_entrance = True
         connector_cell.leaf = True
         return connector_cell
 
     def _generate_room(self, coord: Coord):
         cell = self._get_cell(coord) # type: Cell
-        parent = cell.parent
         cell.visited = True
 
         # add neighbors
@@ -65,21 +68,23 @@ class LayoutGenerator():
             return
 
         if coord.x % 2 == 1 or coord.y % 2 == 1:
-            direction = coord.subtract(parent)
+            direction = coord.subtract(cell.parent)
             new_cell = self._get_cell(coord.add(direction))
             if new_cell is None:
                 self._generate_cell(coord=coord.add(direction), parent=coord)
             return
         directions = [Coord(1,0,0), Coord(-1,0,0), Coord(0,1,0), Coord(0,-1,0)]
+        if cell.parent:
+            directions.remove(cell.parent.subtract(coord))
         while openings > 0:
-            if len(directions) == 0:
-                print('openings left but no directions', coord, openings)
-                return
             direction = random.choice(directions)
             new_coord = coord.add(direction)
             if self._get_cell(new_coord) is None:
                 self._generate_cell(coord=coord.add(direction), parent=coord)
-                openings -= 1
+            else:
+                self.layout.connections.add(Connection(coord, new_coord))
+            openings -= 1
+            
             directions.remove(direction)
 
     def _generate_cell(self, coord: Coord, parent: Coord = None) -> 'Cell':
@@ -88,38 +93,39 @@ class LayoutGenerator():
         new_cell.is_room = random.random() < 0.33
         self.layout.cells[coord.as_tuple()] = new_cell
         self.unvisited.append(coord)
+        door = None
         if parent and random.random() < 0.25:
-            door = Door(coord, parent)
-            self.layout.doors.append(door)
-            new_cell.doors[parent.as_tuple()] = door
+            door = Connection(parent, coord, door=True)
+            self.layout.connections.add(door)
             if self.max_locked_doors > 0 and random.random() < 0.2:
                 door.locked = True
-                if self._place_key(door):
-                    self.max_locked_doors -= 1
         return new_cell
 
-    def _place_key(self, door: 'Door') -> 'Key':
+    def _place_key(self, door: 'Connection') -> 'Key':
         possible_cells = []
         leaves = self.layout.get_leaves()
         for leaf in leaves:
             coord = leaf.coord
             visited_cells = []
+            previous_coord = None
             while coord is not self.start_coord:
                 visited_cells.append(coord)
+                previous_coord = coord
                 coord = self._get_cell(coord).parent
                 if coord is None:
                     break
-                if coord == door.coord:
+                if coord == door.coord and previous_coord == door.other:
                     visited_cells.clear()
+                
             possible_cells.extend(visited_cells)
         if len(possible_cells) == 0:
             door.locked = False
-            print('no possible cells for key')
+            print('no possible cells for key ', door)
             return None
         key_coord = random.choice(possible_cells)
         key = Key(key_coord, door)
         key.key_code = door.key_code = f'{random.randint(1000,99999)}'
-        self.layout.keys.append(key)
+        self.layout.keys.add(key)
         return key
 
     def _num_neighbors_to_add(self, coord: Coord) -> int:
@@ -157,7 +163,7 @@ class LayoutGenerator():
     def print(self):
         for coord, cell in self.layout.cells.items():
             print(f'{coord}: {cell.is_room}')
-        for door in self.layout.doors:
+        for door in self.layout.connections:
             print(f'{door}')
         for key in self.layout.keys:
             print(f'{key}')
@@ -225,8 +231,9 @@ class Layout():
     def __init__(self, start_coord: Coord = None):
         self.start_coord = start_coord
         self.cells = dict()
-        self.doors = list()
-        self.keys = list()
+        self.doors = set()
+        self.keys = set()
+        self.connections = set()
         self.exit_coord = None
 
     def get_leaves(self):
@@ -246,25 +253,28 @@ class Cell():
         self.is_entrance = False
         self.is_exit = False
         self.leaf = False
-        self.doors = dict()
-
-class Door():
-
-    def __init__(self, coord: Coord, other: Coord):
-        self.coord = coord
-        self.other = other
-        self.locked = False
-        self.key_code = ""
-
-    def __str__(self) -> str:
-        return f'Door: {self.coord.as_tuple()} <-> {self.other.as_tuple()}'
 
 class Key():
 
-    def __init__(self, coord: Coord, door: Door):
+    def __init__(self, coord: Coord, door: 'Connection'):
         self.coord = coord
         self.door = door
         self.key_code = ""
 
     def __str__(self) -> str:
         return f'Key: {self.coord.as_tuple()} -> {self.door.coord.as_tuple()}'
+    
+class Connection():
+
+    def __init__(self, coord: Coord, other: Coord, door: bool = False):
+        self.coord = coord
+        self.other = other
+        self.door = door
+        self.locked = False
+        self.key_code = ""  
+
+    
+    def __str__(self) -> str:
+        if self.door:
+            return f'Door: {self.coord.as_tuple()} <-> {self.other.as_tuple()}'
+        return f'Connection: {self.coord.as_tuple()} <-> {self.other.as_tuple()}'

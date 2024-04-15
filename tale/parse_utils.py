@@ -229,9 +229,9 @@ def load_story_config(json_file: dict):
     config.context = json_file.get('context', '')
     config.type = json_file.get('type', '')
     config.world_info = json_file.get('world_info', '')
-    config.world_mood = json_file.get('world_mood', '')
-    config.custom_resources = json_file.get('custom_resources', False)
-    config.image_gen = json_file.get('image_gen', None)
+    config.world_mood = json_file.get('world_mood', config.world_mood)
+    config.custom_resources = json_file.get('custom_resources', config.custom_resources)
+    config.image_gen = json_file.get('image_gen', config.image_gen)
     return config
 
 def save_story_config(config: StoryConfig) -> dict:

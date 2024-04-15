@@ -5,10 +5,11 @@ from typing import Optional, Generator
 
 import tale
 from tale import parse_utils
+from tale import lang
 from tale.base import Door, Exit, Location
 from tale.charbuilder import PlayerNaming
 from tale.driver import Driver
-from tale.dungeon.dungeon_generator import ItemPopulator, Layout, LayoutGenerator, MobPopulator
+from tale.dungeon.dungeon_generator import Cell, Connection, ItemPopulator, Layout, LayoutGenerator, MobPopulator
 from tale.json_story import JsonStory
 from tale.main import run_from_cmdline
 from tale.player import Player, PlayerConnection
@@ -20,8 +21,8 @@ class Story(JsonStory):
 
     driver = None  # type: Driver
 
-    def __init__(self, layout_generator = LayoutGenerator(), mob_populator = MobPopulator(), item_populator = ItemPopulator()) -> None:
-        super(Story, self).__init__('', parse_utils.load_story_config(parse_utils.load_json('story_config.json')))
+    def __init__(self, path = '', layout_generator = LayoutGenerator(), mob_populator = MobPopulator(), item_populator = ItemPopulator(), config: StoryConfig = None) -> None:
+        super(Story, self).__init__(path, config or parse_utils.load_story_config(parse_utils.load_json('story_config.json')))
         self.layout_generator = layout_generator
         self.mob_populator = mob_populator
         self.item_populator = item_populator
@@ -95,7 +96,7 @@ class Story(JsonStory):
             
             self._connect_locations(layout=layout)
 
-            mob_spawners = [self.mob_populator.populate(zone=zone, layout=layout)]
+            mob_spawners = [self.mob_populator.populate(zone=zone, layout=layout, story=self)]
             for mob_spawner in mob_spawners:
                 self.world.add_mob_spawner(mob_spawner)
 
@@ -107,20 +108,26 @@ class Story(JsonStory):
         return False
     
     def _describe_rooms(self, zone: Zone, layout: Layout, rooms: list):
-        for i in range(3):
-            described_rooms = self.driver.llm_util.generate_dungeon_locations(zone_info=zone.get_info(), locations=rooms, depth = self.depth, max_depth=self.max_depth)
-            if described_rooms and len(described_rooms) == len(rooms):
-                break
+        described_rooms = []
+        sliced_rooms = []
+        for num in range(0, len(rooms), 10):
+            sliced_rooms.extend(rooms[num:num+10])
+            for i in range(3):
+                described_rooms_slice = self.driver.llm_util.generate_dungeon_locations(zone_info=zone.get_info(), locations=sliced_rooms, depth = self.depth, max_depth=self.max_depth) # type LocationDescriptionResponse
+                if described_rooms_slice:
+                    described_rooms.extend(described_rooms_slice.location_descriptions)
+                    sliced_rooms = []
+                    break
         if isinstance(described_rooms, dict):
             described_rooms = list(described_rooms.values())
         for room in described_rooms:
             i = 1
-            if zone.get_location(room['name']):
+            if zone.get_location(room.name):
                 # ensure unique names
-                room['name'] = f'{room["name"]}({i})'
+                room.name = f'{room.name}({i})'
                 i += 1
-            location = Location(name=room['name'], descr=room['description'])
-            location.world_location = list(layout.cells.values())[room['index']].coord
+            location = Location(name=room.name, descr=room.description)
+            location.world_location = list(layout.cells.values())[room.index].coord
             zone.add_location(location=location)
             self.add_location(zone=zone.name, location=location)
         return described_rooms
@@ -133,38 +140,30 @@ class Story(JsonStory):
             if cell.is_dungeon_entrance:
                 rooms.append(f'{{"index": {index}, "name": "Entrance to dungeon"}}')
             if cell.is_entrance:
-                rooms.append(f'{{"index": {index}, "name":{"Room with staircase leading up"}}}')
+                rooms.append(f'{{"index": {index}, "name": "Room with pathway leading up to this level."}}')
             elif cell.is_exit:
-                rooms.append(f'{{"index": {index}, "name": "Room with staircase leading down"}}')
+                rooms.append(f'{{"index": {index}, "name": "Room with pathway leading down"}}')
             elif cell.is_room:
-                rooms.append(f'{{"index": {index}, "name": ""}}')
+                rooms.append(f'{{"index": {index}, "name": "Room"}}')
             else:
                 rooms.append(f'{{"index": {index}, "name": "Hallway", "description": "A hallway"}}')
             index += 1
         return rooms
     
     def _connect_locations(self, layout: Layout) -> None:
-        leaf_cells = layout.get_leaves()
-        cells_to_parse = leaf_cells.copy()
-        while len(cells_to_parse) > 0:
-            cell = cells_to_parse[0]
-            parent = cell.parent
-            if not parent:
-                cells_to_parse.remove(cell)
-                continue
-            cell_location = self.world._grid.get(cell.coord.as_tuple(), None)
-            parent_location = self.world._grid.get(parent.as_tuple(), None)
+        connections = layout.connections
+        for connection in connections:
+            cell_location = self.world._grid.get(connection.coord.as_tuple(), None) # type: Location
+            parent_location = self.world._grid.get(connection.other.as_tuple(), None) # type: Location
             if cell_location.exits.get(parent_location.name, None):
-                cells_to_parse.remove(cell)
                 continue
-            if cell.doors.get(parent.as_tuple(), None):
-                door = cell.doors[parent.as_tuple()] # type: Door
-                Door.connect(cell_location, parent_location.name, '', None, parent_location, cell_location.name, '', None, opened=False, locked=door.locked, key_code=door.key_code)
+            elif parent_location.exits.get(cell_location.name, None):
+                continue
+            if connection.door:
+                Door.connect(cell_location, parent_location.name, '', None, parent_location, cell_location.name, '', None, opened=False, locked=connection.locked, key_code=connection.key_code)
             else:
                 Exit.connect(cell_location, parent_location.name, '', None, parent_location, cell_location.name, '', None)
-        
-            cells_to_parse.append(layout.cells[parent.as_tuple()])
-            cells_to_parse.remove(cell)
+
 
 if __name__ == "__main__":
     # story is invoked as a script, start it in the Tale Driver.

@@ -17,6 +17,7 @@ from tale.llm.llm_io import IoUtil
 from tale.llm.contexts.DialogueContext import DialogueContext
 from tale.llm.quest_building import QuestBuilding
 from tale.llm.responses.ActionResponse import ActionResponse
+from tale.llm.responses.LocationDescriptionResponse import LocationDescriptionResponse
 from tale.llm.story_building import StoryBuilding
 from tale.llm.world_building import WorldBuilding
 from tale.player import PlayerConnection
@@ -226,10 +227,10 @@ class LlmUtil():
         return self._world_building.generate_note_lore(context=self._get_world_context(), 
                                                         zone_info=zone_info)
     
-    def generate_dungeon_locations(self, zone_info: dict, locations: list, depth: int, max_depth: int):
+    def generate_dungeon_locations(self, zone_info: dict, locations: list, depth: int, max_depth: int) -> LocationDescriptionResponse:
         return self._world_building.generate_dungeon_locations(context=DungeonLocationsContext(story_context=self.__story_context,
-                                                                                                    story_type=self.__story_type,
-                                                                                                    world_info=self.__world_info,
+                                                                                                    story_type=self.__story.config.type,
+                                                                                                    world_info=self.__story.config.world_info,
                                                                                                     world_mood=self.__story.config.world_mood,
                                                                                                     zone_info=zone_info,
                                                                                                     rooms=locations,

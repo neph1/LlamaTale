@@ -3,7 +3,7 @@ from tale import parse_utils, util
 from tale.base import Location
 from tale.coord import Coord
 from tale.driver_if import IFDriver
-from tale.dungeon.dungeon_generator import Cell, ItemPopulator, MobPopulator, Layout, LayoutGenerator, Door, Key
+from tale.dungeon.dungeon_generator import Cell, Connection, ItemPopulator, MobPopulator, Layout, LayoutGenerator, Key
 from tale.json_story import JsonStory
 from tale.story import MoneyType
 from tale.zone import Zone
@@ -12,14 +12,14 @@ from tale.zone import Zone
 class TestDungeonGenerator:
 
     def test_generate_dungeon_with_seed(self):
-        dungeon_generator = LayoutGenerator(seed=9)
+        dungeon_generator = LayoutGenerator(seed=1)
 
         layout = dungeon_generator.generate()
 
         dungeon_generator.print()
 
         assert len(layout.cells) > 0
-        assert len(layout.doors) > 0
+        assert len(layout.connections) > 0
         assert len(layout.keys) > 0
         assert dungeon_generator.exit_coord is not None
 
@@ -47,7 +47,7 @@ class TestDungeonGenerator:
             cell = Cell(coord=coord)
             dungeon_generator.layout.cells[coord.as_tuple()] = cell
         dungeon_generator._get_cell(Coord(1, 0, 0)).leaf = True
-        door = Door(Coord(2, 0, 0), Coord(1, 0, 0))
+        door = Connection(Coord(2, 0, 0), Coord(1, 0, 0), door=True)
         key = dungeon_generator._place_key(door)
         assert key.__str__() == 'Key: (1, 0, 0) -> (2, 0, 0)'
         assert key.key_code == door.key_code
@@ -91,7 +91,7 @@ class TestDungeonPopulator():
             cell = Cell(coord=coord)
             self.layout.cells[coord.as_tuple()] = cell
         self.layout.cells[Coord(3, 0, 0).as_tuple()].leaf = True
-        door = Door(Coord(3, 0, 0), Coord(2, 0, 0))
+        door = Connection(Coord(3, 0, 0), Coord(2, 0, 0), door=True)
         self.layout.doors = [door]
         key = Key(Coord(1, 0, 0), door)
         self.layout.keys = [key]
