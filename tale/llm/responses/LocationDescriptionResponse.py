@@ -9,6 +9,7 @@ class LocationDescriptionResponse():
         self.location_descriptions = []
         for location in response:
             self.location_descriptions.append(LocationDescription(index=location.get('index', 0), name=location.get('name', ''), description=location.get('description', '')))
+        self.valid = len(self.location_descriptions) > 0
             
         
     def _sanitize_room_descriptions(self, parsed):

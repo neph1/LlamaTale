@@ -18,6 +18,9 @@ from tale.llm.contexts.DialogueContext import DialogueContext
 from tale.llm.quest_building import QuestBuilding
 from tale.llm.responses.ActionResponse import ActionResponse
 from tale.llm.responses.LocationDescriptionResponse import LocationDescriptionResponse
+from tale.llm.responses.LocationResponse import LocationResponse
+from tale.llm.responses.WorldCreaturesResponse import WorldCreaturesResponse
+from tale.llm.responses.WorldItemsResponse import WorldItemsResponse
 from tale.llm.story_building import StoryBuilding
 from tale.llm.world_building import WorldBuilding
 from tale.player import PlayerConnection
@@ -181,14 +184,14 @@ class LlmUtil():
     def generate_story_background(self, world_mood: int, world_info: str, story_type: str):
         return self._story_building.generate_story_background(world_mood, world_info, story_type)
     
-    def generate_start_location(self, location: Location, zone_info: dict, story_type: str, story_context: str, world_info: str):
+    def generate_start_location(self, location: Location, zone_info: dict, story_type: str, story_context: str, world_info: str) -> LocationResponse:
         return self._world_building.generate_start_location(location, zone_info, story_type, story_context, world_info)
         
     def generate_start_zone(self, location_desc: str, story_type: str, story_context: str, world_info: dict) -> Zone:
         world_generation_context = WorldGenerationContext(story_context=story_context, story_type=story_type, world_info=world_info, world_mood=world_info['world_mood'])
         return self._world_building.generate_start_zone(location_desc, context=world_generation_context)
     
-    def generate_world_items(self, story_context: str = '', story_type: str = '', world_info: str = '', world_mood: int = None) -> dict:
+    def generate_world_items(self, story_context: str = '', story_type: str = '', world_info: str = '', world_mood: int = None) -> WorldItemsResponse:
         world_generation_context = WorldGenerationContext(story_context=story_context or self.__story_context,
                                                             story_type=story_type or self.__story_type,
                                                             world_info=world_info or self.__world_info,
@@ -196,14 +199,14 @@ class LlmUtil():
         return self._world_building.generate_world_items(world_generation_context)
         
     
-    def generate_world_creatures(self, story_context: str = '', story_type: str = '', world_info: str = '', world_mood: int = None) -> dict:
+    def generate_world_creatures(self, story_context: str = '', story_type: str = '', world_info: str = '', world_mood: int = None) -> WorldCreaturesResponse:
         world_generation_context = WorldGenerationContext(story_context=story_context or self.__story_context,
                                                             story_type=story_type or self.__story_type,
                                                             world_info=world_info or self.__world_info,
                                                             world_mood=world_mood or self.__story.config.world_mood)
         return self._world_building.generate_world_creatures(world_generation_context)
         
-    def generate_random_spawn(self, location: Location, zone_info: dict):
+    def generate_random_spawn(self, location: Location, zone_info: dict) -> bool:
         return self._world_building.generate_random_spawn(location=location, 
                                                           zone_info=zone_info,
                                                           context=self._get_world_context(),

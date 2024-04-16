@@ -248,18 +248,20 @@ class TestWorldBuilding():
     def test_generate_world_items(self):
         self.llm_util._world_building.io_util.response = '{"items":[{"name": "sword", "type": "Weapon","value": 100}, {"name": "shield", "type": "Armor", "value": 60}]}'
         result = self.llm_util._world_building.generate_world_items(world_generation_context=WorldGenerationContext(story_context='',story_type='',world_info='',world_mood=0))
-        assert(len(result) == 2)
-        sword = result[0]
+        assert(result.valid)
+        assert(len(result.items) == 2)
+        sword = result.items[0]
         assert(sword['name'] == 'sword')
-        shield = result[1]
+        shield = result.items[1]
         assert(shield['name'] == 'shield')
 
     def test_generate_world_creatures(self):
         # mostly for coverage
         self.llm_util._world_building.io_util.response = '{"creatures":[{"name": "dragon", "body": "Creature", "unarmed_attack": "BITE", "hp":100, "level":10}]}'
         result = self.llm_util._world_building.generate_world_creatures(world_generation_context=WorldGenerationContext(story_context='',story_type='',world_info='',world_mood=0))
-        assert(len(result) == 1)
-        dragon = result[0]
+        assert(result.valid)
+        assert(len(result.creatures) == 1)
+        dragon = result.creatures[0]
         assert(dragon["name"] == 'dragon')
         assert(dragon["hp"] == 100)
         assert(dragon["level"] == 10)
@@ -425,11 +427,12 @@ class TestWorldBuilding():
         zone_info = zone.from_json(json.loads(self.generated_zone)).get_info()
         world_generation_context = WorldGenerationContext(story_context=self.story.config.context, story_type=self.story.config.type, world_info='', world_mood=0)
 
-        self.llm_util._world_building.generate_random_spawn(location, 
+        result = self.llm_util._world_building.generate_random_spawn(location, 
                                                             context=world_generation_context,
                                                             zone_info=zone_info,
                                                             world_creatures=world_creatures,
                                                             world_items=world_items)
+        assert result
         assert(location.items.pop().name == 'sword')
         assert(location.search_living('grumpy') is not None)
         assert(location.search_living('wolf') is not None)
@@ -444,11 +447,12 @@ class TestWorldBuilding():
         zone_info = zone.from_json(json.loads(self.generated_zone)).get_info()
         world_generation_context = WorldGenerationContext(story_context=self.story.config.context, story_type=self.story.config.type, world_info='', world_mood=0)
 
-        self.llm_util._world_building.generate_random_spawn(location, 
+        result = self.llm_util._world_building.generate_random_spawn(location, 
                                                             zone_info=zone_info,
                                                             context=world_generation_context,
                                                             world_creatures=world_creatures,
                                                             world_items=world_items)
+        assert result
         assert(len(location.items) == 0)
         assert(location.search_living('grumpy') is not None)
         assert(location.search_living('wolf') is None)
@@ -458,29 +462,29 @@ class TestWorldBuilding():
         self.llm_util._world_building.io_util.response=['{"name": "Forest Path", "exits": [{"direction": "north", "name": "Mystic Woods", "short_descr": "A dense, misty forest teeming with ancient magic."}, {"direction": "south", "name": "Blooming Meadow", "short_descr": "A lush, vibrant meadow filled with wildflowers and gentle creatures."}, {"direction": "west", "name": "Rocky Cliffs", "short_descr": "A rugged, rocky terrain with breathtaking views of the surrounding landscape."}], "items": [{"name": "enchanted forest amulet", "type": "Wearable", "description": "A shimmering amulet infused with the magic of the forest, granting the wearer a moderate boost to their defense and resistance to harm."}], "npcs": [{"name": "Florabug", "sentiment": "neutral", "race": "florabug", "gender": "m", "level": 5, "description": "A friendly, curious creature who loves to make new friends."}]}',
                                                         '{"description": "A picturesque beach with soft, golden sand and crystal clear waters. The sun shines bright overhead, casting a warm glow over the area. The air is filled with the sound of gentle waves and the cries of seagulls. A few scattered palm trees provide shade and a sense of tranquility.", "exits": [{"direction": "north", "name": "Coastal Caves", "short_descr": "A network of dark, damp caves hidden behind the sandy shores."}, {"direction": "south", "name": "Rocky Cliffs", "short_descr": "A rugged, rocky coastline with steep drop-offs and hidden sea creatures."}, {"direction": "east", "name": "Mermaid\'s Grotto", "short_descr": "A hidden underwater cave system, rumored to be home to magical sea creatures."}], "items": [], "npcs": []}']
         location = Location(name='', descr='on a small road outside a forest')
-        new_locations, exits, npcs, spawner = self.llm_util.generate_start_location(location, 
+        result = self.llm_util.generate_start_location(location, 
                                                        story_type='',
                                                        story_context='', 
                                                        zone_info={},
-                                                       world_info='',)
-        
+                                                       world_info='')
+
         location = Location(name=location.name, descr=location.description)
         
-        assert((len(exits) == 3))
-        assert((len(new_locations) == 3))
-        location.add_exits(exits)
+        assert((len(result.exits) == 3))
+        assert((len(result.new_locations) == 3))
+        location.add_exits(result.exits)
         assert((len(location.exits) == 6))
-        rocky_cliffs = new_locations[2] # type: Location
+        rocky_cliffs = result.new_locations[2] # type: Location
         assert(rocky_cliffs.name == 'Rocky Cliffs')
 
         context = WorldGenerationContext(story_context='', story_type='', world_info='', world_mood=0)
-        new_locations, exits, npcs2, spawner = self.llm_util._world_building.build_location(rocky_cliffs, 
+        location_response, spawner = self.llm_util._world_building.build_location(rocky_cliffs, 
                                                                             'Rocky Cliffs', 
                                                                             context=context,
                                                                             zone_info={})
-        rocky_cliffs.add_exits(exits)
+        rocky_cliffs.add_exits(location_response.exits)
         assert((len(rocky_cliffs.exits) == 6))
-        assert((len(new_locations) == 2))
+        assert((len(location_response.new_locations) == 2))
 
     def test_generate_note_lore(self):
         self.llm_util._quest_building.io_util.response = 'A long lost tale of a hero who saved the world from a great evil.'

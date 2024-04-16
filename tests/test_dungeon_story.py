@@ -9,7 +9,7 @@ from tale import base
 from tale.base import Location
 from tale.coord import Coord
 from tale.driver_if import IFDriver
-from tale.dungeon.dungeon_generator import Cell, Door, Layout, Key
+from tale.dungeon.dungeon_generator import Cell, Connection, Layout, Key
 from tale.item_spawner import ItemSpawner
 from tale.llm.llm_utils import LlmUtil
 from tale.mob_spawner import MobSpawner
@@ -94,12 +94,12 @@ class TestDungeonStory():
         layout.cells[Coord(1, 0, 0).as_tuple()].parent = Coord(0, 0, 0)
         layout.cells[Coord(1, 0, 1).as_tuple()].parent = Coord(1, 0, 0)
 
-        door = Door(Coord(2, 0, 0), Coord(1, 0, 0))
+        door = Connection(Coord(2, 0, 0), Coord(1, 0, 0), door=True)
         door.key_code = "test"
         key = Key(Coord(1, 0, 0), door)
 
-        layout.cells[Coord(2, 0, 0).as_tuple()].doors[Coord(1, 0, 0).as_tuple()] = door
-        layout.keys.append(key)
+        layout.connections.add(door)
+        layout.keys.add(key)
 
         return layout
     

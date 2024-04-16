@@ -1,15 +1,14 @@
 import pathlib
 import random
 import sys
-from typing import Optional, Generator
+from typing import Generator
 
-import tale
 from tale import parse_utils
 from tale import lang
 from tale.base import Door, Exit, Location
 from tale.charbuilder import PlayerNaming
 from tale.driver import Driver
-from tale.dungeon.dungeon_generator import Cell, Connection, ItemPopulator, Layout, LayoutGenerator, MobPopulator
+from tale.dungeon.dungeon_generator import ItemPopulator, Layout, LayoutGenerator, MobPopulator
 from tale.json_story import JsonStory
 from tale.main import run_from_cmdline
 from tale.player import Player, PlayerConnection
@@ -114,7 +113,7 @@ class Story(JsonStory):
             sliced_rooms.extend(rooms[num:num+10])
             for i in range(3):
                 described_rooms_slice = self.driver.llm_util.generate_dungeon_locations(zone_info=zone.get_info(), locations=sliced_rooms, depth = self.depth, max_depth=self.max_depth) # type LocationDescriptionResponse
-                if described_rooms_slice:
+                if described_rooms_slice.valid:
                     described_rooms.extend(described_rooms_slice.location_descriptions)
                     sliced_rooms = []
                     break

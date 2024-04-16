@@ -28,21 +28,23 @@ class StoryBuilderBase:
         self.story_info = StoryInfo()
         self.connection = connection
     
-    def generate_world_items(self, llm_util: LlmUtil, story_context: str, story_type: str, world_info: str, world_mood: int):
+    def generate_world_items(self, llm_util: LlmUtil, story_context: str, story_type: str, world_info: str, world_mood: int) -> list:
         self.connection.output("Generating world items...")
         for i in range(3):
             items = llm_util.generate_world_items(story_context=story_context, story_type=story_type, world_info=world_info, world_mood=world_mood)
-            if items:
-                break
-        return items
+            if items.valid:
+                return items.items
+        self.connection.output("Failed to generate world items... Check the 'enrich' command")
+        return []
     
-    def generate_world_creatures(self, llm_util: LlmUtil, story_context: str, story_type: str, world_info: str, world_mood: int):
+    def generate_world_creatures(self, llm_util: LlmUtil, story_context: str, story_type: str, world_info: str, world_mood: int) -> list:
         self.connection.output("Generating world creatures...")
         for i in range(3):
             creatures = llm_util.generate_world_creatures(story_context=story_context, story_type=story_type, world_info=world_info, world_mood=world_mood)
-            if creatures:
-                break
-        return creatures
+            if creatures.valid:
+                return creatures.creatures
+        self.connection.output("Failed to generate world creatures... Check the 'enrich' command")
+        return []
     
     def generate_starting_zone(self, llm_util: LlmUtil, story_context: str, items: list, creatures: list):
         self.connection.output("Generating starting zone...")
@@ -59,13 +61,13 @@ class StoryBuilderBase:
     def generate_start_location(self, llm_util: LlmUtil, story: DynamicStory, initial_start_location: Location, zone: Zone):
         self.connection.output("Generating starting location...")
         for i in range(3):
-            new_locations, exits, npcs, _ = llm_util.generate_start_location(location=initial_start_location, 
+            result = llm_util.generate_start_location(location=initial_start_location, 
                                                                 story_type=self.story_info.type, 
                                                                 story_context=story.config.context,
                                                                 world_info=self.story_info.world_info,
                                                                 zone_info=zone.get_info())
-            if new_locations:
-                return new_locations, exits, npcs
+            if result.valid:
+                return result.new_locations, result.exits, result.npcs
             
     def add_start_quest(self, npcs: list, items: list):
         quest_npc = random.choice(list(npcs))
@@ -94,8 +96,8 @@ class StoryExtrasBuilder():
     def apply_to_story(self, story: DynamicStory, llm_util: LlmUtil):
         self.connection.output("Generate extra locations...")
         for i in range(3):
-            new_locations, exits, npcs, _ = llm_util.generate_start_location(story.config.context, story.config.type, story.config.world_info, story.config.world_mood)
-            if new_locations:
+            result = llm_util.generate_start_location(story.config.context, story.config.type, story.config.world_info, story.config.world_mood)
+            if result.valid:
                 break
 class StoryBuilder(StoryBuilderBase):
 
