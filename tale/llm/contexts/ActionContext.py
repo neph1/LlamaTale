@@ -30,10 +30,10 @@ class ActionContext(BaseContext):
         exits = self.location.exits.keys()
         items = [item.name for item in self.location.items if item.visible]
         examples = []
-        if items:
+        if len(items) > 0:
             examples.append(f'{{"goal":"", "thoughts":"I want this thing.", "action":"take", "target":{random.choice(items)}, "text":""}}')
-        if exits:
-            examples.append(f'{{"goal":"", "thoughts":"I want to go there.", "action":"move", "target":{random.choice(exits)}, "text":""}}')
-        if characters:
-            examples.append(f'{{"goal":"", "thoughts":"", "action":"say", "target":{random.choice(characters)}, "text":""}}')
-        return f"Story context:{self.story_context}; Story type:{self.story_type}; Available actions: {actions}; Location:{self.location.name}, {self.location.description}; Available exits: {exits}; Self: {self.character_card}; Present items: {items}; Present characters: {json.dumps(characters)}; History:{self.event_history}; Example actions: {', '.join(examples)};"
+        if len(exits) > 0:
+            examples.append(f'{{"goal":"", "thoughts":"I want to go there.", "action":"move", "target":{random.choice(list(exits))}, "text":""}}')
+        if len(characters) > 0:
+            examples.append(f'{{"goal":"", "thoughts":"", "action":"say", "target":{random.choice(list(characters.values()))}, "text":""}}')
+        return f"Story context:{self.story_context}; Story type:{self.story_type}; Available actions: {actions}; Location:{self.location.name}, {self.location.description}; Available exits: {exits}; Self({self.character_name}): {self.character_card}; Present items: {items}; Present characters: {json.dumps(characters)}; History:{self.event_history}; Example actions: {', '.join(examples)};"

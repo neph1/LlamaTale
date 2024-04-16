@@ -75,6 +75,11 @@ class TestDungeonStory():
 
         assert isinstance(test_zone.get_location('Small room').exits['hallway'], base.Door)
 
+        world_json = self.story._world.to_json()
+
+        assert len(world_json["mob_spawners"]) == 1
+        assert len(world_json["item_spawners"]) == 1
+
     def get_layout(self) -> Layout:
 
         layout = Layout(Coord(0, 0, 0))

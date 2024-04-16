@@ -1,5 +1,7 @@
 
 
+from tale.base import Location
+from tale.llm.contexts.ActionContext import ActionContext
 from tale.llm.contexts.DungeonLocationsContext import DungeonLocationsContext
 from tale.llm.contexts.EvokeContext import EvokeContext
 from tale.llm.contexts.WorldGenerationContext import WorldGenerationContext
@@ -48,5 +50,25 @@ class TestPromptContexts():
         assert('Depth: 0.5' in result)
         assert('"name": "Small room"' in result)
         assert('Test Zone' in result)
+
+    def test_action_context(self):
+        character_name = "Test character"
+        character_card = "{actions}"
+        history = "[history]"
+        location = Location("TestLocation")
+        action_list = ["say", "take", "wear"]
+        action_context = ActionContext(story_context="test_context",
+                                       story_type="test type",
+                                       character_name=character_name,
+                                       character_card=character_card,
+                                       event_history=history,
+                                       location=location,
+                                       actions=action_list)
+        
+        result = action_context.to_prompt_string()
+
+        assert character_card in result
+        assert character_name in result
+        assert "say" in result
 
 

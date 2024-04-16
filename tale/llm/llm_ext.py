@@ -199,6 +199,18 @@ class WorldInfo():
             self._mob_spawners.remove(spawner)
             return True
         return False
+    
+    def add_item_spawner(self, spawner: ItemSpawner) -> bool:
+        if spawner in self._item_spawners:
+            return False
+        self._item_spawners.append(spawner)
+        return True
+    
+    def remove_item_spawner(self, spawner: ItemSpawner) -> bool:
+        if spawner in self._item_spawners:
+            self._item_spawners.remove(spawner)
+            return True
+        return False
    
     def get_item(self, item: str) -> Item:
         return self._items[item]
@@ -234,30 +246,6 @@ class WorldInfo():
     @item_spawners.setter
     def item_spawners(self, value: list):
         self._item_spawners = value
-
-    def add_mob_spawner(self, spawner: MobSpawner) -> bool:
-        if spawner in self._mob_spawners:
-            return False
-        self._mob_spawners.append(spawner)
-        return True
-    
-    def remove_mob_spawner(self, spawner: MobSpawner) -> bool:
-        if spawner in self._mob_spawners:
-            self._mob_spawners.remove(spawner)
-            return True
-        return False
-    
-    def add_item_spawner(self, spawner: ItemSpawner) -> bool:
-        if spawner in self._item_spawners:
-            return False
-        self._item_spawners.append(spawner)
-        return True
-    
-    def remove_item_spawner(self, spawner: ItemSpawner) -> bool:
-        if spawner in self._item_spawners:
-            self._item_spawners.remove(spawner)
-            return True
-        return False
     
     def to_json(self) -> dict:
         return dict(

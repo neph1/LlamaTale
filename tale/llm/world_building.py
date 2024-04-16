@@ -57,7 +57,7 @@ class WorldBuilding():
                        context: WorldGenerationContext,
                        world_items: dict = {}, 
                        world_creatures: dict = {},
-                       neighbors: dict = {}) -> Tuple[list, list, list, Any]:
+                       neighbors: dict = {}) -> Tuple[LocationResponse, MobSpawner]:
         """ Build 'up' a previously generated location.
             Returns lists of new locations, exits, and npcs."""
         
@@ -95,8 +95,6 @@ class WorldBuilding():
             
 
         request_body = deepcopy(self.default_body)
-        if self.backend == 'kobold_cpp':
-            request_body = self._kobold_generation_prompt(request_body)
         request_body['grammar'] = self.json_grammar
         result = self.io_util.synchronous_request(request_body, prompt=prompt, context=context.to_prompt_string())
         try:
@@ -185,8 +183,6 @@ class WorldBuilding():
         })
         
         request_body = deepcopy(self.default_body)
-        if self.backend == 'kobold_cpp':
-            request_body = self._kobold_generation_prompt(request_body)
         if self.json_grammar_key:
             request_body[self.json_grammar_key] = self.json_grammar
         result = self.io_util.synchronous_request(request_body, prompt=prompt)
@@ -211,8 +207,6 @@ class WorldBuilding():
             zone_template=self.zone_template)
         
         request_body = deepcopy(self.default_body)
-        if self.backend == 'kobold_cpp':
-            request_body = self._kobold_generation_prompt(request_body)
         if self.json_grammar_key:
             request_body[self.json_grammar_key] = self.json_grammar
         result = self.io_util.synchronous_request(request_body, prompt=prompt, context=context.to_prompt_string())
@@ -230,8 +224,6 @@ class WorldBuilding():
                                                 item_template=self.item_template,
                                                 item_types=self.item_types)
         request_body = deepcopy(self.default_body)
-        if self.backend == 'kobold_cpp':
-            request_body = self._kobold_generation_prompt(request_body)
         if self.json_grammar_key:
             request_body[self.json_grammar_key] = self.json_grammar
 
@@ -248,8 +240,6 @@ class WorldBuilding():
         prompt = self.world_creatures_prompt.format(context = '{context}',
                                                 creature_template=self.creature_template)
         request_body = deepcopy(self.default_body)
-        if self.backend == 'kobold_cpp':
-            request_body = self._kobold_generation_prompt(request_body)
         if self.json_grammar_key:
             request_body[self.json_grammar_key] = self.json_grammar
 
@@ -267,8 +257,6 @@ class WorldBuilding():
                                                 zone_info=zone_info,
                                                 location_info=location_info)
         request_body = deepcopy(self.default_body)
-        if self.backend == 'kobold_cpp':
-            request_body = self._kobold_generation_prompt(request_body)
         if self.json_grammar_key:
             request_body[self.json_grammar_key] = self.json_grammar
         
@@ -296,8 +284,6 @@ class WorldBuilding():
         prompt = self.note_lore_prompt.format(context = '{context}',
                                                 zone_info=zone_info)
         request_body = deepcopy(self.default_body)
-        if self.backend == 'kobold_cpp':
-            request_body = self._kobold_generation_prompt(request_body)
         result = self.io_util.synchronous_request(request_body, prompt=prompt, context=context.to_prompt_string())
         try:
             return parse_utils.trim_response(result)
@@ -309,8 +295,6 @@ class WorldBuilding():
         """ Generate a list of descriptins for locations in a dungeon."""
         prompt = self.dungeon_locations_prompt.format(context = context.to_prompt_string(), dungeon_location_template=self.dungeon_location_template)
         request_body = deepcopy(self.default_body)
-        if self.backend == 'kobold_cpp':
-            request_body = self._kobold_generation_prompt(request_body)
         if self.json_grammar_key:
             request_body[self.json_grammar_key] = self.json_grammar
         result = self.io_util.synchronous_request(request_body, prompt=prompt, context=context.to_prompt_string())
@@ -320,20 +304,7 @@ class WorldBuilding():
         except json.JSONDecodeError as exc:
             print(exc)
             return LocationDescriptionResponse([])
-        
-    def _kobold_generation_prompt(self, request_body: dict) -> dict:
-        """ changes some parameters for better generation of locations in kobold_cpp"""
-        request_body = request_body.copy()
-        request_body['stop_sequence'] = ['\n\n']
-        request_body['temperature'] = 0.5
-        request_body['top_p'] = 0.6
-        request_body['top_k'] = 0
-        request_body['rep_pen'] = 1.0
-        if self.json_grammar_key:
-            request_body[self.json_grammar_key] = self.json_grammar
-        #request_body['banned_tokens'] = ['```']
-        return request_body
-    
+
     def _validate_creatures(self, creatures: dict) -> dict:
         new_creatures = {}
         for creature in creatures:

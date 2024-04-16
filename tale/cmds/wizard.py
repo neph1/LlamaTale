@@ -18,6 +18,8 @@ from typing import Generator, Optional
 
 from tale import parse_utils
 from tale.llm.LivingNpc import LivingNpc
+from tale.llm.responses.WorldCreaturesResponse import WorldCreaturesResponse
+from tale.llm.responses.WorldItemsResponse import WorldItemsResponse
 
 from . import wizcmd, disabled_in_gamemode
 from .. import base, lang, util, pubsub, races, __version__
@@ -752,17 +754,17 @@ def do_enrich(player: Player, parsed: base.ParseResult, ctx: util.Context) -> No
         raise ParseError("You need to define 'items' or 'creatures'.")
     
     if parsed.args[0] == "items":
-        items = ctx.driver.llm_util.generate_world_items()
-        if items:
-            player.tell("(generated: %s, items)" % (len(items)))
-            for item in items:
+        items = ctx.driver.llm_util.generate_world_items() # type: WorldItemsResponse
+        if items.valid:
+            player.tell("(generated: %s, items)" % (len(items.items)))
+            for item in items.items:
                 ctx.driver.story._catalogue.add_item(item)
         return
     if parsed.args[0] == "creatures":
-        creatures = ctx.driver.llm_util.generate_world_creatures()
-        if creatures:
-            player.tell("(generated: %s, creatures)" % (len(creatures)))
-            for creature in creatures:
+        creatures = ctx.driver.llm_util.generate_world_creatures() # type: WorldCreaturesResponse
+        if creatures.valid:
+            player.tell("(generated: %s, creatures)" % (len(creatures.creatures)))
+            for creature in creatures.creatures:
                 ctx.driver.story._catalogue.add_creature(creature)
         return
     

@@ -1,5 +1,5 @@
 {
-    "name": "Test Story Config 1",
+    "name": "Test Story Config",
     "author": "test author",
     "author_address": "",
     "version": "1.0",
@@ -25,6 +25,6 @@
     "items": "test_items",
     "context": "",
     "type": "fantasy",
-    "world_info": "",
-    "world_mood": ""
+    "world_info": "test info",
+    "world_mood": 0
 }

@@ -18,12 +18,13 @@ class LocationResponse():
         self.new_locations = []
         self.exits = []
         self.npcs = []
+        self.item_types = item_types
         if not json_result:
             self.valid = False
             return
         if json_result.get('name', None):
             location.name=json_result['name']
-        self.item_types = item_types
+        
         self.valid = self._validate_location(json_result, 
                                             location, 
                                             exit_location_name=exit_location_name, 

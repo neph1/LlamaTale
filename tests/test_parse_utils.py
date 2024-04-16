@@ -129,7 +129,7 @@ class TestParseUtils():
         config_json = parse_utils.load_json("tests/files/test_story_config.json")
         config = parse_utils.load_story_config(config_json)
         assert(config)
-        assert(config.name == 'Test Story Config 1')
+        assert(config.name == 'Test Story Config 3')
         assert(config.money_type == MoneyType.NOTHING)
         assert(config.supported_modes == {GameMode.IF})
         assert(config.zones == ["test zone"])

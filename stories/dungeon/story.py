@@ -9,6 +9,7 @@ from tale.base import Door, Exit, Location
 from tale.charbuilder import PlayerNaming
 from tale.driver import Driver
 from tale.dungeon.dungeon_generator import ItemPopulator, Layout, LayoutGenerator, MobPopulator
+from tale.items.basic import Money
 from tale.json_story import JsonStory
 from tale.main import run_from_cmdline
 from tale.player import Player, PlayerConnection
@@ -31,7 +32,6 @@ class Story(JsonStory):
 
     def init(self, driver: Driver) -> None:
         super(Story, self).init(driver)
-
 
     def init_player(self, player: Player) -> None:
         """
@@ -102,7 +102,10 @@ class Story(JsonStory):
             item_spawners = [self.item_populator.populate(zone=zone, story=self)]
             for item_spawner in item_spawners:
                 self.world.add_item_spawner(item_spawner)
-            self.depth += 1
+
+            if not first_zone:
+                self.layout_generator.spawn_gold(zone=zone)
+        
             return True
         return False
     
@@ -117,8 +120,8 @@ class Story(JsonStory):
                     described_rooms.extend(described_rooms_slice.location_descriptions)
                     sliced_rooms = []
                     break
-        if isinstance(described_rooms, dict):
-            described_rooms = list(described_rooms.values())
+        if len(rooms) != len(described_rooms):
+            print(f'Rooms list not same length: {len(rooms)} vs {len(described_rooms)}')
         for room in described_rooms:
             i = 1
             if zone.get_location(room.name):

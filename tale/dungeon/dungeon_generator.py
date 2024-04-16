@@ -159,6 +159,18 @@ class LayoutGenerator():
         exit_cell.leaf = False
         self.exit_coord = exit_cell.coord
         return exit_cell.coord
+    
+
+    def spawn_gold(self, zone: Zone):
+
+        container_names = ["Box", "Pouch", "Chest", "Bag"]
+        for i in range(self.max_gold):
+            money = Money(name="money", value=random.randrange(5, 25) * zone.level)
+            container = Container(random.choice(container_names))
+            container.init_inventory([money])
+            location = random.choice(list(zone.locations.values())) # Location
+            location.insert(container, None)
+            self.depth += 1
 
     def print(self):
         for coord, cell in self.layout.cells.items():
@@ -189,12 +201,16 @@ class MobPopulator():
         self.max_spawns = 3
 
     def populate(self, layout: 'Layout', story: DynamicStory, zone: Zone):
+        if len(zone.races) == 0:
+            return []
         mob_spawners = list()
         leaves = layout.get_leaves()
         for i in range(self.max_spawns):
             cell = random.choice(leaves)
             location = story.grid[cell.coord.as_tuple()]
             mob_type = story.get_catalogue.get_creature(random.choice(zone.races))
+            if not mob_type:
+                continue
             mob_type['level'] = zone.level
             item_probabilities = [random.random() * 0.15 + 0.5 for i in range(len(zone.items))]
             mob_spawner = MobSpawner(location=location, mob_type=mob_type, spawn_rate=30, spawn_limit=2, drop_items=zone.items, drop_item_probabilities=item_probabilities)
@@ -207,23 +223,20 @@ class ItemPopulator():
     def __init__(self):
         self.max_items = 2
         self.max_gold = 5
-        self.container_names = ["Box", "Pouch", "Chest", "Bag"]
 
     def populate(self, zone: Zone, story: DynamicStory):
         item_spawners = list()
+        if len(zone.items) == 0:
+            self.max_items = 0
         for i in range(self.max_items):
             item_type = story.get_catalogue.get_item(random.choice(zone.items))
+            if not item_type:
+                continue
             item_type['level'] = zone.level
             item_types = [item_type]
             item_probabilities = [random.random() * 0.15 + 0.5 for i in range(len(zone.items))]
             item_spawners.append(ItemSpawner(zone=zone, items=item_types, item_probabilities=item_probabilities, spawn_rate=30))
 
-        for i in range(self.max_gold):
-            money = Money(name="money", value=random.randrange(5, 25) * zone.level)
-            container = Container(random.choice(self.container_names))
-            container.init_inventory([money])
-            location = random.choice(list(zone.locations.values())) # Location
-            location.insert(container, None)
         return item_spawners
 
 class Layout():

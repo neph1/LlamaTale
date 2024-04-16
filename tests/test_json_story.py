@@ -19,7 +19,7 @@ class TestJsonStory():
 
     def test_load_story(self):
         assert(self.story)
-        assert(self.story.config.name == 'Test Story Config 1')
+        assert(self.story.config.name == 'Test Story Config')
         entrance = self.story.get_location('Cave', 'Cave entrance')
         assert(entrance.exits['south'].name == 'royal grotto')
         royal_grotto = self.story.get_location('Cave', 'Royal grotto')
@@ -43,7 +43,7 @@ class TestJsonStory():
         zone_info = self.story.zone_info('Cave')
         assert(zone_info['description'] == 'A dark cave')
         assert(zone_info['races'] == ['wolf', 'bat'])
-        assert(zone_info['items'] == ['torch', 'sword', 'shield'])
+        assert(zone_info['items'] == ['torch', 'Sword'])
         assert(zone_info['level'] == 1)
         assert(zone_info['mood'] == -1)
 
@@ -55,7 +55,7 @@ class TestJsonStory():
         assert(item_spawner.zone.name == 'Cave')
         assert(item_spawner.spawn_rate == 60)
         assert(item_spawner.max_items == 5)
-        assert(item_spawner.items[0].name == 'torch')
+        assert(item_spawner.items[0]['name'] == 'torch')
 
 
     def test_add_location(self):
@@ -137,3 +137,26 @@ class TestAnythingStory():
 
         assert(len(story.get_catalogue.get_items()) == 8 + len(generic.generic_items.get(''))) # 8 story items + generic items
         assert(len(story.get_catalogue.get_creatures()) == 5)
+
+class TestWorldInfo():
+
+    driver = IFDriver(screen_delay=99, gui=False, web=True, wizard_override=True)
+    driver.game_clock = util.GameDateTime(datetime.datetime(year=2023, month=1, day=1), 1)
+    story = JsonStory('tests/files/anything_story/', parse_utils.load_story_config(parse_utils.load_json('tests/files/anything_story/story_config.json')))
+    story.init(driver)
+
+    def test_to_json(self):
+        location = Location('Test')
+        
+        world_json = self.story._world.to_json()
+        assert len(world_json["mob_spawners"]) == 0
+        assert len(world_json["item_spawners"]) == 0
+
+        mob = dict(gender='m', name='human', aggressive=False)
+        spawner = MobSpawner(mob, location, spawn_rate=2, spawn_limit=3)
+        self.story._world.add_mob_spawner(spawner=spawner)
+
+        world_json = self.story._world.to_json()
+
+        assert len(world_json["mob_spawners"]) == 1
+        assert len(world_json["item_spawners"]) == 0

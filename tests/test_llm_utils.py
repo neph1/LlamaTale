@@ -171,47 +171,16 @@ class TestWorldBuilding():
     story.config.world_info = "A test world"
     story.init(driver)
 
-    def test_validate_location(self):
-        location = Location(name='Outside')
-        location.built = False
-        locations, exits, npcs = self.llm_util._world_building._validate_location(json.loads(self.generated_location), location_to_build=location, exit_location_name='Entrance')
-        location.add_exits(exits)
-        assert(location.description.startswith('A barren wasteland'))
-        assert(len(location.exits) == 2)
-        assert(location.exits['north pass'])
-        assert(location.exits['south peak'])
-        assert(len(location.items) == 1) # woolly gloves
-        assert(len(location.livings) == 1) # wolf
-        assert(len(locations) == 2)
-        assert(locations[0].name == 'North Pass')
-        assert(locations[1].name == 'South Peak')
-
-    def test_validate_location_with_world_objects(self):
-        location = Location(name='Outside')
-        location.built = False
-        loc = json.loads(self.generated_location)
-        loc["npcs"] = ["wolf"]
-        world_creatures = [{"name": "wolf", "body": "Creature", "unarmed_attack": "BITE", "hp":10, "level":10}]
-        locations, exits, npcs = self.llm_util._world_building._validate_location(loc, location_to_build=location, exit_location_name='Entrance', world_creatures=world_creatures)
-        location.add_exits(exits)
-        assert(location.description.startswith('A barren wasteland'))
-        assert(len(location.exits) == 2)
-        assert(location.exits['north pass'])
-        assert(location.exits['south peak'])
-        assert(len(location.items) == 1) # woolly gloves
-        assert(len(location.livings) == 1) # wolf
-        assert(len(locations) == 2)
-        assert(locations[0].name == 'North Pass')
-        assert(locations[1].name == 'South Peak')
-
     def test_generate_start_location(self):
         self.llm_util._world_building.io_util.response='{"name": "Greenhaven", "exits": [{"direction": "north", "name": "Misty Meadows", "description": "A lush and misty area filled with rolling hills and sparkling streams. The air is crisp and refreshing, and the gentle chirping of birds can be heard throughout."}, {"direction": "south", "name": "Riverdale", "description": "A bustling town nestled near a winding river. The smell of freshly baked bread and roasting meats fills the air, and the sound of laughter and chatter can be heard from the local tavern."}, {"direction": "east", "name": "Forest of Shadows", "description": "A dark and eerie forest filled with twisted trees and mysterious creatures. The air is thick with an ominous energy, and the rustling of leaves can be heard in the distance."}], "items": [], "npcs": []}'
         location = Location(name='', descr='on a small road outside a village')
-        new_locations, exits, npcs, _ = self.llm_util._world_building.generate_start_location(location, 
+        result = self.llm_util._world_building.generate_start_location(location, 
                                                        story_type='',
                                                        story_context='', 
                                                        zone_info={},
                                                        world_info='',)
+        new_locations = result.new_locations
+        exits = result.exits
         location = Location(name=location.name, descr=location.description)
         assert(location.name == 'Greenhaven')
         assert(location.title == 'Greenhaven')
@@ -224,11 +193,12 @@ class TestWorldBuilding():
     def test_generate_start_location_2(self):
         self.llm_util._world_building.io_util.response='{"name": "Oakwood Glade", "exits": [{"direction": "north", "name": "Moonlit Mire", "description": "A dark and eerie bog, home to strange creatures and hidden treasures."}, {"direction": "south", "name": "Raven\'s Peak", "description": "A rugged mountain peak, shrouded in mystery."}, {"direction": "west", "name": "Willow\'s Edge", "description": "A secluded grove, filled with ancient magic."}], "items": [{"name": "Rare Flower", "type": "Other", "short_descr": "A delicate, glowing flower, said to have healing properties."}, {"name": "Mystic Staff", "type": "Wearable", "short_descr": "A staff imbued with ancient magic, granting the wielder incredible power."}, {"name": "Glimmering Gem", "type": "Item", "short_descr": "A rare and valuable gemstone, sought after by collectors."}], "npcs": [{"name": "Eira", "sentiment": "friendly", "race": "female", "level": 5, "description": "A wise and gentle druid, known for her healing magic."}]}'
         location = Location(name='', descr='on a small road outside a village')
-        new_locations, exits, npcs, _ = self.llm_util._world_building.generate_start_location(location, 
+        result = self.llm_util._world_building.generate_start_location(location, 
                                                        story_type='',
                                                        story_context='', 
                                                        zone_info={},
                                                        world_info='',)
+        
         location = Location(name=location.name, descr=location.description)
         assert(location.name == 'Oakwood Glade')
         assert(location.title == 'Oakwood Glade')
@@ -319,8 +289,8 @@ class TestWorldBuilding():
         self.llm_util._world_building.io_util.response = self.generated_location
         self.llm_util.set_story(self.story)
         
-        new_locations, exits, npcs, spawner = self.llm_util.build_location(location, exit_location_name, zone_info={})
-        assert(len(new_locations) == 2)
+        response, spawner = self.llm_util.build_location(location, exit_location_name, zone_info={})
+        assert(len(response.new_locations) == 2)
         assert spawner
         assert spawner.mob_type.name == 'wolf'
 
@@ -329,17 +299,19 @@ class TestWorldBuilding():
         exit_location_name = 'Cave entrance'
         self.llm_util._world_building.io_util.response = self.generated_location_extra
         self.llm_util.set_story(self.story)
-        new_locations, exits, npcs, spawner = self.llm_util.build_location(location, exit_location_name, zone_info={})
-        assert(len(new_locations) == 2)
+        result, _ = self.llm_util.build_location(location, exit_location_name, zone_info={})
+
+        assert(len(result.new_locations) == 2)
 
     def test_build_location_no_description(self):
         location = Location(name='The Red Rock Saloon')
         exit_location_name = 'Cactus Cove'
         self.llm_util._world_building.io_util.response = '{"exits": [{"direction": "north", "name": "The Dusty Trail", "description": "A winding path through the cacti, leading deeper into the frontier."}, {"direction": "south", "name": "The Oasis of Eternal Springs", "description": "A lush and verdant oasis, rumored to hold ancient secrets."}, {"direction": "east", "name": "The Cactus Canyon", "description": "A treacherous gorge, home to the fierce Cactus Worm."}], "items": [{"name": "Cactus Flower", "description": "A rare and beautiful bloom, said to have healing properties."}, {"name": "Cactus Juice", "description": "A refreshing drink, made from the rare cactus fruit."}, {"name": "Cactus Shield", "description": "A sturdy shield, crafted from the toughest cactus spines."}], "npcs": []}'
         self.llm_util.set_story(self.story)
-        new_locations, exits, npcs, spawner = self.llm_util.build_location(location, exit_location_name, zone_info={})
+        result, _ = self.llm_util.build_location(location, exit_location_name, zone_info={})
+
         assert(location.description == 'Cactus Cove')
-        assert(len(new_locations) == 3)
+        assert(len(result.new_locations) == 3)
 
     def test_validate_zone(self):
         center = Coord(5, 0, 0)
@@ -352,18 +324,6 @@ class TestWorldBuilding():
         assert(zone.center == center)
         assert(zone.level == 10)
         assert(zone.mood == -2)
-
-    def test_validate_items(self):
-        items = [{"name": "sword", "type": "Weapon", "value": 100}, {"type": "Armor", "value": 60}, {"name": "boots"}]
-        valid = self.llm_util._world_building._validate_items(items)
-        assert(len(valid) == 2)
-        sword = valid[0]
-        assert(sword['name'])
-        assert(sword['name'] == 'sword')
-        assert(sword['type'] == 'Weapon')
-        boots = valid[1]
-        assert(boots['name'] == 'boots')
-        assert(boots['type'] == 'Other')
         
     def test_issue_1_build_location(self):
         z = zone.from_json(json.loads('{   "name": "Whispering Meadows",   "description": "Whispering Meadows is a serene and idyllic area nestled within Eldervale. It is a sprawling expanse of lush green meadows, dotted with colorful wildflowers swaying gently in the breeze. The sweet fragrance of blooming lavender fills the air, creating an enchanting atmosphere. The meadows are home to a variety of friendly creatures, and the soothing whispers of the wind carry tales of peace and harmony. With its tranquil beauty, Whispering Meadows provides the perfect backdrop for a cosy social and farming experience.",   "races": ["Fairie", "Centaur", "Unicorn", "Pixie", "Sylph"],   "items": ["Enchanted Seeds (plantable)", "Harvesting Scythe", "Rainbow Fruit Basket", "Magic Beehive", "Fairy Lantern"],   "mood": "friendly",   "level": 1 }'))
@@ -372,8 +332,8 @@ class TestWorldBuilding():
         exit_location_name = 'Harvest Grove'
         self.llm_util._world_building.io_util.response = '{"description": "Whispering Meadows is a serene and idyllic area nestled within Eldervale. It is a sprawling expanse of lush green meadows, dotted with colorful wildflowers swaying gently in the breeze. The sweet fragrance of blooming lavender fills the air, creating an enchanting atmosphere. The meadows are home to a variety of friendly creatures, and the soothing whispers of the wind carry tales of peace and harmony. With its tranquil beauty, Whispering Meadows provides the perfect backdrop for a cosy social and farming experience.",   "exits": [     {       "direction": "North",       "name": "Harvest Grove",       "short_descr": "A hidden pathway leads to the Harvest Grove, where trees bear fruits of extraordinary flavors."     },     {       "direction": "East",       "name": "Glimmering Glade",       "short_descr": "A shimmering path leads to the Glimmering Glade, where fireflies illuminate secrets of the woods."     },     {       "direction": "West",       "name": "Twilight Meadow",       "short_descr": "A mysterious trail leads to the Twilight Meadow, where moonlight reveals hidden wonders to explorers."     }   ],   "items": [     "Enchanted Seeds (plantable)",     "Harvesting Scythe",     "Rainbow Fruit Basket",     "Magic Beehive",     "Fairy Lantern",     "Mystical Herb Pouch",     "Whispering Wind Chime",     "Dreamcatcher Necklace"   ],   "npcs": [     {       "name": "Amelia",       "sentiment": "friendly",       "race": "Pixie",       "gender": "f",       "level": 3,       "description": "A mischievous Pixie with wings shimmering in various hues. She loves to play pranks but has a heart of gold."     },     {       "name": "Basil",       "sentiment": "friendly",       "race": "Centaur",       "gender": "m",       "level": 5,       "description": "A gentle Centaur with a serene disposition. He imparts wisdom with every gallop and nurtures plants with care."     },     {       "name": "Celeste",       "sentiment": "friendly",       "race": "Fairie",       "gender": "n",       "level": 4,       "description": "A gracious Fairie with shimmering wings that radiate ethereal light. She ensures the beauty of Whispering Meadows remains eternal."     }   ] }'
         self.llm_util.set_story(self.story)
-        new_locations, exits, npcs, spawner = self.llm_util.build_location(location, exit_location_name, zone_info=z.get_info())
-        assert(len(new_locations) == 2)
+        response, spawner = self.llm_util.build_location(location, exit_location_name, zone_info=z.get_info())
+        assert(len(response.new_locations) == 2)
 
     def test_chatgpt_generated_story(self):
         mud_context.driver.moneyfmt = MoneyFormatterFantasy()
@@ -390,13 +350,13 @@ class TestWorldBuilding():
                                                    story_type='',
                                                    world_mood=0,
                                                    world_info='')
-        assert(len(world_items) > 0)
+        assert(len(world_items.items) > 0)
 
         world_creatures = self.llm_util.generate_world_creatures(story_context='', 
                                                    story_type='',
                                                    world_mood=0,
                                                    world_info='')
-        assert(len(world_creatures) > 0)
+        assert(len(world_creatures.creatures) > 0)
         
         world_info = {'world_description': '', 'world_mood': 2, 'world_items': world_items, 'world_creatures': world_creatures}
         zone = self.llm_util.generate_start_zone(location_desc='',
@@ -404,9 +364,9 @@ class TestWorldBuilding():
                                                    story_context='',
                                                    world_info=world_info)
         assert(zone)
-        new_locations, exits, npcs, spawner = self.llm_util.build_location(location, exit_location_name, zone_info=zone.get_info(), world_creatures=world_creatures, world_items=world_items)
-        assert(len(new_locations) > 0)
-        assert(len(exits) > 0)
+        response, spawner = self.llm_util.build_location(location, exit_location_name, zone_info=zone.get_info(), world_creatures=world_creatures.creatures, world_items=world_items.items)
+        assert(len(response.new_locations) > 0)
+        assert(len(response.exits) > 0)
         assert(len(location.items) == 3)
         assert(len(location.livings) == 3)
 
@@ -414,9 +374,9 @@ class TestWorldBuilding():
         exit_location_name2 = 'Meadow\'s Edge'
 
 
-        new_locations, exits, npcs, spawner = self.llm_util.build_location(location2, exit_location_name2, zone_info=zone.get_info(), world_creatures=world_creatures, world_items=world_items)
-        assert(len(new_locations) > 0)
-        assert(len(exits) > 0)
+        response, spawner = self.llm_util.build_location(location2, exit_location_name2, zone_info=zone.get_info(), world_creatures=world_creatures, world_items=world_items)
+        assert(len(response.new_locations) > 0)
+        assert(len(response.exits) > 0)
 
     def test_generate_random_spawn(self):
         location = Location(name='Outside')

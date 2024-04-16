@@ -911,12 +911,15 @@ class Driver(pubsub.Listener):
     def build_location(self, targetLocation: base.Location, zone: Zone, player: player.Player):
         dynamic_story = typing.cast(DynamicStory, self.story)
         neighbor_locations = dynamic_story.neighbors_for_location(targetLocation)
-        new_locations, exits, npcs, spawner = self.llm_util.build_location(location=targetLocation, 
+        result, spawner = self.llm_util.build_location(location=targetLocation, 
                                                         exit_location_name=player.location.name, 
                                                         zone_info=zone.get_info(),
                                                         world_creatures=dynamic_story.catalogue._creatures,
                                                         world_items=dynamic_story.catalogue._items,
                                                         neighbors=neighbor_locations)
+        new_locations = result.new_locations
+        exits = result.exits
+        npcs = result.npcs
         if not new_locations:
             return False
         for location in new_locations:
