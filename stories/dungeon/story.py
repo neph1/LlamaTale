@@ -84,30 +84,32 @@ class Story(JsonStory):
         player.tell("\n")
 
     def add_zone(self, zone: Zone) -> bool:
-        first_zone = len(self._zones.values()) == 0
-        if super(Story, self).add_zone(zone):
-            zone.size_z = 1
-            layout = self.layout_generator.generate()
-
-            rooms = self._prepare_locations(layout=layout, first_zone=first_zone)
-
-            self._describe_rooms(zone=zone, layout=layout, rooms=rooms)
-            
-            self._connect_locations(layout=layout)
-
-            mob_spawners = [self.mob_populator.populate(zone=zone, layout=layout, story=self)]
-            for mob_spawner in mob_spawners:
-                self.world.add_mob_spawner(mob_spawner)
-
-            item_spawners = [self.item_populator.populate(zone=zone, story=self)]
-            for item_spawner in item_spawners:
-                self.world.add_item_spawner(item_spawner)
-
-            if not first_zone:
-                self.layout_generator.spawn_gold(zone=zone)
-        
+        if not super(Story, self).add_zone(zone):
+            return False
+        if zone.locations != {}:
             return True
-        return False
+        first_zone = len(self._zones.values()) == 0
+        zone.size_z = 1
+        layout = self.layout_generator.generate()
+
+        rooms = self._prepare_locations(layout=layout, first_zone=first_zone)
+
+        self._describe_rooms(zone=zone, layout=layout, rooms=rooms)
+        
+        self._connect_locations(layout=layout)
+
+        mob_spawners = self.mob_populator.populate(zone=zone, layout=layout, story=self)
+        for mob_spawner in mob_spawners:
+            self.world.add_mob_spawner(mob_spawner)
+
+        item_spawners = self.item_populator.populate(zone=zone, story=self)
+        for item_spawner in item_spawners:
+            self.world.add_item_spawner(item_spawner)
+
+        if not first_zone:
+            self.layout_generator.spawn_gold(zone=zone)
+    
+        return True
     
     def _describe_rooms(self, zone: Zone, layout: Layout, rooms: list):
         described_rooms = []

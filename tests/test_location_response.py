@@ -2,7 +2,7 @@
 
 import datetime
 import json
-from tale import util
+from tale import parse_utils, util
 from tale.base import Location
 from tale.driver_if import IFDriver
 from tale.llm.responses.LocationResponse import LocationResponse
@@ -69,3 +69,23 @@ class TestLocationResponse():
         boots = valid[1]
         assert(boots['name'] == 'boots')
         assert(boots['type'] == 'Other')
+
+    def test_generated_location(self):
+        generated_location = '{"name": "Blighted Depths", "exits": [{"direction": "Northwest", "name": "Dank Caverns", "short_descr": "A damp tunnel leads deeper into unknown territory."}, {"direction": "Southeast", "name": "Moldy Den", "short_descr": "The path winds through mushroom-filled darkness."}, {"direction": "Southwest", "name": "Fungal Forest", "short_descr": "Vast fungal growth obscures your view beyond the clearing."}], "level": 10, "mood": -3, "races": [], "size": 5, "center": [0, 0, 0], "description": "In the Blighted Depths, stagnant air hangs thick with mold spores and decaying matter. The floor is a slick layer of slime that covers overgrown roots, while above you looms an enormous web strung between the cavern\'s columns.", "items": [], "npcs": [{"name": "Luminae", "sentiment": "Neutral", "race": "Undead Elf", "gender": "She", "level": 9, "aggressive": False, "description": "A spectral elven woman floats aimlessly in the murky depths. Her eyes are vacant as she moves through the caverns, seemingly lost.", "appearance": "Her hair flows like smoke around her translucent form, which appears to be wrapped in cobwebs. She wears tattered robes and holds a staff carved from bone."}]} '
+        location = Location(name='Blighted Depths')
+        location.built = False
+        result = LocationResponse(json_result=json.loads(parse_utils.sanitize_json(generated_location)), location=location, exit_location_name='')
+        locations = result.new_locations
+        exits = result.exits
+
+        assert(location.description.startswith('In the Blighted Depths,'))
+        assert(len(exits) == 3)
+        assert(exits[0].name == 'dank caverns')
+        assert(exits[1].name == 'moldy den')
+        assert(exits[2].name == 'fungal forest')
+        assert(len(location.items) == 0)
+        assert(len(location.livings) == 1)
+        assert(len(locations) == 3)
+        assert(locations[0].name == 'Dank Caverns')
+        assert(locations[1].name == 'Moldy Den')
+        assert(locations[2].name == 'Fungal Forest')

@@ -42,6 +42,8 @@ class LayoutGenerator():
             self._generate_room(coord)
 
         exit_coord = self.set_exit()
+        self._place_door(exit_coord, self.layout.cells[exit_coord.as_tuple()].parent, locked=True)
+
         self.add_connector_cell(exit_coord)
 
         for door in self.layout.connections:
@@ -95,11 +97,16 @@ class LayoutGenerator():
         self.unvisited.append(coord)
         door = None
         if parent and random.random() < 0.25:
-            door = Connection(parent, coord, door=True)
-            self.layout.connections.add(door)
+            door = self._place_door(coord, parent)
             if self.max_locked_doors > 0 and random.random() < 0.2:
                 door.locked = True
         return new_cell
+    
+    def _place_door(self, coord: Coord, other: Coord, locked: bool = False) -> 'Connection':
+        door = Connection(coord, other, door=True)
+        door.locked = locked
+        self.layout.connections.add(door)
+        return door
 
     def _place_key(self, door: 'Connection') -> 'Key':
         possible_cells = []
@@ -200,10 +207,10 @@ class MobPopulator():
     def __init__(self):
         self.max_spawns = 3
 
-    def populate(self, layout: 'Layout', story: DynamicStory, zone: Zone):
+    def populate(self, layout: 'Layout', story: DynamicStory, zone: Zone) -> list:
         if len(zone.races) == 0:
             return []
-        mob_spawners = list()
+        mob_spawners = []
         leaves = layout.get_leaves()
         for i in range(self.max_spawns):
             cell = random.choice(leaves)
@@ -215,6 +222,8 @@ class MobPopulator():
             item_probabilities = [random.random() * 0.15 + 0.5 for i in range(len(zone.items))]
             mob_spawner = MobSpawner(location=location, mob_type=mob_type, spawn_rate=30, spawn_limit=2, drop_items=zone.items, drop_item_probabilities=item_probabilities)
             mob_spawners.append(mob_spawner)
+        if len(mob_spawners) == 1:
+            return [mob_spawners]
         return mob_spawners
     
     
@@ -224,8 +233,10 @@ class ItemPopulator():
         self.max_items = 2
         self.max_gold = 5
 
-    def populate(self, zone: Zone, story: DynamicStory):
-        item_spawners = list()
+    def populate(self, zone: Zone, story: DynamicStory) -> list:
+        if len(zone.items) == 0:
+            return []
+        item_spawners = []
         if len(zone.items) == 0:
             self.max_items = 0
         for i in range(self.max_items):
@@ -236,7 +247,8 @@ class ItemPopulator():
             item_types = [item_type]
             item_probabilities = [random.random() * 0.15 + 0.5 for i in range(len(zone.items))]
             item_spawners.append(ItemSpawner(zone=zone, items=item_types, item_probabilities=item_probabilities, spawn_rate=30))
-
+        if len(item_spawners) == 1:
+            return [item_spawners]
         return item_spawners
 
 class Layout():

@@ -189,7 +189,7 @@ class WorldInfo():
         return True
     
     def add_mob_spawner(self, spawner: MobSpawner) -> bool:
-        if spawner in self._mob_spawners:
+        if spawner in self._mob_spawners or not isinstance(spawner, MobSpawner):
             return False
         self._mob_spawners.append(spawner)
         return True
@@ -201,7 +201,7 @@ class WorldInfo():
         return False
     
     def add_item_spawner(self, spawner: ItemSpawner) -> bool:
-        if spawner in self._item_spawners:
+        if spawner in self._item_spawners or not isinstance(spawner, ItemSpawner):
             return False
         self._item_spawners.append(spawner)
         return True

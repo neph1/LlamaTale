@@ -1,4 +1,5 @@
 import random
+from typing import Tuple
 from tale import lang
 from tale import zone
 from tale.base import Location, Exit, Item, Stats, Weapon, Wearable
@@ -30,7 +31,7 @@ def load_json(file_path: str):
     with open(file_path) as f:
         return json.load(f, strict=False)
 
-def load_locations(json_file: dict):
+def load_locations(json_file: dict) -> Tuple[dict, list]:
     """
         Loads locations from supplied json file and generates exits connecting them
         Returns dict of locations, list of exits
@@ -165,7 +166,7 @@ def load_npc(npc: dict, name: str = None, npc_type: str = 'Mob'):
         race = npc['stats'].get('race', None)
     if 'npc' in npc_type.lower():
         new_npc = StationaryNpc(name=name, 
-                            gender=lang.validate_gender(npc.get('gender', 'm')[0]), 
+                            gender=lang.validate_gender(npc.get('gender', 'm')), 
                             race=race, 
                             title=npc.get('title', name), 
                             descr=npc.get('descr', ''), 
@@ -181,7 +182,7 @@ def load_npc(npc: dict, name: str = None, npc_type: str = 'Mob'):
     else:
 
         new_npc = StationaryMob(name=npc['name'], 
-                            gender=lang.validate_gender(npc.get('gender', 'm')[0]), 
+                            gender=lang.validate_gender(npc.get('gender', 'm')), 
                             race=race, 
                             title=npc.get('title', npc['name']), 
                             descr=npc.get('descr', ''), 
@@ -363,6 +364,7 @@ def sanitize_json(result: str) -> str:
     result = result.strip()
     result = result.replace('```json', '') #.replace('\\"', '"').replace('"\\n"', '","').replace('\\n', '').replace('}\n{', '},{').replace('}{', '},{').replace('\\r', '').replace('\\t', '').replace('"{', '{').replace('}"', '}').replace('"\\', '"').replace('\\”', '"').replace('" "', '","').replace(':,',':').replace('},]', '}]').replace('},}', '}}')
     result = result.split('```')[0]
+    result = result.replace('False', 'false').replace('True', 'true').replace('None', 'null')
     if not result.endswith('}') and not result.endswith(']'):
         result = result + '}'
     #print('sanitized json: ' + result)

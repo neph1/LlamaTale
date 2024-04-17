@@ -111,10 +111,10 @@ class TestDungeonStory():
     def setup_mob_spawner(self):
         location = Location(name="Test Location")
         mob = dict(gender='m', name='bat', aggressive=True)
-        return MobSpawner(mob, location, spawn_rate=2, spawn_limit=3)
+        return [MobSpawner(mob, location, spawn_rate=2, spawn_limit=3)]
     
     def setup_item_spawner(self):
         zone = Zone(name='test zone')
         items = [dict(name='torch', description='test description')]
-        return ItemSpawner(items, item_probabilities=[0.2], zone=zone, spawn_rate=2)
+        return [ItemSpawner(items, item_probabilities=[0.2], zone=zone, spawn_rate=2)]
 

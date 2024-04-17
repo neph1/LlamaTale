@@ -363,10 +363,20 @@ def validate_gender(value: str) -> str:
     value = value.lower() if value else ""
     if value in GENDERS:
         return value
+    if 'male' in value:
+        return 'm'
+    if 'female' in value:
+        return 'f'
+    if 'he' in value:
+        return 'm'
+    if 'she' in value:
+        return 'f'
+    if 'it' in value:
+        return 'n'
     if len(value) > 1:
         if value[0] in GENDERS and GENDERS[value[0]] == value:
             return value
-    raise ValueError("That is not a valid gender.")
+    raise ValueError("That is not a valid gender.", value)
 
 
 def validate_gender_mf(value: str) -> str:
@@ -378,7 +388,7 @@ def validate_gender_mf(value: str) -> str:
     if len(value) > 1:
         if value[0] in genders and genders[value[0]] == value:
             return value
-    raise ValueError("That is not a valid gender.")
+    raise ValueError("That is not a valid gender.", value)
 
 def gender_string(value: str) -> str:
     if value.lower() == 'f':

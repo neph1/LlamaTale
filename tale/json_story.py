@@ -61,6 +61,6 @@ class JsonStory(DynamicStory):
         return ""  # not supported in demo
 
     def goodbye(self, player: Player) -> None:
-        player.tell("Thanks for trying out Tale!")
+        player.tell("Thanks for trying out LlamaTale!")
 
 
