@@ -1,0 +1,30 @@
+{
+    "name": "Empty World Config",
+    "author": "test author",
+    "author_address": "",
+    "version": "1.0",
+    "supported_modes": [
+        "IF"
+    ],
+    "player_name": "",
+    "player_gender": "",
+    "player_race": "human",
+    "player_money": 0.0,
+    "money_type": "NOTHING",
+    "server_tick_method": "COMMAND",
+    "server_tick_time": 5.0,
+    "gametime_to_realtime": 1,
+    "display_gametime": false,
+    "startlocation_player": "Cave.Cave entrance",
+    "startlocation_wizard": "Cave.Cave entrance",
+    "zones": [
+        "test_locations"
+    ],
+    "server_mode": "IF",
+    "npcs": "test_npcs",
+    "items": "test_items",
+    "context": "",
+    "type": "fantasy",
+    "world_info": "test info",
+    "world_mood": 0
+}

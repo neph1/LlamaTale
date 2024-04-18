@@ -61,15 +61,15 @@ class TestDungeonStory():
         mock_item_spawner = MagicMock(type='ItemPopulator')
         mock_item_spawner.populate.return_value = self.setup_item_spawner()
 
-        self.story = Story(f'tests/files/world_story/', layout_generator=mock_layout_generator, 
+        self.story = Story('tests/files/empty_world/', layout_generator=mock_layout_generator, 
                            mob_populator=mock_mob_spawner, 
                            item_populator=mock_item_spawner, 
-                           config=parse_utils.load_story_config(parse_utils.load_json(f'tests/files/world_story/story_config.json')))
+                           config=parse_utils.load_story_config(parse_utils.load_json(f'tests/files/empty_world/story_config.json')))
         self.llm_util.set_story(self.story)
         self.story.init(driver=driver)
 
         test_zone = list(self.story._zones.values())[0]
-        assert len(test_zone.locations) == 8 # 3 because of using world_story as base
+        assert len(test_zone.locations) == 5
         assert test_zone.get_location('Hallway').description == 'A long and winding hallway, lined with ancient tapestries and mysterious artifacts.'
         assert test_zone.get_location('Hallway(1)').description == 'A narrow and winding hallway, with flickering torches casting eerie shadows on the walls.'
 

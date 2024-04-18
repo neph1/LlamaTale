@@ -1,0 +1,32 @@
+{
+    "story": {
+        "name": "Empty World Config"
+    },
+    "zones": {
+        "Unknown": {
+            "description": "Unknown",
+            "level": 1,
+            "mood": -1,
+            "races": [],
+            "items": [],
+            "size": 5,
+            "center": [
+                0,
+                0,
+                0
+            ],
+            "name": "Cave",
+            "locations": []
+        }
+    },
+    "world": {
+        "npcs": {},
+        "items": {},
+        "spawners": [],
+        "item_spawners": []
+    },
+    "catalogue": {
+        "items": [],
+        "creatures": []
+    }
+}
