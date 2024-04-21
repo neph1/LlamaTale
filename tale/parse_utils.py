@@ -165,8 +165,9 @@ def load_npc(npc: dict, name: str = None, npc_type: str = 'Mob'):
     if npc.get('stats', None):
         race = npc['stats'].get('race', None)
     if 'npc' in npc_type.lower():
+        gender = lang.validate_gender(npc.get('gender', 'm'))
         new_npc = StationaryNpc(name=name, 
-                            gender=lang.validate_gender(npc.get('gender', 'm')), 
+                            gender=gender[0], 
                             race=race, 
                             title=npc.get('title', name), 
                             descr=npc.get('descr', ''), 
@@ -180,9 +181,9 @@ def load_npc(npc: dict, name: str = None, npc_type: str = 'Mob'):
 
 
     else:
-
+        gender = lang.validate_gender(npc.get('gender', 'm'))
         new_npc = StationaryMob(name=npc['name'], 
-                            gender=lang.validate_gender(npc.get('gender', 'm')), 
+                            gender=gender[0], 
                             race=race, 
                             title=npc.get('title', npc['name']), 
                             descr=npc.get('descr', ''), 

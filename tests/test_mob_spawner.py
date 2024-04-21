@@ -91,8 +91,8 @@ class TestMobSpawner():
     def test_item_drop(self):
         location = Location(name="Test Location")
         mob = dict(gender='m', name='human', aggressive=False)
-        test_item = Item(name="Test Item")
-        spawner = MobSpawner(mob, location, spawn_rate=2, spawn_limit=3, drop_items=[test_item], drop_item_probabilities=[1])
+        drop_item = Item(name="Test Item")
+        mob_spawner = MobSpawner(mob, location, spawn_rate=2, spawn_limit=3, drop_items=[drop_item], drop_item_probabilities=[1])
         remains = Remains('Test Remains')
-        spawner.remove_mob(remains)
+        mob_spawner.remove_mob(remains)
         assert remains.inventory_size == 1

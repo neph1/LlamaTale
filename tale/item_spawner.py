@@ -23,7 +23,7 @@ class ItemSpawner():
         if self.time < self.spawn_rate:
             return
         self.time -= self.spawn_rate
-        item = random.choices(self.items, weights=self.item_probabilities)[0]
+        item = self._random_item()
         item = parse_utils.load_item(item)
         if self.container:
             self.container.insert(item, None)
@@ -32,6 +32,9 @@ class ItemSpawner():
             if len(location.items) < self.max_items:
                 location.insert(item, None)
                 location.tell(f'{item} appears.')
+    
+    def _random_item(self):
+        return random.choices(self.items, weights=self.item_probabilities)[0]
     
     def to_json(self):
         data = {

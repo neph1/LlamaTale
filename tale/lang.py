@@ -363,10 +363,10 @@ def validate_gender(value: str) -> str:
     value = value.lower() if value else ""
     if value in GENDERS:
         return value
-    if 'male' in value:
-        return 'm'
     if 'female' in value:
-        return 'f'
+        return 'female'
+    if 'male' in value:
+        return 'male'
     if 'he' in value:
         return 'm'
     if 'she' in value:

@@ -27,13 +27,13 @@ class TestItemSpawner():
 
     def test_spawn_with_container(self):
         item = list(self.items.values())[0]
-        random.choices = MagicMock(return_value=[item])
+        self.spawner._random_item = MagicMock(return_value=item)
         self.spawner.spawn()
         assert list(self.container.inventory)[0].name == item['name']
 
     def test_spawn_without_container(self):
         item = list(self.items.values())[0]
-        random.choices = MagicMock(return_value=[item])
+        self.spawner._random_item = MagicMock(return_value=item)
         location = Location(name='test_location')
         self.zone.add_location(location)
         self.spawner.container = None
@@ -41,7 +41,7 @@ class TestItemSpawner():
         assert list(location.items)[0].name == item['name']
 
     def test_spawn_with_max_items_reached(self):
-        random.choices = MagicMock(return_value=[{'name':'item3'}])
+        self.spawner._random_item = MagicMock(return_value={'name':'item3'})
         location = Location(name='test_location')
         location.init_inventory([Item('item1'), Item('item2')])
         self.zone.add_location(location)
@@ -51,7 +51,7 @@ class TestItemSpawner():
         assert Item('item3') not in location.items
 
     def test_spawn_with_invalid_zone(self):
-        random.choices = MagicMock(return_value=[{'name':'item1'}])
+        self.spawner._random_item = MagicMock(return_value={'name':'item1'})
         self.spawner.container = None
         with raises(IndexError):
             self.spawner.spawn()
