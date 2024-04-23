@@ -864,7 +864,8 @@ class Driver(pubsub.Listener):
                 npc.set_wearable(wearable)
         if character.wielding:
             npc.wielding = base.Weapon(name=character.wielding.lower())
-        npc.following = player
+        if character.follower:
+            npc.following = player
         npc.stats.hp = character.hp
         if isinstance(self.story, DynamicStory):
             dynamic_story = typing.cast(DynamicStory, self.story)

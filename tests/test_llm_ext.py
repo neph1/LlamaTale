@@ -1,3 +1,4 @@
+from datetime import timedelta
 import json
 
 import responses
@@ -200,12 +201,47 @@ class TestLivingNpcActions():
 
     @responses.activate
     def test_do_react_deferred_exists(self):
-        action = ParseResult(verb='idle-action', unparsed='something happened', who_info=None)
-        self.npc.deferred_actions = {'test : existing action\n'}
+        action = ParseResult(verb='idle-action', unparsed='something happened', who_list=[self.npc])
+        self.npc.last_reaction_time = mud_context.driver.game_clock.clock
         responses.add(responses.POST, self.dummy_backend_config['URL'] + self.dummy_backend_config['ENDPOINT'],
                   json={'results':[{'text':'"test happens back!"'}]}, status=200)
         self.npc.notify_action(action, self.npc2)
-        assert(self.npc.deferred_actions == {'test : existing action\n'})
+        # doesn't react first time because already has reacted
+        assert(self.npc.deferred_actions == set())
+        assert [] == self.msg_trace_npc.messages
+
+        mud_context.driver.game_clock.add_gametime(timedelta(seconds=1))
+
+        action = ParseResult(verb='idle-action', unparsed='something happened again', who_list=[self.npc])
+
+        self.npc.notify_action(action, self.npc2)
+
+        assert ["test : test happens back\n\n"] == self.msg_trace_npc.messages
+        assert self.npc.last_reaction_time == mud_context.driver.game_clock.clock
+        assert(llm_cache.get_events(self.npc._observed_events) == 'something happened<break>something happened again')
+
+    def test_take_action(self):
+        item = Item(name="test item", short_descr="test item", descr="A test item.")
+        self.location.insert(item)
+        responses.add(responses.POST, self.dummy_backend_config['URL'] + self.dummy_backend_config['ENDPOINT'],
+                  json={'results':[{'text':'{"action":"take", "item":"test item"}'}]}, status=200)
+        actions = self.npc.autonomous_action()
+        assert(actions == 'test takes test item')
+        assert(self.npc.search_item('test item', include_location=False))
+
+    def test_give_action(self):
+        item = Item(name="test item", short_descr="test item", descr="A test item.")
+        self.npc.init_inventory([item])
+        responses.add(responses.POST, self.dummy_backend_config['URL'] + self.dummy_backend_config['ENDPOINT'],
+                  json={'results':[{'text':'{"action":"give", "item":"test item", "target":"actor"}'}]}, status=200)
+        self.npc.autonomous_action()
+        assert self.npc.search_item('test item', include_location=False) == None
+        assert(self.npc2.search_item('test item', include_location=False))
+        assert ["test : Test gives test item to test\n"] == self.msg_trace_npc.messages
+
+    def test_move_action(self):
+        # Add your test code here
+        pass
 
     @responses.activate
     def test_take_action(self):
