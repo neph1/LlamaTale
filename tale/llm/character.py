@@ -154,6 +154,7 @@ class CharacterBuilding():
         request_body = deepcopy(self.default_body)
         if self.json_grammar_key:
             request_body[self.json_grammar_key] = self.json_grammar
+        text = ''
         try :
             text = self.io_util.synchronous_request(request_body, prompt=prompt, context=action_context.to_prompt_string())
             if not text:

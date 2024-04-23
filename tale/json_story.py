@@ -1,5 +1,4 @@
 from tale.items import generic
-from tale.items.basic import Note
 from tale.llm.llm_ext import DynamicStory
 from tale.player import Player
 from tale.story import StoryConfig
@@ -62,6 +61,6 @@ class JsonStory(DynamicStory):
         return ""  # not supported in demo
 
     def goodbye(self, player: Player) -> None:
-        player.tell("Thanks for trying out Tale!")
+        player.tell("Thanks for trying out LlamaTale!")
 
 

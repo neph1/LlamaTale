@@ -1,13 +1,13 @@
 
 import random
 
-from tale import mud_context
+from tale import mud_context, parse_utils
 from tale.base import Container, Living, Location
 from tale.util import call_periodically
 
 class MobSpawner():
-    def __init__(self, mob_type: Living , location: Location, spawn_rate: int, spawn_limit: int, drop_items: list = None, drop_item_probabilities: list = None):
-        self.mob_type = mob_type # type 'Living'
+    def __init__(self, mob_type: dict , location: Location, spawn_rate: int, spawn_limit: int, drop_items: list = None, drop_item_probabilities: list = None):
+        self.mob_type = mob_type # type dict
         self.location = location
         self.spawn_rate = spawn_rate
         self.spawn_limit = spawn_limit
@@ -62,7 +62,7 @@ class MobSpawner():
 
     def to_json(self):
         return {
-            "mob_type": self.mob_type.name,
+            "mob_type": self.mob_type['name'],
             "location": self.location.name,
             "spawn_rate": self.spawn_rate,
             "spawn_limit": self.spawn_limit,
@@ -76,10 +76,9 @@ class MobSpawner():
         }
 
     def _clone_mob(self):
-        gender = self.mob_type.gender
+        mob = parse_utils.load_npc(self.mob_type, self.mob_type['name']) # type: 'Living'
         if self.randomize_gender:
-            gender = "m" if random.randint(0, 1) == 0 else "f"
-        mob = self.mob_type.__class__(self.mob_type.name, gender, race=self.mob_type.stats.race)
-        mob.aggressive = self.mob_type.aggressive
-        mob.should_produce_remains = self.mob_type.should_produce_remains
+            mob.gender = "m" if random.randint(0, 1) == 0 else "f"
+        mob.aggressive = self.mob_type['aggressive']
+        mob.should_produce_remains = self.mob_type.get('should_produce_remains', False)
         return mob

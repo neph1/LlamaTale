@@ -9,6 +9,7 @@ from tale.image_gen.base_gen import ImageGeneratorBase
 from tale.llm import llm_config
 from tale.llm.character import CharacterBuilding
 from tale.llm.contexts.ActionContext import ActionContext
+from tale.llm.contexts.DungeonLocationsContext import DungeonLocationsContext
 from tale.llm.contexts.EvokeContext import EvokeContext
 from tale.llm.contexts.WorldGenerationContext import WorldGenerationContext
 from tale.llm.llm_ext import DynamicStory
@@ -16,8 +17,13 @@ from tale.llm.llm_io import IoUtil
 from tale.llm.contexts.DialogueContext import DialogueContext
 from tale.llm.quest_building import QuestBuilding
 from tale.llm.responses.ActionResponse import ActionResponse
+from tale.llm.responses.LocationDescriptionResponse import LocationDescriptionResponse
+from tale.llm.responses.LocationResponse import LocationResponse
+from tale.llm.responses.WorldCreaturesResponse import WorldCreaturesResponse
+from tale.llm.responses.WorldItemsResponse import WorldItemsResponse
 from tale.llm.story_building import StoryBuilding
 from tale.llm.world_building import WorldBuilding
+from tale.mob_spawner import MobSpawner
 from tale.player import PlayerConnection
 from tale.player_utils import TextBuffer
 import tale.parse_utils as parse_utils
@@ -142,13 +148,13 @@ class LlmUtil():
     def get_neighbor_or_generate_zone(self, current_zone: Zone, current_location: Location, target_location: Location) -> Zone:
         return self._world_building.get_neighbor_or_generate_zone(current_zone, current_location, target_location, self.__story)
 
-    def build_location(self, location: Location, exit_location_name: str, zone_info: dict, world_items: dict = {}, world_creatures: dict = {}, neighbors: dict = {}) -> Tuple[list, list, list, Any]:
+    def build_location(self, location: Location, exit_location_name: str, zone_info: dict, world_items: dict = {}, world_creatures: dict = {}, neighbors: dict = {}) -> Tuple[LocationResponse, MobSpawner]:
         """ Generate a location based on the current story context"""
         world_generation_context = WorldGenerationContext(story_context=self.__story_context,
                                                             story_type=self.__story_type,
                                                             world_info=self.__world_info,
                                                             world_mood=self.__story.config.world_mood)
-        new_locations, exits, npcs, spawner = self._world_building.build_location(location, 
+        result, spawner = self._world_building.build_location(location, 
                                                     exit_location_name, 
                                                     zone_info,
                                                     context=world_generation_context,
@@ -158,7 +164,7 @@ class LlmUtil():
         
         if not location.avatar and self.__story.config.image_gen:
             self.generate_image(location.name, location.description)
-        return new_locations, exits, npcs, spawner
+        return result, spawner
                     
      
     def perform_idle_action(self, character_name: str, location: Location, character_card: str = '', sentiments: dict = {}, last_action: str = '', event_history: str = '') -> list:
@@ -179,14 +185,14 @@ class LlmUtil():
     def generate_story_background(self, world_mood: int, world_info: str, story_type: str):
         return self._story_building.generate_story_background(world_mood, world_info, story_type)
     
-    def generate_start_location(self, location: Location, zone_info: dict, story_type: str, story_context: str, world_info: str):
+    def generate_start_location(self, location: Location, zone_info: dict, story_type: str, story_context: str, world_info: str) -> LocationResponse:
         return self._world_building.generate_start_location(location, zone_info, story_type, story_context, world_info)
         
     def generate_start_zone(self, location_desc: str, story_type: str, story_context: str, world_info: dict) -> Zone:
         world_generation_context = WorldGenerationContext(story_context=story_context, story_type=story_type, world_info=world_info, world_mood=world_info['world_mood'])
         return self._world_building.generate_start_zone(location_desc, context=world_generation_context)
     
-    def generate_world_items(self, story_context: str = '', story_type: str = '', world_info: str = '', world_mood: int = None) -> dict:
+    def generate_world_items(self, story_context: str = '', story_type: str = '', world_info: str = '', world_mood: int = None) -> WorldItemsResponse:
         world_generation_context = WorldGenerationContext(story_context=story_context or self.__story_context,
                                                             story_type=story_type or self.__story_type,
                                                             world_info=world_info or self.__world_info,
@@ -194,14 +200,14 @@ class LlmUtil():
         return self._world_building.generate_world_items(world_generation_context)
         
     
-    def generate_world_creatures(self, story_context: str = '', story_type: str = '', world_info: str = '', world_mood: int = None) -> dict:
+    def generate_world_creatures(self, story_context: str = '', story_type: str = '', world_info: str = '', world_mood: int = None) -> WorldCreaturesResponse:
         world_generation_context = WorldGenerationContext(story_context=story_context or self.__story_context,
                                                             story_type=story_type or self.__story_type,
                                                             world_info=world_info or self.__world_info,
                                                             world_mood=world_mood or self.__story.config.world_mood)
         return self._world_building.generate_world_creatures(world_generation_context)
         
-    def generate_random_spawn(self, location: Location, zone_info: dict):
+    def generate_random_spawn(self, location: Location, zone_info: dict) -> bool:
         return self._world_building.generate_random_spawn(location=location, 
                                                           zone_info=zone_info,
                                                           context=self._get_world_context(),
@@ -224,6 +230,17 @@ class LlmUtil():
     def generate_note_lore(self, zone_info: dict) -> str:
         return self._world_building.generate_note_lore(context=self._get_world_context(), 
                                                         zone_info=zone_info)
+    
+    def generate_dungeon_locations(self, zone_info: dict, locations: list, depth: int, max_depth: int) -> LocationDescriptionResponse:
+        return self._world_building.generate_dungeon_locations(context=DungeonLocationsContext(story_context=self.__story_context,
+                                                                                                    story_type=self.__story.config.type,
+                                                                                                    world_info=self.__story.config.world_info,
+                                                                                                    world_mood=self.__story.config.world_mood,
+                                                                                                    zone_info=zone_info,
+                                                                                                    rooms=locations,
+                                                                                                    depth=depth,
+                                                                                                    max_depth=max_depth))
+
     # visible for testing
     def generate_image(self, name: str, description: dict = '', save_path: str = "./resources", copy_file: bool = True, target: MudObject = None, id: str = None) -> bool:
         if not self._image_gen:

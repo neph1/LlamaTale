@@ -18,7 +18,7 @@ class TestItemSpawner():
         driver = IFDriver(screen_delay=99, gui=False, web=True, wizard_override=True)
         driver.game_clock = util.GameDateTime(datetime.datetime(year=2023, month=1, day=1), 1)
         _MudContext.driver = driver
-        self.items = {'item1': Item('item1'), 'item2': Item('item2'), 'item3': Item('item3')}
+        self.items = {'item1': {'name':'item1'}, 'item2':{'name':'item2'}, 'item3': {'name':'item3'}}
         self.item_probabilities = [0.3, 0.5, 0.2]
         self.zone = Zone(name='test_zone')
         self.container = Container(name='test_container')
@@ -27,21 +27,21 @@ class TestItemSpawner():
 
     def test_spawn_with_container(self):
         item = list(self.items.values())[0]
-        random.choices = MagicMock(return_value=[item])
+        self.spawner._random_item = MagicMock(return_value=item)
         self.spawner.spawn()
-        assert list(self.container.inventory) == [item]
+        assert list(self.container.inventory)[0].name == item['name']
 
     def test_spawn_without_container(self):
         item = list(self.items.values())[0]
-        random.choices = MagicMock(return_value=[item])
+        self.spawner._random_item = MagicMock(return_value=item)
         location = Location(name='test_location')
         self.zone.add_location(location)
         self.spawner.container = None
         self.spawner.spawn()
-        assert list(location.items) == [item]
+        assert list(location.items)[0].name == item['name']
 
     def test_spawn_with_max_items_reached(self):
-        random.choices = MagicMock(return_value=[ Item('item3')])
+        self.spawner._random_item = MagicMock(return_value={'name':'item3'})
         location = Location(name='test_location')
         location.init_inventory([Item('item1'), Item('item2')])
         self.zone.add_location(location)
@@ -51,7 +51,7 @@ class TestItemSpawner():
         assert Item('item3') not in location.items
 
     def test_spawn_with_invalid_zone(self):
-        random.choices = MagicMock(return_value=[Item('item1')])
+        self.spawner._random_item = MagicMock(return_value={'name':'item1'})
         self.spawner.container = None
         with raises(IndexError):
             self.spawner.spawn()

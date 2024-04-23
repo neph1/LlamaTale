@@ -13,6 +13,7 @@ class Zone():
         self.items = [] # type list[str] # common items to find in the zone
         self.mood = 0 # defines friendliness or hostility of the zone. > 0 is friendly
         self.size = 5 # roughly the 'radius' of the zone.
+        self.size_z = 3 # height of the zone
         self.neighbors = dict() # type: dict[str, Zone] # north, east, south or west
         self.center = Coord(0,0,0) 
         self.name = name
@@ -23,11 +24,18 @@ class Zone():
             return False
         self.locations[location.name] = location
         return True
+    
+    def remove_location(self, name: str) -> bool:
+        """ Remove a location from the zone. Skip if location does not exist."""
+        if name not in self.locations:
+            return False
+        self.locations[name] = None
+        return True
 
     def get_location(self, name: str) -> Location:
         return self.locations.get(name, None)
     
-    def get_info(self) -> dict():
+    def get_info(self) -> dict:
         return {"description":self.description,
                 "level":self.level,
                 "mood":self.mood,
@@ -59,14 +67,13 @@ class Zone():
         """ Returns true if the coordinate is on the edge of the zone in the given direction. 
         Higher likelihood the further away from the center of the zone.
         """
-        #return True
         zone_distance = self.center.xyz_distance(coord)
-        if (direction.x != 0 and zone_distance.x > self.size):
-            return random.random() < 0.2 * (zone_distance.x - self.size)
-        if (direction.y != 0 and zone_distance.y > self.size):
-            return random.random() < 0.2 * (zone_distance.y - self.size)
-        if (direction.z != 0 and zone_distance.z > self.size):
-            return random.random() < 0.2 * (zone_distance.z - self.size)
+        if (direction.x != 0 and zone_distance.x > self.size - 1):
+            return True
+        if (direction.y != 0 and zone_distance.y > self.size - 1):
+            return True
+        if (direction.z != 0 and zone_distance.z > self.size_z - 1):
+            return True
         return False
     
 def from_json(data: dict) -> 'Zone':

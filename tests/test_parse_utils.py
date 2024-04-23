@@ -129,7 +129,7 @@ class TestParseUtils():
         config_json = parse_utils.load_json("tests/files/test_story_config.json")
         config = parse_utils.load_story_config(config_json)
         assert(config)
-        assert(config.name == 'Test Story Config 1')
+        assert(config.name == 'Test Story Config 3')
         assert(config.money_type == MoneyType.NOTHING)
         assert(config.supported_modes == {GameMode.IF})
         assert(config.zones == ["test zone"])
@@ -387,7 +387,7 @@ class TestParseUtils():
         assert len(spawners) == 2
 
         assert isinstance(spawners[0], MobSpawner)
-        assert spawners[0].mob_type.title == 'Kobbo the King'
+        assert spawners[0].mob_type['title'] == 'Kobbo the King'
         assert spawners[0].location.name == 'Royal grotto'
         assert spawners[0].spawn_rate == 5
         assert spawners[0].spawn_limit == 10
@@ -397,7 +397,7 @@ class TestParseUtils():
         assert spawners[0].drop_item_probabilities == [0.5, 0.3]
 
         assert isinstance(spawners[1], MobSpawner)
-        assert spawners[1].mob_type.title == 'Goblin Warrior'
+        assert spawners[1].mob_type['title'] == 'Goblin Warrior'
         assert spawners[1].location.name == 'Dark forest'
         assert spawners[1].spawn_rate == 3
         assert spawners[1].spawn_limit == 5
@@ -438,14 +438,14 @@ class TestParseUtils():
 
         assert len(spawners) == 2
 
-        assert spawners[0].items[0].title == 'Sword'
-        assert spawners[0].items[1].title == 'Potion'
+        assert spawners[0].items[0]['name'] == 'Sword'
+        assert spawners[0].items[1]['name'] == 'Potion'
         assert spawners[0].item_probabilities[0] == 0.5
         assert spawners[0].zone.name == 'Royal grotto'
         assert spawners[0].spawn_rate == 5
         assert spawners[0].max_items == 10
 
-        assert spawners[1].items[0].title == 'Gold'
+        assert spawners[1].items[0]['name'] == 'Gold'
         assert spawners[1].item_probabilities[0] == 0.5
         assert spawners[1].zone.name == 'Dark forest'
         assert spawners[1].spawn_rate == 3
@@ -457,4 +457,7 @@ class TestParseUtils():
         sanitized = json.loads(parse_utils.sanitize_json(json_string))
         assert sanitized['name'] == 'Whispering Woods'
 
-        
+    def test_mood_string_from_int(self):
+        assert parse_utils.mood_string_from_int(5) == ' uttermost friendly'
+        assert parse_utils.mood_string_from_int(0) == ' neutral'
+        assert parse_utils.mood_string_from_int(-4) == ' extremely hostile'

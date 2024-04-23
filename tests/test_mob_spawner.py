@@ -14,17 +14,6 @@ class TestMobSpawnerUnitTests():
         self.mock_location = MockLocation()
         self.spawner = MobSpawner(MockMob(), self.mock_location, spawn_rate=2, spawn_limit=3)
 
-    def test_spawn(self):
-        mob = self.spawner.spawn()
-        assert mob
-        assert mob.location == self.mock_location
-        assert self.spawner.spawned == 1
-
-    def test_spawn_limit(self):
-        for _ in range(4):
-            self.spawner.spawn()
-        assert self.spawner.spawned == 3
-
     def test_remove_mob(self):
         self.spawner.spawned = 2
         self.spawner.remove_mob()
@@ -79,7 +68,7 @@ class TestMobSpawner():
 
     def test_spawn(self):
         location = Location(name="Test Location")
-        mob = Living(name="Test Mob", gender='m')
+        mob = dict(gender='m', name='human', aggressive=False)
         spawner = MobSpawner(mob, location, spawn_rate=2, spawn_limit=3)
         mob = spawner.spawn()
         assert mob
@@ -93,7 +82,7 @@ class TestMobSpawner():
 
         assert spawner.spawned == 0
 
-        spawner.mob_type.aggressive = True
+        spawner.mob_type['aggressive'] = True
 
         mob = spawner.spawn()
         assert mob.aggressive == True
@@ -101,9 +90,9 @@ class TestMobSpawner():
 
     def test_item_drop(self):
         location = Location(name="Test Location")
-        mob = Living(name="Test Mob", gender='m')
-        test_item = Item(name="Test Item")
-        spawner = MobSpawner(mob, location, spawn_rate=2, spawn_limit=3, drop_items=[test_item], drop_item_probabilities=[1])
+        mob = dict(gender='m', name='human', aggressive=False)
+        drop_item = Item(name="Test Item")
+        mob_spawner = MobSpawner(mob, location, spawn_rate=2, spawn_limit=3, drop_items=[drop_item], drop_item_probabilities=[1])
         remains = Remains('Test Remains')
-        spawner.remove_mob(remains)
+        mob_spawner.remove_mob(remains)
         assert remains.inventory_size == 1

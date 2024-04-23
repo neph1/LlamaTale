@@ -39,6 +39,10 @@ class TestStoryBuilder():
         assert(input == "input")
         assert(prompt == "Where does the story start? Describe the starting location.")
 
+        assert self.story_builder.story_info.world_mood == 5
+        assert self.story_builder.story_info.type == "A post apocalyptic scifi survival adventure"
+        assert self.story_builder.story_info.world_info == "The world is a post apocalyptic world where the machines have taken over."
+
         # story_info = builder.
         # assert(isinstance(story_info, StoryInfo))
 
@@ -48,6 +52,8 @@ class TestStoryBuilder():
         assert(self.story_builder.validate_mood(-5) == -5)
 
         assert(self.story_builder.validate_mood("0") == 0)
+
+        assert(self.story_builder.validate_mood(None) == 0)
 
         with pytest.raises(ValueError):
             self.story_builder.validate_mood(10)

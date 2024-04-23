@@ -1,4 +1,5 @@
 import random
+from typing import Tuple
 from tale import lang
 from tale import zone
 from tale.base import Location, Exit, Item, Stats, Weapon, Wearable
@@ -30,7 +31,7 @@ def load_json(file_path: str):
     with open(file_path) as f:
         return json.load(f, strict=False)
 
-def load_locations(json_file: dict):
+def load_locations(json_file: dict) -> Tuple[dict, list]:
     """
         Loads locations from supplied json file and generates exits connecting them
         Returns dict of locations, list of exits
@@ -94,13 +95,13 @@ def load_items(json_items: list, locations = {}) -> dict:
     """
     items = {}
     for item in json_items:
-        new_item = _load_item(item)
+        new_item = load_item(item)
         items[item['name']] = new_item
         if locations and item['location']: 
             _insert(new_item, locations, item['location'])
     return items
 
-def _load_item(item: dict):
+def load_item(item: dict):
     item_type = item.get('type', 'Item')
         
     if item_type == 'Money':
@@ -151,7 +152,7 @@ def load_npcs(json_npcs: list, locations = {}) -> dict:
                 name = npc['name'].replace('the','').replace('The','').strip()
         else:
             name = npc['name']
-        new_npc = _load_npc(npc, name, npc_type)
+        new_npc = load_npc(npc, name, npc_type)
 
         if locations and npc['location']:
             _insert(new_npc, locations, npc['location'])
@@ -159,13 +160,14 @@ def load_npcs(json_npcs: list, locations = {}) -> dict:
         npcs[name] = new_npc
     return npcs
 
-def _load_npc(npc: dict, name: str = None, npc_type: str = 'Mob'):
+def load_npc(npc: dict, name: str = None, npc_type: str = 'Mob'):
     race = None
     if npc.get('stats', None):
         race = npc['stats'].get('race', None)
     if 'npc' in npc_type.lower():
+        gender = lang.validate_gender(npc.get('gender', 'm'))
         new_npc = StationaryNpc(name=name, 
-                            gender=lang.validate_gender(npc.get('gender', 'm')[0]), 
+                            gender=gender[0], 
                             race=race, 
                             title=npc.get('title', name), 
                             descr=npc.get('descr', ''), 
@@ -179,9 +181,9 @@ def _load_npc(npc: dict, name: str = None, npc_type: str = 'Mob'):
 
 
     else:
-
+        gender = lang.validate_gender(npc.get('gender', 'm'))
         new_npc = StationaryMob(name=npc['name'], 
-                            gender=lang.validate_gender(npc.get('gender', 'm')[0]), 
+                            gender=gender[0], 
                             race=race, 
                             title=npc.get('title', npc['name']), 
                             descr=npc.get('descr', ''), 
@@ -229,9 +231,9 @@ def load_story_config(json_file: dict):
     config.context = json_file.get('context', '')
     config.type = json_file.get('type', '')
     config.world_info = json_file.get('world_info', '')
-    config.world_mood = json_file.get('world_mood', '')
-    config.custom_resources = json_file.get('custom_resources', False)
-    config.image_gen = json_file.get('image_gen', None)
+    config.world_mood = json_file.get('world_mood', config.world_mood)
+    config.custom_resources = json_file.get('custom_resources', config.custom_resources)
+    config.image_gen = json_file.get('image_gen', config.image_gen)
     return config
 
 def save_story_config(config: StoryConfig) -> dict:
@@ -363,6 +365,7 @@ def sanitize_json(result: str) -> str:
     result = result.strip()
     result = result.replace('```json', '') #.replace('\\"', '"').replace('"\\n"', '","').replace('\\n', '').replace('}\n{', '},{').replace('}{', '},{').replace('\\r', '').replace('\\t', '').replace('"{', '{').replace('}"', '}').replace('"\\', '"').replace('\\”', '"').replace('" "', '","').replace(':,',':').replace('},]', '}]').replace('},}', '}}')
     result = result.split('```')[0]
+    result = result.replace('False', 'false').replace('True', 'true').replace('None', 'null')
     if not result.endswith('}') and not result.endswith(']'):
         result = result + '}'
     #print('sanitized json: ' + result)
@@ -534,7 +537,10 @@ def direction_from_coordinates(direction: Coord):
 def mood_string_from_int(mood: int):
     """ Returns a mood string based on the supplied int"""
 
-    base_mood = 'friendly' if mood > 0 else 'hostile' if mood < 0 else 'neutral'
+    if mood == 0:
+        return ' neutral'
+    
+    base_mood = 'friendly' if mood > 0 else 'hostile'
     
     if abs(mood) > 4:
         return f' uttermost {base_mood}'
@@ -718,7 +724,7 @@ def load_mob_spawners(json_spawners: list, locations: dict, creatures: list, wor
         mob = None
         for creature in creatures:
             if creature['name'] == mob_type:
-                mob = _load_npc(creature, mob_type)
+                mob = creature
                 break
         if not mob:
             print(f"Mob {mob_type} not in catalogue")
@@ -731,7 +737,7 @@ def load_mob_spawners(json_spawners: list, locations: dict, creatures: list, wor
             for item in drop_items:
                 for world_item in world_items:
                     if item.lower() == world_item['name'].lower():
-                        loaded_drop_items.append(_load_item(world_item))
+                        loaded_drop_items.append(load_item(world_item))
             item_probabilities = spawner.get('drop_item_probabilities', [])
                 
         mob_spawner = MobSpawner(mob, location, spawner['spawn_rate'], spawner['spawn_limit'], drop_items=loaded_drop_items, drop_item_probabilities=item_probabilities)
@@ -753,7 +759,6 @@ def load_item_spawners(json_spawners: list, zones: dict, world_items: list) -> l
             world_item = None
             for world_item in world_items:
                 if item.lower() == world_item['name'].lower():
-                    world_item = _load_item(world_item)
                     loaded_items.append(world_item)
                     break
             if not world_item:

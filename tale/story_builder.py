@@ -1,15 +1,14 @@
 
-
-import json
 import random
 from typing import Generator
-from tale import lang
+from tale import lang, mud_context
+
 from tale.base import Location
 from tale.llm.llm_ext import DynamicStory
 from tale.llm.llm_utils import LlmUtil
 from tale.player import PlayerConnection
 from tale.quest import Quest, QuestType
-from tale.story import StoryConfig
+from tale.zone import Zone
 
 
 class StoryInfo():
@@ -21,12 +20,86 @@ class StoryInfo():
         self.world_mood = 0
         self.start_location = ""
 
-class StoryBuilder:
+
+class StoryBuilderBase:
 
     def __init__(self, connection: PlayerConnection) -> None:
         self.story_info = StoryInfo()
         self.connection = connection
-        
+    
+    def generate_world_items(self, llm_util: LlmUtil, story_context: str, story_type: str, world_info: str, world_mood: int) -> list:
+        self.connection.output("Generating world items...")
+        for i in range(3):
+            items = llm_util.generate_world_items(story_context=story_context, story_type=story_type, world_info=world_info, world_mood=world_mood)
+            if items.valid:
+                return items.items
+        self.connection.output("Failed to generate world items... Check the 'enrich' command")
+        return []
+    
+    def generate_world_creatures(self, llm_util: LlmUtil, story_context: str, story_type: str, world_info: str, world_mood: int) -> list:
+        self.connection.output("Generating world creatures...")
+        for i in range(3):
+            creatures = llm_util.generate_world_creatures(story_context=story_context, story_type=story_type, world_info=world_info, world_mood=world_mood)
+            if creatures.valid:
+                return creatures.creatures
+        self.connection.output("Failed to generate world creatures... Check the 'enrich' command")
+        return []
+    
+    def generate_starting_zone(self, llm_util: LlmUtil, story_context: str, items: list, creatures: list):
+        self.connection.output("Generating starting zone...")
+        world_info = {'world_description': self.story_info.world_info, 'world_mood': self.story_info.world_mood, 'world_items': items, 'world_creatures': creatures}
+        for i in range(3):
+            zone = llm_util.generate_start_zone(location_desc=self.story_info.start_location, 
+                                                    story_type=self.story_info.type, 
+                                                    story_context=story_context,
+                                                    world_info=world_info)
+            if zone:
+                break
+        return zone
+    
+    def generate_start_location(self, llm_util: LlmUtil, story: DynamicStory, initial_start_location: Location, zone: Zone):
+        self.connection.output("Generating starting location...")
+        for i in range(3):
+            result = llm_util.generate_start_location(location=initial_start_location, 
+                                                                story_type=self.story_info.type, 
+                                                                story_context=story.config.context,
+                                                                world_info=self.story_info.world_info,
+                                                                zone_info=zone.get_info())
+            if result.valid:
+                return result.new_locations, result.exits, result.npcs
+            
+    def add_start_quest(self, npcs: list, items: list):
+        quest_npc = random.choice(list(npcs))
+        quest = Quest(name="Starting Quest",
+                        type=QuestType.GIVE, 
+                        target = random.choice(items),
+                        reason="I need it",
+                        giver=quest_npc)
+        quest_npc.quest = quest
+
+class StoryExtrasBuilder():
+
+    def __init__(self, connection: PlayerConnection) -> None:
+        self.story_info = StoryInfo()
+        self.connection = connection
+
+    def ask_generate_extras(self):
+        okay = yield "input", ("Would you like to generate some additional locations and characters? This will help with quest building.", lang.yesno)
+        return okay
+    
+    def build(self) -> Generator:
+        yield from self.ask_generate_extras()
+
+        return self.story_info
+    
+    def apply_to_story(self, story: DynamicStory, llm_util: LlmUtil):
+        self.connection.output("Generate extra locations...")
+        for i in range(3):
+            result = llm_util.generate_start_location(story.config.context, story.config.type, story.config.world_info, story.config.world_mood)
+            if result.valid:
+                break
+class StoryBuilder(StoryBuilderBase):
+
     def ask_story_type(self) -> Generator:
         self.story_info.type = yield "input", ("What genre would you like your story to be? Ie, 'A post apocalyptic scifi survival adventure', or 'Cozy social simulation with deep characters'")
         
@@ -54,11 +127,13 @@ class StoryBuilder:
     def validate_mood(self, value: str) -> int:
         min = -5
         max = 5
+        if not value:
+            return 0
         try:
             int_value = (int) (value)
-            if min and int_value < min:
+            if int_value < min:
                 raise ValueError("Only values greater than or equal to {} are allowed. Try again.".format(min))
-            if max and int_value > max:
+            if int_value > max:
                 raise ValueError("Only values less than or equal to {} are allowed. Try again.".format(max))
             return int(value)       
         except ValueError:
@@ -75,58 +150,23 @@ class StoryBuilder:
                                                                             world_mood=story.config.world_mood,
                                                                             story_type=story.config.type)
         
-        self.connection.output("Generating world items...")
-        for i in range(3):
-            items = llm_util.generate_world_items(story_context=story.config.context, 
-                                                        story_type=self.story_info.type, 
-                                                        world_info=self.story_info.world_info, 
-                                                        world_mood=self.story_info.world_mood)
-            if items:
-                for item in items:
-                    story._catalogue.add_item(item)
-                break
+        items = self.generate_world_items(llm_util, story.config.context, story.config.type, story.config.world_info, story.config.world_mood)
+        for item in items:
+            story._catalogue.add_item(item)
         
-        self.connection.output("Generate world creatures...")
-        for i in range(3):
-            creatures = llm_util.generate_world_creatures(story_context=story.config.context,
-                                                            story_type=self.story_info.type,
-                                                            world_info=self.story_info.world_info,
-                                                            world_mood=self.story_info.world_mood)
-            if creatures:
-                for creature in creatures:
-                    story._catalogue.add_creature(creature)
-                break
+        creatures = self.generate_world_creatures(llm_util, story.config.context, story.config.type, story.config.world_info, story.config.world_mood)
+        for creature in creatures:
+            story._catalogue.add_creature(creature)
 
-        self.connection.output("Generating starting zone...")
-        world_info = {'world_description': self.story_info.world_info, 'world_mood': self.story_info.world_mood, 'world_items': items, 'world_creatures': creatures}
-        for i in range(3):
-            zone = llm_util.generate_start_zone(location_desc=self.story_info.start_location, 
-                                                    story_type=self.story_info.type, 
-                                                    story_context=story.config.context,
-                                                    world_info=world_info)
-            if zone:
-                break
-
+        zone = self.generate_starting_zone(llm_util, story.config.context, items, creatures)
         story.add_zone(zone)
 
-        self.connection.output("Generating starting location...")
         initial_start_location = Location(name="", descr=self.story_info.start_location)
-        for i in range(3):
-            new_locations, exits, npcs, _ = llm_util.generate_start_location(location=initial_start_location, 
-                                                                story_type=self.story_info.type, 
-                                                                story_context=story.config.context,
-                                                                world_info=self.story_info.world_info,
-                                                                zone_info=zone.get_info())
-            if new_locations:
-                break
+
+        new_locations, exits, npcs = self.generate_start_location(llm_util, story, initial_start_location, zone)
+        
         if len(npcs) > 0:
-            quest_npc = random.choice(list(npcs))
-            quest = Quest(name="Starting Quest",
-                          type=QuestType.GIVE, 
-                          target = random.choice(items),
-                          reason="I need it",
-                          giver=quest_npc)
-            quest_npc.quest = quest
+            self.add_start_quest(npcs, items)
             
         for npc in npcs:
             story.world.add_npc(npc)
@@ -154,25 +194,3 @@ class StoryBuilder:
 
         return start_location
     
-class ExtraStoryContent:
-
-    def ask_extra_items(self):
-        result = yield "input", ("Would you like to generate additional world items? (y/n)", lang.yesno)
-
-    def ask_extra_creatures(self):
-        result = yield "input", ("Would you like to generate additional creatures? (y/n)", lang.yesno)
-
-    def ask_extra_locations(self):
-        result = yield "input", ("Would you like to generate additional locations? (y/n)", lang.yesno)
-        return result
-
-    def build(self) -> Generator:
-        yield from self.ask_extra_items()
-        yield from self.ask_extra_creatures()
-        yield from self.ask_extra_locations()
-
-        if not self.story_info.name:
-            self.story_info.name = "A Tale of Anything"
-
-        return self.story_info
-
