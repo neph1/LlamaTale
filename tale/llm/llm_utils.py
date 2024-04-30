@@ -9,6 +9,7 @@ from tale.image_gen.base_gen import ImageGeneratorBase
 from tale.llm import llm_config
 from tale.llm.character import CharacterBuilding
 from tale.llm.contexts.ActionContext import ActionContext
+from tale.llm.contexts.CharacterContext import CharacterContext
 from tale.llm.contexts.DungeonLocationsContext import DungeonLocationsContext
 from tale.llm.contexts.EvokeContext import EvokeContext
 from tale.llm.contexts.WorldGenerationContext import WorldGenerationContext
@@ -140,7 +141,11 @@ class LlmUtil():
         return rolling_prompt
     
     def generate_character(self, story_context: str = '', keywords: list = [], story_type: str = ''):
-        character = self._character.generate_character(story_context, keywords, story_type)
+        character = self._character.generate_character(CharacterContext(story_context=story_context or self.__story_context,
+                                                                       story_type=story_type or self.__story_type,
+                                                                       world_info=self.__world_info,
+                                                                       world_mood=self.__story.config.world_mood,
+                                                                       key_words=keywords))
         if not character.avatar and self.__story.config.image_gen:
             self.generate_image(character.name, f"{character.description}. Wearing: {','.join(character.wearing)}. Holding: {character.wielding}" )
         return character

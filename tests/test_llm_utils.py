@@ -4,6 +4,7 @@ import os
 
 import yaml
 from tale.image_gen.automatic1111 import Automatic1111
+from tale.llm.contexts.CharacterContext import CharacterContext
 from tale.llm.contexts.WorldGenerationContext import WorldGenerationContext
 import tale.llm.llm_cache as llm_cache
 from tale import mud_context, weapon_type
@@ -60,7 +61,8 @@ class TestLlmUtils():
     def test_generate_character(self):
         character_string = json.dumps(parse_utils.load_json('tests/files/test_character.json'))
         self.llm_util._character.io_util = FakeIoUtil(response = character_string)
-        result = self.llm_util._character.generate_character(story_type='a test story')
+        context = CharacterContext(key_words='test key words', story_type='test story type', story_context='test story context', world_info='test world info', world_mood=0)
+        result = self.llm_util._character.generate_character(character_context=context)
         assert(result)
 
 
