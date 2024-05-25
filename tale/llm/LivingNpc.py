@@ -35,6 +35,7 @@ class LivingNpc(Living):
         self.example_voice = '' # type: str
         self.autonomous = False
         self.output_thoughts = False
+        self.last_reaction_time = None
 
     def notify_action(self, parsed: ParseResult, actor: Living) -> None:
         # store even our own events.
@@ -61,8 +62,11 @@ class LivingNpc(Living):
         elif (targeted and parsed.verb == "idle-action") or parsed.verb == "location-event":
             event_hash = llm_cache.cache_event(unpad_text(parsed.unparsed))
             self._observed_events.append(event_hash)
-            if not self.deferred_actions or llm_config.params['UNLIMITED_REACTS']:
-                self._do_react(parsed, actor)
+            if self.last_reaction_time and mud_context.driver.game_clock.clock == self.last_reaction_time:
+                # only react once per tick
+                return
+            self.last_reaction_time = mud_context.driver.game_clock.clock
+            self._do_react(parsed, actor)
         elif targeted and parsed.verb == "give":
             parsed_split = parsed.unparsed.split(" to ")
             
@@ -82,6 +86,10 @@ class LivingNpc(Living):
             self._observed_events.append(event_hash)
             # TODO: should llm decide sentiment?
             self.sentiments[actor.title] = 'hostile'
+        elif parsed.verb == 'attack' and self.following == actor:
+            target = self.location.search_living(parsed.who_1) if parsed.who_1 else None
+            if target:
+                self.start_attack(target)
         else:
             event_hash = llm_cache.cache_event(unpad_text(parsed.unparsed))
             self._observed_events.append(event_hash)

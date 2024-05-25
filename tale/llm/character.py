@@ -10,6 +10,7 @@ from tale.base import Location
 from tale.errors import LlmResponseException
 from tale.llm import llm_config
 from tale.llm.contexts.ActionContext import ActionContext
+from tale.llm.contexts.CharacterContext import CharacterContext
 from tale.llm.llm_io import IoUtil
 from tale.llm.contexts.DialogueContext import DialogueContext
 from tale.llm.responses.ActionResponse import ActionResponse
@@ -33,6 +34,7 @@ class CharacterBuilding():
         self.json_grammar_key = json_grammar_key
         self.dialogue_template = llm_config.params['DIALOGUE_TEMPLATE']
         self.action_template = llm_config.params['ACTION_TEMPLATE']
+        self.character_template = llm_config.params['CHARACTER_TEMPLATE']
 
     def generate_dialogue(self,
                           context: DialogueContext,
@@ -67,16 +69,16 @@ class CharacterBuilding():
         
         return text, item, new_sentiment
     
-    def generate_character(self, story_context: str = '', keywords: list = [], story_type: str = '') -> CharacterV2:
+    def generate_character(self, character_context: CharacterContext) -> CharacterV2:
         """ Generate a character card based on the current story context"""
-        prompt = self.character_prompt.format(story_type=story_type if story_type else _MudContext.config.type,
-                                              story_context=story_context, 
-                                              world_info='',
-                                              keywords=', '.join(keywords))
+        prompt = self.character_prompt.format(
+            context = '{context}',
+            character_template=self.character_template,
+            keywords=', '.join(character_context.key_words))
         request_body = deepcopy(self.default_body)
         if self.json_grammar_key:
             request_body[self.json_grammar_key] = self.json_grammar
-        result = self.io_util.synchronous_request(request_body, prompt=prompt)
+        result = self.io_util.synchronous_request(request_body, prompt=prompt, context=character_context.to_prompt_string())
         try:
             json_result = json.loads(parse_utils.sanitize_json(result))
         except JSONDecodeError as exc:
