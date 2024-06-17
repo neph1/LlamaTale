@@ -1810,7 +1810,7 @@ def do_consume(player: Player, parsed: base.ParseResult, ctx: util.Context) -> N
         raise ActionRefused("You don't have that item")
     result[0].consume(player)
 
-cmd("request_follow")
+@cmd("request_follow")
 def do_request_follow(player: Player, parsed: base.ParseResult, ctx: util.Context) -> None:
     """Request a living entity to follow you."""
     if len(parsed.args) < 1:
@@ -1822,8 +1822,28 @@ def do_request_follow(player: Player, parsed: base.ParseResult, ctx: util.Contex
     result = player.location.search_living(entity) # type: LivingNpc
     if not result or not isinstance(result, LivingNpc):
         raise ActionRefused("Can't follow")
+    if result.following is player:
+        raise ActionRefused("Already following you")
     text = ''
     if len(parsed.args) == 2:
         text = str(parsed.args[1])
-    result.notify_action(base.ParseResult(verb='request_follow', who_list=[result], args=[text]), actor=player)
+    result.notify_action(base.ParseResult(verb='request_to_follow', who_list=[result], args=[text]), actor=player)
+
+@cmd("unfollow")
+def do_unfollow(player: Player, parsed: base.ParseResult, ctx: util.Context) -> None:
+    """Make a living entity not follow you."""
+    if len(parsed.args) < 1:
+        raise ParseError("You need to specify the entity to follow you")
+    try:
+        entity = str(parsed.args[0])
+    except ValueError as x:
+        raise ActionRefused(str(x))
+    result = player.location.search_living(entity) # type: LivingNpc
+    if not result or not isinstance(result, LivingNpc):
+        raise ActionRefused("Not found")
+    if result.following is not player:
+        raise ActionRefused("Not following you")
+    result.following = None
+    player.tell("%s stops following you" % result.title)
+    result.tell("You stop following %s" % player.title)
     

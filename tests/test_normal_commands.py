@@ -132,3 +132,11 @@ class TestExamineCommand():
         location.init_inventory([self.test_player, test_npc])
         normal.do_request_follow(self.test_player, ParseResult(verb='request_follow', args=['test_npc', 'to infinity, and beyond']), self.context)
         assert test_npc.notify_action
+
+    def test_unfollow(self):
+        test_npc = LivingNpc('test_npc', 'f')
+        test_npc.following = self.test_player
+        location = Location('test_room')
+        location.init_inventory([self.test_player, test_npc])
+        normal.do_unfollow(self.test_player, ParseResult(verb='unfollow', args=['test_npc']), self.context)
+        assert not test_npc.following

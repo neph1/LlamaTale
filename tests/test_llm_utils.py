@@ -159,10 +159,10 @@ class TestLlmUtils():
         assert self.llm_util._image_gen.__class__ == Automatic1111().__class__
 
     def test_request_follow_true(self):
-        self.llm_util._character.io_util.response = '{"follow":"yes", "reason":"test reason"}'
+        self.llm_util._character.io_util.response = '{"response":"yes", "reason":"test reason"}'
         location = Location(name='Test Location')
         follow_context = FollowContext(story_context='test context', story_type='test type', character_name='Norhardt', character_card='{}', event_history='{}', location=location, asker_name='Arto', asker_card='{}', asker_reason='{}')
-        result = self.llm_util.request_follow(follow_context) # type: FollowResponse
+        result = self.llm_util._character.request_follow(follow_context) # type: FollowResponse
         assert(result.follow == True)
         assert(result.reason == 'test reason')
 

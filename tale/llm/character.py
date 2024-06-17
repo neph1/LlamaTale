@@ -186,6 +186,8 @@ class CharacterBuilding():
                                                     follow_template=self.follow_template,
                                                     target_reason=follow_context.asker_reason)
         request_body = deepcopy(self.default_body)
+        if self.json_grammar_key:
+            request_body[self.json_grammar_key] = self.json_grammar
         text = self.io_util.synchronous_request(request_body, prompt=prompt)
         if not text:
             return None

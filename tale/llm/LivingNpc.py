@@ -92,23 +92,22 @@ class LivingNpc(Living):
             target = self.location.search_living(parsed.who_1) if parsed.who_1 else None
             if target:
                 self.start_attack(target)
-        elif parsed.verb == 'request_follow' and targeted:
-            result = mud_context.driver.llm_util.request_follow(FollowContext(story_context='follow', 
-                                                                                    story_type='follow', 
-                                                                                    character_name=self.title, 
-                                                                                    character_card=self.character_card, 
-                                                                                    event_history=llm_cache.get_events(self._observed_events), 
-                                                                                    location=self.location,
-                                                                                    asker_name=actor.title,
-                                                                                    asker_card=actor.short_description,
-                                                                                    asker_reason=parsed.args[0])) # type: FollowResponse
+        elif parsed.verb == 'request_to_follow' and targeted:
+            result = mud_context.driver.llm_util.request_follow(actor=actor,
+                                                                character_name=self.title, 
+                                                                character_card=self.character_card, 
+                                                                event_history=llm_cache.get_events(self._observed_events), 
+                                                                location=self.location,
+                                                                asker_reason=parsed.args[0]) # type: FollowResponse
             if result:
                 if result.follow:
                     self.following = actor
-                    actor.tell(f"{self.title} starts following you.")
+                    actor.tell(f"{self.title} starts following you.", evoke=False)
                 if result.reason:
-                    actor.tell(result.reason)
-
+                    response = '{actor.title} says: "{response}"'.format(actor=self, response=("Yes. " if result.follow else "No. ") + result.reason)
+                    tell_hash = llm_cache.cache_event(response)
+                    self._observed_events.append(tell_hash)
+                    actor.tell(response, evoke=False)
                 
         else:
             event_hash = llm_cache.cache_event(unpad_text(parsed.unparsed))
