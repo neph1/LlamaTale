@@ -12,6 +12,7 @@ from tale.llm.contexts.ActionContext import ActionContext
 from tale.llm.contexts.CharacterContext import CharacterContext
 from tale.llm.contexts.DungeonLocationsContext import DungeonLocationsContext
 from tale.llm.contexts.EvokeContext import EvokeContext
+from tale.llm.contexts.FollowContext import FollowContext
 from tale.llm.contexts.WorldGenerationContext import WorldGenerationContext
 from tale.llm.llm_ext import DynamicStory
 from tale.llm.llm_io import IoUtil
@@ -280,6 +281,16 @@ class LlmUtil():
                                        actions=self.action_list)
         return self._character.free_form_action(action_context)
 
+    def request_follow(self, actor: MudObject, character_name: str, character_card: str, event_history: str, location: Location, asker_reason: str):
+        return self._character.request_follow(FollowContext(story_context=self.__story_context,
+                                        story_type=self.__story_type,
+                                        character_name=character_name,
+                                        character_card=character_card,
+                                        event_history=event_history,
+                                        location=location,
+                                        asker_name=actor.title,
+                                        asker_card=actor.short_description,
+                                        asker_reason=asker_reason))
   
     def set_story(self, story: DynamicStory):
         """ Set the story object."""

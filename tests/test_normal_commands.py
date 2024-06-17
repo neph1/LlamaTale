@@ -125,3 +125,19 @@ class TestExamineCommand():
         parse_result = ParseResult(verb='unwield', args=['test sword'])
         normal.do_unwield(self.test_player, parse_result, self.context)
         assert self.test_player.wielding != item
+
+    def test_request_follow(self):
+        self.io_util.set_response('{"response":"no"')
+        test_npc = LivingNpc('test_npc', 'f')
+        location = Location('test_room')
+        location.init_inventory([self.test_player, test_npc])
+        normal.do_request_follow(self.test_player, ParseResult(verb='request_follow', args=['test_npc', 'to infinity, and beyond']), self.context)
+        assert test_npc.notify_action
+
+    def test_unfollow(self):
+        test_npc = LivingNpc('test_npc', 'f')
+        test_npc.following = self.test_player
+        location = Location('test_room')
+        location.init_inventory([self.test_player, test_npc])
+        normal.do_unfollow(self.test_player, ParseResult(verb='unfollow', args=['test_npc']), self.context)
+        assert not test_npc.following

@@ -4,6 +4,7 @@ from tale.base import Location
 from tale.llm.contexts.ActionContext import ActionContext
 from tale.llm.contexts.DungeonLocationsContext import DungeonLocationsContext
 from tale.llm.contexts.EvokeContext import EvokeContext
+from tale.llm.contexts.FollowContext import FollowContext
 from tale.llm.contexts.WorldGenerationContext import WorldGenerationContext
 
 
@@ -72,3 +73,35 @@ class TestPromptContexts():
         assert "say" in result
 
 
+    def test_follow_context(self):
+        story_context = "test_context"
+        story_type = "test type"
+        character_name = "Test character"
+        character_card = "{actions}"
+        history = "[history]"
+        location = Location("TestLocation", descr="Test description")
+        asker_name = "Asker"
+        asker_card = "{actions}"
+        asker_reason = "Asker reason"
+        follow_context = FollowContext(story_context=story_context,
+                                       story_type=story_type,
+                                       character_name=character_name,
+                                       character_card=character_card,
+                                       event_history=history,
+                                       location=location,
+                                       asker_name=asker_name,
+                                       asker_card=asker_card,
+                                       asker_reason=asker_reason)
+        
+        result = follow_context.to_prompt_string()
+
+        assert asker_name in result
+        assert asker_card in result
+        assert asker_reason not in result
+        assert character_name in result
+        assert character_card in result
+        assert history in result
+        assert location.name in result
+        assert location.description in result
+        assert story_context in result
+        assert story_type in result

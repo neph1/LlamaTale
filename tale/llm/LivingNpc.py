@@ -1,3 +1,4 @@
+from tale.llm.contexts.FollowContext import FollowContext
 from tale.llm.item_handling_result import ItemHandlingResult
 from tale.llm import llm_config
 import tale.llm.llm_cache as llm_cache
@@ -5,6 +6,7 @@ from tale import lang, mud_context
 from tale.base import ContainingType, Living, ParseResult
 from tale.errors import LlmResponseException
 from tale.llm.responses.ActionResponse import ActionResponse
+from tale.llm.responses.FollowResponse import FollowResponse
 from tale.player import Player
 
 
@@ -90,6 +92,23 @@ class LivingNpc(Living):
             target = self.location.search_living(parsed.who_1) if parsed.who_1 else None
             if target:
                 self.start_attack(target)
+        elif parsed.verb == 'request_to_follow' and targeted:
+            result = mud_context.driver.llm_util.request_follow(actor=actor,
+                                                                character_name=self.title, 
+                                                                character_card=self.character_card, 
+                                                                event_history=llm_cache.get_events(self._observed_events), 
+                                                                location=self.location,
+                                                                asker_reason=parsed.args[0]) # type: FollowResponse
+            if result:
+                if result.follow:
+                    self.following = actor
+                    actor.tell(f"{self.title} starts following you.", evoke=False)
+                if result.reason:
+                    response = '{actor.title} says: "{response}"'.format(actor=self, response=("Yes. " if result.follow else "No. ") + result.reason)
+                    tell_hash = llm_cache.cache_event(response)
+                    self._observed_events.append(tell_hash)
+                    actor.tell(response, evoke=False)
+                
         else:
             event_hash = llm_cache.cache_event(unpad_text(parsed.unparsed))
             self._observed_events.append(event_hash)
