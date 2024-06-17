@@ -280,6 +280,8 @@ class LlmUtil():
                                        actions=self.action_list)
         return self._character.free_form_action(action_context)
 
+    def request_follow(self, follow_context):
+        return self._character.request_follow(follow_context)
   
     def set_story(self, story: DynamicStory):
         """ Set the story object."""

@@ -11,9 +11,11 @@ from tale.errors import LlmResponseException
 from tale.llm import llm_config
 from tale.llm.contexts.ActionContext import ActionContext
 from tale.llm.contexts.CharacterContext import CharacterContext
+from tale.llm.contexts.FollowContext import FollowContext
 from tale.llm.llm_io import IoUtil
 from tale.llm.contexts.DialogueContext import DialogueContext
 from tale.llm.responses.ActionResponse import ActionResponse
+from tale.llm.responses.FollowResponse import FollowResponse
 from tale.load_character import CharacterV2
 
 
@@ -35,6 +37,8 @@ class CharacterBuilding():
         self.dialogue_template = llm_config.params['DIALOGUE_TEMPLATE']
         self.action_template = llm_config.params['ACTION_TEMPLATE']
         self.character_template = llm_config.params['CHARACTER_TEMPLATE']
+        self.request_follow_prompt = llm_config.params['REQUEST_FOLLOW_PROMPT']
+        self.follow_template = llm_config.params['FOLLOW_TEMPLATE']
 
     def generate_dialogue(self,
                           context: DialogueContext,
@@ -172,4 +176,18 @@ class CharacterBuilding():
             print('Failed to parse action ' + str(exc))
             print(text)
             return None
+        
+    def request_follow(self, follow_context: FollowContext) -> FollowResponse:
+        prompt = self.pre_prompt
+        prompt += self.request_follow_prompt.format(
+            context=follow_context.to_prompt_string(),
+            character_name=follow_context.character_name, 
+                                                    target=follow_context.asker_name, 
+                                                    follow_template=self.follow_template,
+                                                    target_reason=follow_context.asker_reason)
+        request_body = deepcopy(self.default_body)
+        text = self.io_util.synchronous_request(request_body, prompt=prompt)
+        if not text:
+            return None
+        return FollowResponse(json.loads(parse_utils.sanitize_json(text)))
         

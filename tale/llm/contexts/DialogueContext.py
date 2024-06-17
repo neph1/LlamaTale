@@ -19,7 +19,7 @@ class DialogueContext(BaseContext):
         self.speaker_name = speaker_name
         self.target_name = target_name
         self.target_description = target_description
-        self.conversation = conversation.replace('<break>', '\n')#llm_config.params['USER_END'] + '\n' + llm_config.params['USER_START'])
+        self.conversation = conversation.replace('<break>', '\n') # Added last in actual prompt
 
 
     def to_prompt_string(self) -> str:

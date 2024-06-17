@@ -5,6 +5,7 @@ import os
 import yaml
 from tale.image_gen.automatic1111 import Automatic1111
 from tale.llm.contexts.CharacterContext import CharacterContext
+from tale.llm.contexts.FollowContext import FollowContext
 from tale.llm.contexts.WorldGenerationContext import WorldGenerationContext
 import tale.llm.llm_cache as llm_cache
 from tale import mud_context, weapon_type
@@ -16,6 +17,7 @@ from tale.json_story import JsonStory
 from tale.llm.llm_io import IoUtil
 from tale.llm.llm_utils import LlmUtil
 from tale.llm.responses.ActionResponse import ActionResponse
+from tale.llm.responses.FollowResponse import FollowResponse
 from tale.npc_defs import StationaryMob
 from tale.races import UnarmedAttack
 from tale.util import MoneyFormatterFantasy
@@ -155,6 +157,14 @@ class TestLlmUtils():
     def test_init_image_gen(self):
         self.llm_util._init_image_gen("Automatic1111")
         assert self.llm_util._image_gen.__class__ == Automatic1111().__class__
+
+    def test_request_follow_true(self):
+        self.llm_util._character.io_util.response = '{"follow":"yes", "reason":"test reason"}'
+        location = Location(name='Test Location')
+        follow_context = FollowContext(story_context='test context', story_type='test type', character_name='Norhardt', character_card='{}', event_history='{}', location=location, asker_name='Arto', asker_card='{}', asker_reason='{}')
+        result = self.llm_util.request_follow(follow_context) # type: FollowResponse
+        assert(result.follow == True)
+        assert(result.reason == 'test reason')
 
 class TestWorldBuilding():
 
