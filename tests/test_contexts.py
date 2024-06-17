@@ -97,7 +97,7 @@ class TestPromptContexts():
 
         assert asker_name in result
         assert asker_card in result
-        assert asker_reason in result
+        assert asker_reason not in result
         assert character_name in result
         assert character_card in result
         assert history in result

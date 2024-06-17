@@ -127,6 +127,7 @@ class TestExamineCommand():
         assert self.test_player.wielding != item
 
     def test_request_follow(self):
+        self.io_util.set_response('{"response":"no"')
         test_npc = LivingNpc('test_npc', 'f')
         location = Location('test_room')
         location.init_inventory([self.test_player, test_npc])
