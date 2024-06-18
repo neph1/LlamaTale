@@ -5,6 +5,7 @@ Util class for combat related functions.
 """
 
 import random
+from typing import List, Tuple
 from tale import weapon_type
 import tale.base as base
 from tale.wearable import WearLocation, body_parts_for_bodytype
@@ -15,9 +16,9 @@ import random
 
 class Combat():
 
-    def __init__(self, attacker: 'base.Living', defender: 'base.Living', target_body_part: WearLocation = None) -> None:
-        self.attacker = attacker
-        self.defender = defender
+    def __init__(self, attackers: List['base.Living'], defenders: List['base.Living'], target_body_part: WearLocation = None) -> None:
+        self.attackers = attackers
+        self.defenders = defenders
         self.target_body_part = target_body_part
     
     def _calculate_attack_success(self, actor: 'base.Living') -> int:
@@ -83,37 +84,41 @@ class Combat():
         normalized_distribution = {location: probability / total_probability for location, probability in probability_distribution.items()}
         return normalized_distribution
     
-    def resolve_attack(self) -> (str, int, int):
+    def resolve_attack(self) -> str:
         """ Both attacker and defender attack each other once.
         They get a chance to block, unless it's a critical hit, 5/100.
         Returns a textual representation of the combat and the damage done to each actor.
         """
         texts = []
-        damage_to_defender = 0
-        damage_to_attacker = 0
         
-        text_result, damage_to_defender = self._round(self.attacker, self.defender)
-        texts.extend(text_result)
+        for attacker in self.attackers:
+            random_defender = random.choice(self.defenders)
+            text_result, damage_to_defender = self._round(attacker, random_defender)   
+            texts.extend(text_result)
+            random_defender.stats.hp -= damage_to_defender
+            if random_defender.stats.hp < 1:
+                texts.append(f'{random_defender.title} dies')
 
-        text_result, damage_to_attacker = self._round(self.defender, self.attacker)
-        texts.extend(text_result)
+        for defender in self.defenders:
+            random_attacker = random.choice(self.attackers)
+            text_result, damage_to_attacker = self._round(defender, random_attacker)
+            texts.extend(text_result)
 
-        if self.defender.stats.hp - damage_to_defender < 0:
-            texts.append(f'{self.defender.title} dies')
-        if self.attacker.stats.hp - damage_to_attacker < 0:
-            texts.append(f'{self.attacker.title} dies')
+            random_attacker.stats.hp -= damage_to_attacker
+            if random_attacker.stats.hp < 1:
+                texts.append(f'{random_attacker.title} dies')
             
-        return ', '.join(texts), damage_to_attacker, damage_to_defender
+        return ', '.join(texts)
     
-    def _round(self, actor1: 'base.Living', actor2: 'base.Living') -> ([str], int):
+    def _round(self, actor1: 'base.Living', actor2: 'base.Living') -> Tuple[List[str], int]:
         attack_result = self._calculate_attack_success(actor1)
         texts = []
         if attack_result < 0:
             if attack_result < -actor1.stats.get_weapon_skill(actor1.wielding.type) + 5:
-                texts.append(f'{actor1.title} performs a critical hit')
+                texts.append(f'{actor1.title} performs a critical hit on {actor2.title}')
                 block_result = 100
             else:
-                texts.append(f'{actor1.title} hits')
+                texts.append(f'{actor1.title} hits {actor2.title}')
                 block_result = self._calculate_block_success(actor1, actor2)
             
             if block_result < 0:
@@ -129,9 +134,9 @@ class Combat():
                     texts.append(f', {actor2.title} is unharmed')
                 return texts, damage_to_defender
         elif attack_result > 50:
-            texts.append(f'{actor1.title} misses completely')
+            texts.append(f'{actor1.title} misses {actor2.title} completely')
         elif attack_result > 25:
-            texts.append(f'{actor1.title} misses')
+            texts.append(f'{actor1.title} misses {actor2.title}')
         else:
-            texts.append(f'{actor1.title} barely misses')
+            texts.append(f'{actor1.title} barely misses {actor2.title}')
         return texts, 0

@@ -10,7 +10,6 @@ from tale.wearable import WearLocation
 from tests.supportstuff import FakeDriver
 from tale.wearable import WearLocation
 import tale.util as util
-from tests.test_mudobjects import PubsubCollector
 
 
 
@@ -22,18 +21,18 @@ class TestCombat():
         attacker = LivingNpc(name='attacker', gender='m', age=42, personality='A fierce fighter')
         defender = LivingNpc(name='defender', gender='f', age=37, personality='A fierce fighter')
 
-        combat = Combat(attacker, defender)
+        combat = Combat([attacker], [defender])
 
-        text, damage_to_attacker, damage_to_defender = combat.resolve_attack()
+        text = combat.resolve_attack()
 
-        self._assert_combat(attacker, defender, text, damage_to_attacker, damage_to_defender)
+        self._assert_combat(attacker, defender, text)
         
         attacker.stats.level = 10
         attacker.stats.set_weapon_skill(WeaponType.UNARMED, 100)
 
-        combat = Combat(attacker, defender)
+        combat = Combat([attacker], [defender])
 
-        text, damage_to_attacker, damage_to_defender = combat.resolve_attack()
+        text = combat.resolve_attack()
         assert('attacker hits' in text or 'attacker performs a critical hit' in text)
         assert('defender is injured' in text)
         assert('defender dies' in text)
@@ -48,10 +47,10 @@ class TestCombat():
         attacker.wielding = bow
         attacker.stats.set_weapon_skill(WeaponType.TWO_HANDED_RANGED, 100)
 
-        combat = Combat(attacker, defender)
+        combat = Combat([attacker], [defender])
 
-        text, damage_to_attacker, damage_to_defender = combat.resolve_attack()
-        assert(damage_to_defender > 0)
+        text = combat.resolve_attack()
+        assert(defender.stats.hp < defender.stats.max_hp)
         assert('defender is injured' in text)
         assert('defender dies' in text)
 
@@ -64,10 +63,10 @@ class TestCombat():
         defender.wielding = bow
         defender.stats.set_weapon_skill(WeaponType.TWO_HANDED_RANGED, 100)
 
-        combat = Combat(attacker, defender)
+        combat = Combat([attacker], [defender])
 
-        text, damage_to_attacker, damage_to_defender = combat.resolve_attack()
-        assert(damage_to_defender > 0)
+        text = combat.resolve_attack()
+        assert(defender.stats.hp < defender.stats.max_hp)
         assert('defender is injured' in text)
         assert('defender dies' in text)
         
@@ -90,13 +89,10 @@ class TestCombat():
         assert not bunny.alive
         assert(not remains)
 
-    def _assert_combat(self, attacker, defender, text, damage_to_attacker, damage_to_defender):
-        assert(damage_to_attacker >= 0)
-        assert(damage_to_defender >= 0)
-
-        if damage_to_attacker > 0:
+    def _assert_combat(self, attacker, defender, text):
+        if attacker.stats.hp < attacker.stats.max_hp:
             assert('attacker is injured' in text)
-        if damage_to_defender > 0:
+        if defender.stats.hp < defender.stats.max_hp:
             assert('defender is injured' in text)
         if attacker.stats.hp < 1:
             assert('attacker dies' in text)
@@ -113,8 +109,8 @@ class TestCombat():
         rat = LivingNpc(name='Giant Rat', gender='m', age=4, personality='Sneaky and nasty')
 
 
-        combat_prompt, msg = driver.prepare_combat_prompt(attacker=attacker, 
-                                                     defender=rat,
+        combat_prompt, msg = driver.prepare_combat_prompt(attackers=[attacker], 
+                                                     defenders=[rat],
                                                      attacker_msg='attacker hits',
                                                      combat_result='attacker hits',
                                                      location_title='the arena')
@@ -130,7 +126,7 @@ class TestCombat():
         attacker = LivingNpc(name='attacker', gender='f', age=37, personality='A fierce fighter')
         defender = LivingNpc(name='defender', gender='m', age=42, personality='A ranged fighter')
 
-        combat_context = CombatContext(attacker_name=attacker.name, attacker_health=attacker.stats.hp / attacker.stats.max_hp, attacker_weapon=attacker.wielding.name, defender_name=defender.name, defender_health=defender.stats.hp / defender.stats.max_hp, defender_weapon=defender.wielding.name, location_description=location.description)
+        combat_context = CombatContext(attackers=[attacker], defenders=[defender], location_description=location.description)
 
         context_string = combat_context.to_prompt_string()
         assert location.description in context_string
@@ -175,7 +171,7 @@ class TestCombat():
         assert body_part != WearLocation.BACK
         assert body_part != WearLocation.HANDS
 
-    def test_resolbe_body_part_others(self):
+    def test_resolve_body_part_others(self):
         attacker = LivingNpc(name='attacker', gender='f', age=37, personality='A fierce fighter')
         defender = LivingNpc(name='giant rat', gender='m', age=2, personality='A squeeky fighter')
         combat = Combat(attacker, defender)
@@ -222,3 +218,23 @@ class TestCombat():
         assert parsed.args == ['giant rat', 'tail']
 
         assert parsed.args[1].upper() not in WearLocation.__members__
+
+    def test_resolve_attack_group(self):
+        
+        attacker = LivingNpc(name='attacker', gender='m', age=42, personality='A fierce fighter')
+        attacker2 = LivingNpc(name='attacker2', gender='m', age=42, personality='A fierce fighter')
+
+        attacker.stats.level = 10
+        attacker.stats.set_weapon_skill(WeaponType.UNARMED, 100)
+        attacker2.stats.level = 10
+        attacker2.stats.set_weapon_skill(WeaponType.UNARMED, 100)
+
+        defender = LivingNpc(name='defender', gender='f', age=37, personality='A fierce fighter')
+
+        combat = Combat(attackers=[attacker, attacker2], defenders=[defender])
+
+        text = combat.resolve_attack()
+
+        self._assert_combat(attacker, defender, text)
+        assert('attacker hits' in text or 'attacker performs a critical hit' in text)
+        assert('attacker2 hits' in text or 'attacker2 performs a critical hit' in text)

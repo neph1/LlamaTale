@@ -88,10 +88,6 @@ class LivingNpc(Living):
             self._observed_events.append(event_hash)
             # TODO: should llm decide sentiment?
             self.sentiments[actor.title] = 'hostile'
-        elif parsed.verb == 'attack' and self.following == actor:
-            target = self.location.search_living(parsed.who_1) if parsed.who_1 else None
-            if target:
-                self.start_attack(target)
         elif parsed.verb == 'request_to_follow' and targeted:
             result = mud_context.driver.llm_util.request_follow(actor=actor,
                                                                 character_name=self.title, 

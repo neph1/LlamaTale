@@ -885,29 +885,32 @@ class Driver(pubsub.Listener):
         return int(hours), int(minutes), int(seconds)
     
     def prepare_combat_prompt(self, 
-                              attacker: base.Living, 
-                              defender: base.Living, 
+                              attackers: List[base.Living], 
+                              defenders: List[base.Living], 
                               location_title: str,
                               combat_result: str,
                               attacker_msg: str):
         """ TODO: A bad work around. Need to find a better way to do this."""
+        attacker_names = []
+        defender_titles = []
+        for attacker in attackers:
+            attacker_title = lang.capital(attacker.title)
+            if isinstance(attacker, player.Player):
+                attacker_title = attacker_title + " (title as 'You')"
+            attacker_names.append(attacker_title)
 
-        attacker_name = lang.capital(attacker.title)
-        victim_name = lang.capital(defender.title)
-
-        if isinstance(self, player.Player):
-            attacker_msg.replace(attacker_name, "you")
-            attacker_name += " (as 'You')"
-        if isinstance(defender, player.Player):
-            attacker_msg.replace(victim_name, "you")
-            victim_name += " (as 'You')"
+        for defender in defenders:
+            defender_title = defender.title
+            if isinstance(defender, player.Player):
+                defender_title = defender_title + " (title as 'You')"
+            defender_titles.append(defender_title)
         
 
-        return self.llm_util.combat_prompt.format(attacker=attacker_name, 
-                                                    victim=victim_name,
+        return self.llm_util.combat_prompt.format(attackers=attacker_names, 
+                                                    defenders=defender_titles,
                                                     location=location_title,
                                                     input_text=combat_result,
-                                                    context=''), attacker_msg
+                                                    context=self.story.config.context if self.story else ''), attacker_msg
 
     def build_location(self, targetLocation: base.Location, zone: Zone, player: player.Player):
         dynamic_story = typing.cast(DynamicStory, self.story)
