@@ -896,13 +896,13 @@ class Driver(pubsub.Listener):
         for attacker in attackers:
             attacker_title = lang.capital(attacker.title)
             if isinstance(attacker, player.Player):
-                attacker_title = attacker_title + " (title as 'You')"
+                attacker_title = attacker_title + " (as 'You')"
             attacker_names.append(attacker_title)
 
         for defender in defenders:
             defender_title = defender.title
             if isinstance(defender, player.Player):
-                defender_title = defender_title + " (title as 'You')"
+                defender_title = defender_title + " (as 'You')"
             defender_titles.append(defender_title)
         
 
