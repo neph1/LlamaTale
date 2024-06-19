@@ -1,14 +1,18 @@
+from typing import List
+
+from tale import base
 class CombatContext():
 
-    def __init__(self, attacker_name: str, attacker_health: float, attacker_weapon: str, defender_name: str, defender_health: float, defender_weapon: str, location_description: str) -> None:
-        self.victim_info = {"name": defender_name, 
-                       "health": defender_health, 
-                       "weapon": defender_weapon}
-
-        self.attacker_info = {"name": attacker_name, 
-                         "health": attacker_health, 
-                         "weapon": attacker_weapon}
+    def __init__(self, attackers: List['base.Living'], defenders: List['base.Living'], location_description: str) -> None:
+        self.attackers = attackers
+        self.defenders = defenders
         self.location_description = location_description
 
     def to_prompt_string(self) -> str:
-        return f"Attacker: {self.attacker_info['name']} ({self.attacker_info['health']}); Defender: {self.victim_info['name']} ({self.victim_info['health']}); Location: {self.location_description}"
+        attackers_info = []
+        for attacker in self.attackers:
+            attackers_info.append(f"{attacker.name}: Health:({str(attacker.stats.hp / attacker.stats.max_hp)}). Weapon: {attacker.wielding.name}.")
+        defenders_info = []
+        for defender in self.defenders:
+            defenders_info.append(f"{defender.name}: Health:({str(defender.stats.hp / defender.stats.max_hp)}). Weapon: {defender.wielding.name}.")
+        return f"Attackers: {attackers_info}; Defenders: {defenders_info}; Location: {self.location_description}."

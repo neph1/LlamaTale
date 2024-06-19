@@ -1423,26 +1423,30 @@ class Living(MudObject):
         """Starts attacking the given living for one round."""
         attacker_name = lang.capital(self.title)
         victim_name = lang.capital(defender.title)
-        c = combat.Combat(self, defender, target_body_part=target_body_part)
-        result, damage_to_attacker, damage_to_defender = c.resolve_attack()
+        attackers = [self]
+        defenders = [defender]
+        for living in defender.location.livings:
+            if living.following is self:
+                attackers.append(living)
+            elif living.following is defender:
+                defenders.append(living)
+
+        c = combat.Combat(attackers, defenders, target_body_part=target_body_part)
+        result = c.resolve_attack()
         
         room_msg = "%s attacks %s! %s" % (attacker_name, victim_name, result)
         victim_msg = "%s attacks you. %s" % (attacker_name, result)
         attacker_msg = "You attack %s! %s" % (victim_name, result)
         #victim.tell(victim_msg, evoke=True, short_len=False)
 
-        combat_prompt, attacker_msg = mud_context.driver.prepare_combat_prompt(attacker=self, 
-                              defender=defender, 
+        combat_prompt, attacker_msg = mud_context.driver.prepare_combat_prompt(attackers=attackers, 
+                              defenders=defenders, 
                               location_title = self.location.title,
                               combat_result = result,
                               attacker_msg = attacker_msg)
         
-        combat_context = CombatContext(attacker_name=self.name,
-                                        attacker_health=self.stats.hp / self.stats.max_hp, 
-                                        attacker_weapon=self.wielding.name, 
-                                        defender_name=defender.name, 
-                                        defender_health=defender.stats.hp / defender.stats.max_hp, 
-                                        defender_weapon=defender.wielding.name, 
+        combat_context = CombatContext(attackers=attackers, 
+                                        defenders=defenders, 
                                         location_description=self.location.description)
 
         defender.location.tell(room_msg,
@@ -1450,12 +1454,12 @@ class Living(MudObject):
                              short_len=False,
                              alt_prompt=combat_prompt,
                              extra_context=combat_context.to_prompt_string())
-        self.stats.hp -= damage_to_attacker
-        defender.stats.hp -= damage_to_defender
-        if self.stats.hp < 1:
-            mud_context.driver.defer(0.1, self.do_on_death)
-        if defender.stats.hp < 1:
-            mud_context.driver.defer(0.1, defender.do_on_death)
+        for attacker in attackers:
+            if attacker.stats.hp < 1:
+                mud_context.driver.defer(0.1, attacker.do_on_death)
+        for defender in defenders:
+            if defender.stats.hp < 1:
+                mud_context.driver.defer(0.1, defender.do_on_death)
         return c
 
     def allow_give_money(self, amount: float, actor: Optional['Living']) -> None:
