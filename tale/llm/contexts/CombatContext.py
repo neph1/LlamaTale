@@ -1,6 +1,6 @@
 from typing import List
 
-
+from tale import base
 class CombatContext():
 
     def __init__(self, attackers: List['base.Living'], defenders: List['base.Living'], location_description: str) -> None:
