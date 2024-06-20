@@ -69,16 +69,26 @@ function process_text(json)
                 inputfield.type = "password";       // may not work in all browsers...
                 inputfield.style.color = "gray";
             }
-                    }
+        }
         if(json["text"]) {
             document.getElementById("player-location").innerHTML = json["location"];
             txtdiv.innerHTML += json["text"];
             if(!document.smoothscrolling_busy) smoothscroll(txtdiv, 0);
             if (json.hasOwnProperty("npcs")) {
-                let npcs = json["npcs"];
+                const npcs = json["npcs"];
                 populateNpcDropdown(npcs);
-                document.getElementById('npcs-in-location').innerHTML = npcs;
-                            }
+                populateNpcImages(npcs);
+                
+                const npcsArray = npcs.split(',');
+                let npcConcat = '';
+                for (let i = 0; i < npcsArray.length; i++) {
+                    const npcContainer = document.createElement('div'); // Create a container div for each NPC
+                    const npcName = npcsArray[i].trim();
+                    npcContainer.appendChild(document.createTextNode(npcName));
+                    npcConcat += npcContainer.outerHTML;
+                }
+                document.getElementById('npcs-in-location').innerHTML = npcConcat;
+            }
             if(json.hasOwnProperty("items")) {
                 document.getElementById('items-in-location').innerHTML = json["items"];
             }
@@ -115,9 +125,6 @@ function smoothscroll(div, previousTop)
 function submit_cmd()
 {
     var cmd_input = document.getElementById("input-cmd");
-    var ajax = new XMLHttpRequest();
-    ajax.open("POST", "input", true);
-    ajax.setRequestHeader("Content-type","application/x-www-form-urlencoded; charset=UTF-8");
     var selectedNpc = document.getElementById('npc-dropdown').value;
     var npcAddress = '';
     var selectedAction = document.getElementById('action-dropdown').value;
@@ -131,14 +138,23 @@ function submit_cmd()
             npcAddress = ' ' + selectedNpc;
         }
     }
-    var encoded_cmd = encodeURIComponent(cmd_input.value + npcAddress);
-    console.log("Sending command: " + encoded_cmd);
-    ajax.send("cmd=" + encoded_cmd);
+    send_cmd(cmd_input.value, npcAddress);
     cmd_input.value="";
     cmd_input.focus();
     cmd_input.type = "text";
     cmd_input.style.color = "black";
+
     return false;
+}
+
+function send_cmd(command, npcAddress) {
+    var ajax = new XMLHttpRequest();
+    ajax.open("POST", "input", true);
+    ajax.setRequestHeader("Content-type","application/x-www-form-urlencoded; charset=UTF-8");
+
+    var encoded_cmd = encodeURIComponent(command + npcAddress);
+    console.log("Sending command: " + encoded_cmd);
+    ajax.send("cmd=" + encoded_cmd);
 }
 
 function autocomplete_cmd()
@@ -242,53 +258,43 @@ function populateActionDropdown() {
 }
 
 function populateNpcImages(csvString) {
-    let npcsArray = csvString.split(',');
-    // for (let i=0; i < 4; i++) {
-    //     var npcImage = document.getElementById('npc-image' + i);
-    //     npcImage.src = '';
-    //     npcImage.classList.toggle('hidden');
-    // }
+    let npcsArray = csvString.split(','); // names of npcs, separated by commas
     if (npcsArray.length < 4) {
-        // make sure npcsArray has 4 elements
         for (let i = npcsArray.length; i < 4; i++) {
             npcsArray.push('');
         }
     }
+
     for (let i = 0; i < 4; i++) {
+        npcsArray[i] = npcsArray[i].toLowerCase().replace(/ /g, '_');
+    }
+
+    for (let i = 0; i < 4; i++) {
+        let name = npcsArray[i];
         var npcImage = document.getElementById('npc-image' + i);
-        if (npcImage.src !== '' && !(npcImage.src in npcsArray)) {
+
+        if (!npcImage) continue; // Ensure the element exists
+
+        if (name === '') {
             npcImage.src = '';
-        }
-    }
-    let max_length = Math.min(4, npcsArray.length)
-    for (let i = 0; i < max_length; i++) {
-        let npc = npcsArray[i].trim();
-        var npcImage = document.getElementById('npc-image' + i);
-        if (npc === '') {
-            continue;
-        }
-        let name = npc.toLowerCase().replace(/ /g, '_');
-        // checkImageExistence(name, function(exists, imageUrl) {
-        //     if (exists) {
-        //         npcImage.src = imageUrl;
-        //     } else {
-        //         console.log('Image does not exist');
-        //     }
-        // });
-        npcImage.src = 'static/resources/' + name + '.jpg';
-        npcImage.alt=npc;
-        npcImage.classList.toggle('visible');
-        
-        npcImage.onerror = function() {
-            // Handle image not found
-            console.log('Image not found for NPC: ' + npc);
-            npcImage.classList.toggle('hidden');
-        };
-    }
-    for (let i = 0; i < 4; i++) {
-        var npcImage = document.getElementById('npc-image' + i);
-        if (npcImage.src === '') {
-            npcImage.classList.toggle('hidden');
+            npcImage.alt = '';
+            npcImage.classList.remove('visible');
+            npcImage.classList.add('hidden');
+            console.log('hiding image for ' + i);
+        } else {
+            npcImage.src = 'static/resources/' + name + '.jpg';
+            npcImage.alt = name;
+            npcImage.classList.add('visible');
+            npcImage.classList.remove('hidden');
+            console.log('Found image for npc ' + name);
+
+            npcImage.onerror = function() {
+                console.log('Image not found for NPC: ' + name);
+                npcImage.src = '';
+                npcImage.alt = '';
+                npcImage.classList.remove('visible');
+                npcImage.classList.add('hidden');
+            };
         }
     }
 }

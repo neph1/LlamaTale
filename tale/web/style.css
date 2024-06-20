@@ -232,7 +232,6 @@ p, pre {
 .npc-image {
     width: 96px;
     height: auto;
-    opacity: 0;
     transition: opacity 1s ease;
     margin: 10px;
     border-radius: 10px;
@@ -240,4 +239,21 @@ p, pre {
 
 .npc-image.visible {
     opacity: 1;
+}
+
+.npc-image.invisible {
+    opacity: 0;
+}
+
+.attack-button {
+    background: #f00;
+    width: 16px;
+    height: 16px;
+    border-radius: 2px;
+    cursor: pointer;
+}
+
+.npc-container {
+    display: flex;
+    flex-wrap: wrap;
 }
