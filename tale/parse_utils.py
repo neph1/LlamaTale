@@ -269,7 +269,7 @@ def save_story_config(config: StoryConfig) -> dict:
     json_file['context'] = config.context
     json_file['custom_resources'] = config.custom_resources
     json_file['image_gen'] = config.image_gen
-    json_file['epoch'] = config.epoch.timestamp() if config.epoch else None
+    json_file['epoch'] = config.epoch
     json_file['day_night'] = config.day_night
     return json_file
 
