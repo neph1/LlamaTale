@@ -37,7 +37,6 @@ class LivingNpc(Living):
         self.example_voice = '' # type: str
         self.autonomous = False
         self.output_thoughts = False
-        self.last_reaction_time = None
 
     def notify_action(self, parsed: ParseResult, actor: Living) -> None:
         # store even our own events.
@@ -64,10 +63,6 @@ class LivingNpc(Living):
         elif (targeted and parsed.verb == "idle-action") or parsed.verb == "location-event":
             event_hash = llm_cache.cache_event(unpad_text(parsed.unparsed))
             self._observed_events.append(event_hash)
-            if self.last_reaction_time and mud_context.driver.game_clock.clock == self.last_reaction_time:
-                # only react once per tick
-                return
-            self.last_reaction_time = mud_context.driver.game_clock.clock
             self._do_react(parsed, actor)
         elif targeted and parsed.verb == "give":
             parsed_split = parsed.unparsed.split(" to ")
@@ -162,7 +157,7 @@ class LivingNpc(Living):
                                             sentiment=self.sentiments.get(actor.name, '') if actor else '')
         if action:
             self.action_history.append(action)
-            self._defer_result(action, verb='idle-action')
+            self._defer_result(action, verb='reaction')
 
     def handle_item_result(self, result: ItemHandlingResult, actor: Living) -> bool:
         if result.to == self.title:
