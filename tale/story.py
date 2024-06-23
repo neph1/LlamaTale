@@ -78,6 +78,7 @@ class StoryConfig:
         self.world_mood = 0                  # how safe is the world? 5 is a happy place, -5 is nightmare mode.
         self.custom_resources = False        # type: bool # does this story use custom resources?
         self.image_gen = None                # image generator to use for the story, or None
+        self.day_night = False               # does this story have a day/night cycle?
         
     def __eq__(self, other: Any) -> bool:
         return isinstance(other, StoryConfig) and vars(self) == vars(other)

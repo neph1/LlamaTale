@@ -315,7 +315,6 @@ class Driver(pubsub.Listener):
             self.story.config.gametime_to_realtime = 1
         assert self.story.config.server_tick_time > 0
         assert self.story.config.max_wait_hours >= 0
-        self.game_clock = util.GameDateTime(self.story.config.epoch or self.server_started, self.story.config.gametime_to_realtime)
         # convert textual exit strings to actual exit object bindings
         for x in self.unbound_exits:
             x._bind_target(self.zones)

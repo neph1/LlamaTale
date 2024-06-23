@@ -19,7 +19,9 @@ from tale.llm.llm_utils import LlmUtil
 from tale.llm.responses.ActionResponse import ActionResponse
 from tale.llm.responses.FollowResponse import FollowResponse
 from tale.npc_defs import StationaryMob
+from tale.player import Player, PlayerConnection
 from tale.races import UnarmedAttack
+from tale.tio.console_io import ConsoleIo
 from tale.util import MoneyFormatterFantasy
 from tale.zone import Zone
 from tests.supportstuff import FakeIoUtil
@@ -165,6 +167,18 @@ class TestLlmUtils():
         result = self.llm_util._character.request_follow(follow_context) # type: FollowResponse
         assert(result.follow == True)
         assert(result.reason == 'test reason')
+
+    def test_describe_day_cycle_transition(self):
+        player = Player("test_player", "m")
+        location = Location(name='Test Location')
+        location.init_inventory([player])
+        pc = PlayerConnection(player, ConsoleIo(None))
+        self.llm_util.io_util.response = 'shadows lengthen as the sun dips below the horizon, casting a golden glow over the landscape. The air grows cooler, and the sounds of nocturnal creatures begin to fill the night.'
+        self.llm_util.set_story(self.story)
+        result = self.llm_util.describe_day_cycle_transition(pc, 'day', 'dusk')
+        assert(result.startswith('shadows lengthen'))
+        assert('shadows lengthen' in pc.get_output())
+
 
 class TestWorldBuilding():
 

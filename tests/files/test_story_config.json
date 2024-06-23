@@ -18,7 +18,7 @@
     "max_wait_hours":2              ,
     "display_gametime":false        ,
     "display_race":false            ,
-    "epoch":null                    ,
+    "epoch":0                       ,
     "startlocation_player":""       ,
     "startlocation_wizard":""       ,
     "savegames_enabled":true        ,
