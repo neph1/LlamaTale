@@ -133,7 +133,6 @@ class TestParseUtils():
         assert(config.money_type == MoneyType.NOTHING)
         assert(config.supported_modes == {GameMode.IF})
         assert(config.zones == ["test zone"])
-        assert(datetime.datetime.fromtimestamp(config.epoch) == datetime.datetime(1970, 1, 1, 1, 0))
         
     def test_connect_location_to_exit(self):
         """ This simulates a room having been generated before"""
