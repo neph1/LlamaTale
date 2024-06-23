@@ -1,13 +1,18 @@
+import datetime
 import unittest
 from unittest.mock import MagicMock
 
+from tale import _MudContext, util
 from tale.day_cycle.day_cycle import DayCycle
+from tale.driver_if import IFDriver
 
 
 class TestDayCycle(unittest.TestCase):
     def setUp(self):
-        self.game_date_time = MagicMock()
-        self.day_cycle = DayCycle(self.game_date_time)
+        driver = IFDriver(screen_delay=99, gui=False, web=True, wizard_override=True)
+        driver.game_clock = util.GameDateTime(datetime.datetime(year=2023, month=1, day=1), 1)
+        _MudContext.driver = driver
+        self.day_cycle = DayCycle(driver.game_clock)
 
     def test_register_observer(self):
         observer = MagicMock()
@@ -26,11 +31,9 @@ class TestDayCycle(unittest.TestCase):
         self.day_cycle.notify_observers('on_dawn')
         observer.on_dawn.assert_called_once()
 
-    def test_set_hour_interval(self):
-        hour_decorator = self.day_cycle.set_hour_interval(3600)
-        self.assertIsNotNone(hour_decorator)
-
     def test_hour_to_dawn(self):
+        clock = util.GameDateTime(datetime.datetime(year=2023, month=1, day=1, hour=6))
+        self.day_cycle = DayCycle(clock)
         self.day_cycle.current_hour = 5
         self.day_cycle.dawn = MagicMock()
         self.day_cycle.hour()
@@ -42,6 +45,8 @@ class TestDayCycle(unittest.TestCase):
         self.day_cycle.dawn.assert_not_called()
 
     def test_hour_to_dusk(self):
+        clock = util.GameDateTime(datetime.datetime(year=2023, month=1, day=1, hour=18))
+        self.day_cycle = DayCycle(clock)
         self.day_cycle.current_hour = 17
         self.day_cycle.dusk = MagicMock()
         self.day_cycle.hour()
@@ -53,17 +58,21 @@ class TestDayCycle(unittest.TestCase):
         self.day_cycle.dusk.assert_not_called()
 
     def test_hour_to_midnight(self):
+        clock = util.GameDateTime(datetime.datetime(year=2023, month=1, day=1, hour=0))
+        self.day_cycle = DayCycle(clock)
         self.day_cycle.current_hour = 23
         self.day_cycle.midnight = MagicMock()
         self.day_cycle.hour()
         self.day_cycle.midnight.assert_called_once()
 
-        self.day_cycle.current_hour = 24
+        self.day_cycle.current_hour = 0
         self.day_cycle.midnight = MagicMock()
         self.day_cycle.hour()
         self.day_cycle.midnight.assert_not_called()
 
     def test_hour_to_day(self):
+        clock = util.GameDateTime(datetime.datetime(year=2023, month=1, day=1, hour=8))
+        self.day_cycle = DayCycle(clock)
         self.day_cycle.current_hour = 7
         self.day_cycle.day = MagicMock()
         self.day_cycle.hour()

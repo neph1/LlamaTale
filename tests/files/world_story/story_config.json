@@ -26,5 +26,6 @@
     "context": "",
     "type": "fantasy",
     "world_info": "test info",
-    "world_mood": 0
+    "world_mood": 0,
+    "epoch": 100
 }

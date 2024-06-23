@@ -40,7 +40,7 @@ class DayCycle:
             self.dawn()
         elif self.current_hour == 18:
             self.dusk()
-        elif self.current_hour == 24:
+        elif self.current_hour == 0:
             self.midnight()
         elif self.current_hour == 8:
             self.day()
