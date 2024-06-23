@@ -92,13 +92,19 @@ class LlmUtil():
 
         rolling_prompt = self.update_memory(rolling_prompt, message)
 
-        text_hash_value = llm_cache.generate_hash(message)
+        text_hash_value = llm_cache.generate_hash(message + extra_context)
 
         cached_look = llm_cache.get_looks([text_hash_value])
         if cached_look:
             return output_template.format(message=message, text=cached_look), rolling_prompt
         trimmed_message = parse_utils.remove_special_chars(str(message))
-        story_context = EvokeContext(story_context=self.__story_context, history=rolling_prompt if not (skip_history or alt_prompt) else '', extra_context=extra_context)
+        time_of_day = ''
+        if self.__story.config.day_night:
+            time_of_day = self.__story.day_cycle.time_of_day()
+        story_context = EvokeContext(story_context=self.__story_context, 
+                                        time_of_day=time_of_day,
+                                        history=rolling_prompt if not (skip_history or alt_prompt) else '', 
+                                        extra_context=extra_context)
         prompt = self.pre_prompt
         prompt += (alt_prompt or self.evoke_prompt).format(
             context = '{context}',

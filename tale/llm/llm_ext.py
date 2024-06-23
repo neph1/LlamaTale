@@ -44,7 +44,7 @@ class DynamicStory(StoryBase):
                 return location
     
     def find_zone(self, location: str) -> Zone:
-        """ Find a zone by location."""
+        """ Find a zone by location name."""
         for zone in self._zones.values():
             if zone.get_location(location):
                 return zone

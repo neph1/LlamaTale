@@ -35,53 +35,53 @@ class TestDayCycle(unittest.TestCase):
         clock = util.GameDateTime(datetime.datetime(year=2023, month=1, day=1, hour=6))
         self.day_cycle = DayCycle(clock)
         self.day_cycle.current_hour = 5
-        self.day_cycle.dawn = MagicMock()
         self.day_cycle.hour()
-        self.day_cycle.dawn.assert_called_once()
 
         self.day_cycle.current_hour = 6
         self.day_cycle.dawn = MagicMock()
         self.day_cycle.hour()
         self.day_cycle.dawn.assert_not_called()
 
+        assert self.day_cycle.time_of_day == 'Dawn'
+
     def test_hour_to_dusk(self):
         clock = util.GameDateTime(datetime.datetime(year=2023, month=1, day=1, hour=18))
         self.day_cycle = DayCycle(clock)
         self.day_cycle.current_hour = 17
-        self.day_cycle.dusk = MagicMock()
         self.day_cycle.hour()
-        self.day_cycle.dusk.assert_called_once()
 
         self.day_cycle.current_hour = 18
         self.day_cycle.dusk = MagicMock()
         self.day_cycle.hour()
         self.day_cycle.dusk.assert_not_called()
 
+        assert self.day_cycle.time_of_day == 'Dusk'
+
     def test_hour_to_midnight(self):
         clock = util.GameDateTime(datetime.datetime(year=2023, month=1, day=1, hour=0))
         self.day_cycle = DayCycle(clock)
         self.day_cycle.current_hour = 23
-        self.day_cycle.midnight = MagicMock()
         self.day_cycle.hour()
-        self.day_cycle.midnight.assert_called_once()
 
         self.day_cycle.current_hour = 0
         self.day_cycle.midnight = MagicMock()
         self.day_cycle.hour()
         self.day_cycle.midnight.assert_not_called()
 
+        assert self.day_cycle.time_of_day == 'Night'
+
     def test_hour_to_day(self):
         clock = util.GameDateTime(datetime.datetime(year=2023, month=1, day=1, hour=8))
         self.day_cycle = DayCycle(clock)
         self.day_cycle.current_hour = 7
-        self.day_cycle.day = MagicMock()
         self.day_cycle.hour()
-        self.day_cycle.day.assert_called_once()
 
         self.day_cycle.current_hour = 8
         self.day_cycle.day = MagicMock()
         self.day_cycle.hour()
         self.day_cycle.day.assert_not_called()
+
+        assert self.day_cycle.time_of_day == 'Day'
 
 if __name__ == '__main__':
     unittest.main()

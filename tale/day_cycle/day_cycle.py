@@ -1,5 +1,6 @@
 
 
+import enum
 from typing import List, Protocol
 from tale import mud_context
 from tale.util import GameDateTime, call_periodically
@@ -11,13 +12,19 @@ class DayCycleEventObserver(Protocol):
     def on_night(self): pass
     def on_midnight(self): pass
 
+class TimeOfDay(str, enum.Enum):
+    DAWN = 'Dawn'
+    DAY = 'Day'
+    DUSK = 'Dusk'
+    NIGHT = 'Night'
 class DayCycle:
-    
+
     def __init__(self, game_date_time: GameDateTime):
         self.game_date_time = game_date_time
         self.current_hour = game_date_time.clock.hour
         self.observers: List[DayCycleEventObserver] = []
         mud_context.driver.register_periodicals(self)
+        self._time_of_day = TimeOfDay.DAY
         
     def register_observer(self, observer: DayCycleEventObserver):
         self.observers.append(observer)
@@ -50,16 +57,25 @@ class DayCycle:
 
     def dawn(self):
         self.notify_observers('on_dawn')
+        self._time_of_day = TimeOfDay.DAWN
 
     def dusk(self):
         self.notify_observers('on_dusk')
+        self._time_of_day = TimeOfDay.DUSK
 
     def day(self):
         self.notify_observers('on_day')
+        self._time_of_day = TimeOfDay.DAY
 
     def night(self):
         self.notify_observers('on_night')
+        self._time_of_day = TimeOfDay.NIGHT
 
     def midnight(self):
         self.current_hour = 0
         self.notify_observers('on_midnight')
+        self._time_of_day = TimeOfDay.NIGHT
+
+    @property
+    def time_of_day(self):
+        return self._time_of_day
