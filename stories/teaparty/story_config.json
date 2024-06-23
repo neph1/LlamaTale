@@ -13,7 +13,7 @@
     "money_type": "NOTHING",
     "server_tick_method": "TIMER",
     "server_tick_time": 5.0,
-    "gametime_to_realtime": 1,
+    "gametime_to_realtime": 10,
     "display_gametime": false,
     "startlocation_player": "Mad Hatters House.Living room",
     "startlocation_wizard": "Mad Hatters House.Living room",
@@ -27,5 +27,6 @@
     "type": "A whimsical and humoristic tale of tea and madness. Guests are so busy with their own problems that it's difficult to make yourself heard.",
     "world_info": "",
     "world_mood": 0,
-    "custom_resources": true
+    "custom_resources": true,
+    "day_night": true
 }

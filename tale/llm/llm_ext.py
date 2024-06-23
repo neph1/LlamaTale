@@ -2,6 +2,7 @@ import json
 import os
 import random
 import shutil
+from typing import List
 from tale import parse_utils
 from tale.base import Item, Living, Location
 from tale.coord import Coord
@@ -61,13 +62,13 @@ class DynamicStory(StoryBase):
         for zone in self._zones:
             return self._zones[zone].add_location(location)
 
-    def races_for_zone(self, zone: str) -> [str]:
+    def races_for_zone(self, zone: str) -> List[str]:
         return self._zones[zone].races
    
-    def items_for_zone(self, zone: str) -> [str]:
+    def items_for_zone(self, zone: str) -> List[str]:
         return self._zones[zone].items
 
-    def zone_info(self, zone_name: str = '', location: str = '') -> dict():
+    def zone_info(self, zone_name: str = '', location: str = '') -> dict:
         if not zone_name and location:
             zone = self.find_zone(location)
         else:
@@ -125,6 +126,8 @@ class DynamicStory(StoryBase):
         with open(os.path.join(save_path, 'world.json'), "w") as fp:
             json.dump(story , fp, indent=4)
 
+        if self.driver:
+            self.config.epoch = self.driver.game_clock.clock.timestamp()
         with open(os.path.join(save_path, 'story_config.json'), "w") as fp:
             json.dump(parse_utils.save_story_config(self.config), fp, indent=4)
 
@@ -277,10 +280,10 @@ class Catalogue():
         self._creatures.append(creature)
         return True
     
-    def get_creatures(self) -> []:
+    def get_creatures(self) -> List[dict]:
         return self._creatures
     
-    def get_items(self) -> []:
+    def get_items(self) -> List[dict]:
         return self._items
     
     def get_item(self, name: str) -> dict:

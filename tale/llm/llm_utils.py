@@ -52,6 +52,7 @@ class LlmUtil():
         self.word_limit = llm_config.params['WORD_LIMIT']
         self.short_word_limit = llm_config.params['SHORT_WORD_LIMIT']
         self.story_background_prompt = llm_config.params['STORY_BACKGROUND_PROMPT'] # type: str
+        self.day_cycle_event_prompt = llm_config.params['DAY_CYCLE_EVENT_PROMPT'] # type: str
         self.__story = None # type: DynamicStory
         self.io_util = io_util or IoUtil(config=llm_config.params, backend_config=backend_config)
         self.stream = backend_config['STREAM']
@@ -291,6 +292,27 @@ class LlmUtil():
                                         asker_name=actor.title,
                                         asker_card=actor.short_description,
                                         asker_reason=asker_reason))
+    
+    def describe_day_cycle_transition(self, player: PlayerConnection, from_time: str, to_time: str) -> str:
+        prompt = self.pre_prompt
+        location = player.player.location
+        context = WorldGenerationContext(story_context=self.__story_context,
+                                        story_type=self.__story_type,
+                                        world_info=self.__world_info,
+                                        world_mood=self.__story.config.world_mood)
+        prompt += self.day_cycle_event_prompt.format(
+            context= '',
+            location_name=location.name,
+            from_time=from_time,
+            to_time=to_time)
+        request_body = deepcopy(self.default_body)
+
+        if not self.stream:
+            text = self.io_util.synchronous_request(request_body, prompt=prompt, context=context.to_prompt_string() + f'Location: {location.name, location.description};')
+            location.tell(text, evoke=False)
+            return text
+        text = self.io_util.stream_request(request_body=request_body, prompt=prompt, context=context.to_prompt_string() + f'Location: {location.name, location.description};', io=player)
+        return text
   
     def set_story(self, story: DynamicStory):
         """ Set the story object."""
