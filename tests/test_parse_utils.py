@@ -1,9 +1,11 @@
 import datetime
 import json
+from typing import List
 from tale import json_story, mud_context, util
 from tale.base import Exit, Living, Location, Weapon, Wearable
 from tale.coord import Coord
 from tale.driver_if import IFDriver
+from tale.item_spawner import ItemSpawner
 from tale.items.basic import Boxlike, Drink, Food, Health, Money
 from tale.mob_spawner import MobSpawner
 from tale.races import BodyType
@@ -434,7 +436,7 @@ class TestParseUtils():
             {'name': 'Gold', 'type': 'Money', 'value': 100}
         ]
 
-        spawners = parse_utils.load_item_spawners(json_spawners, zones, world_items) # type: list[ItemSpawner]
+        spawners = parse_utils.load_item_spawners(json_spawners, zones, world_items) # type: List[ItemSpawner]
 
         assert len(spawners) == 2
 

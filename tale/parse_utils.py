@@ -236,6 +236,7 @@ def load_story_config(json_file: dict):
     config.image_gen = json_file.get('image_gen', config.image_gen)
     config.epoch = json_file.get('epoch', config.epoch)
     config.day_night = json_file.get('day_night', config.day_night)
+    config.random_events = json_file.get('random_events', config.random_events)
     return config
 
 def save_story_config(config: StoryConfig) -> dict:
@@ -271,6 +272,7 @@ def save_story_config(config: StoryConfig) -> dict:
     json_file['image_gen'] = config.image_gen
     json_file['epoch'] = config.epoch
     json_file['day_night'] = config.day_night
+    json_file['random_events'] = config.random_events
     return json_file
 
 

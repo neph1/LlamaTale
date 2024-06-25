@@ -3,6 +3,7 @@
 import enum
 from typing import List, Protocol
 from tale import mud_context
+from tale.driver import Driver
 from tale.util import GameDateTime, call_periodically
 
 class DayCycleEventObserver(Protocol):
@@ -19,11 +20,12 @@ class TimeOfDay(str, enum.Enum):
     NIGHT = 'Night'
 class DayCycle:
 
-    def __init__(self, game_date_time: GameDateTime):
-        self.game_date_time = game_date_time
-        self.current_hour = game_date_time.clock.hour
+    def __init__(self, driver: Driver):
+        
+        self.game_date_time = driver.game_clock
+        self.current_hour = self.game_date_time.clock.hour
         self.observers: List[DayCycleEventObserver] = []
-        mud_context.driver.register_periodicals(self)
+        driver.register_periodicals(self)
         self._time_of_day = TimeOfDay.DAY
         
     def register_observer(self, observer: DayCycleEventObserver):

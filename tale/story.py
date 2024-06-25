@@ -79,6 +79,7 @@ class StoryConfig:
         self.custom_resources = False        # type: bool # does this story use custom resources?
         self.image_gen = None                # image generator to use for the story, or None
         self.day_night = False               # does this story have a day/night cycle?
+        self.random_events = False           # does this story have random events?
         
     def __eq__(self, other: Any) -> bool:
         return isinstance(other, StoryConfig) and vars(self) == vars(other)

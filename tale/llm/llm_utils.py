@@ -53,6 +53,7 @@ class LlmUtil():
         self.short_word_limit = llm_config.params['SHORT_WORD_LIMIT']
         self.story_background_prompt = llm_config.params['STORY_BACKGROUND_PROMPT'] # type: str
         self.day_cycle_event_prompt = llm_config.params['DAY_CYCLE_EVENT_PROMPT'] # type: str
+        self.narrative_event_prompt = llm_config.params['NARRATIVE_EVENT_PROMPT']
         self.__story = None # type: DynamicStory
         self.io_util = io_util or IoUtil(config=llm_config.params, backend_config=backend_config)
         self.stream = backend_config['STREAM']
@@ -318,6 +319,21 @@ class LlmUtil():
             location.tell(text, evoke=False)
             return text
         text = self.io_util.stream_request(request_body=request_body, prompt=prompt, context=context.to_prompt_string() + f'Location: {location.name, location.description};', io=player)
+        return text
+    
+    def generate_narrative_event(self, location: Location) -> str:
+        prompt = self.pre_prompt
+        context = WorldGenerationContext(story_context=self.__story_context,
+                                        story_type=self.__story_type,
+                                        world_info=self.__world_info,
+                                        world_mood=self.__story.config.world_mood)
+        prompt += self.narrative_event_prompt.format(
+            context= '',
+            location_name=location.name)
+        request_body = deepcopy(self.default_body)
+
+        text = self.io_util.synchronous_request(request_body, prompt=prompt, context=context.to_prompt_string() + f'Location: {location.name, location.description};')
+        location.tell(text, evoke=False)
         return text
   
     def set_story(self, story: DynamicStory):
