@@ -668,6 +668,7 @@ class Location(MudObject):
         self.built = True     # has this location been built yet? If not, LLM will describe it.
         self.generated = False # whether this location is LLM generated or not
         self.world_location = Coord() # the world location of this location
+        self.indoors = False  # is this location indoors?
 
     def __contains__(self, obj: Union['Living', Item]) -> bool:
         return obj in self.livings or obj in self.items
@@ -1217,7 +1218,7 @@ class Living(MudObject):
         """remember the previously parsed data, soul uses this to reference back to earlier items/livings"""
         self.soul.remember_previous_parse(self._previous_parse)
 
-    def do_socialize(self, cmdline: str, external_verbs: Set[str]=set()) -> None:
+    def do_socialize(self, cmdline: str, external_verbs: Set[str]=set(), evoke=True) -> None:
         """
         Perform a command line with a socialize/soul verb on the living's behalf.
         It only performs soul emotes, no custom command functions!
@@ -1230,7 +1231,7 @@ class Living(MudObject):
                 # emulate the say command (which is not an emote, but it's convenient to be able to use it as such)
                 verb, _, rest = cmdline.partition(" ")
                 rest = rest.strip()
-                self.tell_others("{Actor} says: " + rest)
+                self.tell_others("{Actor} says: " + rest, evoke=evoke)
             else:
                 raise
 
@@ -1246,7 +1247,7 @@ class Living(MudObject):
         """
         command_verbs = ctx.driver.current_verbs(self)
         try:
-            self.do_socialize(cmdline, command_verbs)
+            self.do_socialize(cmdline, command_verbs, evoke=False)
         except NonSoulVerb as nx:
             parsed = nx.parsed
             if parsed.verb in command_verbs:
