@@ -300,11 +300,11 @@ class LivingNpc(Living):
         else:
             action = f"{self.title} : {action}"
         self.deferred_actions.add(action)
-        self.tell_action_deferred()
+        self.tell_action_deferred(verb)
 
-    def tell_action_deferred(self):
+    def tell_action_deferred(self, verb: str):
         actions = '\n'.join(self.deferred_actions) + '\n'
-        deferred_action = ParseResult(verb='idle-action', unparsed=actions, who_info=None)
+        deferred_action = ParseResult(verb=verb, unparsed=actions, who_info=None)
         self.tell_others(actions)
         self.location._notify_action_all(deferred_action, actor=self)
         self.deferred_actions.clear()
