@@ -303,7 +303,8 @@ class LivingNpc(Living):
         self.tell_action_deferred(verb)
 
     def tell_action_deferred(self, verb: str):
-        actions = '\n'.join(self.deferred_actions) + '\n'
+        actions = '\n'.join(self.deferred_actions) + '\n\n'
+        actions = actions.replace('\n\n\n', '\n\n')
         deferred_action = ParseResult(verb=verb, unparsed=actions, who_info=None)
         self.tell_others(actions)
         self.location._notify_action_all(deferred_action, actor=self)

@@ -13,11 +13,13 @@ from tale.player import PlayerConnection
 
 class AbstractIoAdapter(ABC):
 
-    def __init__(self, url: str, stream_endpoint: str, user_start_prompt: str, user_end_prompt: str):
+    def __init__(self, url: str, stream_endpoint: str, user_start_prompt: str, user_end_prompt: str, system_start_prompt: str = '', prompt_end: str = ''):
         self.url = url
         self.stream_endpoint = stream_endpoint
+        self.system_start_prompt = system_start_prompt
         self.user_start_prompt = user_start_prompt
         self.user_end_prompt = user_end_prompt
+        self.prompt_end = prompt_end
 
     @abstractmethod
     def stream_request(self, request_body: dict, io = None, wait: bool = False) -> str:
@@ -37,9 +39,7 @@ class AbstractIoAdapter(ABC):
 
 class KoboldCppAdapter(AbstractIoAdapter):
 
-
-
-    def __init__(self, url: str, stream_endpoint: str, data_endpoint: str, user_start_prompt: str, user_end_prompt: str):
+    def __init__(self, url: str, stream_endpoint: str, data_endpoint: str, user_start_prompt: str, user_end_prompt: str, system_start_prompt: str = '', prompt_end: str = ''):
         super().__init__(url, stream_endpoint, user_start_prompt, user_end_prompt)
         self.data_endpoint = data_endpoint
         self.place_context_in_memory = False
@@ -87,6 +87,8 @@ class KoboldCppAdapter(AbstractIoAdapter):
         return json.loads(result)['results'][0]['text']
     
     def set_prompt(self, request_body: dict, prompt: str, context: str = '') -> dict:
+        if self.system_start_prompt:
+            prompt = self.system_start_prompt + prompt
         if self.user_start_prompt:
             prompt = prompt.replace('[USER_START]', self.user_start_prompt)
         if self.user_end_prompt:
@@ -96,6 +98,8 @@ class KoboldCppAdapter(AbstractIoAdapter):
             request_body['memory'] = f'<context>{context}</context>'
         else:
             prompt = prompt.replace('<context>{context}</context>', f'<context>{context}</context>')
+        if self.prompt_end:
+            prompt = prompt + self.prompt_end
         request_body['prompt'] = prompt
         return request_body
     
@@ -143,6 +147,8 @@ class LlamaCppAdapter(AbstractIoAdapter):
             raise LlmResponseException("Error parsing result from backend")
    
     def set_prompt(self, request_body: dict, prompt: str, context: str = '') -> dict:
+        if self.system_start_prompt:
+            prompt = self.system_start_prompt + prompt
         if self.user_start_prompt:
             prompt = prompt.replace('[USER_START]', self.user_start_prompt)
         if self.user_end_prompt:
@@ -150,5 +156,7 @@ class LlamaCppAdapter(AbstractIoAdapter):
         if context:
             prompt = prompt.replace('<context>{context}</context>', f'<context>{context}</context>')
             #request_body['messages'][0]['content'] = f'<context>{context}</context>'
+        if self.prompt_end:
+            prompt = prompt + self.prompt_end
         request_body['messages'][1]['content'] = prompt
         return request_body
