@@ -101,9 +101,9 @@ class LlmUtil():
         trimmed_message = parse_utils.remove_special_chars(str(message))
         time_of_day = ''
         if self.__story.config.day_night:
-            time_of_day = self.__story.day_cycle.time_of_day
+            time_of_day = self.__story.day_cycle.time_of_day.__str__
         story_context = EvokeContext(story_context=self.__story_context, 
-                                        time_of_day=time_of_day.__str__,
+                                        time_of_day=time_of_day,
                                         history=rolling_prompt if not (skip_history or alt_prompt) else '', 
                                         extra_context=extra_context)
         prompt = self.pre_prompt
@@ -303,12 +303,9 @@ class LlmUtil():
     def describe_day_cycle_transition(self, player: PlayerConnection, from_time: str, to_time: str) -> str:
         prompt = self.pre_prompt
         location = player.player.location
-        context = WorldGenerationContext(story_context=self.__story_context,
-                                        story_type=self.__story_type,
-                                        world_info=self.__world_info,
-                                        world_mood=self.__story.config.world_mood)
+        context = self._get_world_context()
         prompt += self.day_cycle_event_prompt.format(
-            context= '',
+            context= '{context}',
             location_name=location.name,
             from_time=from_time,
             to_time=to_time)
@@ -323,12 +320,9 @@ class LlmUtil():
     
     def generate_narrative_event(self, location: Location) -> str:
         prompt = self.pre_prompt
-        context = WorldGenerationContext(story_context=self.__story_context,
-                                        story_type=self.__story_type,
-                                        world_info=self.__world_info,
-                                        world_mood=self.__story.config.world_mood)
+        context = self._get_world_context()
         prompt += self.narrative_event_prompt.format(
-            context= '',
+            context= '{context}',
             location_name=location.name)
         request_body = deepcopy(self.default_body)
 

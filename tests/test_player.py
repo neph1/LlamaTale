@@ -122,6 +122,11 @@ class TestPlayer(unittest.TestCase):
         player.tell("hi").tell("there")
         self.assertEqual(["hi\nthere\n"], player.test_get_output_paragraphs())
 
+    def test_tell_multi_responses(self):
+        player = Player("fritz", "m")
+        player.tell("Murklin : 'Hello'\n\nDurkling : 'Dodoo Babaa'")
+        self.assertEqual(["Murklin : 'Hello'\n", "Durkling : 'Dodoo Babaa'\n"], player.test_get_output_paragraphs())
+
     def test_tell_emptystring(self):
         player = Player("fritz", "m")
         player.tell("", end=False)

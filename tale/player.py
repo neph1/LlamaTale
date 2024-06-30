@@ -92,9 +92,12 @@ class Player(base.Living, pubsub.Listener):
             self._output.p()
         else:
             msgs = msg.split('\n\n')
-            for msg in msgs:
+            if len(msgs) > 1:
+                for msg in msgs:
+                    self._output.print(msg, end=end, format=format)
+                    self._output.p()
+            else:
                 self._output.print(msg, end=end, format=format)
-                self._output.p()
 
             for living in self.location.livings:
                 if living.following == self:

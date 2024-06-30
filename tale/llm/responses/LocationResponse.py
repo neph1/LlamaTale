@@ -51,7 +51,9 @@ class LocationResponse():
                         # some models don't generate description, sometimes
                         json_result['description'] = exit_location_name
                 location_to_build.description = json_result['description']
-                
+            
+            if json_result.get('indoors', False):
+                location_to_build.indoors = True
             
             self._add_items(location_to_build, json_result, world_items)
 

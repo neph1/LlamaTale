@@ -27,5 +27,7 @@
     "type": "fantasy",
     "world_info": "test info",
     "world_mood": 0,
-    "epoch": 100
+    "epoch": 100,
+    "day_night": true,
+    "random_events": true
 }
