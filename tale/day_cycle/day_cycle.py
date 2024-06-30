@@ -79,5 +79,5 @@ class DayCycle:
         self._time_of_day = TimeOfDay.NIGHT
 
     @property
-    def time_of_day(self):
+    def time_of_day(self) -> TimeOfDay:
         return self._time_of_day

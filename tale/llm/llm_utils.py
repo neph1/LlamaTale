@@ -101,9 +101,9 @@ class LlmUtil():
         trimmed_message = parse_utils.remove_special_chars(str(message))
         time_of_day = ''
         if self.__story.config.day_night:
-            time_of_day = self.__story.day_cycle.time_of_day()
+            time_of_day = self.__story.day_cycle.time_of_day
         story_context = EvokeContext(story_context=self.__story_context, 
-                                        time_of_day=time_of_day,
+                                        time_of_day=time_of_day.__str__,
                                         history=rolling_prompt if not (skip_history or alt_prompt) else '', 
                                         extra_context=extra_context)
         prompt = self.pre_prompt
