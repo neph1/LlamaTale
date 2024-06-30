@@ -96,9 +96,9 @@ class Player(base.Living, pubsub.Listener):
                 self._output.print(msg, end=end, format=format)
                 self._output.p()
 
-                for living in self.location.livings:
-                    if living.following == self:
-                        living.tell("%s is %s." % (self.title, msg))
+            for living in self.location.livings:
+                if living.following == self:
+                    living.tell("%s is %s." % (self.title, msg))
         return self
     
     def tell_text_file(self, file_resource: Resource, reformat=True) -> None:

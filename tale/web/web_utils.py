@@ -16,7 +16,7 @@ def create_chat_container(text: str) -> str:
     image_file = _find_image(image_name)
     html = '<div class="chat-container">\n'
     html += '<div class="user-name" content="%s"></div>\n' % name
-    html += '<img class="user-image" src="%s/%s" alt="%s"/>\n' % (static_folder, image_file, name)
+    html += '<img class="user-image" src="%s/%s" alt="%s"/>\n' % (static_folder, image_file or '', name)
     html += '<div class="text-field" type="text">%s</div>\n' % content
     html += '</div>\n'
     return html
@@ -62,14 +62,12 @@ def _split_text(text: str) -> list:
 
 def _find_image(image_name: str) -> str:
     if _check_file_exists(image_name + '.gif'):
-        image_file = image_name + '.gif'
+        return image_name + '.gif'
     elif _check_file_exists(image_name + '.png'):
-        image_file = image_name + '.png'
+        return image_name + '.png'
     elif _check_file_exists(image_name + '.jpg'):
-        image_file = image_name + '.jpg'
-    else:
-        image_file = ''
-    return image_file
+        return image_name + '.jpg'
+    return ''
 
 def copy_web_resources(gamepath: str):
     # copy the resources folder to the resources folder in the web folder

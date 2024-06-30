@@ -279,22 +279,14 @@ function populateNpcImages(csvString) {
             npcImage.src = '';
             npcImage.alt = '';
             npcImage.classList.remove('visible');
+            npcImage.classList.add('invisible');
             npcImage.classList.add('hidden');
-            console.log('hiding image for ' + i);
         } else {
             npcImage.src = 'static/resources/' + name + '.jpg';
             npcImage.alt = name;
             npcImage.classList.add('visible');
+            npcImage.classList.remove('invisible');
             npcImage.classList.remove('hidden');
-            console.log('Found image for npc ' + name);
-
-            npcImage.onerror = function() {
-                console.log('Image not found for NPC: ' + name);
-                npcImage.src = '';
-                npcImage.alt = '';
-                npcImage.classList.remove('visible');
-                npcImage.classList.add('hidden');
-            };
         }
     }
 }
