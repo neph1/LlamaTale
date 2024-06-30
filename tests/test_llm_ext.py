@@ -175,7 +175,7 @@ class TestLivingNpcActions():
         self.npc.do_say(what_happened='something', actor=self.npc2)
         assert(self.npc.sentiments['actor'] == 'kind')
         assert(len(self.npc._observed_events) == 2)
-        assert ["test : Hello there, how can I assist you today?\n"] == self.msg_trace_npc.messages
+        assert ["test : Hello there, how can I assist you today?\n\n"] == self.msg_trace_npc.messages
 
     @responses.activate
     def test_idle_action(self):
@@ -186,8 +186,8 @@ class TestLivingNpcActions():
         self.llm_util._character.io_util.response = []
         action = self.npc.idle_action()
         assert(action == 'sits down on a chair')
-        assert(llm_cache.get_events(self.npc2._observed_events) == 'test : sits down on a chair\n')
-        assert ["test : sits down on a chair\n"] == self.msg_trace_npc.messages
+        assert(llm_cache.get_events(self.npc2._observed_events) == 'test : sits down on a chair\n\n')
+        assert ["test : sits down on a chair\n\n"] == self.msg_trace_npc.messages
 
     @responses.activate
     def test_do_react(self):
@@ -256,7 +256,7 @@ class TestLivingNpcActions():
         self.npc.autonomous_action()
         assert self.npc.search_item('test item', include_location=False) == None
         assert(self.npc2.search_item('test item', include_location=False))
-        assert ["test : Test gives test item to test\n"] == self.msg_trace_npc.messages
+        assert ["test : Test gives test item to test\n\n"] == self.msg_trace_npc.messages
 
     @responses.activate
     def test_move_action(self):

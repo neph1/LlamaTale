@@ -94,8 +94,7 @@ class Player(base.Living, pubsub.Listener):
             msgs = msg.split('\n\n')
             if len(msgs) > 1:
                 for msg in msgs:
-                    self._output.print(msg, end=end, format=format)
-                    self._output.p()
+                    self._output.print(msg, end=True, format=format)
             else:
                 self._output.print(msg, end=end, format=format)
 
