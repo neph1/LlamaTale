@@ -85,13 +85,23 @@ class Player(base.Living, pubsub.Listener):
                                                                     extra_context = extra_context)
             self.rolling_prompt = rolling_prompt
         else:
-            msg = str(message)     
+            msg = str(message)
         
         super().tell(msg)
         if msg == "\n":
             self._output.p()
         else:
-            self._output.print(msg, end=end, format=format)
+            msgs = msg.split('\n\n')
+            if len(msgs) > 1:
+                for msg in msgs:
+                    self._output.print(msg, end=end, format=format)
+                    self._output.p()
+            else:
+                self._output.print(msg, end=end, format=format)
+
+            for living in self.location.livings:
+                if living.following == self:
+                    living.tell("%s is %s." % (self.title, msg))
         return self
     
     def tell_text_file(self, file_resource: Resource, reformat=True) -> None:

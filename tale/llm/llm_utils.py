@@ -53,6 +53,7 @@ class LlmUtil():
         self.short_word_limit = llm_config.params['SHORT_WORD_LIMIT']
         self.story_background_prompt = llm_config.params['STORY_BACKGROUND_PROMPT'] # type: str
         self.day_cycle_event_prompt = llm_config.params['DAY_CYCLE_EVENT_PROMPT'] # type: str
+        self.narrative_event_prompt = llm_config.params['NARRATIVE_EVENT_PROMPT']
         self.__story = None # type: DynamicStory
         self.io_util = io_util or IoUtil(config=llm_config.params, backend_config=backend_config)
         self.stream = backend_config['STREAM']
@@ -92,13 +93,19 @@ class LlmUtil():
 
         rolling_prompt = self.update_memory(rolling_prompt, message)
 
-        text_hash_value = llm_cache.generate_hash(message)
+        text_hash_value = llm_cache.generate_hash(message + extra_context)
 
         cached_look = llm_cache.get_looks([text_hash_value])
         if cached_look:
             return output_template.format(message=message, text=cached_look), rolling_prompt
         trimmed_message = parse_utils.remove_special_chars(str(message))
-        story_context = EvokeContext(story_context=self.__story_context, history=rolling_prompt if not (skip_history or alt_prompt) else '', extra_context=extra_context)
+        time_of_day = ''
+        if self.__story.config.day_night:
+            time_of_day = self.__story.day_cycle.time_of_day.__str__
+        story_context = EvokeContext(story_context=self.__story_context, 
+                                        time_of_day=time_of_day,
+                                        history=rolling_prompt if not (skip_history or alt_prompt) else '', 
+                                        extra_context=extra_context)
         prompt = self.pre_prompt
         prompt += (alt_prompt or self.evoke_prompt).format(
             context = '{context}',
@@ -296,12 +303,9 @@ class LlmUtil():
     def describe_day_cycle_transition(self, player: PlayerConnection, from_time: str, to_time: str) -> str:
         prompt = self.pre_prompt
         location = player.player.location
-        context = WorldGenerationContext(story_context=self.__story_context,
-                                        story_type=self.__story_type,
-                                        world_info=self.__world_info,
-                                        world_mood=self.__story.config.world_mood)
+        context = self._get_world_context()
         prompt += self.day_cycle_event_prompt.format(
-            context= '',
+            context= '{context}',
             location_name=location.name,
             from_time=from_time,
             to_time=to_time)
@@ -312,6 +316,18 @@ class LlmUtil():
             location.tell(text, evoke=False)
             return text
         text = self.io_util.stream_request(request_body=request_body, prompt=prompt, context=context.to_prompt_string() + f'Location: {location.name, location.description};', io=player)
+        return text
+    
+    def generate_narrative_event(self, location: Location) -> str:
+        prompt = self.pre_prompt
+        context = self._get_world_context()
+        prompt += self.narrative_event_prompt.format(
+            context= '{context}',
+            location_name=location.name)
+        request_body = deepcopy(self.default_body)
+
+        text = self.io_util.synchronous_request(request_body, prompt=prompt, context=context.to_prompt_string() + f'Location: {location.name, location.description};')
+        location.tell(text, evoke=False)
         return text
   
     def set_story(self, story: DynamicStory):

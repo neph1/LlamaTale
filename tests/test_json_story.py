@@ -57,6 +57,9 @@ class TestJsonStory():
         assert(item_spawner.max_items == 5)
         assert(item_spawner.items[0]['name'] == 'torch')
 
+        assert self.story.day_cycle
+        assert self.story.random_events
+
 
     def test_add_location(self):
         new_location = Location('New Location', 'New Location')

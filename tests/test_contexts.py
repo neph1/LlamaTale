@@ -11,8 +11,8 @@ from tale.llm.contexts.WorldGenerationContext import WorldGenerationContext
 class TestPromptContexts():
 
     def test_evoke_context(self):
-        context = EvokeContext(story_context='context', history='history')
-        assert(context.to_prompt_string() == 'Story context:context; History:history; ')
+        context = EvokeContext(story_context='context', history='history', time_of_day='night')
+        assert(context.to_prompt_string() == 'Story context:context; History:history; Time of day:night;')
 
     def test_world_generation_context(self):
         context = WorldGenerationContext(story_context='context', story_type='type', world_info='info', world_mood=1)
