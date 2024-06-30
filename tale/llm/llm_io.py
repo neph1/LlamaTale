@@ -18,9 +18,9 @@ class IoUtil():
             headers['Authorization'] = f"Bearer {backend_config['OPENAI_API_KEY']}"
             self.openai_json_format = json.loads(backend_config['OPENAI_JSON_FORMAT'])
             self.headers = headers
-            self.io_adapter = LlamaCppAdapter(self.url, backend_config['STREAM_ENDPOINT'], config['USER_START'], config['USER_END'])
+            self.io_adapter = LlamaCppAdapter(self.url, backend_config['STREAM_ENDPOINT'], config['USER_START'], config['USER_END'], config.get('SYSTEM_START', ''), config.get('PROMPT_END', ''))
         else:
-            self.io_adapter = KoboldCppAdapter(self.url, backend_config['STREAM_ENDPOINT'], backend_config['DATA_ENDPOINT'], config['USER_START'], config['USER_END'])
+            self.io_adapter = KoboldCppAdapter(self.url, backend_config['STREAM_ENDPOINT'], backend_config['DATA_ENDPOINT'], config['USER_START'], config['USER_END'], config.get('SYSTEM_START', ''), config.get('PROMPT_END', ''))
             self.headers = {}
 
         self.stream = backend_config['STREAM']
