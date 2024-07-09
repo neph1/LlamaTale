@@ -10,7 +10,7 @@ from tale.coord import Coord
 from tale.llm import llm_config
 from tale.llm.contexts.DungeonLocationsContext import DungeonLocationsContext
 from tale.llm.contexts.WorldGenerationContext import WorldGenerationContext
-from tale.llm.llm_ext import DynamicStory
+from tale.llm.dynamic_story import DynamicStory
 from tale.llm.llm_io import IoUtil
 from tale.llm.requests.generate_zone import GenerateZone
 from tale.llm.requests.start_location import StartLocation

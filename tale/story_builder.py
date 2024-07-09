@@ -4,7 +4,7 @@ from typing import Generator
 from tale import lang, mud_context
 
 from tale.base import Location
-from tale.llm.llm_ext import DynamicStory
+from tale.llm.dynamic_story import DynamicStory
 from tale.llm.llm_utils import LlmUtil
 from tale.player import PlayerConnection
 from tale.quest import Quest, QuestType

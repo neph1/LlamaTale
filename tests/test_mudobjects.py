@@ -12,7 +12,7 @@ from tale import pubsub, mud_context
 from tale.base import Location, Exit, Item, MudObject, Living, _limbo, Container, Weapon, Door, Key, ParseResult, MudObjRegistry
 from tale.demo.story import Story as DemoStory
 from tale.errors import ActionRefused, LocationIntegrityError, UnknownVerbException, TaleError
-from tale.llm.llm_ext import DynamicStory
+from tale.llm.dynamic_story import DynamicStory
 from tale.player import Player
 from tale.story import MoneyType, StoryBase
 from tale.shop import Shopkeeper

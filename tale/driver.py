@@ -36,7 +36,7 @@ from .tio import DEFAULT_SCREEN_WIDTH
 from .races import playable_races
 from .errors import StoryCompleted
 from tale.load_character import CharacterLoader, CharacterV2
-from tale.llm.llm_ext import DynamicStory
+from tale.llm.dynamic_story import DynamicStory
 from tale.llm.llm_utils import LlmUtil
 from tale.web.web_utils import clear_resources, copy_web_resources
 

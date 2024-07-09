@@ -45,14 +45,17 @@ class TestZone():
         zone.mood = 3
         zone.races = ['human', 'elf', 'dwarf']
         zone.items = ['sword', 'shield', 'armor']
+        zone.center = Coord(5, 0, 0)
+        zone.lore = 'zone lore'
         assert zone.get_info() == {"description":'test', 
                                    "level":2, 
                                    "mood":3, 
                                    "races": ['human', 'elf', 'dwarf'],
                                    "items":['sword', 'shield', 'armor'],
-                                   "center":(0, 0, 0),
+                                   "center":(5, 0, 0),
                                    "level":2,
-                                   "size":5}
+                                   "size":5,
+                                   "lore":'zone lore'}
         
     def test_get_neighbor(self):
         zone = Zone('test')
