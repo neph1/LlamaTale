@@ -4,8 +4,8 @@ The actual mudlib 'world' code
 'Tale' mud driver, mudlib and interactive fiction framework
 Copyright by Irmen de Jong (irmen@razorvine.net)
 """
+from pkg_resources import parse_version
 import sys
-from distutils.version import LooseVersion
 from typing import Any
 
 
@@ -44,22 +44,22 @@ def _check_required_libraries():
     except ImportError:
         serpent = None
     all_good = True
-    smartypants_version_required = LooseVersion("1.8.6")
-    colorama_version_required = LooseVersion("0.3.6")
-    serpent_version_required = LooseVersion("1.23")
+    smartypants_version_required = parse_version("1.8.6")
+    colorama_version_required = parse_version("0.3.6")
+    serpent_version_required = parse_version("1.23")
     # Note: prompt_toolkit is a nice to have, but it is not required. We do install it if other libs are missing though.
     if not appdirs:
         print("The 'appdirs' Python library (any recent version) is required to run Tale.", file=sys.stderr)
         all_good = False
-    if not colorama or LooseVersion(colorama.__version__) < colorama_version_required:
+    if not colorama or parse_version(colorama.__version__) < colorama_version_required:
         print("The 'colorama' Python library (version >= {}) is required to run Tale."
               .format(colorama_version_required), file=sys.stderr)
         all_good = False
-    if not smartypants or LooseVersion(smartypants.__version__) < smartypants_version_required:
+    if not smartypants or parse_version(smartypants.__version__) < smartypants_version_required:
         print("The 'smartypants' Python library (version >= {}) is required to run Tale."
               .format(smartypants_version_required), file=sys.stderr)
         all_good = False
-    if not serpent or LooseVersion(serpent.__version__) < serpent_version_required:
+    if not serpent or parse_version(serpent.__version__) < serpent_version_required:
         print("The 'serpent' Python library (version >= {}) is required to run Tale."
               .format(serpent_version_required), file=sys.stderr)
         all_good = False
