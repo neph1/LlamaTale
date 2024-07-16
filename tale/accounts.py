@@ -110,6 +110,8 @@ class MudAccounts:
                             strength integer NOT NULL,
                             dexterity integer NOT NULL,
                             weapon_skills varchar NOT NULL,
+                            combat_points integer NOT NULL,
+                            max_combat_points integer NOT NULL,
                             FOREIGN KEY(account) REFERENCES Account(id)
                         );
                         """)
