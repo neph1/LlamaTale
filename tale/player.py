@@ -22,6 +22,7 @@ from .tio import DEFAULT_SCREEN_WIDTH, DEFAULT_SCREEN_INDENT
 from .tio.iobase import strip_text_styles, IoAdapterBase
 from .vfs import VirtualFileSystem, Resource
 from tale.player_utils import TextBuffer
+from tale.util import call_periodically
 
 
 class Player(base.Living, pubsub.Listener):
@@ -410,3 +411,7 @@ class PlayerConnection:
             self.player.destroy(ctx)
             self.player = None          # type: ignore
 
+    @call_periodically(10)
+    def replenish(self) -> None:
+        self.stats.replenish_hp(1)
+        self.stats.replenish_combat_points(1)

@@ -40,7 +40,7 @@ class Combat():
         if actor2.wielding.type in weapon_type.ranged:
             # can't block with a ranged weapon
             return 100
-        return random.randrange(0, 100) - actor2.stats.get_weapon_skill(actor2.wielding.type)
+        return random.randrange(0, 100) - actor2.stats.get_weapon_skill(actor2.wielding.type) * (0.8 if actor2.stats.combat_points < 1 else 1)
     
     def _calculate_weapon_bonus(self, actor: 'base.Living'):
             weapon = actor.wielding
