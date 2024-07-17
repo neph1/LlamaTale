@@ -975,6 +975,8 @@ class Stats:
         self.dexterity = 3
         self.unarmed_attack = Weapon(UnarmedAttack.FISTS.name, weapon_type=WeaponType.UNARMED)
         self.weapon_skills = {}  # type: Dict[WeaponType, int]  # weapon type -> skill level
+        self.combat_points = 0 # combat points
+        self.max_combat_points = 5 # max combat points
 
     def __repr__(self):
         return "<Stats: %s>" % self.__dict__
@@ -1006,6 +1008,22 @@ class Stats:
     
     def set_weapon_skill(self, weapon_type: WeaponType, value: int) -> None:
         self.weapon_skills[weapon_type] = value
+
+    def replenish_hp(self, amount: int = None) -> None:
+        if amount:
+            self.hp += amount
+        else:
+            self.hp = self.max_hp
+        if self.hp > self.max_hp:
+            self.hp = self.max_hp
+
+    def replenish_combat_points(self, amount: int = None) -> None:
+        if amount:
+            self.combat_points += amount
+        else:
+            self.combat_points = self.max_combat_points
+        if self.combat_points > self.max_combat_points:
+            self.combat_points = self.max_combat_points
 
 class Living(MudObject):
     """
@@ -1422,6 +1440,10 @@ class Living(MudObject):
 
     def start_attack(self, defender: 'Living', target_body_part: wearable.WearLocation= None) -> combat.Combat:
         """Starts attacking the given living for one round."""
+        if self.stats.combat_points < 1:
+            self.tell("You are too tired to attack.")
+            return
+        self.stats.combat_points -= 1
         attacker_name = lang.capital(self.title)
         victim_name = lang.capital(defender.title)
         attackers = [self]

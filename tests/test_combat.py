@@ -4,6 +4,7 @@ from tale.base import Location, Weapon
 from tale.llm.LivingNpc import LivingNpc
 from tale.combat import Combat
 from tale.llm.contexts.CombatContext import CombatContext
+from tale.player import Player
 from tale.races import BodyType
 from tale.weapon_type import WeaponType
 from tale.wearable import WearLocation
@@ -16,8 +17,6 @@ import tale.util as util
 class TestCombat():
 
     def test_resolve_attack(self):
-        
-
         attacker = LivingNpc(name='attacker', gender='m', age=42, personality='A fierce fighter')
         defender = LivingNpc(name='defender', gender='f', age=37, personality='A fierce fighter')
 
@@ -238,3 +237,11 @@ class TestCombat():
         self._assert_combat(attacker, defender, text)
         assert('attacker hits' in text or 'attacker performs a critical hit' in text)
         assert('attacker2 hits' in text or 'attacker2 performs a critical hit' in text)
+
+    def test_start_attack_no_combat_points(self):
+        attacker = Player(name='att', gender='m')
+        attacker.stats.combat_points = 0
+        defender = LivingNpc(name='lucky rat', gender='m', age=2, personality='A squeeky fighter')
+
+        assert attacker.start_attack(defender) == None
+        assert ['You are too tired to attack.\n'] == attacker.test_get_output_paragraphs()
