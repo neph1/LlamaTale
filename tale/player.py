@@ -410,8 +410,3 @@ class PlayerConnection:
         if self.player:
             self.player.destroy(ctx)
             self.player = None          # type: ignore
-
-    @call_periodically(10)
-    def replenish(self) -> None:
-        self.stats.replenish_hp(1)
-        self.stats.replenish_combat_points(1)

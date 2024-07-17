@@ -320,6 +320,7 @@ class Driver(pubsub.Listener):
             x._bind_target(self.zones)
         self.unbound_exits = []
         sys.excepthook = util.excepthook  # install custom verbose crash reporter
+        self.register_periodicals(self)
         self.start_main_loop()   # doesn't exit! (unless game is killed)
         self._stop_driver()
 
@@ -959,3 +960,9 @@ class Driver(pubsub.Listener):
     
     def do_on_player_death(self, player: player.Player) -> None:
         pass
+
+    @util.call_periodically(10)
+    def replenish(self):
+        for player in self.all_players.values():
+            player.player.stats.replenish_hp(1)
+            player.player.stats.replenish_combat_points(1)
