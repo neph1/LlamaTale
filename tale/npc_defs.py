@@ -40,12 +40,9 @@ class StationaryMob(LivingNpc):
         if player_in_location and self.aggressive and not self.attacking:
             for liv in self.location.livings:
                 if isinstance(liv, Player):
-                    self.do_attack(liv)
+                    self.start_attack(defender=liv)
         elif player_in_location or self.location.get_wiretap() or self.get_wiretap():
             self.idle_action()
-
-    def do_attack(self, target: Living) -> None:
-        self.start_attack(defender=target)
         
 class RoamingMob(StationaryMob):
     

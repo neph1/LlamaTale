@@ -220,7 +220,6 @@ class Drink(Item):
     def consume(self, actor: 'Living'):
         if self not in actor.inventory:
             raise ActionRefused("You don't have that.")
-        actor.stats.hp += self.affect_thirst
         actor.tell("You drink the %s." % (self.title), evoke=True, short_len=True)
         actor.tell_others("{Actor} drinks the %s." % (self.title))
         self.destroy(util.Context.from_global())
@@ -243,7 +242,6 @@ class Food(Item):
     def consume(self, actor: 'Living'):
         if self not in actor.inventory:
             raise ActionRefused("You don't have that.")
-        actor.stats.hp += self.affect_fullness
         actor.tell("You eat the %s." % (self.title), evoke=True, short_len=True)
         actor.tell_others("{Actor} eats the %s." % (self.title))
         self.destroy(util.Context.from_global())

@@ -7,6 +7,7 @@ from tale.coord import Coord
 from tale.item_spawner import ItemSpawner
 from tale.items.basic import Boxlike, Drink, Food, Health, Money, Note
 from tale.llm.LivingNpc import LivingNpc
+from tale.magic import MagicType
 from tale.npc_defs import StationaryMob, StationaryNpc
 from tale.races import BodyType, UnarmedAttack
 from tale.mob_spawner import MobSpawner
@@ -160,7 +161,7 @@ def load_npcs(json_npcs: list, locations = {}) -> dict:
         npcs[name] = new_npc
     return npcs
 
-def load_npc(npc: dict, name: str = None, npc_type: str = 'Mob'):
+def load_npc(npc: dict, name: str = None, npc_type: str = 'Mob', roaming = False):
     race = None
     if npc.get('stats', None):
         race = npc['stats'].get('race', None)
@@ -641,7 +642,8 @@ def save_stats(stats: Stats) -> dict:
     json_stats['hp'] = stats.hp
     json_stats['max_hp'] = stats.max_hp
     json_stats['level'] = stats.level
-    json_stats['weapon_skills'] = save_weaponskills(stats.weapon_skills)
+    json_stats['weapon_skills'] = skills_dict_to_json(stats.weapon_skills)
+    json_stats['magic_skills'] = skills_dict_to_json(stats.magic_skills)
     json_stats['gender'] = stats.gender = 'n'
     json_stats['alignment'] = stats.alignment
     json_stats['weight'] = stats.weight
@@ -679,6 +681,12 @@ def load_stats(json_stats: dict) -> Stats:
         for skill in json_skills.keys():
             int_skill = int(skill)
             stats.weapon_skills[WeaponType(int_skill)] = json_skills[skill]
+    if json_stats.get('magic_skills'):
+        json_skills = json_stats['magic_skills']
+        stats.magic_skills = {}
+        for skill in json_skills.keys():
+            int_skill = int(skill)
+            stats.magic_skills[MagicType(int_skill)] = json_skills[skill]
     return stats
     
 def save_items(items: List[Item]) -> dict:
@@ -715,7 +723,7 @@ def save_locations(locations: List[Location]) -> dict:
         json_locations.append(json_location)
     return json_locations
 
-def save_weaponskills(weaponskills: dict) -> dict:
+def skills_dict_to_json(weaponskills: dict) -> dict:
     json_skills = {}
     for skill in weaponskills.keys():
         json_skills[skill.value] = weaponskills[skill]
