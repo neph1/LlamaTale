@@ -5,7 +5,7 @@ from typing import Optional, Generator
 import tale
 from tale.base import Location
 from tale.driver import Driver
-from tale.llm.llm_ext import DynamicStory
+from tale.llm.dynamic_story import DynamicStory
 from tale.main import run_from_cmdline
 from tale.player import Player, PlayerConnection
 from tale.charbuilder import PlayerNaming

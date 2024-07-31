@@ -10,7 +10,7 @@ from tale.llm.LivingNpc import LivingNpc
 from tale.npc_defs import StationaryMob, StationaryNpc
 from tale.races import BodyType, UnarmedAttack
 from tale.mob_spawner import MobSpawner
-from tale.story import GameMode, MoneyType, TickMethod, StoryConfig
+from tale.story import GameMode, MoneyType, StoryContext, TickMethod, StoryConfig
 from tale.weapon_type import WeaponType
 from tale.wearable import WearLocation
 import json
@@ -228,7 +228,11 @@ def load_story_config(json_file: dict):
     config.server_mode = GameMode[json_file['server_mode']]
     config.npcs = json_file.get('npcs', '')
     config.items = json_file.get('items', '')
-    config.context = json_file.get('context', '')
+    context = json_file.get('context', '')
+    if isinstance(context, dict):
+        config.context = StoryContext().from_json(context)
+    else:
+        config.context = context
     config.type = json_file.get('type', '')
     config.world_info = json_file.get('world_info', '')
     config.world_mood = json_file.get('world_mood', config.world_mood)
@@ -267,7 +271,7 @@ def save_story_config(config: StoryConfig) -> dict:
     json_file['type'] = config.type
     json_file['world_info'] = config.world_info
     json_file['world_mood'] = config.world_mood
-    json_file['context'] = config.context
+    json_file['context'] = config.context if isinstance(config.context, str) else config.context.to_json()
     json_file['custom_resources'] = config.custom_resources
     json_file['image_gen'] = config.image_gen
     json_file['epoch'] = config.epoch

@@ -46,5 +46,6 @@ REQUEST_FOLLOW_PROMPT: '<context>{context}</context>\n[USER_START]Act as as {cha
 DAY_CYCLE_EVENT_PROMPT: '<context>{context}</context>\n[USER_START] Write up to two sentences describing the transition from {from_time} to {to_time} in {location_name}, using the information supplied inside the <context> tags.'
 NARRATIVE_EVENT_PROMPT: '<context>{context}</context>\n[USER_START] Write a narrative event that occurs in {location_name} using the information supplied inside the <context> tags. The event should be related to the location and the characters present. Use up to 50 words.'
 RANDOM_SPAWN_PROMPT: '<context>{context}</context>\n[USER_START] An npc or a mob has entered {location_name}. Select either and fill in one of the following templates using the information supplied inside the <context> tags. Respond using JSON in the following format: {npc_template}'
+ADVANCE_STORY_PROMPT: ''
 USER_START: '### Instruction:\n'
 USER_END: '### Response:\n'

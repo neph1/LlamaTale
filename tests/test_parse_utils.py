@@ -9,7 +9,7 @@ from tale.item_spawner import ItemSpawner
 from tale.items.basic import Boxlike, Drink, Food, Health, Money
 from tale.mob_spawner import MobSpawner
 from tale.races import BodyType
-from tale.story import GameMode, MoneyType
+from tale.story import GameMode, MoneyType, StoryContext
 from tale.weapon_type import WeaponType
 from tale.wearable import WearLocation
 from tale.zone import Zone
@@ -135,6 +135,13 @@ class TestParseUtils():
         assert(config.money_type == MoneyType.NOTHING)
         assert(config.supported_modes == {GameMode.IF})
         assert(config.zones == ["test zone"])
+
+        config.context = StoryContext().from_json({'base_story': 'Base context', 'current_context': 'Current context'})
+
+        stored_config = parse_utils.save_story_config(config)
+
+        new_config = parse_utils.load_story_config(stored_config)
+        assert(isinstance(new_config.context, StoryContext))
         
     def test_connect_location_to_exit(self):
         """ This simulates a room having been generated before"""

@@ -7,8 +7,9 @@ Copyright by Irmen de Jong (irmen@razorvine.net)
 
 import datetime
 import enum
-from typing import Optional, Any, List, Set, Generator
+from typing import Optional, Any, List, Set, Generator, Union
 from packaging.version import Version
+
 
 from . import __version__ as tale_version_str
 from .errors import StoryConfigError
@@ -72,7 +73,7 @@ class StoryConfig:
         self.server_mode = GameMode.IF       # the actual game mode the server is operating in (will be set at startup time)
         self.items = ""                      # items to populate the world with. only used by json loading
         self.npcs = ""                       # npcs to populate the world with. only used by json loading
-        self.context = ""                    # context to giving background for the story.
+        self.context = ""                    # type: Union[str, StoryContext] # context to giving background for the story.
         self.type = ""                       # brief description of the setting and type of story, for LLM context
         self.world_info = ""                 # brief description of the world, for LLM context
         self.world_mood = 0                  # how safe is the world? 5 is a happy place, -5 is nightmare mode.
@@ -164,3 +165,30 @@ class StoryBase:
         tale_version_required = Version(self.config.requires_tale)
         if tale_version < tale_version_required:
             raise StoryConfigError("This game requires tale " + self.config.requires_tale + ", but " + tale_version_str + " is installed.")
+
+
+class StoryContext:
+
+    def __init__(self, base_story: str = "") -> None:
+        self.base_story = base_story
+        self.current_section  = ""
+        self.past_sections = []
+
+    def set_current_section(self, section: str) -> None:
+        self.past_sections.append(self.current_section)
+        self.current_section = section
+
+    def to_context(self) -> str:
+        return f"<story> Base plot: {self.base_story}; Active section: {self.current_section}</story>"
+    
+    def to_context_with_past(self) -> str:
+        return f"<story> Base plot: {self.base_story}; Past: {' '.join(self.past_sections) if self.past_sections else 'This is the beginning of the story'}; Active section:{self.current_section}</story>"
+    
+    def from_json(self, data: dict) -> 'StoryContext':
+        self.base_story = data.get("base_story", "")
+        self.current_section = data.get("current_section", "")
+        self.past_sections = data.get("past_sections", [])
+        return self
+
+    def to_json(self) -> dict:
+        return {"base_story": self.base_story, "current_section": self.current_section, "past_sections": self.past_sections}
