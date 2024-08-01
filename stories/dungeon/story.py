@@ -11,6 +11,7 @@ from tale.driver import Driver
 from tale.dungeon.dungeon_generator import ItemPopulator, Layout, LayoutGenerator, MobPopulator
 from tale.items.basic import Money
 from tale.json_story import JsonStory
+from tale.magic import MagicType
 from tale.main import run_from_cmdline
 from tale.npc_defs import RoamingMob
 from tale.player import Player, PlayerConnection
@@ -44,6 +45,10 @@ class Story(JsonStory):
         player.stats.set_weapon_skill(weapon_type=WeaponType.ONE_HANDED, value=random.randint(10, 30))
         player.stats.set_weapon_skill(weapon_type=WeaponType.TWO_HANDED, value=random.randint(10, 30))
         player.stats.set_weapon_skill(weapon_type=WeaponType.UNARMED, value=random.randint(20, 30))
+        player.stats.magic_skills[MagicType.HEAL] = 30
+        player.stats.magic_skills[MagicType.BOLT] = 30
+        player.stats.magic_skills[MagicType.DRAIN] = 30
+        player.stats.magic_skills[MagicType.REJUVENATE] = 30
         pass
 
     def create_account_dialog(self, playerconnection: PlayerConnection, playernaming: PlayerNaming) -> Generator:
