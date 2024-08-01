@@ -8,6 +8,7 @@ from tale import lang
 from tale import parse_utils
 from tale.driver import Driver
 from tale.json_story import JsonStory
+from tale.magic import MagicType
 from tale.main import run_from_cmdline
 from tale.player import Player, PlayerConnection
 from tale.charbuilder import PlayerNaming
@@ -33,6 +34,10 @@ class Story(JsonStory):
         player.stats.set_weapon_skill(weapon_type=WeaponType.ONE_HANDED, value=random.randint(10, 30))
         player.stats.set_weapon_skill(weapon_type=WeaponType.TWO_HANDED, value=random.randint(10, 30))
         player.stats.set_weapon_skill(weapon_type=WeaponType.UNARMED, value=random.randint(20, 30))
+        player.stats.magic_skills[MagicType.HEAL] = 30
+        player.stats.magic_skills[MagicType.BOLT] = 30
+        player.stats.magic_skills[MagicType.DRAIN] = 30
+        player.stats.magic_skills[MagicType.REJUVENATE] = 30
         pass
 
     def create_account_dialog(self, playerconnection: PlayerConnection, playernaming: PlayerNaming) -> Generator:

@@ -50,6 +50,7 @@ from tale import resources_utils
 
 from tale.coord import Coord
 from tale.llm.contexts.CombatContext import CombatContext
+from tale.magic import MagicSkill, MagicType
 
 from . import lang
 from . import mud_context
@@ -975,8 +976,11 @@ class Stats:
         self.dexterity = 3
         self.unarmed_attack = Weapon(UnarmedAttack.FISTS.name, weapon_type=WeaponType.UNARMED)
         self.weapon_skills = {}  # type: Dict[WeaponType, int]  # weapon type -> skill level
+        self.magic_skills  = {}  # type: Dict[MagicType, MagicSkill]
         self.combat_points = 0 # combat points
         self.max_combat_points = 5 # max combat points
+        self.max_magic_points = 5 # max magic points
+        self.magic_points = 0 # magic points
 
     def __repr__(self):
         return "<Stats: %s>" % self.__dict__
@@ -1024,6 +1028,14 @@ class Stats:
             self.combat_points = self.max_combat_points
         if self.combat_points > self.max_combat_points:
             self.combat_points = self.max_combat_points
+
+    def replenish_magic_points(self, amount: int = None) -> None:
+        if amount:
+            self.magic_points += amount
+        else:
+            self.magic_points = self.max_magic_points
+        if self.magic_points > self.max_magic_points:
+            self.magic_points = self.max_magic_points
 
 class Living(MudObject):
     """

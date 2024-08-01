@@ -1,10 +1,8 @@
 import random
 
-from tale.base import Location, Item, Exit, Door, Key, Living, ParseResult, Weapon
+from tale.base import Location, Item, Exit, Weapon
 from tale.errors import StoryCompleted
 from tale.items.basic import Note
-from tale.lang import capital
-from tale.player import Player
 from tale.util import Context, call_periodically
 from tale.verbdefs import AGGRESSIVE_VERBS
 from tale.verbdefs import VERBS

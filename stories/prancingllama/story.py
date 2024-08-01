@@ -4,8 +4,10 @@ from typing import Optional, Generator
 
 import tale
 from tale.base import Location
+from tale.cmds import spells
 from tale.driver import Driver
 from tale.llm.llm_ext import DynamicStory
+from tale.magic import MagicType
 from tale.main import run_from_cmdline
 from tale.player import Player, PlayerConnection
 from tale.charbuilder import PlayerNaming
@@ -55,6 +57,7 @@ class Story(DynamicStory):
         player.stats.set_weapon_skill(weapon_type=WeaponType.ONE_HANDED, value=25)
         player.stats.set_weapon_skill(weapon_type=WeaponType.TWO_HANDED, value=15)
         player.stats.set_weapon_skill(weapon_type=WeaponType.UNARMED, value=35)
+        player.stats.magic_skills[MagicType.HEAL] = 50
 
     def create_account_dialog(self, playerconnection: PlayerConnection, playernaming: PlayerNaming) -> Generator:
         """
