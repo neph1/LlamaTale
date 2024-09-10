@@ -186,8 +186,12 @@ class WorldBuilding():
         if self.json_grammar_key:
             request_body[self.json_grammar_key] = self.json_grammar
         result = self.io_util.synchronous_request(request_body, prompt=prompt)
+        if not result:
+            return LocationResponse.empty()
         try:
             json_result = json.loads(parse_utils.sanitize_json(result))
+            if not json_result.get('name', None):
+                return LocationResponse.empty()
             location.name=json_result['name']
             return LocationResponse(json_result=json_result, location=location, exit_location_name='', item_types=self.item_types)
         except Exception as exc:

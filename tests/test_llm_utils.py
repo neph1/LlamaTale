@@ -251,6 +251,12 @@ class TestWorldBuilding():
         shield = result.items[1]
         assert(shield['name'] == 'shield')
 
+        self.llm_util._world_building.io_util.response = ''
+        result = self.llm_util._world_building.generate_world_items(world_generation_context=WorldGenerationContext(story_context='',story_type='',world_info='',world_mood=0))
+        assert not result.valid
+        assert(len(result.items) == 0)
+
+
     def test_generate_world_creatures(self):
         # mostly for coverage
         self.llm_util._world_building.io_util.response = '{"creatures":[{"name": "dragon", "body": "Creature", "unarmed_attack": "BITE", "hp":100, "level":10}]}'
@@ -263,6 +269,10 @@ class TestWorldBuilding():
         assert(dragon["level"] == 10)
         assert(dragon["unarmed_attack"] == UnarmedAttack.BITE.name)
 
+        self.llm_util._world_building.io_util.response = ''
+        result = self.llm_util._world_building.generate_world_creatures(world_generation_context=WorldGenerationContext(story_context='',story_type='',world_info='',world_mood=0))
+        assert not result.valid
+        assert(len(result.creatures) == 0)
 
     def test_get_neighbor_or_generate_zone(self):
         """ Tests the get_neighbor_or_generate_zone method of llm_utils.
@@ -471,6 +481,25 @@ class TestWorldBuilding():
         rocky_cliffs.add_exits(location_response.exits)
         assert((len(rocky_cliffs.exits) == 6))
         assert((len(location_response.new_locations) == 2))
+
+    def test_generate_location_empty_response(self):
+        self.llm_util._world_building.io_util.response=''
+        location = Location(name='Outside')
+        result = self.llm_util.generate_start_location(location, 
+                                                       story_type='',
+                                                       story_context='', 
+                                                       zone_info={},
+                                                       world_info='')
+        assert result.empty()
+
+        self.llm_util._world_building.io_util.response='{}'
+        location = Location(name='Outside')
+        result = self.llm_util.generate_start_location(location, 
+                                                       story_type='',
+                                                       story_context='', 
+                                                       zone_info={},
+                                                       world_info='')
+        assert result.empty()
 
     def test_generate_note_lore(self):
         self.llm_util._quest_building.io_util.response = 'A long lost tale of a hero who saved the world from a great evil.'
