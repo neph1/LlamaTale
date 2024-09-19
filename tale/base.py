@@ -51,6 +51,7 @@ from tale import resources_utils
 from tale.coord import Coord
 from tale.llm.contexts.CombatContext import CombatContext
 from tale.skills.magic import MagicSkill, MagicType
+from tale.skills.skills import SkillType
 
 from . import lang
 from . import mud_context
@@ -979,7 +980,7 @@ class Stats:
         self.weapon_skills = {}  # type: Dict[WeaponType, int]  # weapon type -> skill level
         self.magic_skills  = {}  # type: Dict[MagicType, MagicSkill]
         self.skills = {}  # type: Dict[str, int]  # skill name -> skill level
-        self.combat_points = 0 # combat points
+        self.action_points = 0 # combat points
         self.max_combat_points = 5 # max combat points
         self.max_magic_points = 5 # max magic points
         self.magic_points = 0 # magic points
@@ -1025,11 +1026,11 @@ class Stats:
 
     def replenish_combat_points(self, amount: int = None) -> None:
         if amount:
-            self.combat_points += amount
+            self.action_points += amount
         else:
-            self.combat_points = self.max_combat_points
-        if self.combat_points > self.max_combat_points:
-            self.combat_points = self.max_combat_points
+            self.action_points = self.max_combat_points
+        if self.action_points > self.max_combat_points:
+            self.action_points = self.max_combat_points
 
     def replenish_magic_points(self, amount: int = None) -> None:
         if amount:
@@ -1454,11 +1455,14 @@ class Living(MudObject):
 
     def start_attack(self, defender: 'Living', target_body_part: wearable.WearLocation= None) -> combat.Combat:
         """Starts attacking the given living for one round."""
-        if self.stats.combat_points < 1:
+        if self.stats.action_points < 1:
             self.tell("You are too tired to attack.")
             return
-        self.hidden = False
-        self.stats.combat_points -= 1
+        if self.hidden:
+            self.hidden = False
+            self.stats.action_points -= 3
+        else:
+            self.stats.action_points -= 1
         attacker_name = lang.capital(self.title)
         victim_name = lang.capital(defender.title)
         attackers = [self]
@@ -1644,6 +1648,58 @@ class Living(MudObject):
             self.on_death_callback(remains)
         self.destroy(util.Context)
         return remains
+    
+    def hide(self, hide: bool = True):
+        if not hide:
+            self.hidden = False
+            self.hidden = False
+            self.tell("You reveal yourself")
+            self.location.tell("%s reveals themselves" % self.title, exclude_living=self)
+            return
+        
+        if self.stats.action_points < 1:
+            raise ActionRefused("You don't have enough action points to hide.")
+        if len(self.location.livings) > 1:
+            raise ActionRefused("You can't hide when there are other living entities around.")
+        
+        self.stats.action_points -= 1
+
+        skillValue = self.stats.skills.get(SkillType.HIDE, 0)
+        if random.randint(1, 100) > skillValue:
+            self.tell("You fail to hide.")
+            return
+        
+        self.hidden = hide
+        self.tell("You hide yourself.")
+        self.location.tell("%s hides" % self.title, exclude_living=self)
+
+    def search_hidden(self):
+        if self.stats.action_points < 1:
+            raise ActionRefused("You don't have enough action points to search.")
+
+        livings = self.location.livings
+
+        self.location.tell("%s searches for something in the room." % (self.title), exclude_living=self)
+
+        if len(self.location.livings) == 1:
+            self.tell("You don't find anything.")
+            return
+        
+        skillValue = self.stats.skills.get(SkillType.SEARCH, 0)
+
+        found = False
+        
+        for living in livings:
+            if living != self and living.hidden:
+                modifier = skillValue - living.stats.skills.get(SkillType.HIDE, 0)
+                if random.randint(1, 100) < skillValue + modifier:
+                    living.hidden = False
+                    self.tell("You find %s." % living.title)
+                    self.location.tell("%s reveals %s" % (self.title, living.title), exclude_living=self)
+                    found = True
+
+        if not found:
+            self.tell("You don't find anything.")
 
 
 class Container(Item):

@@ -130,7 +130,7 @@ def do_drain(player: Player, parsed: base.ParseResult, ctx: util.Context) -> Non
         return
     
     points = random.randint(1, level)
-    result.stats.combat_points -= points
+    result.stats.action_points -= points
     result.stats.magic_points -= points
 
     player.stats.magic_points += points

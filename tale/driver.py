@@ -964,6 +964,8 @@ class Driver(pubsub.Listener):
     @util.call_periodically(20)
     def replenish(self):
         for player in self.all_players.values():
+            if player.hidden:
+                continue
             player.player.stats.replenish_hp(1)
             player.player.stats.replenish_combat_points(1)
             player.player.stats.replenish_magic_points(1)

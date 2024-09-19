@@ -123,12 +123,12 @@ class TestDrain:
     def test_drain(self):
         self.player.stats.magic_skills[MagicType.DRAIN] = 100
         npc = LivingNpc('test', 'f', age=30)
-        npc.stats.combat_points = 5
+        npc.stats.action_points = 5
         npc.stats.magic_points = 5
         self.player.location.insert(npc, actor=None)
         self.player.stats.magic_points = 10
         parse_result = ParseResult(verb='drain', args=['test'])
         result = spells.do_drain(self.player, parse_result, None)
         assert self.player.stats.magic_points > 7
-        assert npc.stats.combat_points < 5
+        assert npc.stats.action_points < 5
         assert npc.stats.magic_points < 5

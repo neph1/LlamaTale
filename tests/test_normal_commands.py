@@ -145,16 +145,22 @@ class TestExamineCommand():
 
     def test_hide(self):
         self.test_player.stats.skills[SkillType.HIDE] = 100
+        self.test_player.stats.action_points = 1
         normal.do_hide(self.test_player, ParseResult(verb='hide', args=[]), self.context)
         assert self.test_player.hidden
-
         
-        with pytest.raises(ActionRefused, match="You're already hidden. If you want to reveal yourself, use 'unhide'"):
+        with pytest.raises(ActionRefused, match="You're already hidden. If you want to reveal yourself, use 'unhide'."):
+            normal.do_hide(self.test_player, ParseResult(verb='hide', args=[]), self.context)
+
+        self.test_player.hidden = False
+
+        with pytest.raises(ActionRefused, match="You don't have enough action points to hide."):
             normal.do_hide(self.test_player, ParseResult(verb='hide', args=[]), self.context)
 
         self.test_player.hidden = False
 
         self.test_player.stats.skills[SkillType.HIDE] = 0
+        self.test_player.stats.action_points = 1
         normal.do_hide(self.test_player, ParseResult(verb='hide', args=[]), self.context)
         assert not self.test_player.hidden
 
@@ -175,6 +181,7 @@ class TestExamineCommand():
         location.init_inventory([self.test_player, test_npc])
 
         self.test_player.stats.skills[SkillType.SEARCH] = 0
+        self.test_player.stats.action_points = 1
 
         normal.do_search_hidden(self.test_player, ParseResult(verb='search', args=[]), self.context)
 
@@ -182,6 +189,7 @@ class TestExamineCommand():
 
         self.test_player.stats.skills[SkillType.SEARCH] = 100
         test_npc.stats.skills[SkillType.HIDE] = 0
+        self.test_player.stats.action_points = 1
 
         normal.do_search_hidden(self.test_player, ParseResult(verb='search', args=[]), self.context)
 
