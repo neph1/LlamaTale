@@ -10,6 +10,7 @@ from tale.llm.LivingNpc import LivingNpc
 from tale.llm.llm_ext import DynamicStory
 from tale.llm.llm_utils import LlmUtil
 from tale.player import Player
+from tale.skills.skills import SkillType
 from tale.story import StoryConfig
 from tests.supportstuff import FakeDriver, FakeIoUtil
 
@@ -141,3 +142,47 @@ class TestExamineCommand():
         location.init_inventory([self.test_player, test_npc])
         normal.do_unfollow(self.test_player, ParseResult(verb='unfollow', args=['test_npc']), self.context)
         assert not test_npc.following
+
+    def test_hide(self):
+        self.test_player.stats.skills[SkillType.HIDE] = 100
+        normal.do_hide(self.test_player, ParseResult(verb='hide', args=[]), self.context)
+        assert self.test_player.hidden
+
+        
+        with pytest.raises(ActionRefused, match="You're already hidden. If you want to reveal yourself, use 'unhide'"):
+            normal.do_hide(self.test_player, ParseResult(verb='hide', args=[]), self.context)
+
+        self.test_player.hidden = False
+
+        self.test_player.stats.skills[SkillType.HIDE] = 0
+        normal.do_hide(self.test_player, ParseResult(verb='hide', args=[]), self.context)
+        assert not self.test_player.hidden
+
+    def test_unhide(self):
+        self.test_player.hidden = True
+        normal.do_unhide(self.test_player, ParseResult(verb='unhide', args=[]), self.context)
+        assert not self.test_player.hidden
+
+        with pytest.raises(ActionRefused, match="You're not hidden."):
+            normal.do_unhide(self.test_player, ParseResult(verb='unhide', args=[]), self.context)
+
+    def test_search_hidden(self):
+
+        test_npc = LivingNpc('test_npc', 'f')
+        test_npc.hidden = True
+        test_npc.stats.skills[SkillType.HIDE] = 100
+        location = Location('test_room')
+        location.init_inventory([self.test_player, test_npc])
+
+        self.test_player.stats.skills[SkillType.SEARCH] = 0
+
+        normal.do_search_hidden(self.test_player, ParseResult(verb='search', args=[]), self.context)
+
+        assert test_npc.hidden
+
+        self.test_player.stats.skills[SkillType.SEARCH] = 100
+        test_npc.stats.skills[SkillType.HIDE] = 0
+
+        normal.do_search_hidden(self.test_player, ParseResult(verb='search', args=[]), self.context)
+
+        assert not test_npc.hidden

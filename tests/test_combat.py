@@ -6,7 +6,7 @@ from tale.combat import Combat
 from tale.llm.contexts.CombatContext import CombatContext
 from tale.player import Player
 from tale.races import BodyType
-from tale.weapon_type import WeaponType
+from tale.skills.weapon_type import WeaponType
 from tale.wearable import WearLocation
 from tests.supportstuff import FakeDriver
 from tale.wearable import WearLocation

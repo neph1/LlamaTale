@@ -50,7 +50,7 @@ from tale import resources_utils
 
 from tale.coord import Coord
 from tale.llm.contexts.CombatContext import CombatContext
-from tale.magic import MagicSkill, MagicType
+from tale.skills.magic import MagicSkill, MagicType
 
 from . import lang
 from . import mud_context
@@ -63,7 +63,7 @@ from . import combat
 
 from .errors import ActionRefused, ParseError, LocationIntegrityError, TaleError, UnknownVerbException, NonSoulVerb
 from tale.races import UnarmedAttack
-from tale.weapon_type import WeaponType
+from tale.skills.weapon_type import WeaponType
 from . import wearable
 
 __all__ = ["MudObject", "Armour", 'Container', "Door", "Exit", "Item", "Living", "Stats", "Location", "Weapon", "Key", "Soul"]
@@ -289,6 +289,7 @@ class MudObject:
         # register all periodical tagged methods
         self.story_data = {}  # type: Dict[Any, Any]   # not used by Tale itself, story can put custom data here. Use builtin types only.
         self.visible = True  # can this object be seen by others?
+        self.hidden = False
         self.avatar = resources_utils.check_file_exists_in_resources(self.name.strip().replace(" ", "_").lower())
         self.init()
         if util.get_periodicals(self):
@@ -774,7 +775,7 @@ class Location(MudObject):
                 item_names = sorted(item.name for item in self.items)
                 paragraphs.append("You see: " + lang.join(item_names))
             if self.livings:
-                living_names = sorted(living.name for living in self.livings if living != exclude_living and living.visible)
+                living_names = sorted(living.name for living in self.livings if living != exclude_living and living.visible and not living.hidden)
                 if living_names:
                     paragraphs.append("Present here: " + lang.join(living_names))
             return paragraphs
@@ -791,8 +792,8 @@ class Location(MudObject):
                     exit_paragraph.append(exit.short_description)
             paragraphs.append(" ".join(exit_paragraph))
         items_and_livings = []  # type: List[str]
-        items_with_short_descr = [item for item in self.items if item.short_description and item.visible]
-        items_without_short_descr = [item for item in self.items if not item.short_description and item.visible]
+        items_with_short_descr = [item for item in self.items if item.short_description and item.visible and not item.hidden]
+        items_without_short_descr = [item for item in self.items if not item.short_description and item.visible and not item.hidden]
         uniq_descriptions = set()
         if items_with_short_descr:
             for item in items_with_short_descr:
@@ -801,8 +802,8 @@ class Location(MudObject):
         if items_without_short_descr:
             titles = sorted([lang.a(item.title) for item in items_without_short_descr])
             items_and_livings.append("You see " + lang.join(titles) + ".")
-        livings_with_short_descr = [living for living in self.livings if living != exclude_living and living.short_description and living.visible]
-        livings_without_short_descr = [living for living in self.livings if living != exclude_living and not living.short_description and living.visible]
+        livings_with_short_descr = [living for living in self.livings if living != exclude_living and living.short_description and living.visible and not living.hidden]
+        livings_without_short_descr = [living for living in self.livings if living != exclude_living and not living.short_description and living.visible and not living.hidden]
         if livings_without_short_descr:
             titles = sorted(living.title for living in livings_without_short_descr)
             if titles:
@@ -977,6 +978,7 @@ class Stats:
         self.unarmed_attack = Weapon(UnarmedAttack.FISTS.name, weapon_type=WeaponType.UNARMED)
         self.weapon_skills = {}  # type: Dict[WeaponType, int]  # weapon type -> skill level
         self.magic_skills  = {}  # type: Dict[MagicType, MagicSkill]
+        self.skills = {}  # type: Dict[str, int]  # skill name -> skill level
         self.combat_points = 0 # combat points
         self.max_combat_points = 5 # max combat points
         self.max_magic_points = 5 # max magic points
@@ -1455,6 +1457,7 @@ class Living(MudObject):
         if self.stats.combat_points < 1:
             self.tell("You are too tired to attack.")
             return
+        self.hidden = False
         self.stats.combat_points -= 1
         attacker_name = lang.capital(self.title)
         victim_name = lang.capital(defender.title)

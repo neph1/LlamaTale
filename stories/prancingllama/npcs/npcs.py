@@ -12,7 +12,7 @@ from tale.util import call_periodically, Context
 from tale import lang
 from typing import Optional
 
-from tale.weapon_type import WeaponType
+from tale.skills.weapon_type import WeaponType
 
 class InnKeeper(LivingNpc):
     

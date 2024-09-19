@@ -111,6 +111,7 @@ class MudAccounts:
                             dexterity integer NOT NULL,
                             weapon_skills varchar NOT NULL,
                             magic_skills varchar NOT NULL,
+                            skils varchar NOT NULL,
                             combat_points integer NOT NULL,
                             max_combat_points integer NOT NULL,
                             magic_points integer NOT NULL,

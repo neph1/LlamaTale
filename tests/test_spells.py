@@ -1,7 +1,7 @@
 
 
 import pytest
-from tale import magic
+from tale.skills import magic
 import tale
 from tale.base import Location, ParseResult
 from tale.cmds import spells
@@ -9,7 +9,7 @@ from tale.errors import ActionRefused
 from tale.llm.LivingNpc import LivingNpc
 from tale.llm.llm_ext import DynamicStory
 from tale.llm.llm_utils import LlmUtil
-from tale.magic import MagicSkill, MagicType
+from tale.skills.magic import MagicSkill, MagicType
 from tale.player import Player
 from tale.story import StoryConfig
 from tests.supportstuff import FakeDriver, FakeIoUtil

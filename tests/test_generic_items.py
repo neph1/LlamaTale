@@ -4,7 +4,7 @@ from tale import parse_utils
 from tale.base import Weapon
 from tale.items import generic
 from tale.items.basic import Food, Health, Note
-from tale.weapon_type import WeaponType
+from tale.skills.weapon_type import WeaponType
 
 
 class TestGenericItems():

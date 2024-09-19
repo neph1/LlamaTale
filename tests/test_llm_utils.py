@@ -8,7 +8,7 @@ from tale.llm.contexts.CharacterContext import CharacterContext
 from tale.llm.contexts.FollowContext import FollowContext
 from tale.llm.contexts.WorldGenerationContext import WorldGenerationContext
 import tale.llm.llm_cache as llm_cache
-from tale import mud_context, weapon_type
+from tale import mud_context
 from tale import zone
 from tale import util
 from tale.base import Item, Location, Weapon
@@ -21,6 +21,7 @@ from tale.llm.responses.FollowResponse import FollowResponse
 from tale.npc_defs import StationaryMob
 from tale.player import Player, PlayerConnection
 from tale.races import UnarmedAttack
+from tale.skills import weapon_type
 from tale.tio.console_io import ConsoleIo
 from tale.util import MoneyFormatterFantasy
 from tale.zone import Zone

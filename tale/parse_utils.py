@@ -7,12 +7,12 @@ from tale.coord import Coord
 from tale.item_spawner import ItemSpawner
 from tale.items.basic import Boxlike, Drink, Food, Health, Money, Note
 from tale.llm.LivingNpc import LivingNpc
-from tale.magic import MagicType
+from tale.skills.magic import MagicType
 from tale.npc_defs import StationaryMob, StationaryNpc
 from tale.races import BodyType, UnarmedAttack
 from tale.mob_spawner import MobSpawner
 from tale.story import GameMode, MoneyType, TickMethod, StoryConfig
-from tale.weapon_type import WeaponType
+from tale.skills.weapon_type import WeaponType
 from tale.wearable import WearLocation
 import json
 import re
@@ -644,6 +644,7 @@ def save_stats(stats: Stats) -> dict:
     json_stats['level'] = stats.level
     json_stats['weapon_skills'] = skills_dict_to_json(stats.weapon_skills)
     json_stats['magic_skills'] = skills_dict_to_json(stats.magic_skills)
+    json_stats['skills'] = skills_dict_to_json(stats.skills)
     json_stats['gender'] = stats.gender = 'n'
     json_stats['alignment'] = stats.alignment
     json_stats['weight'] = stats.weight
@@ -671,22 +672,28 @@ def load_stats(json_stats: dict) -> Stats:
     stats.strength = json_stats.get('strength')
     stats.dexterity = json_stats.get('dexterity')
     stats.race = json_stats.get('race', 'human')
-    if json_stats.get('bodytype'):
+    if json_stats.get('bodytype', None):
         stats.bodytype = BodyType[json_stats['bodytype'].upper()]
-    if json_stats.get('unarmed_attack'):
+    if json_stats.get('unarmed_attack', None):
         stats.unarmed_attack = Weapon(UnarmedAttack[json_stats['unarmed_attack'].upper()], WeaponType.UNARMED)
-    if json_stats.get('weapon_skills'):
+    if json_stats.get('weapon_skills', None):
         json_skills = json_stats['weapon_skills']
         stats.weapon_skills = {}
         for skill in json_skills.keys():
             int_skill = int(skill)
             stats.weapon_skills[WeaponType(int_skill)] = json_skills[skill]
-    if json_stats.get('magic_skills'):
+    if json_stats.get('magic_skills', None):
         json_skills = json_stats['magic_skills']
         stats.magic_skills = {}
         for skill in json_skills.keys():
             int_skill = int(skill)
             stats.magic_skills[MagicType(int_skill)] = json_skills[skill]
+    if json_stats.get('skills', None):
+        json_skills = json_stats['skills']
+        stats.skills = {}
+        for skill in json_skills.keys():
+            int_skill = int(skill)
+            stats.skills[WeaponType(int_skill)] = json
     return stats
     
 def save_items(items: List[Item]) -> dict:

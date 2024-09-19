@@ -7,12 +7,12 @@ from tale.base import Location
 from tale.cmds import spells
 from tale.driver import Driver
 from tale.llm.llm_ext import DynamicStory
-from tale.magic import MagicType
+from tale.skills.magic import MagicType
 from tale.main import run_from_cmdline
 from tale.player import Player, PlayerConnection
 from tale.charbuilder import PlayerNaming
 from tale.story import *
-from tale.weapon_type import WeaponType
+from tale.skills.weapon_type import WeaponType
 from tale.zone import Zone
 
 class Story(DynamicStory):

@@ -6,7 +6,7 @@ Util class for combat related functions.
 
 import random
 from typing import List, Tuple
-from tale import weapon_type
+from tale.skills import weapon_type
 import tale.base as base
 from tale.wearable import WearLocation, body_parts_for_bodytype
 from tale.wearable import WearLocation

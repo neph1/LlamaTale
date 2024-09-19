@@ -2,10 +2,10 @@
 import random
 from typing import Optional
 from tale import base, util, cmds
-from tale import magic
+from tale.skills import magic
 from tale.cmds import cmd
 from tale.errors import ActionRefused, ParseError
-from tale.magic import MagicType, MagicSkill, Spell
+from tale.skills.magic import MagicType, MagicSkill, Spell
 from tale.player import Player
 
 

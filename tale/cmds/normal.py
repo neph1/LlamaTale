@@ -12,6 +12,7 @@ from typing import Iterable, List, Dict, Generator, Union, Optional
 from tale.llm.LivingNpc import LivingNpc
 
 from tale.llm.llm_ext import DynamicStory
+from tale.skills.skills import SkillType
 
 from . import abbreviations, cmd, disabled_in_gamemode, disable_notify_action, overrides_soul, no_soul_parse
 from .. import base
@@ -1846,4 +1847,61 @@ def do_unfollow(player: Player, parsed: base.ParseResult, ctx: util.Context) -> 
     result.following = None
     player.tell("%s stops following you" % result.title)
     result.tell("You stop following %s" % player.title)
+    
+@cmd("hide")
+def do_hide(player: Player, parsed: base.ParseResult, ctx: util.Context) -> None:
+    """Hide yourself."""
+    if player.hidden:
+        raise ActionRefused("You're already hidden. If you want to reveal yourself, use 'unhide'.")
+    if len(player.location.livings) > 1:
+        raise ActionRefused("You can't hide when there are other living entities around.")
+
+    skillValue = player.stats.skills.get(SkillType.HIDE, 0)
+    if random.randint(1, 100) > skillValue:
+        player.tell("You fail to hide.")
+        return
+    
+    player.hidden = True
+    player.tell("You hide yourself.")
+    player.location.tell("%s hides" % player.title, exclude_living=player)
+
+@cmd("unhide")
+def do_unhide(player: Player, parsed: base.ParseResult, ctx: util.Context) -> None:
+    """Unhide yourself."""
+    if not player.hidden:
+        raise ActionRefused("You're not hidden.")
+    
+    player.hidden = False
+    player.tell("You reveal yourself")
+    player.location.tell("%s reveals themselves" % player.title, exclude_living=player)
+
+@cmd("search_hidden")
+def do_search_hidden(player: Player, parsed: base.ParseResult, ctx: util.Context) -> None:
+    """Search for hidden things."""
+
+    livings = player.location.livings
+
+    player.location.tell("%s searches for something in the room." % (player.title), exclude_living=player)
+
+    if len(player.location.livings) == 1:
+        player.tell("You don't find anything.")
+        return
+    
+    skillValue = player.stats.skills.get(SkillType.SEARCH, 0)
+
+    found = False
+    
+    for living in livings:
+        if living != player and living.hidden:
+            modifier = skillValue - living.stats.skills.get(SkillType.HIDE, 0)
+            if random.randint(1, 100) < skillValue + modifier:
+                living.hidden = False
+                player.tell("You find %s." % living.title)
+                player.location.tell("%s reveals %s" % (player.title, living.title), exclude_living=player)
+                found = True
+
+    if not found:
+        player.tell("You don't find anything.")
+    
+    
     
