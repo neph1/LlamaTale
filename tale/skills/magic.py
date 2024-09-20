@@ -7,6 +7,8 @@ class MagicType(Enum):
     BOLT = 2
     DRAIN = 3
     REJUVENATE = 4
+    HIDE = 5
+    REVEAL = 6
 
 
 
@@ -23,7 +25,10 @@ class Spell(ABC):
 spells = {
     MagicType.HEAL: Spell('heal', base_cost=2, base_value=5),
     MagicType.BOLT: Spell('bolt', base_cost=3, base_value=5),
-    MagicType.DRAIN: Spell('drain', base_cost=3, base_value=5)
+    MagicType.DRAIN: Spell('drain', base_cost=3, base_value=5),
+    MagicType.REJUVENATE: Spell('rejuvenate', base_cost=2, base_value=4),
+    MagicType.HIDE: Spell('hide', base_cost=3),
+    MagicType.REVEAL: Spell('reveal', base_cost=3)
 }
 
 class MagicSkill:
