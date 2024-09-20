@@ -3,7 +3,7 @@ import cmd
 import pytest
 import tale
 from tale import wearable
-from tale.base import Item, Location, ParseResult, Weapon, Wearable
+from tale.base import Door, Item, Location, ParseResult, Weapon, Wearable
 from tale.cmds import normal
 from tale.errors import ActionRefused, ParseError
 from tale.llm.LivingNpc import LivingNpc
@@ -194,3 +194,35 @@ class TestExamineCommand():
         normal.do_search_hidden(self.test_player, ParseResult(verb='search', args=[]), self.context)
 
         assert not test_npc.hidden
+
+    def test_pick_lock(self):
+        self.test_player.stats.skills[SkillType.PICK_LOCK] = 100
+        self.test_player.stats.action_points = 1
+
+        hall = Location("hall")
+        door = Door("north", hall, "a locked door", locked=True, opened=False)
+        hall.add_exits([door])
+        hall.insert(self.test_player, actor=None)
+        
+        parse_result = ParseResult(verb='pick_lock', args=['north'])
+        normal.do_pick_lock(self.test_player, parse_result, self.context)
+        assert not door.locked
+
+        # Test failure
+
+        door.locked = True
+
+        self.test_player.stats.skills[SkillType.PICK_LOCK] = 0
+        self.test_player.stats.action_points = 1
+
+        normal.do_pick_lock(self.test_player, parse_result, self.context)
+
+        assert door.locked
+
+        # Test no action points
+
+        self.test_player.stats.skills[SkillType.PICK_LOCK] = 100
+        self.test_player.stats.action_points = 0
+
+        with pytest.raises(ActionRefused, match="You don't have enough action points to pick the lock."):
+            normal.do_pick_lock(self.test_player, parse_result, self.context)

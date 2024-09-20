@@ -1868,5 +1868,21 @@ def do_search_hidden(player: Player, parsed: base.ParseResult, ctx: util.Context
 
     player.search_hidden()
     
+@cmd("pick_lock")
+def do_pick_lock(player: Player, parsed: base.ParseResult, ctx: util.Context) -> None:
+    """Pick a lock on a door."""
+    if len(parsed.args) < 1:
+        raise ParseError("You need to specify the door to pick")
+    try:
+        exit = str(parsed.args[0])
+    except ValueError as x:
+        raise ActionRefused(str(x))
+    if exit in player.location.exits:
+        door = player.location.exits[exit]
+
+        if not isinstance(door, base.Door) or not door.locked:
+            raise ActionRefused("You can't pick that")
+        
+        door.pick_lock(player)
     
     

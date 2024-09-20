@@ -226,7 +226,7 @@ class TestHide:
 
     def test_hide_refused(self):
         parse_result = ParseResult(verb='hide', args=[])
-        with pytest.raises(ActionRefused, match="You don't know how the 'hide' spell."):
+        with pytest.raises(ActionRefused, match="You don't know the 'hide' spell."):
             spells.do_hide(self.player, parse_result, None)
         
         self.player.stats.magic_skills[MagicType.HIDE] = 10
@@ -283,7 +283,7 @@ class TestReveal:
 
     def test_reveal_refused(self):
         parse_result = ParseResult(verb='reveal', args=[])
-        with pytest.raises(ActionRefused, match="You don't know how the 'reveal' spell."):
+        with pytest.raises(ActionRefused, match="You don't know the 'reveal' spell."):
             spells.do_reveal(self.player, parse_result, None)
         
         self.player.stats.magic_skills[MagicType.REVEAL] = 10

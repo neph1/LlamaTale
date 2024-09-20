@@ -112,7 +112,7 @@ def do_rejuvenate(player: Player, parsed: base.ParseResult, ctx: util.Context) -
 def do_hide(player: Player, parsed: base.ParseResult, ctx: util.Context) -> None:
     """ Hide from view """
 
-    skillValue, spell = _check_spell_skill(player, MagicType.HIDE, "You don't know how the 'hide' spell.")
+    skillValue, spell = _check_spell_skill(player, MagicType.HIDE, "You don't know the 'hide' spell.")
     level = _parse_level(player, parsed)
 
     if not spell.check_cost(player.stats.magic_points, level):
@@ -135,7 +135,7 @@ def do_hide(player: Player, parsed: base.ParseResult, ctx: util.Context) -> None
 def do_reveal(player: Player, parsed: base.ParseResult, ctx: util.Context) -> None:
     """ Reveal hidden things. """
 
-    skillValue, spell = _check_spell_skill(player, MagicType.REVEAL, "You don't know how the 'reveal' spell.")
+    skillValue, spell = _check_spell_skill(player, MagicType.REVEAL, "You don't know the 'reveal' spell.")
     level = _parse_level(player, parsed, 0)
 
     if not spell.check_cost(player.stats.magic_points, level):

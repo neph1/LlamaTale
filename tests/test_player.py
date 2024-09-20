@@ -811,6 +811,8 @@ class TestMudAccounts(unittest.TestCase):
             self.assertEqual(races.BodySize.HUMAN_SIZED, account.stats.size)
             self.assertEqual("Edhellen", account.stats.language)
             self.assertEqual({}, account.stats.weapon_skills)
+            self.assertEqual({}, account.stats.magic_skills)
+            self.assertEqual({}, account.stats.skills)
         finally:
             dbfile.unlink()
 
