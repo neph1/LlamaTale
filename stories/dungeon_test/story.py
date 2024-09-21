@@ -11,11 +11,8 @@ from tale.driver import Driver
 from tale.dungeon.dungeon_generator import ItemPopulator, Layout, LayoutGenerator, MobPopulator
 from tale.items.basic import Money
 from tale.json_story import JsonStory
-from tale.skills.magic import MagicType
 from tale.main import run_from_cmdline
-from tale.npc_defs import RoamingMob
 from tale.player import Player, PlayerConnection
-from tale.skills.skills import SkillType
 from tale.story import *
 from tale.skills.weapon_type import WeaponType
 from tale.zone import Zone
@@ -46,10 +43,6 @@ class Story(JsonStory):
         player.stats.set_weapon_skill(weapon_type=WeaponType.ONE_HANDED, value=random.randint(10, 30))
         player.stats.set_weapon_skill(weapon_type=WeaponType.TWO_HANDED, value=random.randint(10, 30))
         player.stats.set_weapon_skill(weapon_type=WeaponType.UNARMED, value=random.randint(20, 30))
-        player.stats.magic_skills[MagicType.HEAL] = 30
-        player.stats.magic_skills[MagicType.BOLT] = 30
-        player.stats.magic_skills[MagicType.DRAIN] = 30
-        player.stats.magic_skills[MagicType.REJUVENATE] = 30
         pass
 
     def create_account_dialog(self, playerconnection: PlayerConnection, playernaming: PlayerNaming) -> Generator:
@@ -67,15 +60,6 @@ class Story(JsonStory):
         else:
             playerconnection.player.stats.set_weapon_skill(weapon_type=WeaponType.ONE_HANDED, value=random.randint(20, 40))
             playerconnection.player.stats.set_weapon_skill(weapon_type=WeaponType.TWO_HANDED, value=random.randint(20, 40))
-        stealth = yield "input", ("Are you sneaky? (yes/no)", lang.yesno)
-        if stealth:
-            playerconnection.player.stats.skills[SkillType.HIDE] = random.randint(30, 50)
-            playerconnection.player.stats.skills[SkillType.PICK_LOCK] = random.randint(30, 50)
-        else:
-            playerconnection.player.stats.skills[SkillType.HIDE] = random.randint(10, 30)
-            playerconnection.player.stats.skills[SkillType.PICK_LOCK] = random.randint(10, 30)
-        playerconnection.player.stats.skills[SkillType.SEARCH] = random.randint(20, 40)
-        
         return True
 
     def welcome(self, player: Player) -> str:
@@ -121,9 +105,6 @@ class Story(JsonStory):
         item_spawners = self.item_populator.populate(zone=zone, story=self)
         for item_spawner in item_spawners:
             self.world.add_item_spawner(item_spawner)
-
-        if zone.center.z == self.max_depth:
-            self.driver.llm_util.generate_character
 
         if not first_zone:
             self.layout_generator.spawn_gold(zone=zone)
@@ -187,22 +168,6 @@ class Story(JsonStory):
             else:
                 Exit.connect(cell_location, parent_location.name, '', None, parent_location, cell_location.name, '', None)
 
-    def _generate_boss(self, zone: Zone) -> bool:
-        character = self.driver.llm_util.generate_character(keywords=['final boss']) # Characterv2
-        if character:
-            boss = RoamingMob(character.name, 
-                            gender=character.gender, 
-                            title=lang.capital(character.name), 
-                            descr=character.description, 
-                            short_descr=character.appearance, 
-                            age=character.age,
-                            personality=character.personality)
-            boss.aliases = [character.name.split(' ')[0]]
-            boss.stats.level = self.max_depth
-            location = random.choice(list(zone.locations.values()))
-            location.insert(boss, None)
-            return True
-        return False
 
 if __name__ == "__main__":
     # story is invoked as a script, start it in the Tale Driver.

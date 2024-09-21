@@ -20,13 +20,13 @@ class TestStats:
 
     def test_replenish_combat_points(self):
         stats = Stats()
-        stats.max_combat_points = 100
-        stats.combat_points = 0
+        stats.max_action_points = 100
+        stats.action_points = 0
 
         stats.replenish_combat_points(10)
 
-        assert stats.combat_points == 10
+        assert stats.action_points == 10
 
         stats.replenish_combat_points()
 
-        assert stats.combat_points == 100
+        assert stats.action_points == 100

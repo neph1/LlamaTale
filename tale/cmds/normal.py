@@ -12,6 +12,7 @@ from typing import Iterable, List, Dict, Generator, Union, Optional
 from tale.llm.LivingNpc import LivingNpc
 
 from tale.llm.llm_ext import DynamicStory
+from tale.skills.skills import SkillType
 
 from . import abbreviations, cmd, disabled_in_gamemode, disable_notify_action, overrides_soul, no_soul_parse
 from .. import base
@@ -1846,4 +1847,42 @@ def do_unfollow(player: Player, parsed: base.ParseResult, ctx: util.Context) -> 
     result.following = None
     player.tell("%s stops following you" % result.title)
     result.tell("You stop following %s" % player.title)
+    
+@cmd("hide")
+def do_hide(player: Player, parsed: base.ParseResult, ctx: util.Context) -> None:
+    """Hide yourself."""
+    if player.hidden:
+        raise ActionRefused("You're already hidden. If you want to reveal yourself, use 'unhide'.")
+    player.hide()
+
+@cmd("unhide")
+def do_unhide(player: Player, parsed: base.ParseResult, ctx: util.Context) -> None:
+    """Unhide yourself."""
+    if not player.hidden:
+        raise ActionRefused("You're not hidden.")
+    player.hide(False)
+
+@cmd("search_hidden")
+def do_search_hidden(player: Player, parsed: base.ParseResult, ctx: util.Context) -> None:
+    """Search for hidden things."""
+
+    player.search_hidden()
+    
+@cmd("pick_lock")
+def do_pick_lock(player: Player, parsed: base.ParseResult, ctx: util.Context) -> None:
+    """Pick a lock on a door."""
+    if len(parsed.args) < 1:
+        raise ParseError("You need to specify the door to pick")
+    try:
+        exit = str(parsed.args[0])
+    except ValueError as x:
+        raise ActionRefused(str(x))
+    if exit in player.location.exits:
+        door = player.location.exits[exit]
+
+        if not isinstance(door, base.Door) or not door.locked:
+            raise ActionRefused("You can't pick that")
+        
+        door.pick_lock(player)
+    
     

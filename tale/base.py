@@ -50,7 +50,8 @@ from tale import resources_utils
 
 from tale.coord import Coord
 from tale.llm.contexts.CombatContext import CombatContext
-from tale.magic import MagicSkill, MagicType
+from tale.skills.magic import MagicSkill, MagicType
+from tale.skills.skills import SkillType
 
 from . import lang
 from . import mud_context
@@ -63,7 +64,7 @@ from . import combat
 
 from .errors import ActionRefused, ParseError, LocationIntegrityError, TaleError, UnknownVerbException, NonSoulVerb
 from tale.races import UnarmedAttack
-from tale.weapon_type import WeaponType
+from tale.skills.weapon_type import WeaponType
 from . import wearable
 
 __all__ = ["MudObject", "Armour", 'Container', "Door", "Exit", "Item", "Living", "Stats", "Location", "Weapon", "Key", "Soul"]
@@ -289,6 +290,7 @@ class MudObject:
         # register all periodical tagged methods
         self.story_data = {}  # type: Dict[Any, Any]   # not used by Tale itself, story can put custom data here. Use builtin types only.
         self.visible = True  # can this object be seen by others?
+        self.hidden = False
         self.avatar = resources_utils.check_file_exists_in_resources(self.name.strip().replace(" ", "_").lower())
         self.init()
         if util.get_periodicals(self):
@@ -307,7 +309,7 @@ class MudObject:
 
     @property
     def title(self) -> str:
-        return self._title
+        return (self._title + '[hidden]') if self.hidden else self._title
 
     @title.setter
     def title(self, value: str) -> None:
@@ -774,7 +776,7 @@ class Location(MudObject):
                 item_names = sorted(item.name for item in self.items)
                 paragraphs.append("You see: " + lang.join(item_names))
             if self.livings:
-                living_names = sorted(living.name for living in self.livings if living != exclude_living and living.visible)
+                living_names = sorted(living.name for living in self.livings if living != exclude_living and living.visible and not living.hidden)
                 if living_names:
                     paragraphs.append("Present here: " + lang.join(living_names))
             return paragraphs
@@ -791,8 +793,8 @@ class Location(MudObject):
                     exit_paragraph.append(exit.short_description)
             paragraphs.append(" ".join(exit_paragraph))
         items_and_livings = []  # type: List[str]
-        items_with_short_descr = [item for item in self.items if item.short_description and item.visible]
-        items_without_short_descr = [item for item in self.items if not item.short_description and item.visible]
+        items_with_short_descr = [item for item in self.items if item.short_description and item.visible and not item.hidden]
+        items_without_short_descr = [item for item in self.items if not item.short_description and item.visible and not item.hidden]
         uniq_descriptions = set()
         if items_with_short_descr:
             for item in items_with_short_descr:
@@ -801,8 +803,8 @@ class Location(MudObject):
         if items_without_short_descr:
             titles = sorted([lang.a(item.title) for item in items_without_short_descr])
             items_and_livings.append("You see " + lang.join(titles) + ".")
-        livings_with_short_descr = [living for living in self.livings if living != exclude_living and living.short_description and living.visible]
-        livings_without_short_descr = [living for living in self.livings if living != exclude_living and not living.short_description and living.visible]
+        livings_with_short_descr = [living for living in self.livings if living != exclude_living and living.short_description and living.visible and not living.hidden]
+        livings_without_short_descr = [living for living in self.livings if living != exclude_living and not living.short_description and living.visible and not living.hidden]
         if livings_without_short_descr:
             titles = sorted(living.title for living in livings_without_short_descr)
             if titles:
@@ -974,11 +976,14 @@ class Stats:
         self.race = ""      # the name of the race of this creature
         self.strength = 3
         self.dexterity = 3
+        self.perception = 3
+        self.intelligence = 3
         self.unarmed_attack = Weapon(UnarmedAttack.FISTS.name, weapon_type=WeaponType.UNARMED)
         self.weapon_skills = {}  # type: Dict[WeaponType, int]  # weapon type -> skill level
         self.magic_skills  = {}  # type: Dict[MagicType, MagicSkill]
-        self.combat_points = 0 # combat points
-        self.max_combat_points = 5 # max combat points
+        self.skills = {}  # type: Dict[str, int]  # skill name -> skill level
+        self.action_points = 0 # combat points
+        self.max_action_points = 5 # max combat points
         self.max_magic_points = 5 # max magic points
         self.magic_points = 0 # magic points
 
@@ -998,7 +1003,7 @@ class Stats:
     def set_stats_from_race(self) -> None:
         # the stats that are static are always initialized from the races table
         # we look it up via the name, not needed to store the actual Race object here
-        r = races.races[self.race]
+        r = races.races[self.race] # type: Race
         self.bodytype = r.body
         self.language = r.language
         self.weight = r.mass
@@ -1023,11 +1028,11 @@ class Stats:
 
     def replenish_combat_points(self, amount: int = None) -> None:
         if amount:
-            self.combat_points += amount
+            self.action_points += amount
         else:
-            self.combat_points = self.max_combat_points
-        if self.combat_points > self.max_combat_points:
-            self.combat_points = self.max_combat_points
+            self.action_points = self.max_action_points
+        if self.action_points > self.max_action_points:
+            self.action_points = self.max_action_points
 
     def replenish_magic_points(self, amount: int = None) -> None:
         if amount:
@@ -1379,7 +1384,7 @@ class Living(MudObject):
                 if direction in {"left", "right"}:
                     return "to the " + direction
             return ""
-
+        silent = silent or (self.hidden or not self.visible)
         actor = actor or self
         original_location = None
         if self.location:
@@ -1452,10 +1457,14 @@ class Living(MudObject):
 
     def start_attack(self, defender: 'Living', target_body_part: wearable.WearLocation= None) -> combat.Combat:
         """Starts attacking the given living for one round."""
-        if self.stats.combat_points < 1:
+        if self.stats.action_points < 1:
             self.tell("You are too tired to attack.")
             return
-        self.stats.combat_points -= 1
+        if self.hidden:
+            self.hidden = False
+            self.stats.action_points -= 3
+        else:
+            self.stats.action_points -= 1
         attacker_name = lang.capital(self.title)
         victim_name = lang.capital(defender.title)
         attackers = [self]
@@ -1641,7 +1650,93 @@ class Living(MudObject):
             self.on_death_callback(remains)
         self.destroy(util.Context)
         return remains
+    
+    def hide(self, hide: bool = True):
+        """ Hide or reveal the living entity. """
 
+        if not hide:
+            self.hidden = False
+            self.hidden = False
+            self.tell("You reveal yourself")
+            self.location.tell("%s reveals themselves" % self.title, exclude_living=self)
+            return
+        
+        if self.stats.action_points < 1:
+            raise ActionRefused("You don't have enough action points to hide.")
+        if len(self.location.livings) > 1:
+            raise ActionRefused("You can't hide when there are other living entities around.")
+        
+        self.stats.action_points -= 1
+
+        skillValue = self.stats.skills.get(SkillType.HIDE, 0)
+        if random.randint(1, 100) > skillValue:
+            self.tell("You fail to hide.")
+            return
+        
+        self.hidden = hide
+        self.tell("You hide yourself.")
+        self.location.tell("%s hides" % self.title, exclude_living=self)
+
+    def search_hidden(self, silent: bool = False):
+        """ Search for hidden entities in the room.
+         For automatic searches (like when entering a room),
+         no fail messages will show, and no action points will be used."""
+        
+        if self.stats.action_points < 1:
+            raise ActionRefused("You don't have enough action points to search.")
+
+        livings = self.location.livings
+
+        if not silent:
+            self.stats.action_points -= 1
+            self.location.tell("%s searches for something." % (self.title), exclude_living=self)
+
+        if len(self.location.livings) == 1:
+            if not silent:
+                self.tell("You don't find anything.")
+            return
+        
+        if silent:
+            skillValue = self.stats.perception * 5
+        else:
+            skillValue = self.stats.skills.get(SkillType.SEARCH, 0)
+
+        found = False
+        
+        for living in livings:
+            if living != self and living.hidden:
+                modifier = skillValue - living.stats.skills.get(SkillType.HIDE, 0)
+                if random.randint(1, 100) < skillValue + modifier:
+                    living.hidden = False
+                    self.tell("You find %s." % living.title)
+                    self.location.tell("%s reveals %s" % (self.title, living.title), exclude_living=self)
+                    found = True
+
+        if not found and not silent:
+            self.tell("You don't find anything.")
+
+    def pick_lock(self, door: 'Door'):
+        """ Pick a lock on an exit. """
+        if not door.locked:
+            raise ActionRefused("The door is not locked.")
+        
+        if self.stats.action_points < 1:
+            raise ActionRefused("You don't have enough action points to pick the lock.")
+        
+        self.stats.action_points -= 1
+        
+        skillValue = self.stats.skills.get(SkillType.PICK_LOCK, 0)
+
+        if random.randint(1, 100) > skillValue:
+            self.tell("You fail to pick the lock.")
+            return
+        
+        door.unlock()
+
+        self.tell("You successfully pick the lock.", evoke=True)
+
+        if not self.hidden:
+            self.location.tell("%s picks the lock on the door." % self.title, exclude_living=self)
 
 class Container(Item):
     """
@@ -1985,6 +2080,33 @@ class Door(Exit):
             else:
                 raise ActionRefused("You could try to lock the door with it instead.")
         raise ActionRefused("The %s doesn't fit." % item.title)
+    
+    def pick_lock(self, actor: Living) -> None:
+        if not self.locked:
+            raise ActionRefused("The door is not locked.")
+        
+        if actor.stats.action_points < 1:
+            raise ActionRefused("You don't have enough action points to pick the lock.")
+        
+        actor.stats.action_points -= 1
+        
+        skillValue = actor.stats.skills.get(SkillType.PICK_LOCK, 0)
+
+        if random.randint(1, 100) > skillValue:
+            actor.tell("You fail to pick the lock.")
+            return
+        
+        self.locked = False
+        self.opened = True
+
+        actor.tell("You successfully pick the %s." % (self.name), evoke=True, short_len=True)
+        if not actor.hidden:
+            actor.location.tell("%s picks the lock on the door." % actor.title, exclude_living=actor)
+            actor.tell_others("{Actor} picks the %s, and opens it." % (self.name), evoke=True, short_len=True)
+        if self.linked_door:
+            self.linked_door.locked = False
+            self.linked_door.opened = True
+            self.target.tell("The %s is unlocked and opened from the other side." % self.linked_door.name, evoke=False, short_len=True)
 
 
 class Key(Item):

@@ -6,7 +6,7 @@ from tale.combat import Combat
 from tale.llm.contexts.CombatContext import CombatContext
 from tale.player import Player
 from tale.races import BodyType
-from tale.weapon_type import WeaponType
+from tale.skills.weapon_type import WeaponType
 from tale.wearable import WearLocation
 from tests.supportstuff import FakeDriver
 from tale.wearable import WearLocation
@@ -240,7 +240,7 @@ class TestCombat():
 
     def test_start_attack_no_combat_points(self):
         attacker = Player(name='att', gender='m')
-        attacker.stats.combat_points = 0
+        attacker.stats.action_points = 0
         defender = LivingNpc(name='lucky rat', gender='m', age=2, personality='A squeeky fighter')
 
         assert attacker.start_attack(defender) == None

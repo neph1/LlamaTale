@@ -8,16 +8,15 @@ from tale import lang
 from tale import parse_utils
 from tale.driver import Driver
 from tale.json_story import JsonStory
-from tale.skills.magic import MagicType
+from tale.llm.llm_ext import DynamicStory
 from tale.main import run_from_cmdline
 from tale.player import Player, PlayerConnection
 from tale.charbuilder import PlayerNaming
-from tale.skills.skills import SkillType
 from tale.story import *
 from tale.skills.weapon_type import WeaponType
+from tale.zone import Zone
 
 class Story(JsonStory):
-
 
     def __init__(self) -> None:
         super(Story, self).__init__('', parse_utils.load_story_config(parse_utils.load_json('story_config.json')))
@@ -35,10 +34,6 @@ class Story(JsonStory):
         player.stats.set_weapon_skill(weapon_type=WeaponType.ONE_HANDED, value=random.randint(10, 30))
         player.stats.set_weapon_skill(weapon_type=WeaponType.TWO_HANDED, value=random.randint(10, 30))
         player.stats.set_weapon_skill(weapon_type=WeaponType.UNARMED, value=random.randint(20, 30))
-        player.stats.magic_skills[MagicType.HEAL] = 30
-        player.stats.magic_skills[MagicType.BOLT] = 30
-        player.stats.magic_skills[MagicType.DRAIN] = 30
-        player.stats.magic_skills[MagicType.REJUVENATE] = 30
         pass
 
     def create_account_dialog(self, playerconnection: PlayerConnection, playernaming: PlayerNaming) -> Generator:
@@ -56,15 +51,6 @@ class Story(JsonStory):
         else:
             playerconnection.player.stats.set_weapon_skill(weapon_type=WeaponType.ONE_HANDED, value=random.randint(20, 40))
             playerconnection.player.stats.set_weapon_skill(weapon_type=WeaponType.TWO_HANDED, value=random.randint(20, 40))
-        stealth = yield "input", ("Are you sneaky? (yes/no)", lang.yesno)
-        if stealth:
-            playerconnection.player.stats.skills[SkillType.HIDE] = random.randint(30, 50)
-            playerconnection.player.stats.skills[SkillType.PICK_LOCK] = random.randint(30, 50)
-        else:
-            playerconnection.player.stats.skills[SkillType.HIDE] = random.randint(10, 30)
-            playerconnection.player.stats.skills[SkillType.PICK_LOCK] = random.randint(10, 30)
-        playerconnection.player.stats.skills[SkillType.SEARCH] = random.randint(20, 40)
-        
         return True
 
     def welcome(self, player: Player) -> str:

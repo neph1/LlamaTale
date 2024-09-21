@@ -7,12 +7,13 @@ from tale.base import Location
 from tale.cmds import spells
 from tale.driver import Driver
 from tale.llm.llm_ext import DynamicStory
-from tale.magic import MagicType
+from tale.skills.magic import MagicType
 from tale.main import run_from_cmdline
 from tale.player import Player, PlayerConnection
 from tale.charbuilder import PlayerNaming
+from tale.skills.skills import SkillType
 from tale.story import *
-from tale.weapon_type import WeaponType
+from tale.skills.weapon_type import WeaponType
 from tale.zone import Zone
 
 class Story(DynamicStory):
@@ -58,6 +59,9 @@ class Story(DynamicStory):
         player.stats.set_weapon_skill(weapon_type=WeaponType.TWO_HANDED, value=15)
         player.stats.set_weapon_skill(weapon_type=WeaponType.UNARMED, value=35)
         player.stats.magic_skills[MagicType.HEAL] = 50
+        player.stats.skills[SkillType.HIDE] = 25
+        player.stats.skills[SkillType.SEARCH] = 25
+        player.stats.skills[SkillType.PICK_LOCK] = 25
 
     def create_account_dialog(self, playerconnection: PlayerConnection, playernaming: PlayerNaming) -> Generator:
         """

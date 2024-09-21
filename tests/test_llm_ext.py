@@ -14,6 +14,7 @@ from tale.llm.llm_ext import DynamicStory
 from tale.llm.llm_io import IoUtil
 from tale.llm.llm_utils import LlmUtil
 from tale.player import Player
+from tale.skills.skills import SkillType
 from tale.wearable import WearLocation
 from tale.zone import Zone
 from tests.supportstuff import FakeDriver, MsgTraceNPC
@@ -286,7 +287,41 @@ class TestLivingNpcActions():
                   json={'results':[{'text':'{"response":"Fine."}'}]}, status=200)
         actions = self.npc.autonomous_action()
         assert(actions == '')  # TODO: receives no message due to change of how targeted actions are handled
+
+    @responses.activate
+    def test_hide(self):
+        self.npc.stats.skills[SkillType.HIDE] = 100
+        self.npc.stats.action_points = 1
+        self.npc.location.remove(self.npc2, self.npc2)
+        self.npc.location.remove(self.msg_trace_npc, self.msg_trace_npc)
+        responses.add(responses.POST, self.dummy_backend_config['URL'] + self.dummy_backend_config['ENDPOINT'],
+                  json={'results':[{'text':'{"action":"hide", "text":"this looks dangerous!"}'}]}, status=200)
+        actions = self.npc.autonomous_action()
+        assert(actions == '"this looks dangerous!"')
+        assert(self.npc.hidden)
+
+    @responses.activate
+    def test_unhide(self):
+        self.npc.hidden = True
+        self.npc.stats.action_points = 1
+        responses.add(responses.POST, self.dummy_backend_config['URL'] + self.dummy_backend_config['ENDPOINT'],
+                  json={'results':[{'text':'{"action":"unhide"}'}]}, status=200)
+        actions = self.npc.autonomous_action()
+        assert ['test reveals themselves'] == self.msg_trace_npc.messages
+        assert not self.npc.hidden
         
+    @responses.activate
+    def test_search(self):
+        self.npc.stats.skills[SkillType.SEARCH] = 100
+        self.npc.stats.action_points = 1
+        self.npc2.hidden = True
+        self.npc2.stats.skills[SkillType.HIDE] = 0
+        responses.add(responses.POST, self.dummy_backend_config['URL'] + self.dummy_backend_config['ENDPOINT'],
+                  json={'results':[{'text':'{"action":"search"}'}]}, status=200)
+        actions = self.npc.autonomous_action()
+        assert(actions == '')
+        assert not self.npc2.hidden
+        assert ["test searches for something.", "test reveals actor"] == self.msg_trace_npc.messages
 
 class TestDynamicStory():
 

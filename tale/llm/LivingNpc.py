@@ -114,18 +114,15 @@ class LivingNpc(Living):
         item = None
         sentiment = None
         for i in range(3):
-            if self.autonomous:
-                response = self.autonomous_action()
-            else:
-                response, item, sentiment = mud_context.driver.llm_util.generate_dialogue(
-                    conversation=llm_cache.get_events(self._observed_events),
-                    character_card = self.character_card,
-                    character_name = self.title,
-                    target = actor.title,
-                    target_description = actor.short_description,
-                    sentiment = self.sentiments.get(actor.title, ''),
-                    location_description=self.location.look(exclude_living=self),
-                    short_len=short_len)
+            response, item, sentiment = mud_context.driver.llm_util.generate_dialogue(
+                conversation=llm_cache.get_events(self._observed_events),
+                character_card = self.character_card,
+                character_name = self.title,
+                target = actor.title,
+                target_description = actor.short_description,
+                sentiment = self.sentiments.get(actor.title, ''),
+                location_description=self.location.look(exclude_living=self),
+                short_len=short_len)
             if response:
                 if not self.avatar:
                     result = mud_context.driver.llm_util.generate_image(self.name, self.description)
@@ -275,8 +272,8 @@ class LivingNpc(Living):
         elif action.action == 'give' and action.item and action.target:
             result = ItemHandlingResult(item=action.item, to=action.target, from_=self.title)
             self.handle_item_result(result, actor=self)
-        elif action.action == 'take' and action.item:
-            item = self.search_item(action.item, include_location=True, include_inventory=False) # Type: Item
+        elif action.action == 'take' and (action.item or action.target):
+            item = self.search_item(action.item or action.target, include_location=True, include_inventory=False) # Type: Item
             if item:
                 item.move(target=self, actor=self)
                 defered_actions.append(f"{self.title} takes {item.title}")
@@ -285,11 +282,20 @@ class LivingNpc(Living):
             if target:
                 self.start_attack(target)
                 defered_actions.append(f"{self.title} attacks {target.title}")
-        elif action.action == 'wear' and action.item:
-            item = self.search_item(action.item, include_location=True, include_inventory=False)
+        elif action.action == 'wear' and (action.item or action.target):
+            item = self.search_item(action.item or action.target, include_location=True, include_inventory=False)
             if item:
                 self.set_wearable(item)
                 defered_actions.append(f"{self.title} wears {item.title}")
+        elif action.action == 'hide':
+            self.hide()
+            #defered_actions.append(f"{self.title} hides.")
+        elif action.action == 'unhide':
+            self.hide(False)
+            #defered_actions.append(f"{self.title} reveals themselves.")
+        elif action.action == 'search':
+            self.search_hidden()
+            #defered_actions.append(f"{self.title} searches for something.")
         return defered_actions
 
     def _defer_result(self, action: str, verb: str="idle-action"):

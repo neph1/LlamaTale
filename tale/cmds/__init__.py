@@ -54,6 +54,7 @@ def all_registered_commands() -> Iterable[Tuple[str, Callable, str]]:
     """
     from . import wizard
     from . import normal
+    from . import spells
     for command, func in _all_wizard_commands.items():
         yield command, func, "wizard"
     for command, func in _all_commands.items():

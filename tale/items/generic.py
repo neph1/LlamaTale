@@ -8,7 +8,7 @@ import os
 from tale import parse_utils
 from tale.base import Item, Weapon
 from tale.items.basic import Note
-from tale.weapon_type import WeaponType
+from tale.skills.weapon_type import WeaponType
 
 def load() -> dict:
     items = dict()
