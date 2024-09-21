@@ -4,7 +4,7 @@ BACKEND: "kobold_cpp" # valid options: "openai", "llama_cpp", "kobold_cpp". if u
 MEMORY_SIZE: 512
 UNLIMITED_REACTS: False
 DIALOGUE_TEMPLATE: '{{"response":"may be both dialogue and action.", "sentiment":"sentiment based on response", "give":"if any physical item of {character2}s is given as part of the dialogue. Or nothing."}}'
-ACTION_LIST: ['move, say, attack, wear, remove, wield, take, eat, drink, emote, search']
+ACTION_LIST: ['move, say, attack, wear, remove, wield, take, eat, drink, emote, search, hide, unhide, pick_lock']
 ACTION_TEMPLATE: '{{"goal": reason for action, "thoughts":thoughts about performing action, 25 words "action":chosen action, "target":character, item or exit or description, "text": if anything is said during the action}}'
 ITEM_TEMPLATE: '{{"name":"", "type":"", "short_descr":"", "level":int, "value":int}}'
 CREATURE_TEMPLATE: '{{"name":"", "body":"", "mass":int(kg), "hp":int, "type":"Npc or Mob", "level":int, "aggressive":bool, "unarmed_attack":One of [FISTS, CLAWS, BITE, TAIL, HOOVES, HORN, TUSKS, BEAK, TALON], "short_descr":""}}'

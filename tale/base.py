@@ -309,7 +309,7 @@ class MudObject:
 
     @property
     def title(self) -> str:
-        return self._title
+        return (self._title + '[hidden]') if self.hidden else self._title
 
     @title.setter
     def title(self, value: str) -> None:
@@ -1384,7 +1384,7 @@ class Living(MudObject):
                 if direction in {"left", "right"}:
                     return "to the " + direction
             return ""
-
+        silent = silent or (self.hidden or not self.visible)
         actor = actor or self
         original_location = None
         if self.location:
@@ -1689,7 +1689,7 @@ class Living(MudObject):
 
         if not silent:
             self.stats.action_points -= 1
-            self.location.tell("%s searches for something in the room." % (self.title), exclude_living=self)
+            self.location.tell("%s searches for something." % (self.title), exclude_living=self)
 
         if len(self.location.livings) == 1:
             if not silent:

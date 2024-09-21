@@ -867,6 +867,7 @@ class Driver(pubsub.Listener):
         if character.follower:
             npc.following = player
         npc.stats.hp = character.hp
+        npc.stats.action_points = 999
         if isinstance(self.story, DynamicStory):
             dynamic_story = typing.cast(DynamicStory, self.story)
             dynamic_story.world.add_npc(npc)
@@ -963,9 +964,9 @@ class Driver(pubsub.Listener):
 
     @util.call_periodically(20)
     def replenish(self):
-        for player in self.all_players.values():
-            if player.hidden:
+        for player_connection in self.all_players.values():
+            if player_connection.player.hidden:
                 continue
-            player.player.stats.replenish_hp(1)
-            player.player.stats.replenish_combat_points(1)
-            player.player.stats.replenish_magic_points(1)
+            player_connection.player.stats.replenish_hp(1)
+            player_connection.player.stats.replenish_combat_points(1)
+            player_connection.player.stats.replenish_magic_points(1)

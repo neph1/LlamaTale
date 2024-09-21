@@ -15,6 +15,7 @@ from tale.skills.magic import MagicType
 from tale.main import run_from_cmdline
 from tale.npc_defs import RoamingMob
 from tale.player import Player, PlayerConnection
+from tale.skills.skills import SkillType
 from tale.story import *
 from tale.skills.weapon_type import WeaponType
 from tale.zone import Zone
@@ -66,6 +67,15 @@ class Story(JsonStory):
         else:
             playerconnection.player.stats.set_weapon_skill(weapon_type=WeaponType.ONE_HANDED, value=random.randint(20, 40))
             playerconnection.player.stats.set_weapon_skill(weapon_type=WeaponType.TWO_HANDED, value=random.randint(20, 40))
+        stealth = yield "input", ("Are you sneaky? (yes/no)", lang.yesno)
+        if stealth:
+            playerconnection.player.stats.skills[SkillType.HIDE] = random.randint(30, 50)
+            playerconnection.player.stats.skills[SkillType.PICK_LOCK] = random.randint(30, 50)
+        else:
+            playerconnection.player.stats.skills[SkillType.HIDE] = random.randint(10, 30)
+            playerconnection.player.stats.skills[SkillType.PICK_LOCK] = random.randint(10, 30)
+        playerconnection.player.stats.skills[SkillType.SEARCH] = random.randint(20, 40)
+        
         return True
 
     def welcome(self, player: Player) -> str:
