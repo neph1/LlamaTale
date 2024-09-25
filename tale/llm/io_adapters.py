@@ -89,10 +89,8 @@ class KoboldCppAdapter(AbstractIoAdapter):
     def set_prompt(self, request_body: dict, prompt: str, context: str = '') -> dict:
         if self.system_start_prompt:
             prompt = self.system_start_prompt + prompt
-        if self.user_start_prompt:
-            prompt = prompt.replace('[USER_START]', self.user_start_prompt)
-        if self.user_end_prompt:
-            prompt = prompt + self.user_end_prompt
+        prompt = prompt.replace('[USER_START]', self.user_start_prompt)
+        prompt = prompt + self.user_end_prompt
         if self.place_context_in_memory:
             prompt = prompt.replace('<context>{context}</context>', '')
             request_body['memory'] = f'<context>{context}</context>'
@@ -149,10 +147,8 @@ class LlamaCppAdapter(AbstractIoAdapter):
     def set_prompt(self, request_body: dict, prompt: str, context: str = '') -> dict:
         if self.system_start_prompt:
             prompt = self.system_start_prompt + prompt
-        if self.user_start_prompt:
-            prompt = prompt.replace('[USER_START]', self.user_start_prompt)
-        if self.user_end_prompt:
-            prompt = prompt + self.user_end_prompt
+        prompt = prompt.replace('[USER_START]', self.user_start_prompt)
+        prompt = prompt + self.user_end_prompt
         if context:
             prompt = prompt.replace('<context>{context}</context>', f'<context>{context}</context>')
             #request_body['messages'][0]['content'] = f'<context>{context}</context>'
