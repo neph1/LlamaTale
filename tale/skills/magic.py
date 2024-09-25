@@ -1,7 +1,6 @@
 from abc import ABC
 from enum import Enum
 
-
 class MagicType(Enum):
     HEAL = 1
     BOLT = 2

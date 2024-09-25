@@ -58,15 +58,17 @@ class TestHeal:
 
     def test_heal_refused(self):
         parse_result = ParseResult(verb='heal', args=['test'])
-        with pytest.raises(ActionRefused, match="You don't know how to heal"):
+        with pytest.raises(ActionRefused, match="Can't target that"):
             spells.do_heal(self.player, parse_result, None)
-        
-        self.player.stats.magic_skills[MagicType.HEAL] = 10
-        self.player.stats.magic_points = 0
 
         npc = LivingNpc('test', 'f', age=30)
         npc.stats.hp = 0
         self.player.location.insert(npc, actor=None)
+        with pytest.raises(ActionRefused, match="You don't know how to heal"):
+            spells.do_heal(self.player, parse_result, None)
+
+        self.player.stats.magic_skills[MagicType.HEAL] = 10
+        self.player.stats.magic_points = 0
 
         with pytest.raises(ActionRefused, match="You don't have enough magic points"):
             spells.do_heal(self.player, parse_result, None)
@@ -177,15 +179,19 @@ class TestRejuvenate:
 
     def test_rejuvenate_refused(self):
         parse_result = ParseResult(verb='heal', args=['test'])
-        with pytest.raises(ActionRefused, match="You don't know how to rejuvenate"):
-            spells.do_rejuvenate(self.player, parse_result, None)
-        
-        self.player.stats.magic_skills[MagicType.REJUVENATE] = 10
-        self.player.stats.magic_points = 0
+
+        with pytest.raises(ActionRefused, match="Can't target that"):
+            spells.do_hide(self.player, parse_result, None)
 
         npc = LivingNpc('test', 'f', age=30)
         npc.stats.hp = 0
         self.player.location.insert(npc, actor=None)
+
+        with pytest.raises(ActionRefused, match="You don't know how to rejuvenate"):
+            spells.do_rejuvenate(self.player, parse_result, None)
+
+        self.player.stats.magic_skills[MagicType.REJUVENATE] = 10
+        self.player.stats.magic_points = 0
 
         with pytest.raises(ActionRefused, match="You don't have enough magic points"):
             spells.do_rejuvenate(self.player, parse_result, None)
@@ -225,7 +231,17 @@ class TestHide:
         assert self.player.stats.magic_points == 7
 
     def test_hide_refused(self):
-        parse_result = ParseResult(verb='hide', args=[])
+        parse_result = ParseResult(verb='hide', args=['test'])
+
+        self.player.stats.magic_points = 10
+
+        with pytest.raises(ActionRefused, match="Can't target that"):
+            spells.do_hide(self.player, parse_result, None)
+
+        npc = LivingNpc('test', 'f', age=30)
+        npc.stats.hp = 0
+        self.player.location.insert(npc, actor=None)
+
         with pytest.raises(ActionRefused, match="You don't know the 'hide' spell."):
             spells.do_hide(self.player, parse_result, None)
         
@@ -235,10 +251,6 @@ class TestHide:
         with pytest.raises(ActionRefused, match="You don't have enough magic points"):
             spells.do_hide(self.player, parse_result, None)
 
-        self.player.stats.magic_points = 10
-
-        with pytest.raises(ActionRefused, match="You need to specify who or what to target"):
-            spells.do_hide(self.player, parse_result, None)
 
 class TestReveal:
 
