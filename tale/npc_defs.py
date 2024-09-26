@@ -1,9 +1,8 @@
 
-
-import random
-from tale.base import Living
+from tale.base import Item
 from tale.llm.LivingNpc import LivingNpc
 from tale.player import Player
+from tale.shop import ShopBehavior, Shopkeeper
 from tale.util import Context, call_periodically
 
 class StationaryNpc(LivingNpc):
@@ -58,3 +57,17 @@ class RoamingMob(StationaryMob):
         direction = self.select_random_move()
         if direction:
             self.move(direction.target, self, direction_names=direction.names)
+
+class Trader(Shopkeeper):
+    
+    def __init__(self, name: str, gender: str, *, title: str = "", descr: str = "", short_descr: str = "", age: int, personality: str, occupation: str = "", race: str = ""):
+        super(Trader, self).__init__(name=name, gender=gender, title=title, descr=descr, short_descr=short_descr, age=age, personality=personality, occupation=occupation, race=race)
+
+    def setup_shop_items(self, items: list = [], always_for_sale: list = []):
+        """ Supply a list of items for sale and a list of items that never run out (subset of items)"""
+        shopinfo = ShopBehavior()
+        for item in always_for_sale:
+            shopinfo.forsale.add(item)
+        shopinfo.banks_money = True
+        self.init_inventory([item for item in items])
+        self.set_shop(shopinfo)

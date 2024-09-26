@@ -8,7 +8,7 @@ from tale.item_spawner import ItemSpawner
 from tale.items.basic import Boxlike, Drink, Food, Health, Money, Note
 from tale.llm.LivingNpc import LivingNpc
 from tale.skills.magic import MagicType
-from tale.npc_defs import StationaryMob, StationaryNpc
+from tale.npc_defs import StationaryMob, StationaryNpc, Trader
 from tale.races import BodyType, UnarmedAttack
 from tale.mob_spawner import MobSpawner
 from tale.story import GameMode, MoneyType, TickMethod, StoryConfig
@@ -138,7 +138,7 @@ def load_item(item: dict):
             set_note(new_item, item)
     return new_item
 
-def load_npcs(json_npcs: list, locations = {}) -> dict:
+def load_npcs(json_npcs: list, world_items = [], locations = {}) -> dict:
     """
         Loads npcs and returns a dict from a supplied json dict
         May be custom classes, but be sure the class is available
@@ -153,7 +153,7 @@ def load_npcs(json_npcs: list, locations = {}) -> dict:
                 name = npc['name'].replace('the','').replace('The','').strip()
         else:
             name = npc['name']
-        new_npc = load_npc(npc, name, npc_type)
+        new_npc = load_npc(npc, name, npc_type, world_items=world_items)
 
         if locations and npc['location']:
             _insert(new_npc, locations, npc['location'])
@@ -161,13 +161,14 @@ def load_npcs(json_npcs: list, locations = {}) -> dict:
         npcs[name] = new_npc
     return npcs
 
-def load_npc(npc: dict, name: str = None, npc_type: str = 'Mob', roaming = False):
+def load_npc(npc: dict, name: str = None, npc_type: str = 'Mob', roaming = False, world_items = []) -> LivingNpc:
     race = None
     if npc.get('stats', None):
         race = npc['stats'].get('race', None)
     if 'npc' in npc_type.lower():
         gender = lang.validate_gender(npc.get('gender', 'm'))
-        new_npc = StationaryNpc(name=name, 
+        if npc.get('occupation', '') in ['trader', 'bartender']:
+            new_npc = Trader(name=name, 
                             gender=gender[0], 
                             race=race, 
                             title=npc.get('title', name), 
@@ -176,6 +177,21 @@ def load_npc(npc: dict, name: str = None, npc_type: str = 'Mob', roaming = False
                             age=npc.get('age', 0), 
                             personality=npc.get('personality', ''), 
                             occupation=npc.get('occupation', ''))
+            
+            items = npc.get('items', [])
+            if not items and world_items:
+                items = random.sample(world_items, random.randint(1, min(npc.get('level', 1) * 3, len(world_items))))
+            new_npc.setup_shop_items([load_item(item) for item in items])
+        else:
+            new_npc = StationaryNpc(name=name, 
+                                gender=gender[0], 
+                                race=race, 
+                                title=npc.get('title', name), 
+                                descr=npc.get('descr', ''), 
+                                short_descr=npc.get('short_descr', npc.get('description', '')), 
+                                age=npc.get('age', 0), 
+                                personality=npc.get('personality', ''), 
+                                occupation=npc.get('occupation', ''))
         new_npc.aliases.add(name.split(' ')[0].lower())
         new_npc.stats.set_weapon_skill(WeaponType.UNARMED, random.randint(10, 30))
         new_npc.stats.level = npc.get('level', 1)
@@ -602,7 +618,7 @@ def replace_creature_with_world_creature(creatures: list, world_creatures: list)
             new_creatures.append(creature)
     return new_creatures
 
-def save_npcs(creatures: []) -> dict:
+def save_npcs(creatures: list) -> dict:
     npcs = {}
     for npc in creatures: # type: Living
         stored_npc = {}
