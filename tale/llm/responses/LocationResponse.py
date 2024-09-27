@@ -88,14 +88,14 @@ class LocationResponse():
             location.insert(item, None)
         return location
     
-    def _add_npcs(self, location: Location, json_result: dict, world_creatures: dict = {}) -> dict:
+    def _add_npcs(self, location: Location, json_result: dict, world_creatures: dict = {}, world_items: dict = {}) -> dict:
         generated_npcs = json_result.get("npcs", [])
         if not generated_npcs:
             return {}
         if world_creatures:
             generated_npcs = parse_utils.replace_creature_with_world_creature(generated_npcs, world_creatures)
         try:
-            generated_npcs = parse_utils.load_npcs(generated_npcs)
+            generated_npcs = parse_utils.load_npcs(generated_npcs, world_items=world_items.values(), parse_occupation=True)
             for npc in generated_npcs.values():
                 location.insert(npc, None)
         except Exception as exc:

@@ -144,7 +144,7 @@ class TestExamineCommand():
         assert not test_npc.following
 
     def test_hide(self):
-        self.test_player.stats.skills[SkillType.HIDE] = 100
+        self.test_player.stats.skills.set(SkillType.HIDE, 100)
         self.test_player.stats.action_points = 1
         normal.do_hide(self.test_player, ParseResult(verb='hide', args=[]), self.context)
         assert self.test_player.hidden
@@ -159,7 +159,7 @@ class TestExamineCommand():
 
         self.test_player.hidden = False
 
-        self.test_player.stats.skills[SkillType.HIDE] = 0
+        self.test_player.stats.skills.set(SkillType.HIDE, 0)
         self.test_player.stats.action_points = 1
         normal.do_hide(self.test_player, ParseResult(verb='hide', args=[]), self.context)
         assert not self.test_player.hidden
@@ -176,19 +176,19 @@ class TestExamineCommand():
 
         test_npc = LivingNpc('test_npc', 'f')
         test_npc.hidden = True
-        test_npc.stats.skills[SkillType.HIDE] = 100
+        test_npc.stats.skills.set(SkillType.HIDE, 100)
         location = Location('test_room')
         location.init_inventory([self.test_player, test_npc])
 
-        self.test_player.stats.skills[SkillType.SEARCH] = 0
+        self.test_player.stats.skills.set(SkillType.SEARCH, 0)
         self.test_player.stats.action_points = 1
 
         normal.do_search_hidden(self.test_player, ParseResult(verb='search', args=[]), self.context)
 
         assert test_npc.hidden
 
-        self.test_player.stats.skills[SkillType.SEARCH] = 100
-        test_npc.stats.skills[SkillType.HIDE] = 0
+        self.test_player.stats.skills.set(SkillType.SEARCH, 100)
+        test_npc.stats.skills.set(SkillType.HIDE, 0)
         self.test_player.stats.action_points = 1
 
         normal.do_search_hidden(self.test_player, ParseResult(verb='search', args=[]), self.context)
@@ -196,7 +196,7 @@ class TestExamineCommand():
         assert not test_npc.hidden
 
     def test_pick_lock(self):
-        self.test_player.stats.skills[SkillType.PICK_LOCK] = 100
+        self.test_player.stats.skills.set(SkillType.PICK_LOCK, 100)
         self.test_player.stats.action_points = 1
 
         hall = Location("hall")
@@ -212,7 +212,7 @@ class TestExamineCommand():
 
         door.locked = True
 
-        self.test_player.stats.skills[SkillType.PICK_LOCK] = 0
+        self.test_player.stats.skills.set(SkillType.PICK_LOCK, 0)
         self.test_player.stats.action_points = 1
 
         normal.do_pick_lock(self.test_player, parse_result, self.context)
@@ -221,7 +221,7 @@ class TestExamineCommand():
 
         # Test no action points
 
-        self.test_player.stats.skills[SkillType.PICK_LOCK] = 100
+        self.test_player.stats.skills.set(SkillType.PICK_LOCK, 100)
         self.test_player.stats.action_points = 0
 
         with pytest.raises(ActionRefused, match="You don't have enough action points to pick the lock."):

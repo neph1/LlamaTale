@@ -1,3 +1,4 @@
+import random
 from tale.llm.contexts.FollowContext import FollowContext
 from tale.llm.item_handling_result import ItemHandlingResult
 from tale.llm import llm_config
@@ -14,13 +15,16 @@ from typing import Sequence
 
 from tale.quest import Quest
 from tale.resources_utils import pad_text_for_avatar, unpad_text
+from tale.skills.magic import MagicType
+from tale.skills.skills import SkillType
+from tale.skills.weapon_type import WeaponType
 
 
 class LivingNpc(Living):
     """An NPC with extra fields to define personality and help LLM generate dialogue"""
 
     def __init__(self, name: str, gender: str, *,
-                 title: str="", descr: str="", short_descr: str="", age: int = -1, personality: str="", occupation: str="", race: str=""):
+                 title: str="", descr: str="", short_descr: str="", age: int = -1, personality: str="", occupation: str="", race: str="", parse_occupation: bool = False):
         super(LivingNpc, self).__init__(name=name, gender=gender, title=title, descr=descr, short_descr=short_descr, race=race)
         self.age = age
         self.personality = personality
@@ -37,6 +41,47 @@ class LivingNpc(Living):
         self.example_voice = '' # type: str
         self.autonomous = False
         self.output_thoughts = False
+        if parse_occupation:
+            self._parse_occupation(occupation)
+    
+    def _parse_occupation(self, occupation: str) -> None:
+        """ Parse the occupation of the npc."""
+        if occupation in ['soldier', 'guard', 'mercenary', 'knight', 'warrior']: # Warrior
+            self.stats.set_weapon_skill(WeaponType.ONE_HANDED, random.randint(30, 50) + random.randint(0, 5) * self.stats.level)
+            self.stats.set_weapon_skill(WeaponType.TWO_HANDED, random.randint(15, 30) + random.randint(0, 3) * self.stats.level)
+            self.stats.set_weapon_skill(WeaponType.UNARMED, random.randint(30, 60))
+            return
+        if occupation in ['archer', 'ranger', 'hunter', 'marksman']: # Archer
+            self.stats.set_weapon_skill(WeaponType.ONE_HANDED, random.randint(15, 30) + random.randint(0, 3) * self.stats.level)
+            self.stats.set_weapon_skill(WeaponType.ONE_HANDED_RANGED, random.randint(30, 50) + random.randint(0, 5) * self.stats.level)
+            self.stats.set_weapon_skill(WeaponType.TWO_HANDED_RANGED, random.randint(30, 50) + random.randint(0, 5) * self.stats.level)
+            self.stats.set_weapon_skill(WeaponType.UNARMED, random.randint(30, 50))
+            return
+        if occupation in ['mage', 'sorcerer', 'wizard', 'warlock']: # Caster
+            self.stats.set_magic_skill(MagicType.BOLT, random.randint(30, 50) + random.randint(0, 5) * self.stats.level)
+            self.stats.set_magic_skill(MagicType.DRAIN, random.randint(30, 50) + random.randint(0, 5) * self.stats.level)
+            self.stats.set_magic_skill(MagicType.REVEAL, random.randint(30, 50) + random.randint(0, 5) * self.stats.level)
+            self.stats.set_weapon_skill(WeaponType.UNARMED, random.randint(15, 30))
+            return
+        if occupation in ['healer', 'cleric', 'priest', 'monk']: # Healer
+            self.stats.set_magic_skill(MagicType.HEAL, random.randint(30, 50) + random.randint(0, 5) * self.stats.level)
+            self.stats.set_magic_skill(MagicType.REJUVENATE, random.randint(30, 50) + random.randint(0, 5) * self.stats.level)
+            self.stats.set_magic_skill(MagicType.REVEAL, random.randint(30, 50) + random.randint(0, 5) * self.stats.level)
+            return
+        if occupation in ['thief', 'rogue', 'assassin', 'bandit']: # Rogue
+            self.stats.set_weapon_skill(WeaponType.UNARMED, random.randint(30, 50) + random.randint(0, 5) * self.stats.level)
+            self.stats.set_weapon_skill(WeaponType.ONE_HANDED, random.randint(30, 50) + random.randint(0, 5) * self.stats.level)
+            self.stats.set_weapon_skill(WeaponType.THROWING, random.randint(30, 50) + random.randint(0, 5) * self.stats.level)
+            self.stats.skills.set(SkillType.HIDE, random.randint(30, 50) + random.randint(0, 5) * self.stats.level)
+            self.stats.skills.set(SkillType.SEARCH, random.randint(20, 40) + random.randint(0, 5) * self.stats.level)
+            self.stats.skills.set(SkillType.PICK_LOCK, random.randint(20, 40) + random.randint(0, 5) * self.stats.level)
+            return
+        if occupation in ['peasant', 'farmer', 'commoner', 'villager']:
+            self.stats.set_weapon_skill(WeaponType.ONE_HANDED, random.randint(15, 30) + random.randint(0, 3) * self.stats.level)
+            self.stats.set_weapon_skill(WeaponType.UNARMED, random.randint(30, 40))
+            self.stats.set_weapon_skill(WeaponType.THROWING, random.randint(15, 30) + random.randint(0, 5) * self.stats.level)
+            self.stats.skills.set(SkillType.SEARCH, random.randint(15, 30) + random.randint(0, 5) * self.stats.level)
+            return
 
     def notify_action(self, parsed: ParseResult, actor: Living) -> None:
         # store even our own events.

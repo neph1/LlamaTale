@@ -270,7 +270,7 @@ class WorldBuilding():
             creatures = json_result["npcs"]
             creatures.extend(json_result["mobs"])
             creatures = parse_utils.replace_creature_with_world_creature(creatures, world_creatures)
-            creatures = parse_utils.load_npcs(creatures, world_items = world_items)
+            creatures = parse_utils.load_npcs(creatures, world_items = world_items, parse_occupation=True)
             for c in creatures.values():
                 location.insert(c)
             items = json_result["items"]

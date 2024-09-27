@@ -133,7 +133,7 @@ def cast_reveal(caster: Living, level: int = 1) -> None:
         
     for living in livings:
         if living != caster and living.hidden:
-            if random.randint(1, 100) < level * 10 - living.stats.skills.get(SkillType.HIDE, 0):
+            if random.randint(1, 100) < level * 10 - living.stats.skills.get(SkillType.HIDE):
                 living.hidden = False
                 caster.tell("Your spell reveals %s." % living.title)
                 caster.location.tell("%s's spell reveals %s" % (caster.title, living.title), exclude_living=caster)

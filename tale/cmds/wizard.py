@@ -783,7 +783,7 @@ def do_spawn(player: Player, parsed: base.ParseResult, ctx: util.Context) -> Non
         raise ParseError("You need to define a creature")
     creature = ctx.driver.story._catalogue.get_creature(parsed.args[0])
     if creature:
-        mob = parse_utils.load_npcs([creature], ctx.driver.story)[0]
+        mob = parse_utils.load_npc(creature, world_items=ctx.driver.story._catalogue.get_items(), parse_occupation=True)
         player.location.insert(mob, actor=None)
         player.location.tell( lang.capital(mob.title) + ' appears!\n', evoke=False)
     else:

@@ -80,9 +80,9 @@ class ShopBehavior:
 
 
 class Shopkeeper(LivingNpc):
-    def __init__(self, name: str, gender: str, *, title: str = "", descr: str = "", short_descr: str = "", age: int, personality: str, occupation: str = "", race: str = "") -> None:
+    def __init__(self, name: str, gender: str, *, title: str = "", descr: str = "", short_descr: str = "", age: int, personality: str, occupation: str = "", race: str = "human", parse_occupation: bool = False) -> None:
         super(Shopkeeper, self).__init__(name=name, gender=gender,
-                 title=title, descr=descr, short_descr=short_descr, age=age, personality=personality, occupation=occupation, race=race)
+                 title=title, descr=descr, short_descr=short_descr, age=age, personality=personality, occupation=occupation, race=race, parse_occupation=parse_occupation)
         self.privileges.add("shopkeeper")   # allow for some item transfers (buy/sell) that would otherwise be blocked
         self.shop = ShopBehavior()
         self.verbs = {

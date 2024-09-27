@@ -14,7 +14,9 @@ from tale.llm.llm_ext import DynamicStory
 from tale.llm.llm_io import IoUtil
 from tale.llm.llm_utils import LlmUtil
 from tale.player import Player
+from tale.skills.magic import MagicType
 from tale.skills.skills import SkillType
+from tale.skills.weapon_type import WeaponType
 from tale.wearable import WearLocation
 from tale.zone import Zone
 from tests.supportstuff import FakeDriver, MsgTraceNPC
@@ -125,7 +127,39 @@ class TestLivingNpc():
         assert(npc.get_observed_events(1) == 'test_event 2')
         assert(npc.get_observed_events(2) == 'test_event<break>test_event 2')
 
+    def test_parse_occupation(self):
+        npc = LivingNpc(name='test', gender='m', age=42, occupation='warrior', parse_occupation=True)
 
+        assert npc.occupation == 'warrior' 
+
+        assert npc.stats.get_weapon_skill(WeaponType.ONE_HANDED) > 0
+        assert npc.stats.get_weapon_skill(WeaponType.TWO_HANDED) > 0
+
+        npc = LivingNpc(name='test', gender='m', age=42, occupation='ranger', parse_occupation=True)
+
+        assert npc.stats.get_weapon_skill(WeaponType.ONE_HANDED_RANGED) > 0
+        assert npc.stats.get_weapon_skill(WeaponType.TWO_HANDED_RANGED) > 0
+
+        npc = LivingNpc(name='test', gender='m', age=42, occupation='healer', parse_occupation=True)
+
+        assert npc.stats.get_magic_skill(MagicType.HEAL) > 0
+
+        npc = LivingNpc(name='test', gender='m', age=42, occupation='wizard', parse_occupation=True)
+
+        assert npc.stats.get_magic_skill(MagicType.BOLT) > 0
+
+        npc = LivingNpc(name='test', gender='m', age=42, occupation='thief', parse_occupation=True)
+
+        assert npc.stats.get_skill(SkillType.PICK_LOCK) > 0
+        assert npc.stats.get_skill(SkillType.HIDE) > 0
+        assert npc.stats.get_skill(SkillType.SEARCH) > 0
+
+        npc = LivingNpc(name='test', gender='m', age=42, occupation='thief')
+
+        assert npc.stats.get_skill(SkillType.PICK_LOCK) == 0
+        assert npc.stats.get_skill(SkillType.HIDE) == 0
+        assert npc.stats.get_skill(SkillType.SEARCH) == 0
+        
     # def test_avatar_exists(self):
     #     shutil.copyfile("./tests/files/test.jpg", "./tale/web/resources/test.jpg")
     #     npc = LivingNpc(name='test', gender='m', age=42, personality='')
@@ -290,7 +324,7 @@ class TestLivingNpcActions():
 
     @responses.activate
     def test_hide(self):
-        self.npc.stats.skills[SkillType.HIDE] = 100
+        self.npc.stats.skills.set(SkillType.HIDE, 100)
         self.npc.stats.action_points = 1
         self.npc.location.remove(self.npc2, self.npc2)
         self.npc.location.remove(self.msg_trace_npc, self.msg_trace_npc)
@@ -312,10 +346,10 @@ class TestLivingNpcActions():
         
     @responses.activate
     def test_search(self):
-        self.npc.stats.skills[SkillType.SEARCH] = 100
+        self.npc.stats.skills.set(SkillType.SEARCH, 100)
         self.npc.stats.action_points = 1
         self.npc2.hidden = True
-        self.npc2.stats.skills[SkillType.HIDE] = 0
+        self.npc2.stats.skills.set(SkillType.HIDE, 0)
         responses.add(responses.POST, self.dummy_backend_config['URL'] + self.dummy_backend_config['ENDPOINT'],
                   json={'results':[{'text':'{"action":"search"}'}]}, status=200)
         actions = self.npc.autonomous_action()

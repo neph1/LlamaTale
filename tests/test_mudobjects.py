@@ -1043,7 +1043,7 @@ class TestContainer(unittest.TestCase):
     def test_allow_give_item(self):
         key = Item("key")
         player = Player("julie", "f")
-        shopkeep = Shopkeeper("seller", "m")
+        shopkeep = Shopkeeper("seller", "m", age= 30, personality="grumpy")
         wizard = Living("merlin", "m")
         wizard.privileges.add("wizard")
         mob = Living("mob1", "m")
@@ -1070,7 +1070,7 @@ class TestContainer(unittest.TestCase):
 
     def test_allow_give_money(self):
         player = Player("julie", "f")
-        shopkeep = Shopkeeper("seller", "m")
+        shopkeep = Shopkeeper("seller", "m", age= 30, personality="grumpy")
         rat = Living("rat", "n", race="rodent")
         with self.assertRaises(ActionRefused):
             rat.allow_give_money(1.0, player)   # cannot give money to non-human

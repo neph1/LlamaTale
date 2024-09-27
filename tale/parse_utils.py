@@ -138,7 +138,7 @@ def load_item(item: dict):
             set_note(new_item, item)
     return new_item
 
-def load_npcs(json_npcs: list, world_items = [], locations = {}) -> dict:
+def load_npcs(json_npcs: list, locations: list[Location], world_items = [], parse_occupation = False) -> dict:
     """
         Loads npcs and returns a dict from a supplied json dict
         May be custom classes, but be sure the class is available
@@ -153,7 +153,7 @@ def load_npcs(json_npcs: list, world_items = [], locations = {}) -> dict:
                 name = npc['name'].replace('the','').replace('The','').strip()
         else:
             name = npc['name']
-        new_npc = load_npc(npc, name, npc_type, world_items=world_items)
+        new_npc = load_npc(npc, name, npc_type, world_items=world_items, parse_occupation=parse_occupation)
 
         if locations and npc['location']:
             _insert(new_npc, locations, npc['location'])
@@ -161,13 +161,13 @@ def load_npcs(json_npcs: list, world_items = [], locations = {}) -> dict:
         npcs[name] = new_npc
     return npcs
 
-def load_npc(npc: dict, name: str = None, npc_type: str = 'Mob', roaming = False, world_items = []) -> LivingNpc:
+def load_npc(npc: dict, name: str = None, npc_type: str = 'Mob', roaming = False, world_items = [], parse_occupation = False) -> LivingNpc:
     race = None
     if npc.get('stats', None):
         race = npc['stats'].get('race', None)
     if 'npc' in npc_type.lower():
         gender = lang.validate_gender(npc.get('gender', 'm'))
-        if npc.get('occupation', '') in ['trader', 'bartender']:
+        if npc.get('occupation', '') in ['trader', 'bartender', 'merchant', 'shopkeeper']:
             new_npc = Trader(name=name, 
                             gender=gender[0], 
                             race=race, 
@@ -176,12 +176,17 @@ def load_npc(npc: dict, name: str = None, npc_type: str = 'Mob', roaming = False
                             short_descr=npc.get('short_descr', npc.get('description', '')), 
                             age=npc.get('age', 0), 
                             personality=npc.get('personality', ''), 
-                            occupation=npc.get('occupation', ''))
+                            occupation=npc.get('occupation', ''),
+                            parse_occupation=parse_occupation or npc.get('parse_occupation', False))
             
             items = npc.get('items', [])
             if not items and world_items:
                 items = random.sample(world_items, random.randint(1, min(npc.get('level', 1) * 3, len(world_items))))
-            new_npc.setup_shop_items([load_item(item) for item in items])
+            
+            will_buy = npc.get('will_buy', [])
+            if not will_buy and world_items:
+                will_buy = random.sample(world_items, random.randint(0, min(npc.get('level', 1) * 3, len(world_items))))
+            new_npc.setup_shop_items([load_item(item) for item in items], will_buy=will_buy)
         else:
             new_npc = StationaryNpc(name=name, 
                                 gender=gender[0], 
@@ -191,9 +196,11 @@ def load_npc(npc: dict, name: str = None, npc_type: str = 'Mob', roaming = False
                                 short_descr=npc.get('short_descr', npc.get('description', '')), 
                                 age=npc.get('age', 0), 
                                 personality=npc.get('personality', ''), 
-                                occupation=npc.get('occupation', ''))
+                                occupation=npc.get('occupation', ''),
+                            parse_occupation=parse_occupation or npc.get('parse_occupation', False))
         new_npc.aliases.add(name.split(' ')[0].lower())
-        new_npc.stats.set_weapon_skill(WeaponType.UNARMED, random.randint(10, 30))
+        if new_npc.stats.get_weapon_skill(WeaponType.UNARMED) < 1:
+            new_npc.stats.set_weapon_skill(WeaponType.UNARMED, random.randint(10, 30))
         new_npc.stats.level = npc.get('level', 1)
 
 
@@ -204,7 +211,8 @@ def load_npc(npc: dict, name: str = None, npc_type: str = 'Mob', roaming = False
                             race=race, 
                             title=npc.get('title', npc['name']), 
                             descr=npc.get('descr', ''), 
-                            short_descr=npc.get('short_descr', npc.get('description', '')))
+                            short_descr=npc.get('short_descr', npc.get('description', '')),
+                            parse_occupation=parse_occupation or npc.get('parse_occupation', False))
         new_npc.aliases.add(name.split(' ')[0].lower())
         new_npc.stats.set_weapon_skill(WeaponType.UNARMED, random.randint(10, 30))
         new_npc.stats.level = npc.get('level', 1)
@@ -660,7 +668,7 @@ def save_stats(stats: Stats) -> dict:
     json_stats['level'] = stats.level
     json_stats['weapon_skills'] = skills_dict_to_json(stats.weapon_skills)
     json_stats['magic_skills'] = skills_dict_to_json(stats.magic_skills)
-    json_stats['skills'] = skills_dict_to_json(stats.skills)
+    json_stats['skills'] = stats.skills.to_json()
     json_stats['gender'] = stats.gender = 'n'
     json_stats['alignment'] = stats.alignment
     json_stats['weight'] = stats.weight

@@ -51,7 +51,7 @@ from tale import resources_utils
 from tale.coord import Coord
 from tale.llm.contexts.CombatContext import CombatContext
 from tale.skills.magic import MagicSkill, MagicType
-from tale.skills.skills import SkillType
+from tale.skills.skills import SkillType, Skills
 
 from . import lang
 from . import mud_context
@@ -981,7 +981,7 @@ class Stats:
         self.unarmed_attack = Weapon(UnarmedAttack.FISTS.name, weapon_type=WeaponType.UNARMED)
         self.weapon_skills = {}  # type: Dict[WeaponType, int]  # weapon type -> skill level
         self.magic_skills  = {}  # type: Dict[MagicType, MagicSkill]
-        self.skills = {}  # type: Dict[str, int]  # skill name -> skill level
+        self.skills = Skills()
         self.action_points = 0 # combat points
         self.max_action_points = 5 # max combat points
         self.max_magic_points = 5 # max magic points
@@ -1017,6 +1017,12 @@ class Stats:
     
     def set_weapon_skill(self, weapon_type: WeaponType, value: int) -> None:
         self.weapon_skills[weapon_type] = value
+
+    def get_magic_skill(self, magic_type: MagicType) -> int:
+        return self.magic_skills.get(magic_type)
+    
+    def set_magic_skill(self, magic_type: MagicType, value: int) -> None:
+        self.magic_skills[magic_type] = value
 
     def replenish_hp(self, amount: int = None) -> None:
         if amount:
@@ -1668,7 +1674,7 @@ class Living(MudObject):
         
         self.stats.action_points -= 1
 
-        skillValue = self.stats.skills.get(SkillType.HIDE, 0)
+        skillValue = self.stats.skills.get(SkillType.HIDE)
         if random.randint(1, 100) > skillValue:
             self.tell("You fail to hide.")
             return
@@ -1699,13 +1705,13 @@ class Living(MudObject):
         if silent:
             skillValue = self.stats.perception * 5
         else:
-            skillValue = self.stats.skills.get(SkillType.SEARCH, 0)
+            skillValue = self.stats.skills.get(SkillType.SEARCH)
 
         found = False
         
         for living in livings:
             if living != self and living.hidden:
-                modifier = skillValue - living.stats.skills.get(SkillType.HIDE, 0)
+                modifier = skillValue - living.stats.skills.get(SkillType.HIDE)
                 if random.randint(1, 100) < skillValue + modifier:
                     living.hidden = False
                     self.tell("You find %s." % living.title)
@@ -1725,7 +1731,7 @@ class Living(MudObject):
         
         self.stats.action_points -= 1
         
-        skillValue = self.stats.skills.get(SkillType.PICK_LOCK, 0)
+        skillValue = self.stats.skills.get(SkillType.PICK_LOCK)
 
         if random.randint(1, 100) > skillValue:
             self.tell("You fail to pick the lock.")
@@ -2090,7 +2096,7 @@ class Door(Exit):
         
         actor.stats.action_points -= 1
         
-        skillValue = actor.stats.skills.get(SkillType.PICK_LOCK, 0)
+        skillValue = actor.stats.skills.get(SkillType.PICK_LOCK)
 
         if random.randint(1, 100) > skillValue:
             actor.tell("You fail to pick the lock.")

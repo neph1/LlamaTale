@@ -428,7 +428,7 @@ class TestLoadNpcs:
         locations = {}
         locations['Royal grotto'] = Location('Royal grotto', 'A small grotto, fit for a kobold king')
         npcs_json = parse_utils.load_json("tests/files/test_npcs.json")
-        npcs = parse_utils.load_npcs(npcs_json, locations)
+        npcs = parse_utils.load_npcs(npcs_json, locations=locations)
         assert(len(npcs) == 3)
 
 
@@ -470,7 +470,7 @@ class TestLoadNpcs:
         assert(len(npcs) == 1)
 
         world_items = [{"name": "sword", "type": "weapon", "value": 100}, {"name": "shield", "type": "armor", "value": 60}, {"name": "boots", "type": "armor", "value": 50}]
-        loaded_npcs = parse_utils.load_npcs(npcs['npcs'], world_items=world_items)
+        loaded_npcs = parse_utils.load_npcs(npcs['npcs'], world_items=world_items, parse_occupation=True)
         assert(len(loaded_npcs) == 1)
         trader = loaded_npcs['Village Trader'] # type: Living
         assert(trader)

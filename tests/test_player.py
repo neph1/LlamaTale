@@ -20,6 +20,7 @@ from tale.charbuilder import IFCharacterBuilder, MudCharacterBuilder, ValidRaceV
 from tale.demo.story import Story as DemoStory
 from tale.errors import ActionRefused, ParseError, NonSoulVerb
 from tale.player import Player, TextBuffer, PlayerConnection
+from tale.skills.skills import Skills
 from tale.story import *
 from tale.tio.console_io import ConsoleIo
 from tale.tio.iobase import IoAdapterBase

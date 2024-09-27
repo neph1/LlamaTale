@@ -69,12 +69,13 @@ class Story(JsonStory):
             playerconnection.player.stats.set_weapon_skill(weapon_type=WeaponType.TWO_HANDED, value=random.randint(20, 40))
         stealth = yield "input", ("Are you sneaky? (yes/no)", lang.yesno)
         if stealth:
-            playerconnection.player.stats.skills[SkillType.HIDE] = random.randint(30, 50)
-            playerconnection.player.stats.skills[SkillType.PICK_LOCK] = random.randint(30, 50)
-        else:
-            playerconnection.player.stats.skills[SkillType.HIDE] = random.randint(10, 30)
-            playerconnection.player.stats.skills[SkillType.PICK_LOCK] = random.randint(10, 30)
-        playerconnection.player.stats.skills[SkillType.SEARCH] = random.randint(20, 40)
+            if stealth:
+                playerconnection.player.stats.set(SkillType.HIDE, random.randint(30, 50))
+                playerconnection.player.stats.set(SkillType.PICK_LOCK, random.randint(30, 50))
+            else:
+                playerconnection.player.stats.set(SkillType.HIDE, random.randint(10, 30))
+                playerconnection.player.stats.set(SkillType.PICK_LOCK, random.randint(10, 30))
+            playerconnection.player.stats.set(SkillType.SEARCH, random.randint(20, 40))
         
         return True
 
