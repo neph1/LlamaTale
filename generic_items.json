@@ -15,6 +15,14 @@
         "base_damage": 1,
         "weight": 1,
         "type": "Weapon"
+      },
+      {
+        "name": "Pitchfork",
+        "weapon_type": "TWO_HANDED",
+        "short_descr": "A pitchfork",
+        "base_damage": 1,
+        "weight": 3,
+        "type": "Weapon"
       }
     ],
     "fantasy_weapons": [
@@ -43,6 +51,15 @@
         "base_damage": 2,
         "weight": 5,
         "value": 50,
+        "type": "Weapon"
+      },
+      {
+        "name": "Staff",
+        "weapon_type": "TWO_HANDED",
+        "short_descr": "A wooden staff",
+        "base_damage": 1,
+        "weight": 3,
+        "value": 5,
         "type": "Weapon"
       }
     ],

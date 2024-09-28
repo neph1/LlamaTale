@@ -13,7 +13,7 @@ from tale.player import PlayerConnection
 
 class AbstractIoAdapter(ABC):
 
-    def __init__(self, url: str, stream_endpoint: str, user_start_prompt: str, user_end_prompt: str, system_start_prompt: str = '', prompt_end: str = ''):
+    def __init__(self, url: str, stream_endpoint: str, user_start_prompt: str = '', user_end_prompt: str = '', system_start_prompt: str = '', prompt_end: str = ''):
         self.url = url
         self.stream_endpoint = stream_endpoint
         self.system_start_prompt = system_start_prompt

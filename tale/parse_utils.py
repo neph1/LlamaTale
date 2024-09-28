@@ -4,9 +4,11 @@ from tale import lang
 from tale import zone
 from tale.base import Location, Exit, Item, Stats, Weapon, Wearable
 from tale.coord import Coord
+from tale.equip_npcs import equip_npc
 from tale.item_spawner import ItemSpawner
 from tale.items.basic import Boxlike, Drink, Food, Health, Money, Note
 from tale.llm.LivingNpc import LivingNpc
+from tale.load_items import load_item
 from tale.skills.magic import MagicType
 from tale.npc_defs import StationaryMob, StationaryNpc, Trader
 from tale.races import BodyType, UnarmedAttack
@@ -102,42 +104,6 @@ def load_items(json_items: list, locations = {}) -> dict:
             _insert(new_item, locations, item['location'])
     return items
 
-def load_item(item: dict):
-    item_type = item.get('type', 'Item')
-        
-    if item_type == 'Money':
-        new_item = _init_money(item)
-    elif item_type == 'Health':
-        new_item = _init_health(item)
-        new_item.healing_effect=item.get('effect', 10)
-    elif item_type == 'Food':
-        new_item = _init_food(item)
-        new_item.affect_fullness=item.get('effect', 10)
-        new_item.poisoned=item.get('poisoned', False)
-    elif item_type == 'Weapon':
-        new_item = _init_weapon(item)
-    elif item_type == 'Drink':
-        new_item = _init_drink(item)
-        new_item.affect_thirst=item.get('effect', 10)
-        new_item.poisoned=item.get('poisoned', False)
-    elif item_type == 'Container' or item_type == 'Boxlike':
-        new_item = _init_boxlike(item)
-    elif item_type == 'Wearable':
-        new_item = _init_wearable(item)
-    else:
-        module = sys.modules['tale.items.basic']
-        try:
-            clazz = getattr(module, item_type)
-        except AttributeError:
-            try:
-                clazz = getattr(sys.modules['tale.base'], item_type)
-            except AttributeError:
-                clazz = getattr(sys.modules['tale.base'], 'Item')
-        new_item = clazz(name=item['name'], title=item.get('title', item['name']), descr=item.get('descr', ''), short_descr=item.get('short_descr', ''))
-        if isinstance(new_item, Note):
-            set_note(new_item, item)
-    return new_item
-
 def load_npcs(json_npcs: list, locations: list[Location] = [], world_items = [], parse_occupation = False) -> dict:
     """
         Loads npcs and returns a dict from a supplied json dict
@@ -225,7 +191,11 @@ def load_npc(npc: dict, name: str = None, npc_type: str = 'Mob', roaming = False
 
     new_npc.autonomous = npc.get('autonomous', False)
     new_npc.aggressive = npc.get('aggressive', False)
+
+    if parse_occupation and new_npc.stats.bodytype == BodyType.HUMANOID:
+        equip_npc(new_npc, world_items)
     return new_npc
+
 
 def load_story_config(json_file: dict):
     config = StoryConfig()
@@ -310,67 +280,6 @@ def _insert(new_item: Item, locations, location: str):
         loc = locations.get(location)
     if loc:
         loc.insert(new_item, None)
-
-def _init_money(item: dict):
-    return Money(item['name'], 
-                 value=item.get('value', 10), 
-                 title=item.get('title', item['name']), 
-                 short_descr=item.get('short_descr', ''))
-
-def _init_health(item: dict):
-    return Health(name=item['name'], 
-                 value=item.get('value', 10), 
-                 title=item.get('title', item['name']), 
-                 short_descr=item.get('short_descr', ''),
-                 descr=item.get('descr', ''),)
-
-def _init_food(item: dict):
-    return Food(name=item['name'], 
-                 value=item.get('value', 10),
-                 title=item.get('title', item['name']), 
-                 short_descr=item.get('short_descr', ''),
-                 descr=item.get('descr', ''),)
-
-def _init_weapon(item: dict):
-    return Weapon(name=item['name'],
-                    title=item.get('title', item['name']),
-                    short_descr=item.get('short_descr', ''),
-                    descr=item.get('descr', ''),
-                    wc=item.get('wc', 1),
-                    weapon_type=WeaponType[item.get('weapon_type', WeaponType.UNARMED.name)],
-                    base_damage=item.get('base_damage', random.randint(1,3)),
-                    bonus_damage=item.get('bonus_damage', 0),
-                    weight=item.get('weight', 1),
-                    value=item.get('value', 1),) 
-
-def _init_drink(item: dict):
-    return Drink(name=item['name'], 
-                 value=item.get('value', 10),
-                 title=item.get('title', item['name']), 
-                 short_descr=item.get('short_descr', ''))
-
-def _init_boxlike(item: dict):
-    return Boxlike(name=item['name'],
-                    title=item.get('title', item['name']),
-                    short_descr=item.get('short_descr', ''),
-                    descr=item.get('descr', ''),
-                    weight=item.get('weight', 1),
-                    value=item.get('value', 1))
-
-def _init_wearable(item: dict):
-    wear_location = None
-    if WearLocation.has_value(item.get('wear_location', '')):
-        wear_location = WearLocation[item['wear_location']]
-    return Wearable(name=item['name'],
-                    title=item.get('title', item['name']),
-                    short_descr=item.get('short_descr', ''),
-                    descr=item.get('descr', ''),
-                    weight=item.get('weight', 1),
-                    wear_location=wear_location,
-                    value=item.get('value', 1))
-    
-def set_note(note: Note, item: dict):
-    note.text = item.get('text', '')
 
 def remove_special_chars(message: str):
     re.sub('[^A-Za-z0-9 .,_\-\'\"]+', '', message)
@@ -750,12 +659,6 @@ def save_locations(locations: List[Location]) -> dict:
         json_location['exits'] = exits
         json_locations.append(json_location)
     return json_locations
-
-def skills_dict_to_json(weaponskills: dict) -> dict:
-    json_skills = {}
-    for skill in weaponskills.keys():
-        json_skills[skill.value] = weaponskills[skill]
-    return json_skills
 
 def load_mob_spawners(json_spawners: list, locations: dict, creatures: list, world_items: list) -> list:
     spawners = []

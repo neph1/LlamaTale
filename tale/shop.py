@@ -145,24 +145,6 @@ class Shopkeeper(LivingNpc):
         """Do we accept given items? Raise ActionRefused if not. Shopkeeper can only be sold items to!"""
         raise ActionRefused("You can't give stuff to %s just like that, try selling it instead." % self.title)
 
-    def notify_action(self, parsed: ParseResult, actor: Living) -> None:
-        if actor is self or parsed.verb in self.verbs:
-            return  # avoid reacting to ourselves, or reacting to verbs we already have a handler for
-        # react to some things people might say such as "ask about <item>/<number>"
-        unparsed = parsed.unparsed.split()
-        if self in parsed.who_info or self.name in unparsed or lang.capital(self.name) in unparsed \
-                or parsed.verb in ("hi", "hello", "greet", "wave") \
-                or (parsed.verb == "say" and ("hello" in unparsed or "hi" in unparsed)):
-            # someone referred to us
-            if random.random() < 0.2:
-                self.do_socialize("smile at " + actor.name)
-            elif random.random() < 0.2:
-                self.do_socialize("wave at " + actor.name)
-            elif random.random() < 0.2:
-                self.do_socialize("nod at " + actor.name)
-            elif random.random() < 0.2:
-                self.do_socialize("say \"Hello, how may I help you?\"")
-
     def handle_verb(self, parsed: ParseResult, actor: Living) -> bool:
         if self.shop.banks_money:
             self.money = min(self.money, banking_money_limit)   # make sure we don't have surplus cash
@@ -178,7 +160,7 @@ class Shopkeeper(LivingNpc):
         elif parsed.verb == "sell":
             return self.shop_sell(parsed, actor)
         elif parsed.verb == "haggle":
-            self.do_socialize("exclaim No haggling")
+            self.do_socialize("exclaim No haggling", evoke=True)
             return True
         else:
             return False  # unrecognised verb
