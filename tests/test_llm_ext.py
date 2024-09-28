@@ -132,33 +132,33 @@ class TestLivingNpc():
 
         assert npc.occupation == 'warrior' 
 
-        assert npc.stats.get_weapon_skill(WeaponType.ONE_HANDED) > 0
-        assert npc.stats.get_weapon_skill(WeaponType.TWO_HANDED) > 0
+        assert npc.stats.weapon_skills.get(WeaponType.ONE_HANDED) > 0
+        assert npc.stats.weapon_skills.get(WeaponType.TWO_HANDED) > 0
 
         npc = LivingNpc(name='test', gender='m', age=42, occupation='ranger', parse_occupation=True)
 
-        assert npc.stats.get_weapon_skill(WeaponType.ONE_HANDED_RANGED) > 0
-        assert npc.stats.get_weapon_skill(WeaponType.TWO_HANDED_RANGED) > 0
+        assert npc.stats.weapon_skills.get(WeaponType.ONE_HANDED_RANGED) > 0
+        assert npc.stats.weapon_skills.get(WeaponType.TWO_HANDED_RANGED) > 0
 
         npc = LivingNpc(name='test', gender='m', age=42, occupation='healer', parse_occupation=True)
 
-        assert npc.stats.get_magic_skill(MagicType.HEAL) > 0
+        assert npc.stats.magic_skills.get(MagicType.HEAL) > 0
 
         npc = LivingNpc(name='test', gender='m', age=42, occupation='wizard', parse_occupation=True)
 
-        assert npc.stats.get_magic_skill(MagicType.BOLT) > 0
+        assert npc.stats.magic_skills.get(MagicType.BOLT) > 0
 
         npc = LivingNpc(name='test', gender='m', age=42, occupation='thief', parse_occupation=True)
 
-        assert npc.stats.get_skill(SkillType.PICK_LOCK) > 0
-        assert npc.stats.get_skill(SkillType.HIDE) > 0
-        assert npc.stats.get_skill(SkillType.SEARCH) > 0
+        assert npc.stats.skills.get(SkillType.PICK_LOCK) > 0
+        assert npc.stats.skills.get(SkillType.HIDE) > 0
+        assert npc.stats.skills.get(SkillType.SEARCH) > 0
 
         npc = LivingNpc(name='test', gender='m', age=42, occupation='thief')
 
-        assert npc.stats.get_skill(SkillType.PICK_LOCK) == 0
-        assert npc.stats.get_skill(SkillType.HIDE) == 0
-        assert npc.stats.get_skill(SkillType.SEARCH) == 0
+        assert npc.stats.skills.get(SkillType.PICK_LOCK) == 0
+        assert npc.stats.skills.get(SkillType.HIDE) == 0
+        assert npc.stats.skills.get(SkillType.SEARCH) == 0
         
     # def test_avatar_exists(self):
     #     shutil.copyfile("./tests/files/test.jpg", "./tale/web/resources/test.jpg")

@@ -1,7 +1,6 @@
 
 
-from enum import Enum, IntEnum
-import json
+from enum import  IntEnum
 
 
 class SkillType(IntEnum):

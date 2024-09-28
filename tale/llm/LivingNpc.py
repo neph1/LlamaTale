@@ -47,39 +47,39 @@ class LivingNpc(Living):
     def _parse_occupation(self, occupation: str) -> None:
         """ Parse the occupation of the npc."""
         if occupation in ['soldier', 'guard', 'mercenary', 'knight', 'warrior']: # Warrior
-            self.stats.set_weapon_skill(WeaponType.ONE_HANDED, random.randint(30, 50) + random.randint(0, 5) * self.stats.level)
-            self.stats.set_weapon_skill(WeaponType.TWO_HANDED, random.randint(15, 30) + random.randint(0, 3) * self.stats.level)
-            self.stats.set_weapon_skill(WeaponType.UNARMED, random.randint(30, 60))
+            self.stats.weapon_skills.set(WeaponType.ONE_HANDED, random.randint(30, 50) + random.randint(0, 5) * self.stats.level)
+            self.stats.weapon_skills.set(WeaponType.TWO_HANDED, random.randint(15, 30) + random.randint(0, 3) * self.stats.level)
+            self.stats.weapon_skills.set(WeaponType.UNARMED, random.randint(30, 60))
             return
         if occupation in ['archer', 'ranger', 'hunter', 'marksman']: # Archer
-            self.stats.set_weapon_skill(WeaponType.ONE_HANDED, random.randint(15, 30) + random.randint(0, 3) * self.stats.level)
-            self.stats.set_weapon_skill(WeaponType.ONE_HANDED_RANGED, random.randint(30, 50) + random.randint(0, 5) * self.stats.level)
-            self.stats.set_weapon_skill(WeaponType.TWO_HANDED_RANGED, random.randint(30, 50) + random.randint(0, 5) * self.stats.level)
-            self.stats.set_weapon_skill(WeaponType.UNARMED, random.randint(30, 50))
+            self.stats.weapon_skills.set(WeaponType.ONE_HANDED, random.randint(15, 30) + random.randint(0, 3) * self.stats.level)
+            self.stats.weapon_skills.set(WeaponType.ONE_HANDED_RANGED, random.randint(30, 50) + random.randint(0, 5) * self.stats.level)
+            self.stats.weapon_skills.set(WeaponType.TWO_HANDED_RANGED, random.randint(30, 50) + random.randint(0, 5) * self.stats.level)
+            self.stats.weapon_skills.set(WeaponType.UNARMED, random.randint(30, 50))
             return
         if occupation in ['mage', 'sorcerer', 'wizard', 'warlock']: # Caster
-            self.stats.set_magic_skill(MagicType.BOLT, random.randint(30, 50) + random.randint(0, 5) * self.stats.level)
-            self.stats.set_magic_skill(MagicType.DRAIN, random.randint(30, 50) + random.randint(0, 5) * self.stats.level)
-            self.stats.set_magic_skill(MagicType.REVEAL, random.randint(30, 50) + random.randint(0, 5) * self.stats.level)
-            self.stats.set_weapon_skill(WeaponType.UNARMED, random.randint(15, 30))
+            self.stats.magic_skills.set(MagicType.BOLT, random.randint(30, 50) + random.randint(0, 5) * self.stats.level)
+            self.stats.magic_skills.set(MagicType.DRAIN, random.randint(30, 50) + random.randint(0, 5) * self.stats.level)
+            self.stats.magic_skills.set(MagicType.REVEAL, random.randint(30, 50) + random.randint(0, 5) * self.stats.level)
+            self.stats.weapon_skills.set(WeaponType.UNARMED, random.randint(15, 30))
             return
         if occupation in ['healer', 'cleric', 'priest', 'monk']: # Healer
-            self.stats.set_magic_skill(MagicType.HEAL, random.randint(30, 50) + random.randint(0, 5) * self.stats.level)
-            self.stats.set_magic_skill(MagicType.REJUVENATE, random.randint(30, 50) + random.randint(0, 5) * self.stats.level)
-            self.stats.set_magic_skill(MagicType.REVEAL, random.randint(30, 50) + random.randint(0, 5) * self.stats.level)
+            self.stats.magic_skills.set(MagicType.HEAL, random.randint(30, 50) + random.randint(0, 5) * self.stats.level)
+            self.stats.magic_skills.set(MagicType.REJUVENATE, random.randint(30, 50) + random.randint(0, 5) * self.stats.level)
+            self.stats.magic_skills.set(MagicType.REVEAL, random.randint(30, 50) + random.randint(0, 5) * self.stats.level)
             return
         if occupation in ['thief', 'rogue', 'assassin', 'bandit']: # Rogue
-            self.stats.set_weapon_skill(WeaponType.UNARMED, random.randint(30, 50) + random.randint(0, 5) * self.stats.level)
-            self.stats.set_weapon_skill(WeaponType.ONE_HANDED, random.randint(30, 50) + random.randint(0, 5) * self.stats.level)
-            self.stats.set_weapon_skill(WeaponType.THROWING, random.randint(30, 50) + random.randint(0, 5) * self.stats.level)
+            self.stats.weapon_skills.set(WeaponType.UNARMED, random.randint(30, 50) + random.randint(0, 5) * self.stats.level)
+            self.stats.weapon_skills.set(WeaponType.ONE_HANDED, random.randint(30, 50) + random.randint(0, 5) * self.stats.level)
+            self.stats.weapon_skills.set(WeaponType.THROWING, random.randint(30, 50) + random.randint(0, 5) * self.stats.level)
             self.stats.skills.set(SkillType.HIDE, random.randint(30, 50) + random.randint(0, 5) * self.stats.level)
             self.stats.skills.set(SkillType.SEARCH, random.randint(20, 40) + random.randint(0, 5) * self.stats.level)
             self.stats.skills.set(SkillType.PICK_LOCK, random.randint(20, 40) + random.randint(0, 5) * self.stats.level)
             return
         if occupation in ['peasant', 'farmer', 'commoner', 'villager']:
-            self.stats.set_weapon_skill(WeaponType.ONE_HANDED, random.randint(15, 30) + random.randint(0, 3) * self.stats.level)
-            self.stats.set_weapon_skill(WeaponType.UNARMED, random.randint(30, 40))
-            self.stats.set_weapon_skill(WeaponType.THROWING, random.randint(15, 30) + random.randint(0, 5) * self.stats.level)
+            self.stats.weapon_skills.set(WeaponType.ONE_HANDED, random.randint(15, 30) + random.randint(0, 3) * self.stats.level)
+            self.stats.weapon_skills.set(WeaponType.UNARMED, random.randint(30, 40))
+            self.stats.weapon_skills.set(WeaponType.THROWING, random.randint(15, 30) + random.randint(0, 5) * self.stats.level)
             self.stats.skills.set(SkillType.SEARCH, random.randint(15, 30) + random.randint(0, 5) * self.stats.level)
             return
 

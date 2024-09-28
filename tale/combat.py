@@ -24,7 +24,7 @@ class Combat():
     def _calculate_attack_success(self, actor: 'base.Living') -> int:
         """ Calculate the success of an attack. <5 is a critical hit.
         Lower chance for attacker if trying to hit a specific body part."""
-        chance = actor.stats.get_weapon_skill(actor.wielding.type)
+        chance = actor.stats.weapon_skills.get(actor.wielding.type)
         if self.target_body_part and actor == self.attacker:
             chance *= 1.2
         return random.randrange(0, 100) - chance
@@ -40,7 +40,7 @@ class Combat():
         if actor2.wielding.type in weapon_type.ranged:
             # can't block with a ranged weapon
             return 100
-        return random.randrange(0, 100) - actor2.stats.get_weapon_skill(actor2.wielding.type) * (0.8 if actor2.stats.action_points < 1 else 1)
+        return random.randrange(0, 100) - actor2.stats.weapon_skills.get(actor2.wielding.type) * (0.8 if actor2.stats.action_points < 1 else 1)
     
     def _calculate_weapon_bonus(self, actor: 'base.Living'):
             weapon = actor.wielding
@@ -114,7 +114,7 @@ class Combat():
         attack_result = self._calculate_attack_success(actor1)
         texts = []
         if attack_result < 0:
-            if attack_result < -actor1.stats.get_weapon_skill(actor1.wielding.type) + 5:
+            if attack_result < -actor1.stats.weapon_skills.get(actor1.wielding.type) + 5:
                 texts.append(f'{actor1.title} performs a critical hit on {actor2.title}')
                 block_result = 100
             else:

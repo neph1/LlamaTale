@@ -1,15 +1,12 @@
-
-
 import pytest
-from tale.skills import magic
 import tale
 from tale.base import Location, ParseResult
 from tale.cmds import spells
-from tale.errors import ActionRefused, ParseError
+from tale.errors import ActionRefused
 from tale.llm.LivingNpc import LivingNpc
 from tale.llm.llm_ext import DynamicStory
 from tale.llm.llm_utils import LlmUtil
-from tale.skills.magic import MagicSkill, MagicType
+from tale.skills.magic import MagicType
 from tale.player import Player
 from tale.story import StoryConfig
 from tests.supportstuff import FakeDriver, FakeIoUtil
@@ -35,7 +32,7 @@ class TestHeal:
         self.location.insert(self.player, actor=None)
 
     def test_heal(self):
-        self.player.stats.magic_skills[MagicType.HEAL] = 100
+        self.player.stats.magic_skills.set(MagicType.HEAL, 100)
         npc = LivingNpc('test', 'f', age=30)
         npc.stats.hp = 0
         self.player.location.insert(npc, actor=None)
@@ -46,7 +43,7 @@ class TestHeal:
         assert npc.stats.hp == 5
 
     def test_heal_fail(self):
-        self.player.stats.magic_skills[MagicType.HEAL] = -1
+        self.player.stats.magic_skills.set(MagicType.HEAL, -1)
         npc = LivingNpc('test', 'f', age=30)
         npc.stats.hp = 0
         self.player.location.insert(npc, actor=None)
@@ -67,7 +64,7 @@ class TestHeal:
         with pytest.raises(ActionRefused, match="You don't know how to heal"):
             spells.do_heal(self.player, parse_result, None)
 
-        self.player.stats.magic_skills[MagicType.HEAL] = 10
+        self.player.stats.magic_skills.set(MagicType.HEAL, 10)
         self.player.stats.magic_points = 0
 
         with pytest.raises(ActionRefused, match="You don't have enough magic points"):
@@ -94,7 +91,7 @@ class TestBolt:
         self.location.insert(self.player, actor=None)
 
     def test_bolt(self):
-        self.player.stats.magic_skills[MagicType.BOLT] = 100
+        self.player.stats.magic_skills.set(MagicType.BOLT, 100)
         npc = LivingNpc('test', 'f', age=30)
         npc.stats.hp = 5
         self.player.location.insert(npc, actor=None)
@@ -124,7 +121,7 @@ class TestDrain:
         self.location.insert(self.player, actor=None)
 
     def test_drain(self):
-        self.player.stats.magic_skills[MagicType.DRAIN] = 100
+        self.player.stats.magic_skills.set(MagicType.DRAIN, 100)
         npc = LivingNpc('test', 'f', age=30)
         npc.stats.action_points = 5
         npc.stats.magic_points = 5
@@ -156,7 +153,7 @@ class TestRejuvenate:
         self.location.insert(self.player, actor=None)
 
     def test_rejuvenate(self):
-        self.player.stats.magic_skills[MagicType.REJUVENATE] = 100
+        self.player.stats.magic_skills.set(MagicType.REJUVENATE, 100)
         npc = LivingNpc('test', 'f', age=30)
         npc.stats.hp = 0
         self.player.location.insert(npc, actor=None)
@@ -167,7 +164,7 @@ class TestRejuvenate:
         assert npc.stats.hp == 5
 
     def test_rejuvenate_fail(self):
-        self.player.stats.magic_skills[MagicType.REJUVENATE] = -1
+        self.player.stats.magic_skills.set(MagicType.REJUVENATE, -1)
         npc = LivingNpc('test', 'f', age=30)
         npc.stats.hp = 0
         self.player.location.insert(npc, actor=None)
@@ -190,7 +187,7 @@ class TestRejuvenate:
         with pytest.raises(ActionRefused, match="You don't know how to rejuvenate"):
             spells.do_rejuvenate(self.player, parse_result, None)
 
-        self.player.stats.magic_skills[MagicType.REJUVENATE] = 10
+        self.player.stats.magic_skills.set(MagicType.REJUVENATE, 10)
         self.player.stats.magic_points = 0
 
         with pytest.raises(ActionRefused, match="You don't have enough magic points"):
@@ -216,7 +213,7 @@ class TestHide:
         self.location.insert(self.player, actor=None)
 
     def test_hide(self):
-        self.player.stats.magic_skills[MagicType.HIDE] = 100
+        self.player.stats.magic_skills.set(MagicType.HIDE, 100)
         self.player.stats.magic_points = 10
         parse_result = ParseResult(verb='hide', args=['self'])
         result = spells.do_hide(self.player, parse_result, None)
@@ -224,7 +221,7 @@ class TestHide:
         assert self.player.hidden == True
 
     def test_hide_fail(self):
-        self.player.stats.magic_skills[MagicType.HIDE] = -1
+        self.player.stats.magic_skills.set(MagicType.HIDE, -1)
         self.player.stats.magic_points = 10
         parse_result = ParseResult(verb='hide', args=['self'])
         result = spells.do_hide(self.player, parse_result, None)
@@ -245,7 +242,7 @@ class TestHide:
         with pytest.raises(ActionRefused, match="You don't know the 'hide' spell."):
             spells.do_hide(self.player, parse_result, None)
         
-        self.player.stats.magic_skills[MagicType.HIDE] = 10
+        self.player.stats.magic_skills.set(MagicType.HIDE, 10)
         self.player.stats.magic_points = 0
 
         with pytest.raises(ActionRefused, match="You don't have enough magic points"):
@@ -272,7 +269,7 @@ class TestReveal:
         self.location.insert(self.player, actor=None)
 
     def test_reveal(self):
-        self.player.stats.magic_skills[MagicType.REVEAL] = 100
+        self.player.stats.magic_skills.set(MagicType.REVEAL, 100)
         npc = LivingNpc('test', 'f', age=30)
         npc.hidden = True
         self.player.location.insert(npc, actor=None)
@@ -283,7 +280,7 @@ class TestReveal:
         assert npc.hidden == False
 
     def test_reveal_fail(self):
-        self.player.stats.magic_skills[MagicType.REVEAL] = -1
+        self.player.stats.magic_skills.set(MagicType.REVEAL, -1)
         npc = LivingNpc('test', 'f', age=30)
         npc.hidden = True
         self.player.location.insert(npc, actor=None)
@@ -298,7 +295,7 @@ class TestReveal:
         with pytest.raises(ActionRefused, match="You don't know the 'reveal' spell."):
             spells.do_reveal(self.player, parse_result, None)
         
-        self.player.stats.magic_skills[MagicType.REVEAL] = 10
+        self.player.stats.magic_skills.set(MagicType.REVEAL, 10)
         self.player.stats.magic_points = 0
 
         with pytest.raises(ActionRefused, match="You don't have enough magic points"):

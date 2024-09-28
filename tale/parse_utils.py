@@ -12,7 +12,7 @@ from tale.npc_defs import StationaryMob, StationaryNpc, Trader
 from tale.races import BodyType, UnarmedAttack
 from tale.mob_spawner import MobSpawner
 from tale.story import GameMode, MoneyType, TickMethod, StoryConfig
-from tale.skills.weapon_type import WeaponType
+from tale.skills.weapon_type import WeaponSkills, WeaponType
 from tale.wearable import WearLocation
 import json
 import re
@@ -138,7 +138,7 @@ def load_item(item: dict):
             set_note(new_item, item)
     return new_item
 
-def load_npcs(json_npcs: list, locations: list[Location], world_items = [], parse_occupation = False) -> dict:
+def load_npcs(json_npcs: list, locations: list[Location] = [], world_items = [], parse_occupation = False) -> dict:
     """
         Loads npcs and returns a dict from a supplied json dict
         May be custom classes, but be sure the class is available
@@ -199,8 +199,8 @@ def load_npc(npc: dict, name: str = None, npc_type: str = 'Mob', roaming = False
                                 occupation=npc.get('occupation', ''),
                             parse_occupation=parse_occupation or npc.get('parse_occupation', False))
         new_npc.aliases.add(name.split(' ')[0].lower())
-        if new_npc.stats.get_weapon_skill(WeaponType.UNARMED) < 1:
-            new_npc.stats.set_weapon_skill(WeaponType.UNARMED, random.randint(10, 30))
+        if new_npc.stats.weapon_skills.get(WeaponType.UNARMED) < 1:
+            new_npc.stats.weapon_skills.set(WeaponType.UNARMED, random.randint(10, 30))
         new_npc.stats.level = npc.get('level', 1)
 
 
@@ -214,7 +214,7 @@ def load_npc(npc: dict, name: str = None, npc_type: str = 'Mob', roaming = False
                             short_descr=npc.get('short_descr', npc.get('description', '')),
                             parse_occupation=parse_occupation or npc.get('parse_occupation', False))
         new_npc.aliases.add(name.split(' ')[0].lower())
-        new_npc.stats.set_weapon_skill(WeaponType.UNARMED, random.randint(10, 30))
+        new_npc.stats.weapon_skills.set(WeaponType.UNARMED, random.randint(10, 30))
         new_npc.stats.level = npc.get('level', 1)
 
     if npc.get('stats', None):
@@ -514,7 +514,7 @@ def parse_generated_exits(exits: list, exit_location_name: str, location: Locati
                 
     return new_locations, new_exits
 
-def _select_non_occupied_direction(occupied_directions: [str]):
+def _select_non_occupied_direction(occupied_directions: list[str]):
     """ Selects a direction that is not occupied by an exit"""
     for dir in ['north', 'south', 'east', 'west']:
         if dir not in occupied_directions:
@@ -666,8 +666,8 @@ def save_stats(stats: Stats) -> dict:
     json_stats['hp'] = stats.hp
     json_stats['max_hp'] = stats.max_hp
     json_stats['level'] = stats.level
-    json_stats['weapon_skills'] = skills_dict_to_json(stats.weapon_skills)
-    json_stats['magic_skills'] = skills_dict_to_json(stats.magic_skills)
+    json_stats['weapon_skills'] = stats.weapon_skills.to_json()
+    json_stats['magic_skills'] = stats.magic_skills.to_json()
     json_stats['skills'] = stats.skills.to_json()
     json_stats['gender'] = stats.gender = 'n'
     json_stats['alignment'] = stats.alignment
@@ -701,20 +701,17 @@ def load_stats(json_stats: dict) -> Stats:
     if json_stats.get('unarmed_attack', None):
         stats.unarmed_attack = Weapon(UnarmedAttack[json_stats['unarmed_attack'].upper()], WeaponType.UNARMED)
     if json_stats.get('weapon_skills', None):
-        json_skills = json_stats['weapon_skills']
-        stats.weapon_skills = {}
+        json_skills = json_stats['weapon_skills'] # type: dict
         for skill in json_skills.keys():
             int_skill = int(skill)
             stats.weapon_skills[WeaponType(int_skill)] = json_skills[skill]
     if json_stats.get('magic_skills', None):
-        json_skills = json_stats['magic_skills']
-        stats.magic_skills = {}
+        json_skills = json_stats['magic_skills'] # type: dict
         for skill in json_skills.keys():
             int_skill = int(skill)
-            stats.magic_skills[MagicType(int_skill)] = json_skills[skill]
+            stats.magic_skills.set(MagicType(int_skill), json_skills[skill])
     if json_stats.get('skills', None):
-        json_skills = json_stats['skills']
-        stats.skills = {}
+        json_skills = json_stats['skills'] # type: dict
         for skill in json_skills.keys():
             int_skill = int(skill)
             stats.skills[WeaponType(int_skill)] = json

@@ -1,7 +1,7 @@
 from abc import ABC
-from enum import Enum
+from enum import IntEnum
 
-class MagicType(Enum):
+class MagicType(IntEnum):
     HEAL = 1
     BOLT = 2
     DRAIN = 3
@@ -30,7 +30,20 @@ spells = {
     MagicType.REVEAL: Spell('reveal', base_cost=3)
 }
 
-class MagicSkill:
-    def __init__(self, spell: Spell, skill: int = 0):
-        self.spell = spell
-        self.skill = skill
+class MagicSkills(dict):
+
+    def get(self, magic_type: MagicType) -> int:
+        return super().get(magic_type, None)
+
+    def set(self, magic_type: MagicType, value: int) -> None:
+        self[magic_type] = value
+
+    def to_json(self) -> dict:
+        return {magic_type: value for magic_type, value in self.items()}
+
+    @classmethod
+    def from_json(cls, json_data: dict) -> 'MagicSkills':
+        magic_skills = cls()
+        for magic_type, value in json_data.items():
+            magic_skills[MagicType[magic_type]] = value
+        return magic_skills

@@ -143,7 +143,7 @@ def cast_reveal(caster: Living, level: int = 1) -> None:
         caster.tell("Your spell reveals nothing.")
 
 def _check_spell_skill(caster: Living, spell_type: MagicType, no_skill_message: str) -> int:
-    skillValue = caster.stats.magic_skills.get(spell_type, None)
+    skillValue = caster.stats.magic_skills.get(spell_type)
     if not skillValue:
         raise ActionRefused(no_skill_message)
     

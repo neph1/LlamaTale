@@ -50,7 +50,7 @@ from tale import resources_utils
 
 from tale.coord import Coord
 from tale.llm.contexts.CombatContext import CombatContext
-from tale.skills.magic import MagicSkill, MagicType
+from tale.skills.magic import MagicSkills, MagicType
 from tale.skills.skills import SkillType, Skills
 
 from . import lang
@@ -64,7 +64,7 @@ from . import combat
 
 from .errors import ActionRefused, ParseError, LocationIntegrityError, TaleError, UnknownVerbException, NonSoulVerb
 from tale.races import UnarmedAttack
-from tale.skills.weapon_type import WeaponType
+from tale.skills.weapon_type import WeaponSkills, WeaponType
 from . import wearable
 
 __all__ = ["MudObject", "Armour", 'Container', "Door", "Exit", "Item", "Living", "Stats", "Location", "Weapon", "Key", "Soul"]
@@ -979,8 +979,8 @@ class Stats:
         self.perception = 3
         self.intelligence = 3
         self.unarmed_attack = Weapon(UnarmedAttack.FISTS.name, weapon_type=WeaponType.UNARMED)
-        self.weapon_skills = {}  # type: Dict[WeaponType, int]  # weapon type -> skill level
-        self.magic_skills  = {}  # type: Dict[MagicType, MagicSkill]
+        self.weapon_skills = WeaponSkills()
+        self.magic_skills  = MagicSkills()
         self.skills = Skills()
         self.action_points = 0 # combat points
         self.max_action_points = 5 # max combat points
@@ -1011,18 +1011,6 @@ class Stats:
         self.hp = r.hp
         self.max_hp = r.hp
         self.unarmed_attack = Weapon(r.unarmed_attack.name, weapon_type=WeaponType.UNARMED)
-
-    def get_weapon_skill(self, weapon_type: WeaponType) -> int:
-        return self.weapon_skills.get(weapon_type, 0)
-    
-    def set_weapon_skill(self, weapon_type: WeaponType, value: int) -> None:
-        self.weapon_skills[weapon_type] = value
-
-    def get_magic_skill(self, magic_type: MagicType) -> int:
-        return self.magic_skills.get(magic_type)
-    
-    def set_magic_skill(self, magic_type: MagicType, value: int) -> None:
-        self.magic_skills[magic_type] = value
 
     def replenish_hp(self, amount: int = None) -> None:
         if amount:

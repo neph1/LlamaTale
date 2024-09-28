@@ -55,10 +55,10 @@ class Story(DynamicStory):
         Called by the game driver when it has created the player object (after successful login).
         You can set the hint texts on the player object, or change the state object, etc.
         """
-        player.stats.set_weapon_skill(weapon_type=WeaponType.ONE_HANDED, value=25)
-        player.stats.set_weapon_skill(weapon_type=WeaponType.TWO_HANDED, value=15)
-        player.stats.set_weapon_skill(weapon_type=WeaponType.UNARMED, value=35)
-        player.stats.magic_skills[MagicType.HEAL] = 50
+        player.stats.weapon_skills.set(weapon_type=WeaponType.ONE_HANDED, value=25)
+        player.stats.weapon_skills.set(weapon_type=WeaponType.TWO_HANDED, value=15)
+        player.stats.weapon_skills.set(weapon_type=WeaponType.UNARMED, value=35)
+        player.stats.magic_skills.set(MagicType.HEAL, 30)
         player.stats.skills.set(SkillType.HIDE, 25)
         player.stats.skills.set(SkillType.SEARCH, 25)
         player.stats.skills.set(SkillType.PICK_LOCK, 25)

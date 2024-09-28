@@ -292,13 +292,13 @@ class TestParseUtils():
 
     def test_save_and_load_stats(self):
         npc = Living('test', gender='m')
-        npc.stats.set_weapon_skill(WeaponType.UNARMED, 10)
+        npc.stats.weapon_skills.set(WeaponType.UNARMED, 10)
         json_stats = parse_utils.save_stats(npc.stats)
         assert(json_stats['unarmed_attack'] == 'FISTS')
         
         loaded_stats = parse_utils.load_stats(json_stats)
         assert(isinstance(loaded_stats.unarmed_attack, Weapon))
-        assert(loaded_stats.get_weapon_skill(WeaponType.UNARMED) == 10)
+        assert(loaded_stats.weapon_skills.get(WeaponType.UNARMED) == 10)
         
     def test_load_mob_spawners(self):
         driver = IFDriver(screen_delay=99, gui=False, web=True, wizard_override=True)

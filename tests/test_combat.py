@@ -27,7 +27,7 @@ class TestCombat():
         self._assert_combat(attacker, defender, text)
         
         attacker.stats.level = 10
-        attacker.stats.set_weapon_skill(WeaponType.UNARMED, 100)
+        attacker.stats.weapon_skills.set(WeaponType.UNARMED, 100)
 
         combat = Combat([attacker], [defender])
 
@@ -40,11 +40,11 @@ class TestCombat():
     def test_block_ranged_fails(self):
         attacker = LivingNpc(name='attacker', gender='m', age=42, personality='A ranged fighter')
         defender = LivingNpc(name='defender', gender='f', age=37, personality='A fierce fighter')
-        defender.stats.set_weapon_skill(WeaponType.UNARMED, 100)
+        defender.stats.weapon_skills.set(WeaponType.UNARMED, 100)
         bow = Weapon(name='bow', weapon_type=WeaponType.TWO_HANDED_RANGED, base_damage=10, weight=1, value=1)
 
         attacker.wielding = bow
-        attacker.stats.set_weapon_skill(WeaponType.TWO_HANDED_RANGED, 100)
+        attacker.stats.weapon_skills.set(WeaponType.TWO_HANDED_RANGED, 100)
 
         combat = Combat([attacker], [defender])
 
@@ -56,11 +56,11 @@ class TestCombat():
     def test_block_with_ranged_fails(self):
         attacker = LivingNpc(name='attacker', gender='f', age=37, personality='A fierce fighter')
         defender = LivingNpc(name='defender', gender='m', age=42, personality='A ranged fighter')
-        attacker.stats.set_weapon_skill(WeaponType.UNARMED, 100)
+        attacker.stats.weapon_skills.set(WeaponType.UNARMED, 100)
         bow = Weapon(name='bow', weapon_type=WeaponType.TWO_HANDED_RANGED, base_damage=10, weight=1, value=1)
 
         defender.wielding = bow
-        defender.stats.set_weapon_skill(WeaponType.TWO_HANDED_RANGED, 100)
+        defender.stats.weapon_skills.set(WeaponType.TWO_HANDED_RANGED, 100)
 
         combat = Combat([attacker], [defender])
 
@@ -224,9 +224,9 @@ class TestCombat():
         attacker2 = LivingNpc(name='attacker2', gender='m', age=42, personality='A fierce fighter')
 
         attacker.stats.level = 10
-        attacker.stats.set_weapon_skill(WeaponType.UNARMED, 100)
+        attacker.stats.weapon_skills.set(WeaponType.UNARMED, 100)
         attacker2.stats.level = 10
-        attacker2.stats.set_weapon_skill(WeaponType.UNARMED, 100)
+        attacker2.stats.weapon_skills.set(WeaponType.UNARMED, 100)
 
         defender = LivingNpc(name='defender', gender='f', age=37, personality='A fierce fighter')
 
