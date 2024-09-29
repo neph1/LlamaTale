@@ -8,12 +8,13 @@ from tale.story import MoneyType
 
 class TestEquipNPC:
 
-    items = generic.generic_items.get('fantasy')
-
-    mud_context.driver = IFDriver()
-    mud_context.driver.moneyfmt = util.MoneyFormatter.create_for(MoneyType.FANTASY)
 
     def test_equip_soldier(self):
+
+        items = generic.generic_items.get('fantasy')
+
+        mud_context.driver = IFDriver()
+        mud_context.driver.moneyfmt = util.MoneyFormatter.create_for(MoneyType.FANTASY)
         npc = LivingNpc('Test', gender='m', occupation='Soldier')
 
         equip_npc(npc, self.items)

@@ -3,10 +3,25 @@
 
 import random
 import sys
-from tale.base import Weapon, Wearable
+from tale.base import Item, Weapon, Wearable
 from tale.items.basic import Boxlike, Drink, Food, Health, Money, Note
 from tale.skills.weapon_type import WeaponType
 from tale.wearable import WearLocation
+
+
+def load_items(json_items: list, locations = {}) -> dict:
+    """
+        Loads and returns a dict of items from a supplied json dict
+        Inserts into locations if supplied and has location
+    """
+    items = {}
+    for item in json_items:
+        new_item = load_item(item)
+        items[item['name']] = new_item
+        if locations and item['location']: 
+            _insert(new_item, locations, item['location'])
+    return items
+
 
 def load_item(item: dict):
     item_type = item.get('type', 'Item')
@@ -101,6 +116,16 @@ def _init_wearable(item: dict):
                     weight=item.get('weight', 1),
                     wear_location=wear_location,
                     value=item.get('value', 1))
+
+def _insert(new_item: Item, locations, location: str):
+    location_parts = location.split('.')
+    if len(location_parts) == 2:
+        zone = locations.get(location_parts[0])
+        loc = zone.get_location(location_parts[1])
+    else:
+        loc = locations.get(location)
+    if loc:
+        loc.insert(new_item, None)
     
 def set_note(note: Note, item: dict):
     note.text = item.get('text', '')

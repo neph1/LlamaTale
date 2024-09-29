@@ -199,8 +199,11 @@ class LlmUtil():
     def generate_story_background(self, world_mood: int, world_info: str, story_type: str):
         return self._story_building.generate_story_background(world_mood, world_info, story_type)
     
-    def generate_start_location(self, location: Location, zone_info: dict, story_type: str, story_context: str, world_info: str) -> LocationResponse:
-        return self._world_building.generate_start_location(location, zone_info, story_type, story_context, world_info)
+    def generate_start_location(self, location: Location, zone_info: dict, story_type: str, story_context: str, world_info: str, world_mood: int = 0) -> LocationResponse:
+        return self._world_building.generate_start_location(location, zone_info, WorldGenerationContext(story_context=story_context, 
+                                                                                                        story_type=story_type, 
+                                                                                                        world_info=world_info, 
+                                                                                                        world_mood=world_mood))
         
     def generate_start_zone(self, location_desc: str, story_type: str, story_context: str, world_info: dict) -> Zone:
         world_generation_context = WorldGenerationContext(story_context=story_context, story_type=story_type, world_info=world_info, world_mood=world_info['world_mood'])

@@ -1,4 +1,5 @@
 import enum
+import random
 
 from tale.races import BodyType
 
@@ -19,78 +20,108 @@ class WearLocation(enum.Enum):
     @classmethod
     def has_value(cls, value):
         return value in cls._member_names_
+    
+dressable_body_types = [BodyType.HUMANOID, BodyType.SEMI_BIPEDAL, BodyType.WINGED_MAN]
 
 def body_parts_for_bodytype(bodytype: str) -> list:
-    if bodytype == BodyType.HUMANOID or bodytype == BodyType.SEMI_BIPEDAL:
+    if bodytype in dressable_body_types:
         return list(WearLocation)[1:-3]
     if bodytype == BodyType.QUADRUPED:
         return [WearLocation.HEAD, WearLocation.LEGS, WearLocation.TORSO, WearLocation.FEET, WearLocation.NECK]
     return None
 
+def random_wearable_for_body_part(bodypart: WearLocation, setting: str = 'fantasy', armor_only = False) -> dict:
+    if setting == 'fantasy':
+        wearables = wearables_fantasy
+    else:
+        wearables = wearables_modern
+    available_wearables = [key for key, value in wearables.items() if value['type'] == bodypart and (not armor_only or value['ac'] > 0)]
+    if not available_wearables:
+        return None
+    wearable_name = random.choice(available_wearables)
+    # TODO: Fix name
+    wearable = wearables[wearable_name]
+    wearable['name'] = wearable_name
+    wearable['short_descr'] = f"A {wearable['name']} in {random.choice(wearable_colors)}"
+    return wearable
+
+wearable_colors = ['black', 'green', 'blue', 'red', 'yellow', 'white', 'brown', 'grey', 'purple', 'orange', 'pink', 'cyan', 'magenta']
+
 # Mostly 'copilot' generated wearable types
 wearables_fantasy = {
     'robe': {
-        'type': WearLocation.FULL_BODY,
+        'type':  'Wearable',
+        'location': WearLocation.FULL_BODY,
         'weight': 1,
         'value': 10,
         'ac': 0,
     },
     'cloak': {
-        'type': WearLocation.BACK,
+        'type':  'Wearable',
+        'location': WearLocation.BACK,
         'weight': 1,
         'value': 10,
         'ac': 0,
     },
     'tunic': {
-        'type': WearLocation.TORSO,
+        'type':  'Wearable',
+        'location': WearLocation.TORSO,
         'weight': 1,
         'value': 10,
         'ac': 0,
     },
     'shirt': {
-        'type': WearLocation.TORSO,
+        'type':  'Wearable',
+        'location': WearLocation.TORSO,
         'weight': 1,
         'value': 10,
         'ac': 0,
     },
     'pants': {
-        'type': WearLocation.LEGS,
+        'type':  'Wearable',
+        'location': WearLocation.LEGS,
         'weight': 1,
         'value': 10,
         'ac': 0,
     },
     'shoes': {
-        'type': WearLocation.FEET,
+        'type':  'Wearable',
+        'location': WearLocation.FEET,
         'weight': 1,
         'value': 10,
         'ac': 0,
     },
     'belt': {
-        'type': WearLocation.WAIST,
+        'type':  'Wearable',
+        'location': WearLocation.WAIST,
         'weight': 1,
         'value': 10,
         'ac': 0,
     },
     'hat': {
-        'type': WearLocation.HEAD,
+        'type':  'Wearable',
+        'location': WearLocation.HEAD,
         'weight': 1,
         'value': 10,
         'ac': 0,
     },
     'steel_helmet': {
-        'type': WearLocation.HEAD,
+        'type':  'Wearable',
+        'location': WearLocation.HEAD,
         'weight': 3,
         'value': 10,
         'ac': 3,
     },
     'mail_coif': {
-        'type': WearLocation.HEAD,
+        'type':  'Wearable',
+        'location': WearLocation.HEAD,
         'weight': 3,
         'value': 10,
         'ac': 2,
     },
     'breeches': {
-        'type': WearLocation.LEGS,
+        'type':  'Wearable',
+        'location': WearLocation.LEGS,
         'weight': 1,
         'value': 10,
         'ac': 0,
@@ -100,163 +131,190 @@ wearables_fantasy = {
 # Mostly 'copilot' generated wearable types
 wearables_modern = {
     't-shirt': {
-        'type': WearLocation.TORSO,
+        'type':  'Wearable',
+        'location': WearLocation.TORSO,
         'weight': 1,
         'value': 10,
         'ac': 0,
     },
     'shirt': {
-        'type': WearLocation.TORSO,
+        'type':  'Wearable',
+        'location': WearLocation.TORSO,
         'weight': 1,
         'value': 10,
         'ac': 0,
     },
     'jeans': {
-        'type': WearLocation.LEGS,
+        'type':  'Wearable',
+        'location': WearLocation.LEGS,
         'weight': 1,
         'value': 10,
         'ac': 0,
     },
     'sneakers': {
-        'type': WearLocation.FEET,
+        'type':  'Wearable',
+        'location': WearLocation.FEET,
         'weight': 1,
         'value': 10,
         'ac': 0,
     },
     'belt': {
-        'type': WearLocation.WAIST,
+        'type':  'Wearable',
+        'location': WearLocation.WAIST,
         'weight': 1,
         'value': 10,
         'ac': 0,
     },
     'dress_shoes': {
-        'type': WearLocation.FEET,
+        'type':  'Wearable',
+        'location': WearLocation.FEET,
         'weight': 1,
         'value': 10,
         'ac': 0,
     },
     'hat': {
-        'type': WearLocation.HEAD,
+        'type':  'Wearable',
+        'location': WearLocation.HEAD,
         'weight': 1,
         'value': 10,
         'ac': 0,
     },
     'dress': {
-        'type': WearLocation.FULL_BODY,
+        'type':  'Wearable',
+        'location': WearLocation.FULL_BODY,
         'weight': 1,
         'value': 10,
         'ac': 0,
     },
     'suit': {
-        'type': WearLocation.FULL_BODY,
+        'type':  'Wearable',
+        'location': WearLocation.FULL_BODY,
         'weight': 1,
         'value': 10,
         'ac': 0,
     },
     'jacket': {
-        'type': WearLocation.TORSO,
+        'type':  'Wearable',
+        'location': WearLocation.TORSO,
         'weight': 1,
         'value': 10,
         'ac': 0,
     },
     'coat': {
-        'type': WearLocation.TORSO,
+        'type':  'Wearable',
+        'location': WearLocation.TORSO,
         'weight': 1,
         'value': 10,
         'ac': 0,
     },
     'cap': {
-        'type': WearLocation.HEAD,
+        'type':  'Wearable',
+        'location': WearLocation.HEAD,
         'weight': 1,
         'value': 10,
         'ac': 0,
     },
     'pants': {
-        'type': WearLocation.LEGS,
+        'type':  'Wearable',
+        'location': WearLocation.LEGS,
         'weight': 1,
         'value': 10,
         'ac': 0,
     },
     'shorts': {
-        'type': WearLocation.LEGS,
+        'type':  'Wearable',
+        'location': WearLocation.LEGS,
         'weight': 1,
         'value': 10,
         'ac': 0,
     },
     'boxers': {
-        'type': WearLocation.UNDER_GARMENTS,
+        'type':  'Wearable',
+        'location': WearLocation.UNDER_GARMENTS,
         'weight': 1,
         'value': 10,
         'ac': 0,
     },
     'briefs': {
-        'type': WearLocation.UNDER_GARMENTS,
+        'type':  'Wearable',
+        'location': WearLocation.UNDER_GARMENTS,
         'weight': 1,
         'value': 10,
         'ac': 0,
     },
     'bra': {
-        'type': WearLocation.UNDER_GARMENTS,
+        'type':  'Wearable',
+        'location': WearLocation.UNDER_GARMENTS,
         'weight': 1,
         'value': 10,
         'ac': 0,
     },
     'socks': {
-        'type': WearLocation.UNDER_GARMENTS,
+        'type':  'Wearable',
+        'location': WearLocation.UNDER_GARMENTS,
         'weight': 1,
         'value': 10,
         'ac': 0,
     },
     'panties': {
-        'type': WearLocation.UNDER_GARMENTS,
+        'type':  'Wearable',
+        'location': WearLocation.UNDER_GARMENTS,
         'weight': 1,
         'value': 10,
         'ac': 0,
     },
     'thong': {
-        'type': WearLocation.UNDER_GARMENTS,
+        'type':  'Wearable',
+        'location': WearLocation.UNDER_GARMENTS,
         'weight': 1,
         'value': 10,
         'ac': 0,
     },
     'stockings': {
-        'type': WearLocation.UNDER_GARMENTS,
+        'type':  'Wearable',
+        'location': WearLocation.UNDER_GARMENTS,
         'weight': 1,
         'value': 10,
         'ac': 0,
     },
     'skirt': {
-        'type': WearLocation.LEGS,
+        'type':  'Wearable',
+        'location': WearLocation.LEGS,
         'weight': 1,
         'value': 10,
         'ac': 0,
     },
     'dress_shirt': {
-        'type': WearLocation.TORSO,
+        'type':  'Wearable',
+        'location': WearLocation.TORSO,
         'weight': 1,
         'value': 10,
         'ac': 0,
     },
     'blouse': {
-        'type': WearLocation.TORSO,
+        'type':  'Wearable',
+        'location': WearLocation.TORSO,
         'weight': 1,
         'value': 10,
         'ac': 0,
     },
     'sweater': {
-        'type': WearLocation.TORSO,
+        'type':  'Wearable',
+        'location': WearLocation.TORSO,
         'weight': 1,
         'value': 10,
         'ac': 0,
     },
     'coveralls': {
-        'type': WearLocation.FULL_BODY,
+        'type':  'Wearable',
+        'location': WearLocation.FULL_BODY,
         'weight': 1,
         'value': 10,
         'ac': 0,
     },
     'top': {
-        'type': WearLocation.TORSO,
+        'type':  'Wearable',
+        'location': WearLocation.TORSO,
         'weight': 1,
         'value': 10,
         'ac': 0,

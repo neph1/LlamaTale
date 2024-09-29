@@ -2,6 +2,7 @@ import random
 from typing import List, Tuple
 from tale import lang
 from tale import zone
+from tale import wearable
 from tale.base import Location, Exit, Item, Stats, Weapon, Wearable
 from tale.coord import Coord
 from tale.equip_npcs import equip_npc
@@ -91,19 +92,6 @@ def location_from_json(json_object: dict):
     location.built = json_object.get('built', True)
     return location
 
-def load_items(json_items: list, locations = {}) -> dict:
-    """
-        Loads and returns a dict of items from a supplied json dict
-        Inserts into locations if supplied and has location
-    """
-    items = {}
-    for item in json_items:
-        new_item = load_item(item)
-        items[item['name']] = new_item
-        if locations and item['location']: 
-            _insert(new_item, locations, item['location'])
-    return items
-
 def load_npcs(json_npcs: list, locations: list[Location] = [], world_items = [], parse_occupation = False) -> dict:
     """
         Loads npcs and returns a dict from a supplied json dict
@@ -119,17 +107,23 @@ def load_npcs(json_npcs: list, locations: list[Location] = [], world_items = [],
                 name = npc['name'].replace('the','').replace('The','').strip()
         else:
             name = npc['name']
-        new_npc = load_npc(npc, name, npc_type, world_items=world_items, parse_occupation=parse_occupation)
+        try:
+            new_npc = load_npc(npc, name, npc_type, world_items=world_items, parse_occupation=parse_occupation)
 
-        if locations and npc['location']:
-            _insert(new_npc, locations, npc['location'])
+            if locations and npc['location']:
+                _insert(new_npc, locations, npc['location'])
 
-        npcs[name] = new_npc
+            npcs[name] = new_npc
+
+        except Exception as exc:
+            print(f'Error loading npc {name}')
+            print(exc)
+        
     return npcs
 
 def load_npc(npc: dict, name: str = None, npc_type: str = 'Mob', roaming = False, world_items = [], parse_occupation = False) -> LivingNpc:
-    race = None
-    if npc.get('stats', None):
+    race = npc.get('race', None)
+    if not race and npc.get('stats', None):
         race = npc['stats'].get('race', None)
     if 'npc' in npc_type.lower():
         gender = lang.validate_gender(npc.get('gender', 'm'))
@@ -183,6 +177,8 @@ def load_npc(npc: dict, name: str = None, npc_type: str = 'Mob', roaming = False
         new_npc.stats.weapon_skills.set(WeaponType.UNARMED, random.randint(10, 30))
         new_npc.stats.level = npc.get('level', 1)
 
+    if race:
+        new_npc.stats.race = race.lower()
     if npc.get('stats', None):
         new_npc.stats = load_stats(npc['stats'])
 
@@ -192,7 +188,7 @@ def load_npc(npc: dict, name: str = None, npc_type: str = 'Mob', roaming = False
     new_npc.autonomous = npc.get('autonomous', False)
     new_npc.aggressive = npc.get('aggressive', False)
 
-    if parse_occupation and new_npc.stats.bodytype == BodyType.HUMANOID:
+    if parse_occupation and new_npc.stats.bodytype in wearable.dressable_body_types:
         equip_npc(new_npc, world_items)
     return new_npc
 

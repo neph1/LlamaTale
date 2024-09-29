@@ -64,7 +64,8 @@ class StoryBuilderBase:
                                                                 story_type=self.story_info.type, 
                                                                 story_context=story.config.context,
                                                                 world_info=self.story_info.world_info,
-                                                                zone_info=zone.get_info())
+                                                                zone_info=zone.get_info(),
+                                                                world_mood=0)
             if result.valid:
                 return result.new_locations, result.exits, result.npcs
             

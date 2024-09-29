@@ -992,10 +992,10 @@ class Stats:
 
     @classmethod
     def from_race(cls: type, race: builtins.str, gender: builtins.str='n') -> 'Stats':
-        r = races.races.get('race', 'human')
+        r = races.races.get(race.lower, 'human')
         s = cls()
         s.gender = gender
-        s.race = race
+        s.race = race.lower()
         s.set_stats_from_race()
         # @todo initialize xp, hp, maxhp, ac, attack, alignment, level. Current race defs don't include this data
         return s

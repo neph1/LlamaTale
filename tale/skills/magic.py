@@ -45,5 +45,5 @@ class MagicSkills(dict):
     def from_json(cls, json_data: dict) -> 'MagicSkills':
         magic_skills = cls()
         for magic_type, value in json_data.items():
-            magic_skills[MagicType[magic_type]] = value
+            magic_skills[magic_type] = value
         return magic_skills

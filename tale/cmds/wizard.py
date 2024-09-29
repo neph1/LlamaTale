@@ -16,7 +16,7 @@ import sys
 from types import ModuleType
 from typing import Generator, Optional
 
-from tale import parse_utils
+from tale import load_items, parse_utils
 from tale.llm.LivingNpc import LivingNpc
 from tale.llm.responses.WorldCreaturesResponse import WorldCreaturesResponse
 from tale.llm.responses.WorldItemsResponse import WorldItemsResponse
@@ -888,10 +888,10 @@ def do_create_item(player: Player, parsed: base.ParseResult, ctx: util.Context) 
     catalogue_item = ctx.driver.story._catalogue.get_item(item_dict['type'])
     item = None
     if catalogue_item:
-        item = parse_utils.load_items([catalogue_item])[catalogue_item['name']]
+        item = load_items.load_items([catalogue_item])[catalogue_item['name']]
         item.short_description = item_dict.get('short_descr', '')
     if not item:
-        item = list(parse_utils.load_items([item_dict]).values())[0]
+        item = list(load_items.load_items([item_dict]).values())[0]
     if item:
         player.location.insert(item, actor=None)
         player.tell(item.name + ' added.', evoke=False)

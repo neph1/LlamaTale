@@ -22,6 +22,7 @@ from tale.npc_defs import StationaryMob
 from tale.player import Player, PlayerConnection
 from tale.races import UnarmedAttack
 from tale.skills import weapon_type
+from tale.story import MoneyType
 from tale.tio.console_io import ConsoleIo
 from tale.util import MoneyFormatterFantasy
 from tale.zone import Zone
@@ -33,6 +34,7 @@ class TestLlmUtils():
 
     driver = IFDriver(screen_delay=99, gui=False, web=True, wizard_override=True)
     driver.game_clock = util.GameDateTime(datetime.datetime(year=2023, month=1, day=1), 1)
+    
     llm_util = LlmUtil(FakeIoUtil()) # type: LlmUtil
 
     story = JsonStory('tests/files/world_story/', parse_utils.load_story_config(parse_utils.load_json('tests/files/test_story_config_empty.json')))
@@ -202,10 +204,11 @@ class TestWorldBuilding():
         self.llm_util._world_building.io_util.response='{"name": "Greenhaven", "exits": [{"direction": "north", "name": "Misty Meadows", "description": "A lush and misty area filled with rolling hills and sparkling streams. The air is crisp and refreshing, and the gentle chirping of birds can be heard throughout."}, {"direction": "south", "name": "Riverdale", "description": "A bustling town nestled near a winding river. The smell of freshly baked bread and roasting meats fills the air, and the sound of laughter and chatter can be heard from the local tavern."}, {"direction": "east", "name": "Forest of Shadows", "description": "A dark and eerie forest filled with twisted trees and mysterious creatures. The air is thick with an ominous energy, and the rustling of leaves can be heard in the distance."}], "items": [], "npcs": []}'
         location = Location(name='', descr='on a small road outside a village')
         result = self.llm_util._world_building.generate_start_location(location, 
-                                                       story_type='',
-                                                       story_context='', 
-                                                       zone_info={},
-                                                       world_info='',)
+                                                       context=WorldGenerationContext(story_type='',
+                                                       story_context='',
+                                                       world_info='',
+                                                       world_mood=0),
+                                                       zone_info={})
         new_locations = result.new_locations
         exits = result.exits
         location = Location(name=location.name, descr=location.description)
@@ -221,10 +224,11 @@ class TestWorldBuilding():
         self.llm_util._world_building.io_util.response='{"name": "Oakwood Glade", "exits": [{"direction": "north", "name": "Moonlit Mire", "description": "A dark and eerie bog, home to strange creatures and hidden treasures."}, {"direction": "south", "name": "Raven\'s Peak", "description": "A rugged mountain peak, shrouded in mystery."}, {"direction": "west", "name": "Willow\'s Edge", "description": "A secluded grove, filled with ancient magic."}], "items": [{"name": "Rare Flower", "type": "Other", "short_descr": "A delicate, glowing flower, said to have healing properties."}, {"name": "Mystic Staff", "type": "Wearable", "short_descr": "A staff imbued with ancient magic, granting the wielder incredible power."}, {"name": "Glimmering Gem", "type": "Item", "short_descr": "A rare and valuable gemstone, sought after by collectors."}], "npcs": [{"name": "Eira", "sentiment": "friendly", "race": "female", "level": 5, "description": "A wise and gentle druid, known for her healing magic."}]}'
         location = Location(name='', descr='on a small road outside a village')
         result = self.llm_util._world_building.generate_start_location(location, 
-                                                       story_type='',
-                                                       story_context='', 
-                                                       zone_info={},
-                                                       world_info='',)
+                                                       context=WorldGenerationContext(story_type='',
+                                                       story_context='',
+                                                       world_info='',
+                                                       world_mood=0),
+                                                       zone_info={},)
         
         location = Location(name=location.name, descr=location.description)
         assert(location.name == 'Oakwood Glade')
@@ -321,6 +325,7 @@ class TestWorldBuilding():
 
 
     def test_build_location(self):
+        mud_context.driver.moneyfmt = util.MoneyFormatter.create_for(MoneyType.MODERN)
         location = Location(name='Outside')
         exit_location_name = 'Cave entrance'
         self.llm_util._world_building.io_util.response = self.generated_location
@@ -363,6 +368,7 @@ class TestWorldBuilding():
         assert(zone.mood == -2)
         
     def test_issue_1_build_location(self):
+        mud_context.driver.moneyfmt = util.MoneyFormatter.create_for(MoneyType.MODERN)
         z = zone.from_json(json.loads('{   "name": "Whispering Meadows",   "description": "Whispering Meadows is a serene and idyllic area nestled within Eldervale. It is a sprawling expanse of lush green meadows, dotted with colorful wildflowers swaying gently in the breeze. The sweet fragrance of blooming lavender fills the air, creating an enchanting atmosphere. The meadows are home to a variety of friendly creatures, and the soothing whispers of the wind carry tales of peace and harmony. With its tranquil beauty, Whispering Meadows provides the perfect backdrop for a cosy social and farming experience.",   "races": ["Fairie", "Centaur", "Unicorn", "Pixie", "Sylph"],   "items": ["Enchanted Seeds (plantable)", "Harvesting Scythe", "Rainbow Fruit Basket", "Magic Beehive", "Fairy Lantern"],   "mood": "friendly",   "level": 1 }'))
         
         location = Location(name='Whispering Meadows')
@@ -373,6 +379,7 @@ class TestWorldBuilding():
         assert(len(response.new_locations) == 2)
 
     def test_chatgpt_generated_story(self):
+        
         mud_context.driver.moneyfmt = MoneyFormatterFantasy()
         item_response = '{   "items": [     {       "name": "Enchanted Rose",       "type": "Other",       "short_descr": "A magical rose that never withers",       "level": 1,       "value": 50     },     {       "name": "Tea Set",       "type": "Wearable",       "short_descr": "A delightful tea set for elegant gatherings",       "level": 2,       "value": 80     },     {       "name": "Winged Boots",       "type": "Wearable",       "short_descr": "Boots that allow the wearer to fly short distances",       "level": 3,       "value": 120     },     {       "name": "Pixie\'s Elixir",       "type": "Health",       "short_descr": "A revitalizing potion that restores health",       "level": 4,       "value": 150     },     {       "name": "Jester\'s Hat",       "type": "Wearable",       "short_descr": "A colorful hat that brings joy and laughter",       "level": 5,       "value": 200     },     {       "name": "Rainbow Wand",       "type": "Weapon",       "short_descr": "A wand that shoots dazzling rainbow projectiles",       "level": 6,       "value": 250     },     {       "name": "Golden Oz Coin",       "type": "Money",       "short_descr": "A rare and valuable coin from the Land of Oz",       "level": 7,       "value": 300     }   ] }'
         creature_response = '{"creatures": [   {"name": "Whisperwing",    "body": "Small dragon",    "mass": 10,    "hp": 50,    "level": 3,    "unarmed_attack": "CLAWS",    "short_descr": "A colorful dragon with feathered wings and a mischievous personality."},    {"name": "Glowbug",    "body": "Bioluminescent insect",    "mass": 1,    "hp": 10,    "level": 1,    "unarmed_attack": "BITE",    "short_descr": "A tiny insect that emits a soft, soothing glow in the dark."},    {"name": "Fluffpuff",    "body": "Fluffy creature",    "mass": 5,    "hp": 25,    "level": 2,    "unarmed_attack": "TAIL",    "short_descr": "A round, fluffy creature with a cuddly appearance and a playful nature."},    {"name": "Coralite",    "body": "Coral-like sea creature",    "mass": 20,    "hp": 75,    "level": 4,    "unarmed_attack": "TENTACLES",    "short_descr": "A graceful creature that dwells in underwater caves, adorned with vibrant coral-like formations."},    {"name": "Whiskerbeast",    "body": "Feline creature",    "mass": 15,    "hp": 60,    "level": 3,    "unarmed_attack": "CLAWS",    "short_descr": "A playful and agile creature with long, fluffy whiskers and a shimmering fur coat."} ]}'
@@ -416,10 +423,11 @@ class TestWorldBuilding():
         assert(len(response.exits) > 0)
 
     def test_generate_random_spawn(self):
+        mud_context.driver.moneyfmt = util.MoneyFormatter.create_for(MoneyType.MODERN)
         location = Location(name='Outside')
         self.llm_util._world_building.io_util.response = '{"items":["sword"], "npcs":[{"name": "grumpy dwarf", "level":10, "race": "dwarf"}], "mobs":["wolf"]}'
 
-        world_items = [{'name':'sword', 'type': 'Weapon', 'value': 100}]
+        world_items = [{'name':'sword', 'type': 'Weapon', 'value': 100, 'weapon_type': 'ONE_HANDED'}]
         world_creatures = [{'name': 'wolf', 'body': 'Creature', 'unarmed_attack': 'BITE', 'hp':10, 'level':10}]
         zone_info = zone.from_json(json.loads(self.generated_zone)).get_info()
         world_generation_context = WorldGenerationContext(story_context=self.story.config.context, story_type=self.story.config.type, world_info='', world_mood=0)
@@ -435,6 +443,7 @@ class TestWorldBuilding():
         assert(location.search_living('wolf') is not None)
 
     def test_generate_random_spawn_empty_world_lists(self):
+        mud_context.driver.moneyfmt = util.MoneyFormatter.create_for(MoneyType.MODERN)
         # will not generate anything if world lists are empty, for now.
         location = Location(name='Outside')
         self.llm_util._world_building.io_util.response = '{"items":["sword"], "npcs":[{"name": "grumpy dwarf", "level":10, "race": "dwarf"}], "mobs":["wolf"]}'
@@ -463,7 +472,8 @@ class TestWorldBuilding():
                                                        story_type='',
                                                        story_context='', 
                                                        zone_info={},
-                                                       world_info='')
+                                                       world_info='',
+                                                       world_mood=0)
 
         location = Location(name=location.name, descr=location.description)
         
@@ -490,7 +500,8 @@ class TestWorldBuilding():
                                                        story_type='',
                                                        story_context='', 
                                                        zone_info={},
-                                                       world_info='')
+                                                       world_info='',
+                                                       world_mood=0)
         assert result.empty()
 
         self.llm_util._world_building.io_util.response='{}'
@@ -499,7 +510,8 @@ class TestWorldBuilding():
                                                        story_type='',
                                                        story_context='', 
                                                        zone_info={},
-                                                       world_info='')
+                                                       world_info='',
+                                                       world_mood=0)
         assert result.empty()
 
     def test_generate_note_lore(self):
