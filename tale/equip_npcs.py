@@ -12,6 +12,8 @@ from tale.wearable import WearLocation
 
 def equip_npc(npc: LivingNpc, world_items: list[dict], setting: str = 'fantasy') -> None:
     """ Parse the occupation of the npc."""
+    if npc.stats.bodytype not in wearable.dressable_body_types:
+        return
     weapons = [item for item in world_items if item['type'] == 'Weapon']
     one_handed = {item['name']: item for item in weapons if item['weapon_type'] == 'ONE_HANDED'}
     two_handed = {item['name']: item for item in weapons if item['weapon_type'] == 'TWO_HANDED'}
@@ -59,7 +61,6 @@ def equip_npc(npc: LivingNpc, world_items: list[dict], setting: str = 'fantasy')
         if random.random() > 0.3:
             weapon = one_handed.get('Pitchfork', list(one_handed.values()))
             npc.insert(load_item(weapon), npc)
-        return
 
 def dress_npc(npc: LivingNpc, setting: str = 'fantasy') -> None:
     """ Dress the npc with random wearables."""

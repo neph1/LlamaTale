@@ -11,13 +11,14 @@ from tale.story import MoneyType
 
 class TestLocationResponse():
 
-    driver = IFDriver(screen_delay=99, gui=False, web=True, wizard_override=True)
-    driver.game_clock = util.GameDateTime(datetime.datetime(year=2023, month=1, day=1), 1)
-    mud_context.driver = driver
-    mud_context.driver.moneyfmt = util.MoneyFormatter.create_for(MoneyType.MODERN)
     item_types = ["Weapon", "Wearable", "Health", "Money", "Trash", "Food", "Drink", "Key"]
+
+    def setup_method(self):
+        self.driver = IFDriver(screen_delay=99, gui=False, web=True, wizard_override=True)
+        self.driver.game_clock = util.GameDateTime(datetime.datetime(year=2023, month=1, day=1), 1)
+        self.driver.moneyfmt = util.MoneyFormatterFantasy()
     
-    generated_location = '{"name": "Outside", "description": "A barren wasteland of snow and ice stretches as far as the eye can see. The wind howls through the mountains like a chorus of banshees, threatening to sweep away any unfortunate soul caught outside without shelter.", "exits": [{"name": "North Pass","short_desc": "The North Pass is treacherous mountain pass that leads deeper into the heart of the range","enter_msg":"You shuffle your feet through knee-deep drifts of snow, trying to keep your balance on the narrow path."}, {"name": "South Peak","short_Desc": "The South Peak offers breathtaking views of the surrounding landscape from its summit, but it\'s guarded by a pack of fierce winter wolves.","Enter_msg":"You must face off against the snarling beasts if you wish to reach the peak."}] ,"items": [{"name":"Woolly gloves", "type":"Wearable"}],"npcs": [{"name":"wolf", "body":"Creature", "unarmed_attack":"BITE", "hp":10, "level":10}]}'
+    generated_location = '{"name": "Outside", "description": "A barren wasteland of snow and ice stretches as far as the eye can see. The wind howls through the mountains like a chorus of banshees, threatening to sweep away any unfortunate soul caught outside without shelter.", "exits": [{"name": "North Pass","short_desc": "The North Pass is treacherous mountain pass that leads deeper into the heart of the range","enter_msg":"You shuffle your feet through knee-deep drifts of snow, trying to keep your balance on the narrow path."}, {"name": "South Peak","short_Desc": "The South Peak offers breathtaking views of the surrounding landscape from its summit, but it\'s guarded by a pack of fierce winter wolves.","Enter_msg":"You must face off against the snarling beasts if you wish to reach the peak."}] ,"items": [{"name":"Woolly gloves", "type":"Wearable"}],"npcs": [{"name":"wolf", "body":"QUADRUPED", "unarmed_attack":"BITE", "hp":10, "level":10}]}'
     
     def test_validate_location(self):
         location = Location(name='Outside')

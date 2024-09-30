@@ -992,7 +992,7 @@ class Stats:
 
     @classmethod
     def from_race(cls: type, race: builtins.str, gender: builtins.str='n') -> 'Stats':
-        r = races.races.get(race.lower, 'human')
+        #r = races.races.get(race.lower, 'human')
         s = cls()
         s.gender = gender
         s.race = race.lower()

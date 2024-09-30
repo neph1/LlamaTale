@@ -264,7 +264,7 @@ class TestParseUtils():
     def test_load_mob_spawners(self):
         driver = IFDriver(screen_delay=99, gui=False, web=True, wizard_override=True)
         driver.game_clock = util.GameDateTime(datetime.datetime(year=2023, month=1, day=1), 1)
-        mud_context.driver = driver
+        #mud_context.driver = driver
         json_spawners = [
             {
                 'location': 'Royal grotto',
@@ -321,7 +321,7 @@ class TestParseUtils():
         driver = IFDriver(screen_delay=99, gui=False, web=True, wizard_override=True)
         driver.game_clock = util.GameDateTime(datetime.datetime(year=2023, month=1, day=1), 1)
         driver.moneyfmt = util.MoneyFormatter.create_for(MoneyType.FANTASY)
-        mud_context.driver = driver
+        #mud_context.driver = driver
         json_spawners = [
             {
                 'items': ['Sword', 'Potion'],
@@ -382,7 +382,7 @@ class TestLoadNpcs:
 
         driver = IFDriver(screen_delay=99, gui=False, web=True, wizard_override=True)
         driver.game_clock = util.GameDateTime(datetime.datetime(year=2023, month=1, day=1), 1)
-        mud_context.driver = driver
+        #mud_context.driver = driver
 
 
         
@@ -412,7 +412,7 @@ class TestLoadNpcs:
     def test_load_npcs_generated(self):
         driver = IFDriver(screen_delay=99, gui=False, web=True, wizard_override=True)
         driver.game_clock = util.GameDateTime(datetime.datetime(year=2023, month=1, day=1), 1)
-        mud_context.driver = driver
+        #mud_context.driver = driver
         npcs_string = '{"npcs": [{"name": "Rosewood Fairy", "sentiment": "friendly", "race": "Fae", "gender": "female", "level": 5, "description": "A delicate creature with wings as soft as rose petals, offering quests and guidance.", "stats":{ "bodytype":"WINGED_MAN"}}]}'
         npcs = json.loads(npcs_string)
         assert(len(npcs) == 1)
@@ -425,7 +425,7 @@ class TestLoadNpcs:
     def test_load_trader(self):
         driver = IFDriver(screen_delay=99, gui=False, web=True, wizard_override=True)
         driver.game_clock = util.GameDateTime(datetime.datetime(year=2023, month=1, day=1), 1)
-        mud_context.driver = driver
+        #mud_context.driver = driver
         mud_context.driver.moneyfmt = util.MoneyFormatter.create_for(MoneyType.MODERN)
         npcs_string = '{"npcs": [{"name": "Village Trader", "type":"npc", "occupation":"trader", "sentiment": "friendly", "race": "human", "gender": "female", "level": 5, "description": ""}]}'
         npcs = json.loads(npcs_string)

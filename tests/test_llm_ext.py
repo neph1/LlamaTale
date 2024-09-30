@@ -194,7 +194,7 @@ class TestLivingNpcActions():
     story = DynamicStory()
     driver.story = story
     mud_context.config = story.config
-    mud_context.driver = driver
+    #mud_context.driver = driver
 
     def setup_method(self):
         self.location = Location("test_room")

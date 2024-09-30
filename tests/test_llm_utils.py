@@ -185,20 +185,22 @@ class TestLlmUtils():
 
 class TestWorldBuilding():
 
-    driver = IFDriver(screen_delay=99, gui=False, web=True, wizard_override=True)
-    driver.game_clock = util.GameDateTime(datetime.datetime(year=2023, month=1, day=1), 1)
-    llm_util = LlmUtil(FakeIoUtil()) # type: LlmUtil
-
     generated_location = '{"name": "Outside", "description": "A barren wasteland of snow and ice stretches as far as the eye can see. The wind howls through the mountains like a chorus of banshees, threatening to sweep away any unfortunate soul caught outside without shelter.", "exits": [{"name": "North Pass","short_desc": "The North Pass is treacherous mountain pass that leads deeper into the heart of the range","enter_msg":"You shuffle your feet through knee-deep drifts of snow, trying to keep your balance on the narrow path."}, {"name": "South Peak","short_Desc": "The South Peak offers breathtaking views of the surrounding landscape from its summit, but it\'s guarded by a pack of fierce winter wolves.","Enter_msg":"You must face off against the snarling beasts if you wish to reach the peak."}] ,"items": [{"name":"Woolly gloves", "type":"Wearable"}],"npcs": [{"name":"wolf", "body":"Creature", "unarmed_attack":"BITE", "hp":10, "level":10}]}'
     
     generated_location_extra = '{"Outside": { "description": "A barren wasteland of snow and ice stretches", "exits": [{"name": "North Pass","short_desc": "The North Pass is treacherous mountain pass that leads deeper into the heart of the range","enter_msg":"You shuffle your feet through knee-deep drifts of snow, trying to keep your balance on the narrow path."}, {"name": "South Peak","short_Desc": "The South Peak offers breathtaking views of the surrounding landscape from its summit, but it\'s guarded by a pack of fierce winter wolves.","Enter_msg":"You must face off against the snarling beasts if you wish to reach the peak."}] ,"items": [{"name":"Woolly gloves", "type":"Wearable"}],"npcs": []}}'
     
     generated_zone = '{"name":"Test Zone", "description":"A test zone", "level":10, "mood":-2, "races":["human", "elf", "dwarf"], "items":["sword", "shield"]}'
     
-    story = JsonStory('tests/files/world_story/', parse_utils.load_story_config(parse_utils.load_json('tests/files/test_story_config_empty.json')))
-    story.config.world_mood = 0
-    story.config.world_info = "A test world"
-    story.init(driver)
+    def setup_method(self):
+         
+        self.story = JsonStory('tests/files/world_story/', parse_utils.load_story_config(parse_utils.load_json('tests/files/test_story_config_empty.json')))
+        self.story.config.world_mood = 0
+        self.story.config.world_info = "A test world"
+        self.driver = IFDriver(screen_delay=99, gui=False, web=True, wizard_override=True)
+        self.driver.game_clock = util.GameDateTime(datetime.datetime(year=2023, month=1, day=1), 1)
+        self.driver.moneyfmt = util.MoneyFormatter.create_for(MoneyType.MODERN)
+        self.llm_util = LlmUtil(FakeIoUtil()) # type: LlmUtil
+        self.story.init(self.driver)
 
     def test_generate_start_location(self):
         self.llm_util._world_building.io_util.response='{"name": "Greenhaven", "exits": [{"direction": "north", "name": "Misty Meadows", "description": "A lush and misty area filled with rolling hills and sparkling streams. The air is crisp and refreshing, and the gentle chirping of birds can be heard throughout."}, {"direction": "south", "name": "Riverdale", "description": "A bustling town nestled near a winding river. The smell of freshly baked bread and roasting meats fills the air, and the sound of laughter and chatter can be heard from the local tavern."}, {"direction": "east", "name": "Forest of Shadows", "description": "A dark and eerie forest filled with twisted trees and mysterious creatures. The air is thick with an ominous energy, and the rustling of leaves can be heard in the distance."}], "items": [], "npcs": []}'
@@ -325,7 +327,6 @@ class TestWorldBuilding():
 
 
     def test_build_location(self):
-        mud_context.driver.moneyfmt = util.MoneyFormatter.create_for(MoneyType.MODERN)
         location = Location(name='Outside')
         exit_location_name = 'Cave entrance'
         self.llm_util._world_building.io_util.response = self.generated_location
@@ -368,7 +369,6 @@ class TestWorldBuilding():
         assert(zone.mood == -2)
         
     def test_issue_1_build_location(self):
-        mud_context.driver.moneyfmt = util.MoneyFormatter.create_for(MoneyType.MODERN)
         z = zone.from_json(json.loads('{   "name": "Whispering Meadows",   "description": "Whispering Meadows is a serene and idyllic area nestled within Eldervale. It is a sprawling expanse of lush green meadows, dotted with colorful wildflowers swaying gently in the breeze. The sweet fragrance of blooming lavender fills the air, creating an enchanting atmosphere. The meadows are home to a variety of friendly creatures, and the soothing whispers of the wind carry tales of peace and harmony. With its tranquil beauty, Whispering Meadows provides the perfect backdrop for a cosy social and farming experience.",   "races": ["Fairie", "Centaur", "Unicorn", "Pixie", "Sylph"],   "items": ["Enchanted Seeds (plantable)", "Harvesting Scythe", "Rainbow Fruit Basket", "Magic Beehive", "Fairy Lantern"],   "mood": "friendly",   "level": 1 }'))
         
         location = Location(name='Whispering Meadows')
@@ -379,8 +379,6 @@ class TestWorldBuilding():
         assert(len(response.new_locations) == 2)
 
     def test_chatgpt_generated_story(self):
-        
-        mud_context.driver.moneyfmt = MoneyFormatterFantasy()
         item_response = '{   "items": [     {       "name": "Enchanted Rose",       "type": "Other",       "short_descr": "A magical rose that never withers",       "level": 1,       "value": 50     },     {       "name": "Tea Set",       "type": "Wearable",       "short_descr": "A delightful tea set for elegant gatherings",       "level": 2,       "value": 80     },     {       "name": "Winged Boots",       "type": "Wearable",       "short_descr": "Boots that allow the wearer to fly short distances",       "level": 3,       "value": 120     },     {       "name": "Pixie\'s Elixir",       "type": "Health",       "short_descr": "A revitalizing potion that restores health",       "level": 4,       "value": 150     },     {       "name": "Jester\'s Hat",       "type": "Wearable",       "short_descr": "A colorful hat that brings joy and laughter",       "level": 5,       "value": 200     },     {       "name": "Rainbow Wand",       "type": "Weapon",       "short_descr": "A wand that shoots dazzling rainbow projectiles",       "level": 6,       "value": 250     },     {       "name": "Golden Oz Coin",       "type": "Money",       "short_descr": "A rare and valuable coin from the Land of Oz",       "level": 7,       "value": 300     }   ] }'
         creature_response = '{"creatures": [   {"name": "Whisperwing",    "body": "Small dragon",    "mass": 10,    "hp": 50,    "level": 3,    "unarmed_attack": "CLAWS",    "short_descr": "A colorful dragon with feathered wings and a mischievous personality."},    {"name": "Glowbug",    "body": "Bioluminescent insect",    "mass": 1,    "hp": 10,    "level": 1,    "unarmed_attack": "BITE",    "short_descr": "A tiny insect that emits a soft, soothing glow in the dark."},    {"name": "Fluffpuff",    "body": "Fluffy creature",    "mass": 5,    "hp": 25,    "level": 2,    "unarmed_attack": "TAIL",    "short_descr": "A round, fluffy creature with a cuddly appearance and a playful nature."},    {"name": "Coralite",    "body": "Coral-like sea creature",    "mass": 20,    "hp": 75,    "level": 4,    "unarmed_attack": "TENTACLES",    "short_descr": "A graceful creature that dwells in underwater caves, adorned with vibrant coral-like formations."},    {"name": "Whiskerbeast",    "body": "Feline creature",    "mass": 15,    "hp": 60,    "level": 3,    "unarmed_attack": "CLAWS",    "short_descr": "A playful and agile creature with long, fluffy whiskers and a shimmering fur coat."} ]}'
         zone_desc = '{   "name": "Cozy Meadows",   "description": "A tranquil expanse of lush green meadows, dotted with colorful wildflowers and tall, swaying grass. The air is filled with the sweet fragrance of nature, inviting weary wanderers to rest and enjoy the serene surroundings. Sunlight filters through the canopy of trees, casting golden rays upon the meadows and creating a picturesque setting for picnics and leisurely strolls. Squirrels chase each other playfully, and birds sing melodious tunes from the branches above. It\'s a perfect place to unwind and find respite from the troubles of the world.",   "races": ["whisperwing", "glowbug", "fluffpuff", "coralite", "whiskerbeast"],   "items": {     "enchanted rose": "flower",     "tea set": "utensils",     "winged boots": "footwear",     "pixie\'s elixir": "potion",     "jester\'s hat": "headgear"   },   "mood": "friendly",   "level": 1 }'
@@ -423,7 +421,6 @@ class TestWorldBuilding():
         assert(len(response.exits) > 0)
 
     def test_generate_random_spawn(self):
-        mud_context.driver.moneyfmt = util.MoneyFormatter.create_for(MoneyType.MODERN)
         location = Location(name='Outside')
         self.llm_util._world_building.io_util.response = '{"items":["sword"], "npcs":[{"name": "grumpy dwarf", "level":10, "race": "dwarf"}], "mobs":["wolf"]}'
 

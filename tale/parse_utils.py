@@ -161,9 +161,6 @@ def load_npc(npc: dict, name: str = None, npc_type: str = 'Mob', roaming = False
         new_npc.aliases.add(name.split(' ')[0].lower())
         if new_npc.stats.weapon_skills.get(WeaponType.UNARMED) < 1:
             new_npc.stats.weapon_skills.set(WeaponType.UNARMED, random.randint(10, 30))
-        new_npc.stats.level = npc.get('level', 1)
-
-
     else:
         gender = lang.validate_gender(npc.get('gender', 'm'))
         new_npc = StationaryMob(name=npc['name'], 
@@ -175,12 +172,14 @@ def load_npc(npc: dict, name: str = None, npc_type: str = 'Mob', roaming = False
                             parse_occupation=parse_occupation or npc.get('parse_occupation', False))
         new_npc.aliases.add(name.split(' ')[0].lower())
         new_npc.stats.weapon_skills.set(WeaponType.UNARMED, random.randint(10, 30))
-        new_npc.stats.level = npc.get('level', 1)
+        
+
+    if npc.get('stats', None):
+        new_npc.stats = load_stats(npc['stats'])
+    new_npc.stats.level = npc.get('level', 1)
 
     if race:
         new_npc.stats.race = race.lower()
-    if npc.get('stats', None):
-        new_npc.stats = load_stats(npc['stats'])
 
     if npc.get('memory', None):
         new_npc.load_memory(npc['memory'])
@@ -592,11 +591,11 @@ def load_stats(json_stats: dict) -> Stats:
     stats.ac = json_stats.get('ac')
     stats.hp = json_stats.get('hp')
     stats.max_hp = json_stats.get('max_hp')
-    stats.level = json_stats.get('level')
+    stats.level = json_stats.get('level', 1)
     stats.gender = json_stats.get('gender')
     stats.alignment = json_stats.get('alignment')
     stats.weight = json_stats.get('weight')
-    stats.level = json_stats.get('level')
+    stats.level = json_stats.get('level', 1)
     stats.xp = json_stats.get('xp')
     stats.strength = json_stats.get('strength')
     stats.dexterity = json_stats.get('dexterity')
