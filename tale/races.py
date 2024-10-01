@@ -345,6 +345,14 @@ _races = {
         'hp' : 5,
         'unarmed_attack': UnarmedAttack.FISTS
     },
+    'fae': {
+        'body': BodyType.WINGED_MAN,
+        'language': 'Elcharean',
+        'mass': 0.2,
+        'size': BodySize.TINY,
+        'hp' : 5,
+        'unarmed_attack': UnarmedAttack.FISTS
+    },
     'faerie': {
         'body': BodyType.WINGED_MAN,
         'language': 'Elcharean',

@@ -157,7 +157,7 @@ def load_npc(npc: dict, name: str = None, npc_type: str = 'Mob', roaming = False
                                 age=npc.get('age', 0), 
                                 personality=npc.get('personality', ''), 
                                 occupation=npc.get('occupation', ''),
-                            parse_occupation=parse_occupation or npc.get('parse_occupation', False))
+                                parse_occupation=parse_occupation or npc.get('parse_occupation', False))
         new_npc.aliases.add(name.split(' ')[0].lower())
         if new_npc.stats.weapon_skills.get(WeaponType.UNARMED) < 1:
             new_npc.stats.weapon_skills.set(WeaponType.UNARMED, random.randint(10, 30))
@@ -169,6 +169,7 @@ def load_npc(npc: dict, name: str = None, npc_type: str = 'Mob', roaming = False
                             title=npc.get('title', npc['name']), 
                             descr=npc.get('descr', ''), 
                             short_descr=npc.get('short_descr', npc.get('description', '')),
+                            occupation=npc.get('occupation', ''),
                             parse_occupation=parse_occupation or npc.get('parse_occupation', False))
         new_npc.aliases.add(name.split(' ')[0].lower())
         new_npc.stats.weapon_skills.set(WeaponType.UNARMED, random.randint(10, 30))
@@ -177,9 +178,6 @@ def load_npc(npc: dict, name: str = None, npc_type: str = 'Mob', roaming = False
     if npc.get('stats', None):
         new_npc.stats = load_stats(npc['stats'])
     new_npc.stats.level = npc.get('level', 1)
-
-    if race:
-        new_npc.stats.race = race.lower()
 
     if npc.get('memory', None):
         new_npc.load_memory(npc['memory'])

@@ -854,7 +854,8 @@ class Driver(pubsub.Listener):
                         age =  character.age, 
                         personality = character.personality, 
                         race = character.race,
-                        occupation = character.occupation)
+                        occupation = character.occupation,
+                        parseOccupation = char_data.get('parseOccupation', False),)
         npc.autonomous = character.autonomous
         npc.output_thoughts = character.output_thoughts
         wearing = character.wearing.split(',')

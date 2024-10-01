@@ -23,7 +23,7 @@ class WearLocation(enum.Enum):
     
 dressable_body_types = [BodyType.HUMANOID, BodyType.SEMI_BIPEDAL, BodyType.WINGED_MAN]
 
-def body_parts_for_bodytype(bodytype: str) -> list:
+def body_parts_for_bodytype(bodytype: BodyType) -> list:
     if bodytype in dressable_body_types:
         return list(WearLocation)[1:-3]
     if bodytype == BodyType.QUADRUPED:
@@ -35,7 +35,7 @@ def random_wearable_for_body_part(bodypart: WearLocation, setting: str = 'fantas
         wearables = wearables_fantasy
     else:
         wearables = wearables_modern
-    available_wearables = [key for key, value in wearables.items() if value['type'] == bodypart and (not armor_only or value['ac'] > 0)]
+    available_wearables = [key for key, value in wearables.items() if value['location'] == bodypart and (not armor_only or value['ac'] > 0)]
     if not available_wearables:
         return None
     wearable_name = random.choice(available_wearables)
@@ -125,6 +125,13 @@ wearables_fantasy = {
         'weight': 1,
         'value': 10,
         'ac': 0,
+    },
+    'chainmail': {
+        'type':  'Wearable',
+        'location': WearLocation.TORSO,
+        'weight': 3,
+        'value': 10,
+        'ac': 3,
     },
 }
 

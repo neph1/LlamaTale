@@ -30,9 +30,9 @@ class StationaryNpc(LivingNpc):
 class StationaryMob(LivingNpc):
     
     def __init__(self, name: str, gender: str, *,
-                 title: str="", descr: str="", short_descr: str="", race: str="human", parse_occupation: bool = False):
+                 title: str="", descr: str="", short_descr: str="", race: str="human", occupation: str="", parse_occupation: bool = False):
         super(StationaryMob, self).__init__(name=name, gender=gender,
-                 title=title, descr=descr, short_descr=short_descr, race=race, age=0, personality='', occupation='', parse_occupation=parse_occupation)
+                 title=title, descr=descr, short_descr=short_descr, race=race, age=0, personality='', occupation=occupation, parse_occupation=parse_occupation)
 
     @call_periodically(30, 60)
     def do_idle_action(self, ctx: Context) -> None:

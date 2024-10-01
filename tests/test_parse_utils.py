@@ -1,12 +1,12 @@
 import datetime
 import json
 from typing import List
-from tale import load_items, mud_context, util
+from tale import load_items, util
 from tale.base import Exit, Living, Location, Weapon, Wearable
 from tale.coord import Coord
 from tale.driver_if import IFDriver
 from tale.item_spawner import ItemSpawner
-from tale.items.basic import Boxlike, Drink, Food, Health, Money
+from tale.items.basic import Boxlike, Drink, Food, Health
 from tale.mob_spawner import MobSpawner
 from tale.npc_defs import Trader
 from tale.races import BodyType
@@ -15,7 +15,6 @@ from tale.skills.weapon_type import WeaponType
 from tale.wearable import WearLocation
 from tale.zone import Zone
 import tale.parse_utils as parse_utils
-from tests.supportstuff import FakeDriver
 
 
 class TestParseUtils():
@@ -264,7 +263,7 @@ class TestParseUtils():
     def test_load_mob_spawners(self):
         driver = IFDriver(screen_delay=99, gui=False, web=True, wizard_override=True)
         driver.game_clock = util.GameDateTime(datetime.datetime(year=2023, month=1, day=1), 1)
-        #mud_context.driver = driver
+
         json_spawners = [
             {
                 'location': 'Royal grotto',
@@ -321,7 +320,7 @@ class TestParseUtils():
         driver = IFDriver(screen_delay=99, gui=False, web=True, wizard_override=True)
         driver.game_clock = util.GameDateTime(datetime.datetime(year=2023, month=1, day=1), 1)
         driver.moneyfmt = util.MoneyFormatter.create_for(MoneyType.FANTASY)
-        #mud_context.driver = driver
+
         json_spawners = [
             {
                 'items': ['Sword', 'Potion'],
@@ -378,20 +377,17 @@ class TestParseUtils():
 
 class TestLoadNpcs:
 
+    def setup_method(self):
+        self.driver = IFDriver(screen_delay=99, gui=False, web=True, wizard_override=True)
+        self.driver.game_clock = util.GameDateTime(datetime.datetime(year=2023, month=1, day=1), 1)
+        self.driver.moneyfmt = util.MoneyFormatter.create_for(MoneyType.MODERN)
+
     def test_load_npcs(self):
-
-        driver = IFDriver(screen_delay=99, gui=False, web=True, wizard_override=True)
-        driver.game_clock = util.GameDateTime(datetime.datetime(year=2023, month=1, day=1), 1)
-        #mud_context.driver = driver
-
-
-        
         locations = {}
         locations['Royal grotto'] = Location('Royal grotto', 'A small grotto, fit for a kobold king')
         npcs_json = parse_utils.load_json("tests/files/test_npcs.json")
         npcs = parse_utils.load_npcs(npcs_json, locations=locations)
         assert(len(npcs) == 3)
-
 
         npc = npcs['Kobbo']
         assert(npc.title == 'Kobbo the King')
@@ -410,23 +406,21 @@ class TestLoadNpcs:
         saved_npcs = parse_utils.save_npcs(npcs.values())
 
     def test_load_npcs_generated(self):
-        driver = IFDriver(screen_delay=99, gui=False, web=True, wizard_override=True)
-        driver.game_clock = util.GameDateTime(datetime.datetime(year=2023, month=1, day=1), 1)
-        #mud_context.driver = driver
-        npcs_string = '{"npcs": [{"name": "Rosewood Fairy", "sentiment": "friendly", "race": "Fae", "gender": "female", "level": 5, "description": "A delicate creature with wings as soft as rose petals, offering quests and guidance.", "stats":{ "bodytype":"WINGED_MAN"}}]}'
+        npcs_string = '{"npcs": [{"name": "Rosewood Fairy", "sentiment": "friendly", "race": "Fae", "gender": "female", "level": 5, "description": "A delicate creature with wings as soft as rose petals, offering quests and guidance.", "occupation":"healer"}]}'
         npcs = json.loads(npcs_string)
         assert(len(npcs) == 1)
-        loaded_npcs = parse_utils.load_npcs(npcs['npcs'])
+
+        world_items = [{'name': 'potion', 'type': 'Health', 'value': 10}]
+
+        loaded_npcs = parse_utils.load_npcs(npcs['npcs'], world_items=world_items, parse_occupation=True)
         assert(len(loaded_npcs) == 1)
         fairy = loaded_npcs['Rosewood Fairy'] # type: Living
         assert(fairy)
         assert(fairy.stats.bodytype == BodyType.WINGED_MAN)
+        assert(fairy.occupation == 'healer')
+        assert(fairy.inventory)
 
     def test_load_trader(self):
-        driver = IFDriver(screen_delay=99, gui=False, web=True, wizard_override=True)
-        driver.game_clock = util.GameDateTime(datetime.datetime(year=2023, month=1, day=1), 1)
-        #mud_context.driver = driver
-        mud_context.driver.moneyfmt = util.MoneyFormatter.create_for(MoneyType.MODERN)
         npcs_string = '{"npcs": [{"name": "Village Trader", "type":"npc", "occupation":"trader", "sentiment": "friendly", "race": "human", "gender": "female", "level": 5, "description": ""}]}'
         npcs = json.loads(npcs_string)
         assert(len(npcs) == 1)
@@ -440,4 +434,20 @@ class TestLoadNpcs:
         assert(trader.locate_item('sword'))
         assert(trader.locate_item('shield'))
         assert(trader.locate_item('boots'))
+
+    def test_load_npc_parse_occupation(self):
+        npcs_string = '{"npcs": [{"name": "Village Guard", "type":"npc", "occupation":"guard", "sentiment": "friendly", "race": "human", "gender":"f", "level": 5, "description": ""}]}'
+        npcs = json.loads(npcs_string)
+        assert(len(npcs) == 1)
+
+        world_items = [{"name": "Sword", "type": "Weapon", "value": 100, "weapon_type":"ONE_HANDED"}, {"name": "Spear", "type": "Weapon", "value": 100, "weapon_type":"TWO_HANDED"}]
+        loaded_npcs = parse_utils.load_npcs(npcs['npcs'], world_items=world_items, parse_occupation=True)
+
+        assert(len(loaded_npcs) == 1)
+        guard = loaded_npcs['Village Guard'] # type: Living
+
+        assert(guard.stats.weapon_skills.get(WeaponType.ONE_HANDED) > 0)
+        assert(guard.stats.weapon_skills.get(WeaponType.TWO_HANDED) > 0)
+        assert(guard.stats.weapon_skills.get(WeaponType.TWO_HANDED_RANGED) == 0)
+        assert(guard.locate_item('Sword')[1] or guard.locate_item('Spear')[1])
 
