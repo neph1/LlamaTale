@@ -39,6 +39,7 @@ class JsonStory(DynamicStory):
                 self._catalogue._items = world['catalogue']['items']
         if world.get('world', None):
             if  world['world']['items']:
+                # Keep this so that saved items in worlds will transfer to locations. But don't save them.
                 self._world.items = load_items.load_items(world['world']['items'].values(), self.locations)
             if world['world']['npcs']:
                 self._world.npcs = parse_utils.load_npcs(world['world']['npcs'].values(), locations=self.locations, world_items=self._catalogue._items)

@@ -6,7 +6,6 @@ from tale import wearable
 from tale.items.basic import Money
 from tale.llm.LivingNpc import LivingNpc
 from tale.load_items import load_item
-from tale.races import BodyType
 from tale.wearable import WearLocation
 
 
@@ -74,21 +73,20 @@ def _get_item_by_name_or_random(name: str, items: dict) -> dict:
     return items.get(name, random.choice(list(items.values())))
 
 
-def dress_npc(npc: LivingNpc, setting: str = 'fantasy') -> None:
+def dress_npc(npc: LivingNpc, setting: str = 'fantasy', max_attempts = 5) -> None:
     """ Dress the npc with random wearables."""
-    attempts = 5
     wearables = {}
-    while attempts > 0 and not (wearables.get(WearLocation.FULL_BODY, None) or (wearables.get(WearLocation.TORSO, None) and wearables.get(WearLocation.LEGS, None))):
+    while max_attempts > 0 and not (wearables.get(WearLocation.FULL_BODY, None) or (wearables.get(WearLocation.TORSO, None) and wearables.get(WearLocation.LEGS, None))):
         bodypart = random.choice(wearable.body_parts_for_bodytype(npc.stats.bodytype))
         if wearables.get(bodypart):
             continue
         wearable_name = wearable.random_wearable_for_body_part(bodypart, setting)
         if not wearable_name:
-            attempts -= 1
+            max_attempts -= 1
             continue
         wearable_item = load_item(wearable_name)
         if not wearable_item:
-            attempts -= 1
+            max_attempts -= 1
             continue
         npc.insert(wearable_item, npc)
     return

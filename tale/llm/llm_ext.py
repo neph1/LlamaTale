@@ -78,9 +78,6 @@ class DynamicStory(StoryBase):
     def get_npc(self, npc: str) -> Living:
         return self._world.get_npc(npc)
     
-    def get_item(self, item: str) -> Item:
-        return self._world.get_item(item)
-    
     @property
     def locations(self) -> dict:
         return self._world._locations
@@ -191,6 +188,12 @@ class WorldInfo():
         self._npcs[npc.name] = npc
         return True
     
+    def add_item(self, item: Item) -> bool:
+        if item.name in self._items:
+            return False
+        self._items[item.name] = item
+        return True
+    
     def add_mob_spawner(self, spawner: MobSpawner) -> bool:
         if spawner in self._mob_spawners or not isinstance(spawner, MobSpawner):
             return False
@@ -253,7 +256,7 @@ class WorldInfo():
     def to_json(self) -> dict:
         return dict(
             npcs=parse_utils.save_npcs(self._npcs.values()),
-            items=parse_utils.save_items(self._items.values()),
+            #items=parse_utils.save_items(self._items.values()),
             mob_spawners=[spawner.to_json() for spawner in self._mob_spawners],
             item_spawners=[spawner.to_json() for spawner in self._item_spawners]
         )

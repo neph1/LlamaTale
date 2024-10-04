@@ -39,7 +39,30 @@
                         "0",
                         "0",
                         "0"
-                    ]
+                    ],
+                    "items": [
+                    {
+                        "name": "box 1",
+                        "title": "Box 1",
+                        "short_descr": "A small bejewelled box",
+                        "descr": "The lid is closed.",
+                        "location": "Cave entrance",
+                        "type": "Boxlike",
+                        "weight": 0.0,
+                        "value": 1
+                    },
+                    {
+                        "name": "hoodie",
+                        "title": "Grey Hoodie",
+                        "short_descr": "A grey hoodie",
+                        "descr": "A brand new, grey hoodie with a logo of a common brand",
+                        "location": "Cave entrance",
+                        "type": "Wearable",
+                        "weight": 0.0,
+                        "value": 1,
+                        "wear_location": "TORSO"
+                    }
+                ]
                 },
                 {
                     "name": "Royal grotto",
@@ -57,6 +80,22 @@
                         "0",
                         "1",
                         "0"
+                    ],
+                    "items":[
+                        {
+                            "name": "royal sceptre",
+                            "title": "Royal Sceptre",
+                            "short_descr": "A gnarly looking stick",
+                            "descr": "This stick is Kobbo the Kings royal sceptre. Looks good for walloping someone with",
+                            "location": "Royal grotto",
+                            "type": "Weapon",
+                            "wc": 1,
+                            "weapon_type": "UNARMED",
+                            "base_damage": 1,
+                            "bonus_damage": 0,
+                            "weight": 0.0,
+                            "value": 1
+                        }
                     ]
                 },
                 {
@@ -103,46 +142,25 @@
                     "strength": 3,
                     "dexterity": 3,
                     "unarmed_attack": "FISTS"
-                }
+                },
+                "items": [
+                    {
+                        "name": "royal sceptre",
+                        "title": "Royal Sceptre",
+                        "short_descr": "A gnarly looking stick",
+                        "descr": "This stick is Kobbo the Kings royal sceptre. Looks good for walloping someone with",
+                        "type": "Weapon",
+                        "wc": 1,
+                        "weapon_type": "UNARMED",
+                        "base_damage": 1,
+                        "bonus_damage": 0,
+                        "weight": 0.0,
+                        "value": 1
+                    }
+                ]
             }
         },
-        "items": {
-            "box 1": {
-                "name": "box 1",
-                "title": "Box 1",
-                "short_descr": "A small bejewelled box",
-                "descr": "The lid is closed.",
-                "location": "Cave entrance",
-                "type": "Boxlike",
-                "weight": 0.0,
-                "value": 1
-            },
-            "royal sceptre": {
-                "name": "royal sceptre",
-                "title": "Royal Sceptre",
-                "short_descr": "A gnarly looking stick",
-                "descr": "This stick is Kobbo the Kings royal sceptre. Looks good for walloping someone with",
-                "location": "Royal grotto",
-                "type": "Weapon",
-                "wc": 1,
-                "weapon_type": "UNARMED",
-                "base_damage": 1,
-                "bonus_damage": 0,
-                "weight": 0.0,
-                "value": 1
-            },
-            "hoodie": {
-                "name": "hoodie",
-                "title": "Grey Hoodie",
-                "short_descr": "A grey hoodie",
-                "descr": "A brand new, grey hoodie with a logo of a common brand",
-                "location": "Cave entrance",
-                "type": "Wearable",
-                "weight": 0.0,
-                "value": 1,
-                "wear_location": "TORSO"
-            }
-        },
+        "items": {},
         "spawners": [
             {
                 "mob_type": "bat",

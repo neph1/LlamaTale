@@ -170,7 +170,7 @@ class WorldBuilding():
         zone.items = json_result.get('items', [])
         return zone
     
-    def generate_start_location(self, location: Location, zone_info: dict, context: WorldGenerationContext) -> LocationResponse:
+    def generate_start_location(self, location: Location, zone_info: dict, context: WorldGenerationContext, world_items: dict = {}) -> LocationResponse:
         """ Generate a location based on the current story context
         One gotcha is that the location is not returned, its contents are just updated"""
 
@@ -193,7 +193,7 @@ class WorldBuilding():
             if not json_result.get('name', None):
                 return LocationResponse.empty()
             location.name=json_result['name']
-            return LocationResponse(json_result=json_result, location=location, exit_location_name='', item_types=self.item_types)
+            return LocationResponse(json_result=json_result, location=location, exit_location_name='', item_types=self.item_types, world_items=world_items)
         except Exception as exc:
             print(exc.with_traceback())
             return LocationResponse.empty()

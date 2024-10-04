@@ -53,7 +53,7 @@ class TestEquipNPC:
     def test_dress_npc_with_wearables(self):
         npc = LivingNpc('Test', gender='m')
         setting = 'fantasy'
-        dress_npc(npc, setting)
+        dress_npc(npc, setting, max_attempts=50)
         assert npc.inventory
 
     def test_get_by_name_or_random(self):

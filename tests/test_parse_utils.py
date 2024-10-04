@@ -405,6 +405,8 @@ class TestLoadNpcs:
 
         saved_npcs = parse_utils.save_npcs(npcs.values())
 
+        assert(len(saved_npcs.values()) == 3)
+
     def test_load_npcs_generated(self):
         npcs_string = '{"npcs": [{"name": "Rosewood Fairy", "sentiment": "friendly", "race": "Fae", "gender": "female", "level": 5, "description": "A delicate creature with wings as soft as rose petals, offering quests and guidance.", "occupation":"healer"}]}'
         npcs = json.loads(npcs_string)

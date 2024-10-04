@@ -24,14 +24,19 @@ class TestJsonStory():
         assert(entrance.exits['south'].name == 'royal grotto')
         royal_grotto = self.story.get_location('Cave', 'Royal grotto')
         assert(royal_grotto.exits['north'].name == 'cave entrance')
-        npc = self.story.get_npc('Kobbo')
-        assert(npc)
-        assert(npc.location.name == 'Royal grotto')
-        assert(npc.stats.hp == 5)
-        assert(npc.stats.max_hp == 5)
-        assert(npc.stats.level == 1)
-        assert(npc.stats.strength == 3)
-        assert(self.story.get_item('hoodie').location.name == 'Cave entrance')
+        kobbo = self.story.get_npc('Kobbo')
+        assert(kobbo)
+        assert(kobbo.location.name == 'Royal grotto')
+        assert(kobbo.stats.hp == 5)
+        assert(kobbo.stats.max_hp == 5)
+        assert(kobbo.stats.level == 1)
+        assert(kobbo.stats.strength == 3)
+        assert(kobbo.locate_item('royal sceptre', include_location=False)[0].name == 'royal sceptre')
+        found_item = False
+        for item in self.story.get_location('Cave', 'Cave entrance').items:
+            if item.name == 'hoodie':
+                found_item = True
+        assert(found_item)
 
         mob_spawner = self.story.world.mob_spawners[0] # type: MobSpawner
         assert(mob_spawner.mob_type['name'] == 'bat')

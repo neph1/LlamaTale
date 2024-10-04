@@ -168,7 +168,7 @@ class LlmUtil():
                                                             story_type=self.__story_type,
                                                             world_info=self.__world_info,
                                                             world_mood=self.__story.config.world_mood)
-        result, spawner = self._world_building.build_location(location, 
+        location_result, spawner = self._world_building.build_location(location, 
                                                     exit_location_name, 
                                                     zone_info,
                                                     context=world_generation_context,
@@ -178,7 +178,7 @@ class LlmUtil():
         
         if not location.avatar and self.__story.config.image_gen:
             self.generate_image(location.name, location.description)
-        return result, spawner
+        return location_result, spawner
                     
      
     def perform_idle_action(self, character_name: str, location: Location, character_card: str = '', sentiments: dict = {}, last_action: str = '', event_history: str = '') -> list:
@@ -199,11 +199,11 @@ class LlmUtil():
     def generate_story_background(self, world_mood: int, world_info: str, story_type: str):
         return self._story_building.generate_story_background(world_mood, world_info, story_type)
     
-    def generate_start_location(self, location: Location, zone_info: dict, story_type: str, story_context: str, world_info: str, world_mood: int = 0) -> LocationResponse:
+    def generate_start_location(self, location: Location, zone_info: dict, story_type: str, story_context: str, world_info: str, world_mood: int = 0, world_items: dict = {}) -> LocationResponse:
         return self._world_building.generate_start_location(location, zone_info, WorldGenerationContext(story_context=story_context, 
                                                                                                         story_type=story_type, 
                                                                                                         world_info=world_info, 
-                                                                                                        world_mood=world_mood))
+                                                                                                        world_mood=world_mood), world_items=world_items)
         
     def generate_start_zone(self, location_desc: str, story_type: str, story_context: str, world_info: dict) -> Zone:
         world_generation_context = WorldGenerationContext(story_context=story_context, story_type=story_type, world_info=world_info, world_mood=world_info['world_mood'])

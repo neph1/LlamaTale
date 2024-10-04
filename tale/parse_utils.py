@@ -57,6 +57,11 @@ def load_locations(json_file: dict) -> Tuple[dict, list]:
         loc_exits = loc['exits']
         for loc_exit in loc_exits:
             temp_exits.setdefault(name,{})[loc_exit['name']] = loc_exit
+        
+        if loc.get('items', None):
+            for item in loc['items']:
+                loaded_item = load_item(item)
+                location.insert(loaded_item, None)
 
     for from_name, exits_dict in temp_exits.items():
         from_loc = locations[from_name]
@@ -184,6 +189,15 @@ def load_npc(npc: dict, name: str = None, npc_type: str = 'Mob', roaming = False
 
     new_npc.autonomous = npc.get('autonomous', False)
     new_npc.aggressive = npc.get('aggressive', False)
+
+    if npc.get('items', None):
+        for item in npc['items']:
+            loaded_item = None
+            if item['name'] in world_items:
+                loaded_item = load_item(replace_items_with_world_items([item], world_items)[0])
+            else:
+                loaded_item = load_item(item)
+            new_npc.insert(loaded_item, new_npc)
 
     if parse_occupation and new_npc.stats.bodytype in wearable.dressable_body_types:
         equip_npc(new_npc, world_items)
@@ -503,7 +517,7 @@ def mood_string_to_int(mood: str):
     if mood.startswith('neutral'):
         return 0
     return 1 if mood.endswith('friendly') else -1
-    
+
 def replace_items_with_world_items(items: list, world_items: list) -> list:
     """ Replaces items in a list with world items"""
     new_items = []
@@ -511,7 +525,7 @@ def replace_items_with_world_items(items: list, world_items: list) -> list:
         if isinstance(item, str):
             for world_item in world_items:
                 if item.lower() == world_item['name'].lower():
-                    new_items.append(world_item)
+                    new_items.append(world_item.copy())
         elif isinstance(item, dict):
             new_items.append(item)
     return new_items
@@ -541,6 +555,7 @@ def save_npcs(creatures: list) -> dict:
         stored_npc['personality'] = npc.personality
         stored_npc['occupation'] = npc.occupation
         stored_npc['age'] = npc.age
+        stored_npc['items'] = save_items(npc.inventory)
 
         if isinstance(npc, StationaryMob):
             stored_npc['type'] = 'Npc'
@@ -558,6 +573,11 @@ def save_npcs(creatures: list) -> dict:
 
         if isinstance(npc, LivingNpc):
             stored_npc['memory'] = npc.dump_memory()
+            stored_npc['goal'] = npc.goal
+            stored_npc['autonomous'] = npc.autonomous
+            stored_npc['aggressive'] = npc.aggressive
+            stored_npc['planned_actions'] = npc.planned_actions
+
         
         npcs[npc.name] = stored_npc
     return npcs
@@ -650,6 +670,7 @@ def save_locations(locations: List[Location]) -> dict:
             json_exit['direction'] = next(iter(exit.aliases)) if exit.aliases else '' # not pretty, but works
             exits.append(json_exit)
         json_location['exits'] = exits
+        json_location['items'] = save_items(location.items)
         json_locations.append(json_location)
     return json_locations
 

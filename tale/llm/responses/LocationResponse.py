@@ -18,6 +18,7 @@ class LocationResponse():
         self.new_locations = []
         self.exits = []
         self.npcs = []
+        self.items = []
         self.item_types = item_types
         if not json_result:
             self.valid = False
@@ -55,7 +56,7 @@ class LocationResponse():
             if json_result.get('indoors', False):
                 location_to_build.indoors = True
             
-            self._add_items(location_to_build, json_result, world_items)
+            self.items = self._add_items(location_to_build, json_result, world_items)
 
             self.npcs = self._add_npcs(location_to_build, json_result, world_creatures, world_items).values()
 
@@ -75,7 +76,7 @@ class LocationResponse():
     def _add_items(self, location: Location, json_result: dict, world_items: dict = {}):
         generated_items = json_result.get("items", [])
         if not generated_items:
-            return location
+            return []
         
         if world_items:
             generated_items = parse_utils.replace_items_with_world_items(generated_items, world_items)
@@ -85,7 +86,7 @@ class LocationResponse():
         items = load_items.load_items(items)
         for item in items.values():
             location.insert(item, None)
-        return location
+        return [items]
     
     def _add_npcs(self, location: Location, json_result: dict, world_creatures: dict = {}, world_items: dict = {}) -> dict:
         generated_npcs = json_result.get("npcs", [])

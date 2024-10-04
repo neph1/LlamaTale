@@ -855,7 +855,7 @@ class Driver(pubsub.Listener):
                         personality = character.personality, 
                         race = character.race,
                         occupation = character.occupation,
-                        parseOccupation = char_data.get('parseOccupation', False),)
+                        parse_occupation = char_data.get('parse_occupation', False),)
         npc.autonomous = character.autonomous
         npc.output_thoughts = character.output_thoughts
         wearing = character.wearing.split(',')
@@ -926,6 +926,7 @@ class Driver(pubsub.Listener):
         new_locations = result.new_locations
         exits = result.exits
         npcs = result.npcs
+        items = result.items
         if not new_locations:
             return False
         for location in new_locations:
@@ -942,12 +943,12 @@ class Driver(pubsub.Listener):
                 # fail silently
                 pass
         for npc in npcs:
-            dynamic_story.world.add_npc(npc)
+            #dynamic_story.world.add_npc(npc)
             if isinstance(npc, StationaryNpc) and random.random() < 0.2:
                 new_quest = dynamic_story.generate_quest(npc)
                 new_quest.giver = npc
                 npc.quest = new_quest
-        for item in targetLocation.items:
+        for item in items:
             if isinstance(item, Note):
                 if random.random() < 0.5:
                     new_quest = self.llm_util.generate_note_quest(zone_info=zone.get_info())
@@ -956,6 +957,7 @@ class Driver(pubsub.Listener):
                 else:
                     text = self.llm_util.generate_note_lore(zone_info=zone.get_info())
                     item.text = text
+            #dynamic_story.world.add_item(item)
         if spawner:
             dynamic_story.world.add_mob_spawner(spawner)
         return True
