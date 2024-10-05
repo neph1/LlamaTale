@@ -1,6 +1,6 @@
 WORD_LIMIT: 200 # max number of words the model is encoraged to generate. not a hard limit
 SHORT_WORD_LIMIT: 25 # max number of words when asked to write something short. not a hard limit
-BACKEND: "kobold_cpp" # valid options: "openai", "llama_cpp", "kobold_cpp". if using ooba, use and modify openai template
+BACKEND: "llama_cpp" # valid options: "openai", "llama_cpp", "kobold_cpp". if using ooba, use and modify openai template
 MEMORY_SIZE: 512
 UNLIMITED_REACTS: False
 DIALOGUE_TEMPLATE: '{{"response":"may be both dialogue and action.", "sentiment":"sentiment based on response", "give":"if any physical item of {character2}s is given as part of the dialogue. Or nothing."}}'
@@ -9,11 +9,11 @@ ACTION_TEMPLATE: '{{"goal": reason for action, "thoughts":thoughts about perform
 ITEM_TEMPLATE: '{{"name":"", "type":"", "short_descr":"", "level":int, "value":int}}'
 CREATURE_TEMPLATE: '{{"name":"", "body":"", "mass":int(kg), "hp":int, "type":"Npc or Mob", "level":int, "aggressive":bool, "unarmed_attack":One of [FISTS, CLAWS, BITE, TAIL, HOOVES, HORN, TUSKS, BEAK, TALON], "short_descr":""}}'
 EXIT_TEMPLATE: '{{"direction":"", "name":"name of new location", "short_descr":"exit description"}}'
-NPC_TEMPLATE: '{{"name":"", "sentiment":"", "race":"", "gender":"m, f, or n", "level":(int), "aggressive":bool, "description":"25 words", "appearance":"25 words"}}'
+NPC_TEMPLATE: '{{"name":"", "sentiment":"", "race":"", "gender":"m, f, or n", "level":(int), "aggressive":bool, "description":"25 words", "occupation":"", "appearance":"25 words"}}'
 LOCATION_TEMPLATE: '{{"name": "", "description":"", "exits":[], "items":[], "npcs":[], "indoors":"true or false"}}'
 ZONE_TEMPLATE: '{{"name":name of the room, "description": "75 words", "races":[], "items":[], "mood":"5 to -5, where 5 is extremely friendly and -5 is extremely hostile.", "level":(int)}}'
 DUNGEON_LOCATION_TEMPLATE: '{"index": (int), "name": "", "description": 25 words}'
-CHARACTER_TEMPLATE: '{"name":"", "description": "50 words", "appearance": "25 words", "personality": "50 words", "money":(int), "level":"", "gender":"m/f/n", "age":(int), "race":""}'
+CHARACTER_TEMPLATE: '{"name":"", "description": "50 words", "appearance": "25 words", "personality": "50 words", "money":(int), "level":"", "gender":"m/f/n", "age":(int), "race":"", "occupation":""}'
 FOLLOW_TEMPLATE: '{{"response":"yes or no", "reason":"50 words"}}'
 ITEM_TYPES: ["Weapon", "Wearable", "Health", "Money", "Trash", "Food", "Drink", "Key"]
 PRE_PROMPT: 'You are a creative game keeper for an interactive fiction story telling session. You craft detailed worlds and interesting characters with unique and deep personalities for the player to interact with. Do not acknowledge the task or speak directly to the user, or respond with anything besides the request..'
