@@ -106,6 +106,19 @@
                         0,
                         0,
                         0
+                    ],
+                    "items": [
+                        {
+                            "name": "hoodie",
+                            "title": "Grey Hoodie",
+                            "short_descr": "A tattered grey hoodie",
+                            "descr": "A tattered, grey hoodie with a logo of a common brand",
+                            "location": "Abandoned gas station",
+                            "type": "Wearable",
+                            "weight": 0.0,
+                            "value": 1,
+                            "wear_location": "TORSO"
+                        }
                     ]
                 },
                 {

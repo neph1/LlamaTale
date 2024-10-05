@@ -105,18 +105,8 @@ class DynamicStory(StoryBase):
     
     def save(self, save_name: str = '') -> None:
         """ Save the story to disk."""
-        story = dict()
-        story["story"] = dict()
-        story["story"]["name"] = self.config.name
-
-        story["zones"] = dict()
-        story["world"] = self._world.to_json()
-        story["catalogue"] = self._catalogue.to_json()
-        for zone in self._zones.values():
-            story["zones"][zone.name] = zone.get_info()
-            story["zones"][zone.name]["name"] = zone.name
-            story["zones"][zone.name]["locations"] = parse_utils.save_locations(zone.locations.values())
-        print(story)
+        story = self.to_json()
+        
         save_path = os.path.join(os.getcwd(), '../', save_name) if save_name else './'
         if not os.path.exists(save_path):
             os.mkdir(save_path)
@@ -138,6 +128,21 @@ class DynamicStory(StoryBase):
             shutil.copy(os.path.join(os.getcwd(), 'story.py'), os.path.join(save_path, 'story.py'))
             if os.path.exists(os.path.join(os.getcwd(), 'resources')):
                 shutil.copytree(os.path.join(os.getcwd(), 'resources'), resource_path, dirs_exist_ok=True)
+
+    def to_json(self) -> dict:
+        story = dict()
+        story["story"] = dict()
+        story["story"]["name"] = self.config.name
+
+        story["zones"] = dict()
+        story["world"] = self._world.to_json()
+        story["catalogue"] = self._catalogue.to_json()
+        for zone in self._zones.values():
+            story["zones"][zone.name] = zone.get_info()
+            story["zones"][zone.name]["name"] = zone.name
+            story["zones"][zone.name]["locations"] = parse_utils.save_locations(zone.locations.values())
+        print(story)
+        return story
 
     
     def generate_quest(self, npc: LivingNpc, type: QuestType = QuestType.GIVE) -> Quest:

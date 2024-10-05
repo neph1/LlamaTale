@@ -73,15 +73,11 @@ class Story(JsonStory):
         """welcome text when player enters a new game"""
         player.tell("<bright>Hello, %s! Welcome to %s.</>" % (player.title, self.config.name), end=True)
         player.tell("\n")
-        player.tell(self.driver.resources["messages/welcome.txt"].text)
-        player.tell("\n")
         return ""
 
     def welcome_savegame(self, player: Player) -> str:
         """welcome text when player enters the game after loading a saved game"""
         player.tell("<bright>Hello %s, welcome back to %s.</>" % (player.title, self.config.name), end=True)
-        player.tell("\n")
-        player.tell(self.driver.resources["messages/welcome.txt"].text)
         player.tell("\n")
         return ""
 

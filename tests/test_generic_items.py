@@ -30,9 +30,6 @@ class TestGenericItems():
 
     def test_various(self):
         items = load_items.load_items(generic.generic_various)
-        food = items['Bread']
-        assert(isinstance(food, Food))
-        assert(food.affect_fullness == 10)
         note = items['Note']
         assert(isinstance(note, Note))
 

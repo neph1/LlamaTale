@@ -406,7 +406,10 @@ class TestLoadNpcs:
         saved_npcs = parse_utils.save_npcs(npcs.values())
 
         assert(len(saved_npcs.values()) == 3)
-
+        assert(saved_npcs['Kobbo']['name'] == 'Kobbo')
+        assert(saved_npcs['Kobbo']['title'] == 'Kobbo the King')
+        assert(saved_npcs['Kobbo']['location'] == 'Royal grotto')
+ 
     def test_load_npcs_generated(self):
         npcs_string = '{"npcs": [{"name": "Rosewood Fairy", "sentiment": "friendly", "race": "Fae", "gender": "female", "level": 5, "description": "A delicate creature with wings as soft as rose petals, offering quests and guidance.", "occupation":"healer"}]}'
         npcs = json.loads(npcs_string)
@@ -433,9 +436,19 @@ class TestLoadNpcs:
         trader = loaded_npcs['Village Trader'] # type: Living
         assert(trader)
         assert(isinstance(trader, Trader))
-        assert(trader.locate_item('sword'))
-        assert(trader.locate_item('shield'))
-        assert(trader.locate_item('boots'))
+        assert(len(trader.inventory) > 0)
+
+    def test_load_bartender(self):
+        npcs_string = '{"npcs": [{"name": "Village Bartender", "type":"npc", "occupation":"barkeep", "sentiment": "friendly", "race": "human", "gender": "female", "level": 5, "description": ""}]}'
+        npcs = json.loads(npcs_string)
+
+        loaded_npcs = parse_utils.load_npcs(npcs['npcs'], parse_occupation=True)
+        assert(len(loaded_npcs) == 1)
+        trader = loaded_npcs['Village Bartender'] # type: Living
+        assert(trader)
+        assert(isinstance(trader, Trader))
+        assert(len(trader.inventory) > 0)
+
 
     def test_load_npc_parse_occupation(self):
         npcs_string = '{"npcs": [{"name": "Village Guard", "type":"npc", "occupation":"guard", "sentiment": "friendly", "race": "human", "gender":"f", "level": 5, "description": ""}]}'

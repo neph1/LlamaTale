@@ -32,11 +32,21 @@ class TestJsonStory():
         assert(kobbo.stats.level == 1)
         assert(kobbo.stats.strength == 3)
         assert(kobbo.locate_item('royal sceptre', include_location=False)[0].name == 'royal sceptre')
-        found_item = False
+        found_hoodie = False
+        found_box = False
         for item in self.story.get_location('Cave', 'Cave entrance').items:
             if item.name == 'hoodie':
-                found_item = True
-        assert(found_item)
+                found_hoodie = True
+            if item.name == 'box 1':
+                found_box = True
+        assert(found_hoodie)
+        assert(found_box)
+        found_sceptre = False
+        for item in self.story.get_location('Cave', 'Royal grotto').items:
+            if item.name == 'royal sceptre':
+                found_sceptre = True
+                break
+        assert(found_sceptre)
 
         mob_spawner = self.story.world.mob_spawners[0] # type: MobSpawner
         assert(mob_spawner.mob_type['name'] == 'bat')
@@ -127,6 +137,7 @@ class TestAnythingStory():
         assert(gas_station.exits['north'])
         assert(gas_station.exits['radiation ridge'])
         assert(gas_station.exits['west'])
+        assert(gas_station.items.pop().name == 'hoodie')
         toxic_swamp = story.get_location('The Cursed Swamp', 'Toxic swamp')
         assert(toxic_swamp)
         assert(toxic_swamp.built == False)
@@ -164,7 +175,10 @@ class TestWorldInfo():
         spawner = MobSpawner(mob, location, spawn_rate=2, spawn_limit=3)
         self.story._world.add_mob_spawner(spawner=spawner)
 
-        world_json = self.story._world.to_json()
+        json_story = self.story.to_json()
+
+        assert(json_story['zones']['The Cursed Swamp']['locations'][0]['items'][0]['name'] == 'hoodie')
+        world_json = json_story['world']
 
         assert len(world_json["mob_spawners"]) == 1
         assert len(world_json["item_spawners"]) == 0

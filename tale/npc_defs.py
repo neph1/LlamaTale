@@ -1,12 +1,7 @@
 
-import random
-from tale.base import Item
 from tale.llm.LivingNpc import LivingNpc
 from tale.player import Player
 from tale.shop import ShopBehavior, Shopkeeper
-from tale.skills.magic import MagicType
-from tale.skills.skills import SkillType
-from tale.skills.weapon_type import WeaponType
 from tale.util import Context, call_periodically
 
 class StationaryNpc(LivingNpc):
