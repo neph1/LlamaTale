@@ -24,6 +24,7 @@ class TestEquipNPC:
 
         assert npc.inventory
         assert npc.money > 0
+        assert npc.wielding.name in ['sword', 'spear']
 
     def test_equip_wolf(self):
 
@@ -36,6 +37,7 @@ class TestEquipNPC:
 
         assert not npc.inventory
         assert npc.money == 0
+        assert npc.wielding.name not in ['sword', 'spear']
 
     def test_equip_centaur(self):
         driver = IFDriver(screen_delay=99, gui=False, web=True, wizard_override=True)
@@ -49,12 +51,15 @@ class TestEquipNPC:
 
         assert npc.inventory
         assert npc.money > 0
+        assert npc.wielding
+        assert npc.wielding.name in ['sword', 'spear']
 
     def test_dress_npc_with_wearables(self):
         npc = LivingNpc('Test', gender='m')
         setting = 'fantasy'
         dress_npc(npc, setting, max_attempts=50)
         assert npc.inventory
+        assert npc.get_worn_items()
 
     def test_get_by_name_or_random(self):
         items = [{"name": "Sword", "type": "weapon", "value": 100, "weapon_type":"ONE_HANDED"}, {"name": "Spear", "type": "weapon", "value": 100, "weapon_type":"TWO_HANDED"}, {"name": "shield", "type": "armor", "value": 60}, {"name": "boots", "type": "armor", "value": 50}]
