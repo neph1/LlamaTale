@@ -182,7 +182,7 @@ class Shopkeeper(LivingNpc):
             if not brief:
                 actor.tell("%s shows you a list of what is in stock at the moment:" % lang.capital(self.subjective), end=True, evoke=True)
             txt = ["<ul>  # <dim>|</><ul>  item                        <dim>|</><ul> price     </>"]
-            for i, item in enumerate(sorted_by_title(self.inventory), start=1):
+            for i, item in enumerate(sorted_by_title([item for item in self.inventory if item not in self.get_worn_items()]), start=1):
                 price = item.value * self.shop.sellprofit
                 txt.append("%3d. %-30s  %s" % (i, item.title, mud_context.driver.moneyfmt.display(price)))
             actor.tell( "\n".join(txt), format=False)
