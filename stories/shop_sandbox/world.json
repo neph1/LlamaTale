@@ -1,0 +1,158 @@
+{
+    "story": {
+        "name": "Ye olde shoppe"
+    },
+    "zones": {
+        "Shop district": {
+            "description": "Shops line the street, each with a sign hanging above the door.",
+            "level": 1,
+            "mood": 3,
+            "races": [],
+            "items": [],
+            "size": 5,
+            "center": [
+                0,
+                0,
+                0
+            ],
+            "name": "Shop district",
+            "locations": [
+                {
+                    "name": "Ye olde shoppe",
+                    "descr": "Musty and dark, the shop is filled with all manner of strange and wonderful items.",
+                    "short_descr": "",
+                    "exits": [],
+                    "world_location": [
+                        "0",
+                        "0",
+                        "0"
+                    ],
+                    "built": false
+                }
+            ]
+        }
+    },
+    "world": {
+        "npcs": {
+            "shopkeeper": {
+                "location": "Ye olde shoppe",
+                "name": "Mysterious shopkeeper",
+                "title": "Mysterious Shopkeeper",
+                "aliases": [
+                    "shopkeeper"
+                ],
+                "short_descr": "A mysterious figure stands behind the counter.",
+                "descr": "The shopkeeper is a mysterious figure, their face obscured by shadows. They stand behind the counter, watching customers with a knowing gaze.",
+                "personality": "Enigmatic and mysterious, the shopkeeper's personality is as elusive as the items in the shop. Their words are carefully chosen, revealing just enough to pique curiosity but never giving away too much. They have an air of wisdom and secrets, leaving customers wondering what lies beneath their enigmatic facade.",
+                "occupation": "shopkeeper",
+                "age": 0,
+                "type": "npc",
+                "race": "",
+                "gender": "female",
+                "level": 1,
+                "stats": {
+                    "ac": 0,
+                    "hp": 5,
+                    "max_hp": 5,
+                    "level": 1,
+                    "weapon_skills": {
+                        "6": 14
+                    },
+                    "magic_skills": {
+                        "1": 30,
+                        "2": 30
+                    },
+                    "gender": "f",
+                    "alignment": 0,
+                    "weight": 72.0,
+                    "xp": 0,
+                    "strength": 3,
+                    "dexterity": 3,
+                    "magic_points": 50,
+                    "unarmed_attack": "FISTS"
+                },
+                "memory": {
+                    "known_locations": {},
+                    "observed_events": [],
+                    "conversations": [],
+                    "sentiments": {},
+                    "action_history": [],
+                    "planned_actions": [],
+                    "goal": null
+                }
+            }
+        },
+        "items": {
+            "potion": {
+                "name": "potion",
+                "title": "Potion",
+                "short_descr": "A small vial of liquid",
+                "descr": "The liquid inside is a deep blue.",
+                "location": "Ye olde shoppe",
+                "type": "Potion",
+                "weight": 0.0,
+                "value": 1
+            },
+            "box": {
+                "name": "box",
+                "title": "Box",
+                "short_descr": "A small wooden box",
+                "descr": "The box is made of dark wood.",
+                "location": "Ye olde shoppe",
+                "type": "Container",
+                "weight": 0.0,
+                "value": 1
+            },
+            "scroll": {
+                "name": "scroll",
+                "title": "Scroll",
+                "short_descr": "A rolled up piece of parchment",
+                "descr": "The parchment is covered in strange symbols.",
+                "location": "Ye olde shoppe",
+                "type": "Scroll",
+                "weight": 0.0,
+                "value": 1
+            }
+        },
+        "spawners": [
+            {
+                "mob_type": "spider",
+                "location": "Ye olde shoppe",
+                "spawn_rate": 15,
+                "spawn_limit": 2,
+                "spawned": 0,
+                "drop_items": [],
+                "drop_item_probabilities": []
+            }
+        ]
+    },
+    "catalogue": {
+        "items": [],
+        "creatures": [{
+            "name": "spider",
+            "short_descr": "A large, hairy spider",
+            "descr": "A large, hairy spider, its eight legs moving with a sinister grace.",
+            "type": "Mob",
+                "gender": "f",
+                "level": 1,
+                "aggressive": false,
+                "stats": {
+                    "ac": 0,
+                    "hp": 1,
+                    "max_hp": 1,
+                    "level": 1,
+                    "weapon_skills": {
+                        "6": 24
+                    },
+                    "gender": "f",
+                    "alignment": 0,
+                    "weight": 72.0,
+                    "xp": 0,
+                    "strength": 3,
+                    "dexterity": 6,
+                    "unarmed_attack": "BITE",
+                    "race": "spider"
+                    }
+                }]
+    }
+}

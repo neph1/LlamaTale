@@ -1,20 +1,20 @@
 import datetime
 import json
 from typing import List
-from tale import json_story, mud_context, util
+from tale import load_items, util
 from tale.base import Exit, Living, Location, Weapon, Wearable
 from tale.coord import Coord
 from tale.driver_if import IFDriver
 from tale.item_spawner import ItemSpawner
-from tale.items.basic import Boxlike, Drink, Food, Health, Money
+from tale.items.basic import Boxlike, Drink, Food, Health
 from tale.mob_spawner import MobSpawner
+from tale.npc_defs import Trader
 from tale.races import BodyType
 from tale.story import GameMode, MoneyType
 from tale.skills.weapon_type import WeaponType
 from tale.wearable import WearLocation
 from tale.zone import Zone
 import tale.parse_utils as parse_utils
-from tests.supportstuff import FakeDriver
 
 
 class TestParseUtils():
@@ -37,95 +37,6 @@ class TestParseUtils():
         assert(room_two.exits['test room'].target == room_one)
 
         assert(exits[0].__repr__().startswith("(<base.Exit to 'test room 2'"))
-
-    def test_load_items(self):
-        zones = {}
-        zones['Room 1'] = Location('Room 1', 'A small room perfect for testing')
-        zones['House 1'] = Zone('House 1')
-        zones['House 1'].add_location(Location('Room 2', 'Another testing room'))
-        mud_context.driver = IFDriver()
-        mud_context.driver.moneyfmt = util.MoneyFormatter.create_for(MoneyType.MODERN)
-        items_json = parse_utils.load_json("tests/files/test_items.json")
-        items = parse_utils.load_items(items_json, zones)
-        assert(len(items) == 4)
-        item = items['Box 1']
-        assert(item.title == 'Box 1')
-        assert(item.short_description == 'A small bejewelled box')
-        assert(item.location == zones['Room 1'])
-        item = items['Note 1']
-        assert(item.text == 'This is a note')
-        item = items['Money 1']
-        assert(item.value == 100)
-        assert(item.location == zones['House 1'].get_location('Room 2'))
-        assert(items['Hoodie'])
-
-    def test_load_generated_items(self):
-        items_string_no_loc = '{"items": [{"name":"Woolly gloves", "type":"Wearable"}]}'
-        items = json.loads(items_string_no_loc)
-        assert(len(items) == 1)
-        loaded_items = parse_utils.load_items(items['items'])
-        assert(len(loaded_items) == 1)
-        assert(loaded_items['Woolly gloves'])
-        assert(loaded_items['Woolly gloves'].wear_location == WearLocation.TORSO)
-
-        items_string_with_loc = '{"items": [{"name":"Woolly gloves", "type":"Wearable", "wear_location":"HANDS"}]}'
-
-        items = json.loads(items_string_with_loc)
-        assert(len(items) == 1)
-        loaded_items = parse_utils.load_items(items['items'])
-        assert(len(loaded_items) == 1)
-        assert(loaded_items['Woolly gloves'])
-        assert(loaded_items['Woolly gloves'].wear_location == WearLocation.HANDS)
-
-
-    def test_load_npcs(self):
-
-        driver = IFDriver(screen_delay=99, gui=False, web=True, wizard_override=True)
-        driver.game_clock = util.GameDateTime(datetime.datetime(year=2023, month=1, day=1), 1)
-        mud_context.driver = driver
-
-
-        
-        locations = {}
-        locations['Royal grotto'] = Location('Royal grotto', 'A small grotto, fit for a kobold king')
-        npcs_json = parse_utils.load_json("tests/files/test_npcs.json")
-        npcs = parse_utils.load_npcs(npcs_json, locations)
-        assert(len(npcs) == 3)
-
-
-        npc = npcs['Kobbo']
-        assert(npc.title == 'Kobbo the King')
-        assert(npc.location == locations['Royal grotto'])
-        assert(npc.aliases.pop() == 'kobbo')
-        assert(isinstance(npc.stats.unarmed_attack, Weapon))
-        npc2 = npcs['generated name']
-        assert(npc2.name == 'generated name')
-        assert(npc2.title == 'generated name')
-        assert(npc2.aliases.pop() == 'generated')
-        assert(npc2.location == locations['Royal grotto'])
-        npc3 = npcs['name']
-        assert(npc3.location == locations['Royal grotto'])
-        assert(npc3.name == 'name')
-
-
-        saved_npcs = parse_utils.save_npcs(npcs.values())
-
-
-
-
-    def test_load_npcs_generated(self):
-        driver = IFDriver(screen_delay=99, gui=False, web=True, wizard_override=True)
-        driver.game_clock = util.GameDateTime(datetime.datetime(year=2023, month=1, day=1), 1)
-        mud_context.driver = driver
-        npcs_string = '{"npcs": [{"name": "Rosewood Fairy", "sentiment": "friendly", "race": "Fae", "gender": "female", "level": 5, "description": "A delicate creature with wings as soft as rose petals, offering quests and guidance.", "stats":{ "bodytype":"WINGED_MAN"}}]}'
-        npcs = json.loads(npcs_string)
-        assert(len(npcs) == 1)
-        loaded_npcs = parse_utils.load_npcs(npcs['npcs'])
-        assert(len(loaded_npcs) == 1)
-        fairy = loaded_npcs['Rosewood Fairy'] # type: Living
-        assert(fairy)
-        assert(fairy.stats.bodytype == BodyType.WINGED_MAN)
-
 
     def test_load_story_config(self):
         config_json = parse_utils.load_json("tests/files/test_story_config.json")
@@ -296,7 +207,7 @@ class TestParseUtils():
           
     def test_parse_basic_items(self):
         items = json.loads('{"items": [{"name": "sword", "type": "Weapon", "value": 100}, {"name": "boots", "type": "Wearable", "value": 50, "ac": 2, "wear_location": "FEET"}, {"name": "ration", "type": "Food", "value": 10, "affects_fullness":10}, {"name": "health_potion", "type": "Health", "value": 10}, {"name":"Bottle of beer", "type":"Drink", "value":10}, {"name":"box", "type":"Container", "value":10}]}')
-        parsed_items = parse_utils.load_items(items['items'])
+        parsed_items = load_items.load_items(items['items'])
 
         assert(len(parsed_items) == 6)
         assert(isinstance(parsed_items["sword"], Weapon))
@@ -341,18 +252,18 @@ class TestParseUtils():
 
     def test_save_and_load_stats(self):
         npc = Living('test', gender='m')
-        npc.stats.set_weapon_skill(WeaponType.UNARMED, 10)
+        npc.stats.weapon_skills.set(WeaponType.UNARMED, 10)
         json_stats = parse_utils.save_stats(npc.stats)
         assert(json_stats['unarmed_attack'] == 'FISTS')
         
         loaded_stats = parse_utils.load_stats(json_stats)
         assert(isinstance(loaded_stats.unarmed_attack, Weapon))
-        assert(loaded_stats.get_weapon_skill(WeaponType.UNARMED) == 10)
+        assert(loaded_stats.weapon_skills.get(WeaponType.UNARMED) == 10)
         
     def test_load_mob_spawners(self):
         driver = IFDriver(screen_delay=99, gui=False, web=True, wizard_override=True)
         driver.game_clock = util.GameDateTime(datetime.datetime(year=2023, month=1, day=1), 1)
-        mud_context.driver = driver
+
         json_spawners = [
             {
                 'location': 'Royal grotto',
@@ -409,7 +320,7 @@ class TestParseUtils():
         driver = IFDriver(screen_delay=99, gui=False, web=True, wizard_override=True)
         driver.game_clock = util.GameDateTime(datetime.datetime(year=2023, month=1, day=1), 1)
         driver.moneyfmt = util.MoneyFormatter.create_for(MoneyType.FANTASY)
-        mud_context.driver = driver
+
         json_spawners = [
             {
                 'items': ['Sword', 'Potion'],
@@ -463,3 +374,95 @@ class TestParseUtils():
         assert parse_utils.mood_string_from_int(5) == ' uttermost friendly'
         assert parse_utils.mood_string_from_int(0) == ' neutral'
         assert parse_utils.mood_string_from_int(-4) == ' extremely hostile'
+
+class TestLoadNpcs:
+
+    def setup_method(self):
+        self.driver = IFDriver(screen_delay=99, gui=False, web=True, wizard_override=True)
+        self.driver.game_clock = util.GameDateTime(datetime.datetime(year=2023, month=1, day=1), 1)
+        self.driver.moneyfmt = util.MoneyFormatter.create_for(MoneyType.MODERN)
+
+    def test_load_npcs(self):
+        locations = {}
+        locations['Royal grotto'] = Location('Royal grotto', 'A small grotto, fit for a kobold king')
+        npcs_json = parse_utils.load_json("tests/files/test_npcs.json")
+        npcs = parse_utils.load_npcs(npcs_json, locations=locations)
+        assert(len(npcs) == 3)
+
+        npc = npcs['Kobbo']
+        assert(npc.title == 'Kobbo the King')
+        assert(npc.location == locations['Royal grotto'])
+        assert(npc.aliases.pop() == 'kobbo')
+        assert(isinstance(npc.stats.unarmed_attack, Weapon))
+        npc2 = npcs['generated name']
+        assert(npc2.name == 'generated name')
+        assert(npc2.title == 'generated name')
+        assert(npc2.aliases.pop() == 'generated')
+        assert(npc2.location == locations['Royal grotto'])
+        npc3 = npcs['name']
+        assert(npc3.location == locations['Royal grotto'])
+        assert(npc3.name == 'name')
+
+        saved_npcs = parse_utils.save_npcs(npcs.values())
+
+        assert(len(saved_npcs.values()) == 3)
+        assert(saved_npcs['Kobbo']['name'] == 'Kobbo')
+        assert(saved_npcs['Kobbo']['title'] == 'Kobbo the King')
+        assert(saved_npcs['Kobbo']['location'] == 'Royal grotto')
+ 
+    def test_load_npcs_generated(self):
+        npcs_string = '{"npcs": [{"name": "Rosewood Fairy", "sentiment": "friendly", "race": "Fae", "gender": "female", "level": 5, "description": "A delicate creature with wings as soft as rose petals, offering quests and guidance.", "occupation":"healer"}]}'
+        npcs = json.loads(npcs_string)
+        assert(len(npcs) == 1)
+
+        world_items = [{'name': 'potion', 'type': 'Health', 'value': 10}]
+
+        loaded_npcs = parse_utils.load_npcs(npcs['npcs'], world_items=world_items, parse_occupation=True)
+        assert(len(loaded_npcs) == 1)
+        fairy = loaded_npcs['Rosewood Fairy'] # type: Living
+        assert(fairy)
+        assert(fairy.stats.bodytype == BodyType.WINGED_MAN)
+        assert(fairy.occupation == 'healer')
+        assert(fairy.inventory)
+
+    def test_load_trader(self):
+        npcs_string = '{"npcs": [{"name": "Village Trader", "type":"npc", "occupation":"trader", "sentiment": "friendly", "race": "human", "gender": "female", "level": 5, "description": ""}]}'
+        npcs = json.loads(npcs_string)
+        assert(len(npcs) == 1)
+
+        world_items = [{"name": "sword", "type": "weapon", "value": 100}, {"name": "shield", "type": "armor", "value": 60}, {"name": "boots", "type": "armor", "value": 50}]
+        loaded_npcs = parse_utils.load_npcs(npcs['npcs'], world_items=world_items, parse_occupation=True)
+        assert(len(loaded_npcs) == 1)
+        trader = loaded_npcs['Village Trader'] # type: Living
+        assert(trader)
+        assert(isinstance(trader, Trader))
+        assert(len(trader.inventory) > 0)
+
+    def test_load_bartender(self):
+        npcs_string = '{"npcs": [{"name": "Village Bartender", "type":"npc", "occupation":"barkeep", "sentiment": "friendly", "race": "human", "gender": "female", "level": 5, "description": ""}]}'
+        npcs = json.loads(npcs_string)
+
+        loaded_npcs = parse_utils.load_npcs(npcs['npcs'], parse_occupation=True)
+        assert(len(loaded_npcs) == 1)
+        trader = loaded_npcs['Village Bartender'] # type: Living
+        assert(trader)
+        assert(isinstance(trader, Trader))
+        assert(len(trader.inventory) > 0)
+
+
+    def test_load_npc_parse_occupation(self):
+        npcs_string = '{"npcs": [{"name": "Village Guard", "type":"npc", "occupation":"guard", "sentiment": "friendly", "race": "human", "gender":"f", "level": 5, "description": ""}]}'
+        npcs = json.loads(npcs_string)
+        assert(len(npcs) == 1)
+
+        world_items = [{"name": "Sword", "type": "Weapon", "value": 100, "weapon_type":"ONE_HANDED"}, {"name": "Spear", "type": "Weapon", "value": 100, "weapon_type":"TWO_HANDED"}]
+        loaded_npcs = parse_utils.load_npcs(npcs['npcs'], world_items=world_items, parse_occupation=True)
+
+        assert(len(loaded_npcs) == 1)
+        guard = loaded_npcs['Village Guard'] # type: Living
+
+        assert(guard.stats.weapon_skills.get(WeaponType.ONE_HANDED) > 0)
+        assert(guard.stats.weapon_skills.get(WeaponType.TWO_HANDED) > 0)
+        assert(guard.stats.weapon_skills.get(WeaponType.TWO_HANDED_RANGED) == 0)
+        assert(guard.locate_item('Sword')[1] or guard.locate_item('Spear')[1])
+

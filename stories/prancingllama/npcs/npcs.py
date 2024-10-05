@@ -64,7 +64,7 @@ class Patron(LivingNpc):
         
     def init(self) -> None:
         self.aliases = {"patron"}
-        self.stats.set_weapon_skill(weapon_type=WeaponType.UNARMED, value=35)
+        self.stats.weapon_skills.set(weapon_type=WeaponType.UNARMED, value=35)
 
     @call_periodically(75, 180)
     def do_idle_action(self, ctx: Context) -> None:
@@ -100,7 +100,7 @@ class RoamingPatron(Patron):
 class Shanda(Patron):
 
     def init(self) -> None:
-        self.stats.set_weapon_skill(weapon_type=WeaponType.UNARMED, value=65)
+        self.stats.weapon_skills.set(weapon_type=WeaponType.UNARMED, value=65)
 
 
 class Rat(Living):
@@ -110,7 +110,7 @@ class Rat(Living):
         self.stats.strength = 1
         self.stats.agility = 5
         self.title = "giant rat"
-        self.stats.set_weapon_skill(weapon_type=WeaponType.UNARMED, value=25)
+        self.stats.weapon_skills.set(weapon_type=WeaponType.UNARMED, value=25)
         self.target = None
 
     @call_periodically(10, 25)

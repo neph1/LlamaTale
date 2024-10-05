@@ -20,6 +20,7 @@ from tale.charbuilder import IFCharacterBuilder, MudCharacterBuilder, ValidRaceV
 from tale.demo.story import Story as DemoStory
 from tale.errors import ActionRefused, ParseError, NonSoulVerb
 from tale.player import Player, TextBuffer, PlayerConnection
+from tale.skills.skills import Skills
 from tale.story import *
 from tale.tio.console_io import ConsoleIo
 from tale.tio.iobase import IoAdapterBase
@@ -810,9 +811,9 @@ class TestMudAccounts(unittest.TestCase):
             self.assertEqual(60.0, account.stats.weight)
             self.assertEqual(races.BodySize.HUMAN_SIZED, account.stats.size)
             self.assertEqual("Edhellen", account.stats.language)
-            self.assertEqual({}, account.stats.weapon_skills)
+            self.assertEqual({'1': 0, '2': 0, '3': 0, '4': 0, '5': 0, '6': 0, '7': 0}, account.stats.weapon_skills)
             self.assertEqual({}, account.stats.magic_skills)
-            self.assertEqual({}, account.stats.skills)
+            self.assertEqual( {'1': 0, '2': 0, '3': 0}, account.stats.skills)
         finally:
             dbfile.unlink()
 

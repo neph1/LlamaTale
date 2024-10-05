@@ -14,7 +14,7 @@ from tale.shop import Shopkeeper, ShopBehavior
 
 class TestShopping(unittest.TestCase):
     def setUp(self):
-        self.shopkeeper = Shopkeeper("lucy", "f")
+        self.shopkeeper = Shopkeeper("lucy", "f", age=30, personality="friendly", occupation="shopkeeper")
         shop = ShopBehavior()
         shop.open_hours = [(9, 17), (22, 3)]    # from 9 to 17 and in the night from 22 to 03
         self.shopkeeper.set_shop(shop)

@@ -26,6 +26,8 @@ import datetime
 import random
 from typing import Tuple, Set, Optional
 
+from tale.llm.LivingNpc import LivingNpc
+
 from . import lang
 from . import mud_context
 from .base import Item, Living, ParseResult
@@ -77,9 +79,10 @@ class ShopBehavior:
         self._sellprofit = value
 
 
-class Shopkeeper(Living):
-    def init(self) -> None:
-        super().init()
+class Shopkeeper(LivingNpc):
+    def __init__(self, name: str, gender: str, *, title: str = "", descr: str = "", short_descr: str = "", age: int, personality: str, occupation: str = "", race: str = "human", parse_occupation: bool = False) -> None:
+        super(Shopkeeper, self).__init__(name=name, gender=gender,
+                 title=title, descr=descr, short_descr=short_descr, age=age, personality=personality, occupation=occupation, race=race, parse_occupation=parse_occupation)
         self.privileges.add("shopkeeper")   # allow for some item transfers (buy/sell) that would otherwise be blocked
         self.shop = ShopBehavior()
         self.verbs = {
@@ -142,24 +145,6 @@ class Shopkeeper(Living):
         """Do we accept given items? Raise ActionRefused if not. Shopkeeper can only be sold items to!"""
         raise ActionRefused("You can't give stuff to %s just like that, try selling it instead." % self.title)
 
-    def notify_action(self, parsed: ParseResult, actor: Living) -> None:
-        if actor is self or parsed.verb in self.verbs:
-            return  # avoid reacting to ourselves, or reacting to verbs we already have a handler for
-        # react to some things people might say such as "ask about <item>/<number>"
-        unparsed = parsed.unparsed.split()
-        if self in parsed.who_info or self.name in unparsed or lang.capital(self.name) in unparsed \
-                or parsed.verb in ("hi", "hello", "greet", "wave") \
-                or (parsed.verb == "say" and ("hello" in unparsed or "hi" in unparsed)):
-            # someone referred to us
-            if random.random() < 0.2:
-                self.do_socialize("smile at " + actor.name)
-            elif random.random() < 0.2:
-                self.do_socialize("wave at " + actor.name)
-            elif random.random() < 0.2:
-                self.do_socialize("nod at " + actor.name)
-            elif random.random() < 0.2:
-                self.do_socialize("say \"Hello, how may I help you?\"")
-
     def handle_verb(self, parsed: ParseResult, actor: Living) -> bool:
         if self.shop.banks_money:
             self.money = min(self.money, banking_money_limit)   # make sure we don't have surplus cash
@@ -175,31 +160,32 @@ class Shopkeeper(Living):
         elif parsed.verb == "sell":
             return self.shop_sell(parsed, actor)
         elif parsed.verb == "haggle":
-            self.do_socialize("exclaim No haggling")
+            self.do_socialize("exclaim No haggling", evoke=True)
             return True
         else:
             return False  # unrecognised verb
 
-    def shop_list(self, parsed: ParseResult, actor: Living) -> bool:
-        open_hrs = lang.join(["%d to %d" % hours for hours in self.shop.open_hours])
-        actor.tell("%s says: \"Welcome. Our opening hours are: %s" % (lang.capital(self.title), open_hrs))
-        if "wizard" in actor.privileges:
-            actor.tell(" (but for wizards, we're always open)")
-        if self.shop.willbuy:
-            actor.tell(", and we specialize in " + lang.join(lang.pluralize(word) for word in self.shop.willbuy))
-        actor.tell("\"\n", end=True)
+    def shop_list(self, parsed: ParseResult, actor: Living, brief: bool = False) -> bool:
+        if not brief:
+            open_hrs = lang.join(["%d to %d" % hours for hours in self.shop.open_hours])
+            joined_tell = "%s says: \"Welcome. Our opening hours are: %s" % (lang.capital(self.title), open_hrs)
+            if "wizard" in actor.privileges:
+                joined_tell += " (but for wizards, we're always open)"
+            if self.shop.willbuy:
+                joined_tell += ", and we buy " + lang.join(lang.pluralize(word) for word in self.shop.willbuy)
+            actor.tell("\"\n", end=True, evoke=True)
         # don't show shop.forsale, it is for the code to know what items have limitless supply
         if self.inventory_size == 0:
             actor.tell("%s apologizes, \"I'm sorry, but our stuff is all gone for the moment. Come back later.\"" %
-                       lang.capital(self.subjective))
-            self.do_socialize("shrug at " + actor.name)
+                       lang.capital(self.subjective), evoke=True)
         else:
-            actor.tell("%s shows you a list of what is in stock at the moment:" % lang.capital(self.subjective), end=True)
+            if not brief:
+                actor.tell("%s shows you a list of what is in stock at the moment:" % lang.capital(self.subjective), end=True, evoke=True)
             txt = ["<ul>  # <dim>|</><ul>  item                        <dim>|</><ul> price     </>"]
             for i, item in enumerate(sorted_by_title(self.inventory), start=1):
                 price = item.value * self.shop.sellprofit
                 txt.append("%3d. %-30s  %s" % (i, item.title, mud_context.driver.moneyfmt.display(price)))
-            actor.tell("\n".join(txt), format=False)
+            actor.tell( "\n".join(txt), format=False)
         return True
 
     def shop_inquire(self, parsed: ParseResult, actor: Living) -> bool:
@@ -244,15 +230,11 @@ class Shopkeeper(Living):
             # got an item, inquire about it
             if item not in self:
                 raise ActionRefused("That is not something from the shop. You can examine the %s as usual." % item.name)
-            actor.tell("The shop sells %s." % lang.a(item.title))
+            actor.tell("The shop sells %s." % lang.a(item.title), evoke=True, short_len=True),
             if item.name in item.extra_desc:
                 actor.tell(lang.fullstop(item.extra_desc[item.name]))
             elif item.description:
                 actor.tell(lang.fullstop(item.description))
-            if random.random() < 0.1:
-                actor.tell("\"Would you like to buy something?\", %s asks." % self.title)
-            elif random.random() < 0.1:
-                actor.tell("\"Take your time\", %s says." % self.title)
             return True
         if parsed.verb == "ask":
             raise RetrySoulVerb
@@ -264,18 +246,19 @@ class Shopkeeper(Living):
         if designator:
             raise ParseError("It's not clear what item you mean.")
         if item.value <= 0:
-            actor.tell("%s tells you it's worthless." % lang.capital(self.title))
+            actor.tell("%s tells you it's worthless." % lang.capital(self.title), evoke=True, short_len=True)
             return True
         if isinstance(item, Trash) or Item.search_item(item.title, self.shop.forsale):
-            actor.tell("%s tells you: \"%s\"" % (lang.capital(self.title), self.shop.msg_shopdoesnotbuy))
+            actor.tell("%s tells you: \"%s\"" % (lang.capital(self.title), self.shop.msg_shopdoesnotbuy), evoke=True, short_len=True)
             if self.shop.action_temper:
                 self.do_socialize("%s %s" % (self.shop.action_temper, actor.name))
             return True
         # @todo charisma bonus/penalty
         price = item.value * self.shop.buyprofit
         value_str = mud_context.driver.moneyfmt.display(price)
-        actor.tell("%s appraises the %s." % (lang.capital(self.title), item.name))
-        actor.tell("%s tells you: \"I'll give you %s for it.\"" % (lang.capital(self.subjective), value_str))
+        appraise_tell = "%s appraises the %s." % (lang.capital(self.title), item.name)
+        appraise_tell += " \"I'll give you %s for it.\"" % value_str
+        actor.tell(appraise_tell, evoke=True, short_len=True)
         return True
 
     def shop_buy(self, parsed: ParseResult, actor: Living) -> bool:
@@ -310,7 +293,7 @@ class Shopkeeper(Living):
         # @todo charisma bonus/penalty
         price = item.value * self.shop.sellprofit
         if price > actor.money:
-            actor.tell("%s tells you: \"%s\"" % (lang.capital(self.title), self.shop.msg_playercantafford))
+            actor.tell("%s tells you: \"%s\"" % (lang.capital(self.title), self.shop.msg_playercantafford), evoke=True, short_len=True)
             if self.shop.action_temper:
                 self.do_socialize("%s %s" % (self.shop.action_temper, actor.name))
             return True
@@ -325,10 +308,9 @@ class Shopkeeper(Living):
             else:
                 # new-style (tale) message with a %s placeholder for the money text
                 sold_msg = self.shop.msg_shopsolditem % mud_context.driver.moneyfmt.display(price)
-            actor.tell("%s says: \"%s\"" % (lang.capital(self.title), sold_msg))
+            actor.tell("%s says: \"%s\"" % (lang.capital(self.title), sold_msg), evoke=True, short_len=True)
         else:
-            actor.tell("You paid %s for it." % mud_context.driver.moneyfmt.display(price))
-        self.do_socialize("thank " + actor.name)
+            actor.tell("You paid %s for it." % mud_context.driver.moneyfmt.display(price), evoke=True, short_len=True)
         actor.tell("You've bought the %s!" % item.name)
         if self.shop.banks_money:
             # shopkeeper puts money over a limit in the bank
@@ -371,7 +353,7 @@ class Shopkeeper(Living):
             else:
                 # new-style (tale) message with a %s placeholder for the money text
                 bought_msg = self.shop.msg_shopboughtitem % mud_context.driver.moneyfmt.display(price)
-            actor.tell("%s says: \"%s\"" % (lang.capital(self.title), bought_msg))
+            actor.tell("%s says: \"%s\"" % (lang.capital(self.title), bought_msg), evoke=True, short_len=True)
         else:
             actor.tell("%s gave you %s for it." % (lang.capital(self.title), mud_context.driver.moneyfmt.display(price)))
         self.do_socialize("thank " + actor.name)

@@ -13,7 +13,7 @@ from tale.player import PlayerConnection
 
 class AbstractIoAdapter(ABC):
 
-    def __init__(self, url: str, stream_endpoint: str, user_start_prompt: str, user_end_prompt: str, system_start_prompt: str = '', prompt_end: str = ''):
+    def __init__(self, url: str, stream_endpoint: str, user_start_prompt: str = '', user_end_prompt: str = '', system_start_prompt: str = '', prompt_end: str = ''):
         self.url = url
         self.stream_endpoint = stream_endpoint
         self.system_start_prompt = system_start_prompt
@@ -89,10 +89,8 @@ class KoboldCppAdapter(AbstractIoAdapter):
     def set_prompt(self, request_body: dict, prompt: str, context: str = '') -> dict:
         if self.system_start_prompt:
             prompt = self.system_start_prompt + prompt
-        if self.user_start_prompt:
-            prompt = prompt.replace('[USER_START]', self.user_start_prompt)
-        if self.user_end_prompt:
-            prompt = prompt + self.user_end_prompt
+        prompt = prompt.replace('[USER_START]', self.user_start_prompt)
+        prompt = prompt + self.user_end_prompt
         if self.place_context_in_memory:
             prompt = prompt.replace('<context>{context}</context>', '')
             request_body['memory'] = f'<context>{context}</context>'
@@ -149,10 +147,8 @@ class LlamaCppAdapter(AbstractIoAdapter):
     def set_prompt(self, request_body: dict, prompt: str, context: str = '') -> dict:
         if self.system_start_prompt:
             prompt = self.system_start_prompt + prompt
-        if self.user_start_prompt:
-            prompt = prompt.replace('[USER_START]', self.user_start_prompt)
-        if self.user_end_prompt:
-            prompt = prompt + self.user_end_prompt
+        prompt = prompt.replace('[USER_START]', self.user_start_prompt)
+        prompt = prompt + self.user_end_prompt
         if context:
             prompt = prompt.replace('<context>{context}</context>', f'<context>{context}</context>')
             #request_body['messages'][0]['content'] = f'<context>{context}</context>'

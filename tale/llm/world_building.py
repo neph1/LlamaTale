@@ -3,7 +3,7 @@ from copy import deepcopy
 import json
 import random
 from typing import Any, Tuple
-from tale import parse_utils, races
+from tale import load_items, parse_utils, races
 from tale import zone
 from tale.base import Location
 from tale.coord import Coord
@@ -170,16 +170,16 @@ class WorldBuilding():
         zone.items = json_result.get('items', [])
         return zone
     
-    def generate_start_location(self, location: Location, zone_info: dict, story_type: str, story_context: str, world_info: str) -> LocationResponse:
+    def generate_start_location(self, location: Location, zone_info: dict, context: WorldGenerationContext, world_items: dict = {}) -> LocationResponse:
         """ Generate a location based on the current story context
         One gotcha is that the location is not returned, its contents are just updated"""
 
         prompt = StartLocation().build_prompt({
             'zone_info': zone_info,
             'location': location,
-            'story_type': story_type,
-            'world_info': world_info,
-            'story_context': story_context,
+            'story_type': context.story_type,
+            'world_info': context.world_info,
+            'story_context': context.story_context,
         })
         
         request_body = deepcopy(self.default_body)
@@ -193,7 +193,7 @@ class WorldBuilding():
             if not json_result.get('name', None):
                 return LocationResponse.empty()
             location.name=json_result['name']
-            return LocationResponse(json_result=json_result, location=location, exit_location_name='', item_types=self.item_types)
+            return LocationResponse(json_result=json_result, location=location, exit_location_name='', item_types=self.item_types, world_items=world_items)
         except Exception as exc:
             print(exc.with_traceback())
             return LocationResponse.empty()
@@ -234,7 +234,7 @@ class WorldBuilding():
         result = self.io_util.synchronous_request(request_body, prompt=prompt, context=world_generation_context.to_prompt_string())
         try:
             return WorldItemsResponse(json.loads(parse_utils.sanitize_json(result)))
-            #return parse_utils.load_items(self._validate_items(json_result["items"]))
+            #return load_items.load_items(self._validate_items(json_result["items"]))
         except json.JSONDecodeError as exc:
             print(f'Error generating items: {exc}')
             return WorldItemsResponse()
@@ -270,12 +270,12 @@ class WorldBuilding():
             creatures = json_result["npcs"]
             creatures.extend(json_result["mobs"])
             creatures = parse_utils.replace_creature_with_world_creature(creatures, world_creatures)
-            creatures = parse_utils.load_npcs(creatures)
+            creatures = parse_utils.load_npcs(creatures, world_items = world_items, parse_occupation=True)
             for c in creatures.values():
                 location.insert(c)
             items = json_result["items"]
             items = parse_utils.replace_items_with_world_items(items, world_items)
-            items = parse_utils.load_items(items)
+            items = load_items.load_items(items)
             for i in items.values():
                 location.insert(i)
             return True

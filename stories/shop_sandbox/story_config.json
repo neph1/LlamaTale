@@ -1,0 +1,30 @@
+{
+    "name": "Ye olde shoppe",
+    "author": "test author",
+    "author_address": "",
+    "version": "1.0",
+    "supported_modes": [
+        "IF"
+    ],
+    "player_name": "player",
+    "player_gender": "f",
+    "player_race": "human",
+    "player_money": 0.0,
+    "money_type": "FANTASY",
+    "server_tick_method": "TIMER",
+    "server_tick_time": 5.0,
+    "gametime_to_realtime": 1,
+    "display_gametime": false,
+    "startlocation_player": "Shop district.Ye olde shoppe",
+    "startlocation_wizard": "Shop district.Ye olde shoppe",
+    "zones": [
+        "Shop district"
+    ],
+    "server_mode": "IF",
+    "npcs": "guests",
+    "items": "",
+    "context": "An encounter in a mysterious shop.",
+    "type": "Unconventional shopping experience",
+    "world_info": "",
+    "world_mood": 0
+}

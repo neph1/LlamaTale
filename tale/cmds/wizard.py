@@ -16,7 +16,7 @@ import sys
 from types import ModuleType
 from typing import Generator, Optional
 
-from tale import parse_utils
+from tale import load_items, parse_utils
 from tale.llm.LivingNpc import LivingNpc
 from tale.llm.responses.WorldCreaturesResponse import WorldCreaturesResponse
 from tale.llm.responses.WorldItemsResponse import WorldItemsResponse
@@ -783,7 +783,7 @@ def do_spawn(player: Player, parsed: base.ParseResult, ctx: util.Context) -> Non
         raise ParseError("You need to define a creature")
     creature = ctx.driver.story._catalogue.get_creature(parsed.args[0])
     if creature:
-        mob = parse_utils.load_npcs([creature], ctx.driver.story)[0]
+        mob = parse_utils.load_npc(creature, world_items=ctx.driver.story._catalogue.get_items(), parse_occupation=True)
         player.location.insert(mob, actor=None)
         player.location.tell( lang.capital(mob.title) + ' appears!\n', evoke=False)
     else:
@@ -888,10 +888,10 @@ def do_create_item(player: Player, parsed: base.ParseResult, ctx: util.Context) 
     catalogue_item = ctx.driver.story._catalogue.get_item(item_dict['type'])
     item = None
     if catalogue_item:
-        item = parse_utils.load_items([catalogue_item])[catalogue_item['name']]
+        item = load_items.load_items([catalogue_item])[catalogue_item['name']]
         item.short_description = item_dict.get('short_descr', '')
     if not item:
-        item = list(parse_utils.load_items([item_dict]).values())[0]
+        item = list(load_items.load_items([item_dict]).values())[0]
     if item:
         player.location.insert(item, actor=None)
         player.tell(item.name + ' added.', evoke=False)

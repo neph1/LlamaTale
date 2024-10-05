@@ -1,6 +1,6 @@
 
 
-from tale import parse_utils
+from tale import load_items, parse_utils
 from tale.base import Location
 
 
@@ -18,6 +18,7 @@ class LocationResponse():
         self.new_locations = []
         self.exits = []
         self.npcs = []
+        self.items = []
         self.item_types = item_types
         if not json_result:
             self.valid = False
@@ -55,9 +56,9 @@ class LocationResponse():
             if json_result.get('indoors', False):
                 location_to_build.indoors = True
             
-            self._add_items(location_to_build, json_result, world_items)
+            self.items = self._add_items(location_to_build, json_result, world_items)
 
-            self.npcs = self._add_npcs(location_to_build, json_result, world_creatures).values()
+            self.npcs = self._add_npcs(location_to_build, json_result, world_creatures, world_items).values()
 
 
             new_locations, exits = parse_utils.parse_generated_exits(json_result.get('exits', []), 
@@ -69,33 +70,32 @@ class LocationResponse():
             return True
         except Exception as exc:
             print(f'Exception while parsing location {json_result} ')
-            print(exc.with_traceback())
             return False
         
               
     def _add_items(self, location: Location, json_result: dict, world_items: dict = {}):
         generated_items = json_result.get("items", [])
         if not generated_items:
-            return location
+            return []
         
         if world_items:
             generated_items = parse_utils.replace_items_with_world_items(generated_items, world_items)
         # the loading function works differently and will not insert the items into the location
         # since the item doesn't have the location
         items = self._validate_items(generated_items)
-        items = parse_utils.load_items(items)
+        items = load_items.load_items(items)
         for item in items.values():
             location.insert(item, None)
-        return location
+        return [items]
     
-    def _add_npcs(self, location: Location, json_result: dict, world_creatures: dict = {}) -> dict:
+    def _add_npcs(self, location: Location, json_result: dict, world_creatures: dict = {}, world_items: dict = {}) -> dict:
         generated_npcs = json_result.get("npcs", [])
         if not generated_npcs:
             return {}
         if world_creatures:
             generated_npcs = parse_utils.replace_creature_with_world_creature(generated_npcs, world_creatures)
         try:
-            generated_npcs = parse_utils.load_npcs(generated_npcs)
+            generated_npcs = parse_utils.load_npcs(generated_npcs, world_items=world_items, parse_occupation=True)
             for npc in generated_npcs.values():
                 location.insert(npc, None)
         except Exception as exc:

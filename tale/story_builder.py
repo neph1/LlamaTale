@@ -1,7 +1,7 @@
 
 import random
 from typing import Generator
-from tale import lang, mud_context
+from tale import lang, load_items
 
 from tale.base import Location
 from tale.llm.llm_ext import DynamicStory
@@ -64,9 +64,11 @@ class StoryBuilderBase:
                                                                 story_type=self.story_info.type, 
                                                                 story_context=story.config.context,
                                                                 world_info=self.story_info.world_info,
-                                                                zone_info=zone.get_info())
+                                                                zone_info=zone.get_info(),
+                                                                world_items=story._catalogue.get_items(),
+                                                                world_mood=0)
             if result.valid:
-                return result.new_locations, result.exits, result.npcs
+                return result.new_locations, result.exits, result.npcs, result.items
             
     def add_start_quest(self, npcs: list, items: list):
         quest_npc = random.choice(list(npcs))
@@ -163,13 +165,16 @@ class StoryBuilder(StoryBuilderBase):
 
         initial_start_location = Location(name="", descr=self.story_info.start_location)
 
-        new_locations, exits, npcs = self.generate_start_location(llm_util, story, initial_start_location, zone)
+        new_locations, exits, npcs, location_items = self.generate_start_location(llm_util, story, initial_start_location, zone)
         
-        if len(npcs) > 0:
+        if len(npcs) > 0 and len(items) > 0:
             self.add_start_quest(npcs, items)
             
         for npc in npcs:
             story.world.add_npc(npc)
+
+        for item in items:
+            story.world.add_item(load_items.load_item(item))
             
         # fugly copy because a Location needs a name to init properly
         start_location = Location(name=initial_start_location.name, descr=self.story_info.start_location)

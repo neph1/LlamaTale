@@ -5,10 +5,6 @@
 
 import json
 import os
-from tale import parse_utils
-from tale.base import Item, Weapon
-from tale.items.basic import Note
-from tale.skills.weapon_type import WeaponType
 
 def load() -> dict:
     items = dict()
@@ -26,12 +22,14 @@ fantasy_items = items.get('fantasy_items', [])
 modern_items = items.get('modern_items', [])
 scifi_items = items.get('scifi_items', [])
 generic_various = items.get('generic_various', [])
+generic_drinks = items.get('generic_drinks', [])
+generic_food = items.get('generic_food', [])
 
 generic_items = {
-    'fantasy': [*generic_weapons, *fantasy_weapons, *fantasy_items, *generic_various],
-    'modern': [*generic_weapons, *modern_weapons, *modern_items, *generic_various],
-    'postapoc': [*generic_weapons, *modern_weapons, *modern_items, *generic_various],
-    'scifi': [*generic_weapons, *scifi_weapons, *scifi_items, *modern_weapons, *modern_items, *generic_various],
-    '': [*generic_weapons, *generic_various],
+    'fantasy': [*generic_weapons, *fantasy_weapons, *fantasy_items, *generic_various, *generic_drinks, *generic_food],
+    'modern': [*generic_weapons, *modern_weapons, *modern_items, *generic_various, *generic_drinks, *generic_food],
+    'postapoc': [*generic_weapons, *modern_weapons, *modern_items, *generic_various, *generic_drinks, *generic_food],
+    'scifi': [*generic_weapons, *scifi_weapons, *scifi_items, *modern_weapons, *modern_items, *generic_various, *generic_drinks, *generic_food],
+    '': [*generic_weapons, *generic_various, *generic_drinks, *generic_food],
 }
 

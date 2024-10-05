@@ -15,6 +15,14 @@
         "base_damage": 1,
         "weight": 1,
         "type": "Weapon"
+      },
+      {
+        "name": "Pitchfork",
+        "weapon_type": "TWO_HANDED",
+        "short_descr": "A pitchfork",
+        "base_damage": 1,
+        "weight": 3,
+        "type": "Weapon"
       }
     ],
     "fantasy_weapons": [
@@ -43,6 +51,15 @@
         "base_damage": 2,
         "weight": 5,
         "value": 50,
+        "type": "Weapon"
+      },
+      {
+        "name": "Staff",
+        "weapon_type": "TWO_HANDED",
+        "short_descr": "A wooden staff",
+        "base_damage": 1,
+        "weight": 3,
+        "value": 5,
         "type": "Weapon"
       }
     ],
@@ -79,12 +96,54 @@
         "name": "Note",
         "weight": 0.1,
         "type": "Note"
+      }
+    ],
+    "generic_drinks": [
+      {
+        "name": "Water",
+        "weight": 0.5,
+        "short_descr": "A flask of water",
+        "effect": 5,
+        "type": "Drink",
+        "value": 1
+      },
+      {
+        "name": "Beer",
+        "weight": 0.5,
+        "short_descr": "A glass of beer",
+        "effect": 5,
+        "type": "Drink",
+        "value": 2
+      },
+      {
+        "name": "Wine",
+        "weight": 0.5,
+        "short_descr": "A glass of wine",
+        "effect": 5,
+        "type": "Drink",
+        "value": 3
+      }
+    ],
+    "generic_food": [
+      {
+        "name": "Apple",
+        "weight": 0.5,
+        "short_descr": "A juicy apple",
+        "effect": 2,
+        "type": "Food"
+      },
+      {
+        "name": "Cheese",
+        "weight": 0.5,
+        "short_descr": "A piece of cheese",
+        "effect": 3,
+        "type": "Food"
       },
       {
         "name": "Bread",
         "weight": 0.5,
         "short_descr": "A loaf of bread",
-        "effect": 10,
+        "effect": 5,
         "type": "Food"
       }
     ]

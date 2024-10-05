@@ -1,3 +1,4 @@
+from tale import load_items
 from tale.day_cycle.day_cycle import DayCycle
 from tale.day_cycle.llm_day_cycle_listener import LlmDayCycleListener
 from tale.items import generic
@@ -37,10 +38,11 @@ class JsonStory(DynamicStory):
             if  world['catalogue']['items']:
                 self._catalogue._items = world['catalogue']['items']
         if world.get('world', None):
-            if world['world']['npcs']:
-                self._world.npcs = parse_utils.load_npcs(world['world']['npcs'].values(), self.locations)
             if  world['world']['items']:
-                self._world.items = parse_utils.load_items(world['world']['items'].values(), self.locations)
+                # Keep this so that saved items in worlds will transfer to locations. But don't save them.
+                self._world.items = load_items.load_items(world['world']['items'].values(), self.locations)
+            if world['world']['npcs']:
+                self._world.npcs = parse_utils.load_npcs(world['world']['npcs'].values(), locations=self.locations, world_items=self._catalogue._items)
             if world['world'].get('spawners', None):
                 self._world.mob_spawners = parse_utils.load_mob_spawners(world['world']['spawners'], self.locations, self._catalogue._creatures, self._catalogue._items)
             if world['world'].get('item_spawners', None):

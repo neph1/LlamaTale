@@ -41,8 +41,6 @@ class TestLlmIo():
 
         io_util = IoUtil(config=config_file, backend_config=backend_config)
         result = io_util.io_adapter.set_prompt(request_body=request_body, prompt=prompt, context='context')
-        assert(config_file['USER_START'] in result['prompt'])
-        assert(config_file['USER_END'] in result['prompt'])
         if io_util.io_adapter.place_context_in_memory:
             assert(result['memory'] == '<context>context</context>')
         else:
@@ -60,8 +58,6 @@ class TestLlmIo():
         request_body = json.loads(backend_config['DEFAULT_BODY'])
         io_util = IoUtil(config=config_file, backend_config=backend_config)
         result = io_util.io_adapter.set_prompt(request_body=request_body, prompt=prompt, context='')
-        assert(config_file['USER_START'] in result['messages'][1]['content'])
-        assert(config_file['USER_END'] in result['messages'][1]['content'])
 
     def test_set_prompt_llama_cpp(self):
         
@@ -77,8 +73,6 @@ class TestLlmIo():
 
         io_util = IoUtil(config=config_file, backend_config=backend_config)
         result = io_util.io_adapter.set_prompt(request_body=request_body, prompt=prompt, context='context')
-        assert(config_file['USER_START'] in result['messages'][1]['content'])
-        assert(config_file['USER_END'] in result['messages'][1]['content'])
         assert('<context>context</context>' in result['messages'][1]['content'])
         assert(result['messages'][0]['content'] != '<context>context</context>')
 

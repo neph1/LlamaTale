@@ -2,17 +2,21 @@ import random
 from typing import List, Tuple
 from tale import lang
 from tale import zone
-from tale.base import Location, Exit, Item, Stats, Weapon, Wearable
+from tale import wearable
+from tale.base import Living, Location, Exit, Item, Stats, Weapon, Wearable
 from tale.coord import Coord
+from tale.equip_npcs import equip_npc
 from tale.item_spawner import ItemSpawner
+from tale.items import generic
 from tale.items.basic import Boxlike, Drink, Food, Health, Money, Note
 from tale.llm.LivingNpc import LivingNpc
+from tale.load_items import load_item
 from tale.skills.magic import MagicType
-from tale.npc_defs import StationaryMob, StationaryNpc
+from tale.npc_defs import StationaryMob, StationaryNpc, Trader
 from tale.races import BodyType, UnarmedAttack
 from tale.mob_spawner import MobSpawner
 from tale.story import GameMode, MoneyType, TickMethod, StoryConfig
-from tale.skills.weapon_type import WeaponType
+from tale.skills.weapon_type import WeaponSkills, WeaponType
 from tale.wearable import WearLocation
 import json
 import re
@@ -54,6 +58,11 @@ def load_locations(json_file: dict) -> Tuple[dict, list]:
         loc_exits = loc['exits']
         for loc_exit in loc_exits:
             temp_exits.setdefault(name,{})[loc_exit['name']] = loc_exit
+        
+        if loc.get('items', None):
+            for item in loc['items']:
+                loaded_item = load_item(item)
+                location.insert(loaded_item, None)
 
     for from_name, exits_dict in temp_exits.items():
         from_loc = locations[from_name]
@@ -89,56 +98,7 @@ def location_from_json(json_object: dict):
     location.built = json_object.get('built', True)
     return location
 
-def load_items(json_items: list, locations = {}) -> dict:
-    """
-        Loads and returns a dict of items from a supplied json dict
-        Inserts into locations if supplied and has location
-    """
-    items = {}
-    for item in json_items:
-        new_item = load_item(item)
-        items[item['name']] = new_item
-        if locations and item['location']: 
-            _insert(new_item, locations, item['location'])
-    return items
-
-def load_item(item: dict):
-    item_type = item.get('type', 'Item')
-        
-    if item_type == 'Money':
-        new_item = _init_money(item)
-    elif item_type == 'Health':
-        new_item = _init_health(item)
-        new_item.healing_effect=item.get('effect', 10)
-    elif item_type == 'Food':
-        new_item = _init_food(item)
-        new_item.affect_fullness=item.get('effect', 10)
-        new_item.poisoned=item.get('poisoned', False)
-    elif item_type == 'Weapon':
-        new_item = _init_weapon(item)
-    elif item_type == 'Drink':
-        new_item = _init_drink(item)
-        new_item.affect_thirst=item.get('effect', 10)
-        new_item.poisoned=item.get('poisoned', False)
-    elif item_type == 'Container' or item_type == 'Boxlike':
-        new_item = _init_boxlike(item)
-    elif item_type == 'Wearable':
-        new_item = _init_wearable(item)
-    else:
-        module = sys.modules['tale.items.basic']
-        try:
-            clazz = getattr(module, item_type)
-        except AttributeError:
-            try:
-                clazz = getattr(sys.modules['tale.base'], item_type)
-            except AttributeError:
-                clazz = getattr(sys.modules['tale.base'], 'Item')
-        new_item = clazz(name=item['name'], title=item.get('title', item['name']), descr=item.get('descr', ''), short_descr=item.get('short_descr', ''))
-        if isinstance(new_item, Note):
-            set_note(new_item, item)
-    return new_item
-
-def load_npcs(json_npcs: list, locations = {}) -> dict:
+def load_npcs(json_npcs: list, locations: list[Location] = [], world_items = [], parse_occupation = False) -> dict:
     """
         Loads npcs and returns a dict from a supplied json dict
         May be custom classes, but be sure the class is available
@@ -153,21 +113,29 @@ def load_npcs(json_npcs: list, locations = {}) -> dict:
                 name = npc['name'].replace('the','').replace('The','').strip()
         else:
             name = npc['name']
-        new_npc = load_npc(npc, name, npc_type)
+        try:
+            new_npc = load_npc(npc, name, npc_type, world_items=world_items, parse_occupation=parse_occupation)
 
-        if locations and npc['location']:
-            _insert(new_npc, locations, npc['location'])
+            if locations and npc['location']:
+                _insert(new_npc, locations, npc['location'])
 
-        npcs[name] = new_npc
+            npcs[name] = new_npc
+
+        except Exception as exc:
+            print(f'Error loading npc {name}')
+            print(exc)
+        
     return npcs
 
-def load_npc(npc: dict, name: str = None, npc_type: str = 'Mob', roaming = False):
-    race = None
-    if npc.get('stats', None):
+def load_npc(npc: dict, name: str = None, npc_type: str = 'Mob', roaming = False, world_items = [dict], parse_occupation = False) -> LivingNpc:
+    race = npc.get('race', None)
+    if not race and npc.get('stats', None):
         race = npc['stats'].get('race', None)
+    occupation = npc.get('occupation', '')
     if 'npc' in npc_type.lower():
         gender = lang.validate_gender(npc.get('gender', 'm'))
-        new_npc = StationaryNpc(name=name, 
+        if occupation in ['trader', 'bartender', 'merchant', 'shopkeeper', 'barkeep']:
+            new_npc = Trader(name=name, 
                             gender=gender[0], 
                             race=race, 
                             title=npc.get('title', name), 
@@ -175,12 +143,35 @@ def load_npc(npc: dict, name: str = None, npc_type: str = 'Mob', roaming = False
                             short_descr=npc.get('short_descr', npc.get('description', '')), 
                             age=npc.get('age', 0), 
                             personality=npc.get('personality', ''), 
-                            occupation=npc.get('occupation', ''))
+                            occupation=occupation,
+                            parse_occupation=parse_occupation or npc.get('parse_occupation', False))
+            
+            items = npc.get('items', [])
+            if not items:
+                if occupation in ['bartender', 'barkeep']:
+                    food_items = [*generic.generic_drinks, *generic.generic_food]
+                    items = random.sample(food_items, random.randint(1, min(npc.get('level', 1) * 3, len(food_items))))
+                elif world_items:
+                    items = random.sample(world_items, random.randint(1, min(npc.get('level', 1) * 3, len(world_items))))
+            
+            will_buy = npc.get('will_buy', [])
+            if not will_buy and world_items:
+                will_buy = random.sample(world_items, random.randint(0, min(npc.get('level', 1) * 3, len(world_items))))
+            new_npc.setup_shop_items([load_item(item) for item in items], will_buy=will_buy)
+        else:
+            new_npc = StationaryNpc(name=name, 
+                                gender=gender[0], 
+                                race=race, 
+                                title=npc.get('title', name), 
+                                descr=npc.get('descr', ''), 
+                                short_descr=npc.get('short_descr', npc.get('description', '')), 
+                                age=npc.get('age', 0), 
+                                personality=npc.get('personality', ''), 
+                                occupation=occupation,
+                                parse_occupation=parse_occupation or npc.get('parse_occupation', False))
         new_npc.aliases.add(name.split(' ')[0].lower())
-        new_npc.stats.set_weapon_skill(WeaponType.UNARMED, random.randint(10, 30))
-        new_npc.stats.level = npc.get('level', 1)
-
-
+        if new_npc.stats.weapon_skills.get(WeaponType.UNARMED) < 1:
+            new_npc.stats.weapon_skills.set(WeaponType.UNARMED, random.randint(10, 30))
     else:
         gender = lang.validate_gender(npc.get('gender', 'm'))
         new_npc = StationaryMob(name=npc['name'], 
@@ -188,20 +179,36 @@ def load_npc(npc: dict, name: str = None, npc_type: str = 'Mob', roaming = False
                             race=race, 
                             title=npc.get('title', npc['name']), 
                             descr=npc.get('descr', ''), 
-                            short_descr=npc.get('short_descr', npc.get('description', '')))
+                            short_descr=npc.get('short_descr', npc.get('description', '')),
+                            occupation=occupation,
+                            parse_occupation=parse_occupation or npc.get('parse_occupation', False))
         new_npc.aliases.add(name.split(' ')[0].lower())
-        new_npc.stats.set_weapon_skill(WeaponType.UNARMED, random.randint(10, 30))
-        new_npc.stats.level = npc.get('level', 1)
+        new_npc.stats.weapon_skills.set(WeaponType.UNARMED, random.randint(10, 30))
+        
 
     if npc.get('stats', None):
         new_npc.stats = load_stats(npc['stats'])
+    new_npc.stats.level = npc.get('level', 1)
 
     if npc.get('memory', None):
         new_npc.load_memory(npc['memory'])
 
     new_npc.autonomous = npc.get('autonomous', False)
     new_npc.aggressive = npc.get('aggressive', False)
+
+    if npc.get('items', None):
+        for item in npc['items']:
+            loaded_item = None
+            if item['name'] in world_items:
+                loaded_item = load_item(replace_items_with_world_items([item], world_items)[0])
+            else:
+                loaded_item = load_item(item)
+            new_npc.insert(loaded_item, new_npc)
+
+    if parse_occupation and new_npc.stats.bodytype in wearable.dressable_body_types:
+        equip_npc(new_npc, world_items)
     return new_npc
+
 
 def load_story_config(json_file: dict):
     config = StoryConfig()
@@ -271,7 +278,7 @@ def save_story_config(config: StoryConfig) -> dict:
     json_file['context'] = config.context
     json_file['custom_resources'] = config.custom_resources
     json_file['image_gen'] = config.image_gen
-    json_file['epoch'] = config.epoch
+    json_file['epoch'] = 0 # TODO: fix later
     json_file['day_night'] = config.day_night
     json_file['random_events'] = config.random_events
     return json_file
@@ -286,67 +293,6 @@ def _insert(new_item: Item, locations, location: str):
         loc = locations.get(location)
     if loc:
         loc.insert(new_item, None)
-
-def _init_money(item: dict):
-    return Money(item['name'], 
-                 value=item.get('value', 10), 
-                 title=item.get('title', item['name']), 
-                 short_descr=item.get('short_descr', ''))
-
-def _init_health(item: dict):
-    return Health(name=item['name'], 
-                 value=item.get('value', 10), 
-                 title=item.get('title', item['name']), 
-                 short_descr=item.get('short_descr', ''),
-                 descr=item.get('descr', ''),)
-
-def _init_food(item: dict):
-    return Food(name=item['name'], 
-                 value=item.get('value', 10),
-                 title=item.get('title', item['name']), 
-                 short_descr=item.get('short_descr', ''),
-                 descr=item.get('descr', ''),)
-
-def _init_weapon(item: dict):
-    return Weapon(name=item['name'],
-                    title=item.get('title', item['name']),
-                    short_descr=item.get('short_descr', ''),
-                    descr=item.get('descr', ''),
-                    wc=item.get('wc', 1),
-                    weapon_type=WeaponType[item.get('weapon_type', WeaponType.UNARMED.name)],
-                    base_damage=item.get('base_damage', random.randint(1,3)),
-                    bonus_damage=item.get('bonus_damage', 0),
-                    weight=item.get('weight', 1),
-                    value=item.get('value', 1),) 
-
-def _init_drink(item: dict):
-    return Drink(name=item['name'], 
-                 value=item.get('value', 10),
-                 title=item.get('title', item['name']), 
-                 short_descr=item.get('short_descr', ''))
-
-def _init_boxlike(item: dict):
-    return Boxlike(name=item['name'],
-                    title=item.get('title', item['name']),
-                    short_descr=item.get('short_descr', ''),
-                    descr=item.get('descr', ''),
-                    weight=item.get('weight', 1),
-                    value=item.get('value', 1))
-
-def _init_wearable(item: dict):
-    wear_location = None
-    if WearLocation.has_value(item.get('wear_location', '')):
-        wear_location = WearLocation[item['wear_location']]
-    return Wearable(name=item['name'],
-                    title=item.get('title', item['name']),
-                    short_descr=item.get('short_descr', ''),
-                    descr=item.get('descr', ''),
-                    weight=item.get('weight', 1),
-                    wear_location=wear_location,
-                    value=item.get('value', 1))
-    
-def set_note(note: Note, item: dict):
-    note.text = item.get('text', '')
 
 def remove_special_chars(message: str):
     re.sub('[^A-Za-z0-9 .,_\-\'\"]+', '', message)
@@ -490,7 +436,7 @@ def parse_generated_exits(exits: list, exit_location_name: str, location: Locati
                 
     return new_locations, new_exits
 
-def _select_non_occupied_direction(occupied_directions: [str]):
+def _select_non_occupied_direction(occupied_directions: list[str]):
     """ Selects a direction that is not occupied by an exit"""
     for dir in ['north', 'south', 'east', 'west']:
         if dir not in occupied_directions:
@@ -577,7 +523,7 @@ def mood_string_to_int(mood: str):
     if mood.startswith('neutral'):
         return 0
     return 1 if mood.endswith('friendly') else -1
-    
+
 def replace_items_with_world_items(items: list, world_items: list) -> list:
     """ Replaces items in a list with world items"""
     new_items = []
@@ -585,7 +531,7 @@ def replace_items_with_world_items(items: list, world_items: list) -> list:
         if isinstance(item, str):
             for world_item in world_items:
                 if item.lower() == world_item['name'].lower():
-                    new_items.append(world_item)
+                    new_items.append(world_item.copy())
         elif isinstance(item, dict):
             new_items.append(item)
     return new_items
@@ -602,9 +548,10 @@ def replace_creature_with_world_creature(creatures: list, world_creatures: list)
             new_creatures.append(creature)
     return new_creatures
 
-def save_npcs(creatures: []) -> dict:
+def save_npcs(creatures: list) -> dict:
     npcs = {}
-    for npc in creatures: # type: Living
+    npc : Living
+    for npc in creatures:
         stored_npc = {}
         stored_npc['location'] = npc.location.name
         stored_npc['name'] = npc.name.capitalize()
@@ -615,6 +562,7 @@ def save_npcs(creatures: []) -> dict:
         stored_npc['personality'] = npc.personality
         stored_npc['occupation'] = npc.occupation
         stored_npc['age'] = npc.age
+        stored_npc['items'] = save_items(npc.inventory)
 
         if isinstance(npc, StationaryMob):
             stored_npc['type'] = 'Npc'
@@ -632,8 +580,13 @@ def save_npcs(creatures: []) -> dict:
 
         if isinstance(npc, LivingNpc):
             stored_npc['memory'] = npc.dump_memory()
+            stored_npc['goal'] = npc.goal
+            stored_npc['autonomous'] = npc.autonomous
+            stored_npc['aggressive'] = npc.aggressive
+            stored_npc['planned_actions'] = npc.planned_actions
+
         
-        npcs[npc.name] = stored_npc
+        npcs[npc.name.capitalize()] = stored_npc
     return npcs
 
 def save_stats(stats: Stats) -> dict:
@@ -642,9 +595,9 @@ def save_stats(stats: Stats) -> dict:
     json_stats['hp'] = stats.hp
     json_stats['max_hp'] = stats.max_hp
     json_stats['level'] = stats.level
-    json_stats['weapon_skills'] = skills_dict_to_json(stats.weapon_skills)
-    json_stats['magic_skills'] = skills_dict_to_json(stats.magic_skills)
-    json_stats['skills'] = skills_dict_to_json(stats.skills)
+    json_stats['weapon_skills'] = stats.weapon_skills.to_json()
+    json_stats['magic_skills'] = stats.magic_skills.to_json()
+    json_stats['skills'] = stats.skills.to_json()
     json_stats['gender'] = stats.gender = 'n'
     json_stats['alignment'] = stats.alignment
     json_stats['weight'] = stats.weight
@@ -663,11 +616,11 @@ def load_stats(json_stats: dict) -> Stats:
     stats.ac = json_stats.get('ac')
     stats.hp = json_stats.get('hp')
     stats.max_hp = json_stats.get('max_hp')
-    stats.level = json_stats.get('level')
+    stats.level = json_stats.get('level', 1)
     stats.gender = json_stats.get('gender')
     stats.alignment = json_stats.get('alignment')
     stats.weight = json_stats.get('weight')
-    stats.level = json_stats.get('level')
+    stats.level = json_stats.get('level', 1)
     stats.xp = json_stats.get('xp')
     stats.strength = json_stats.get('strength')
     stats.dexterity = json_stats.get('dexterity')
@@ -677,27 +630,24 @@ def load_stats(json_stats: dict) -> Stats:
     if json_stats.get('unarmed_attack', None):
         stats.unarmed_attack = Weapon(UnarmedAttack[json_stats['unarmed_attack'].upper()], WeaponType.UNARMED)
     if json_stats.get('weapon_skills', None):
-        json_skills = json_stats['weapon_skills']
-        stats.weapon_skills = {}
+        json_skills = json_stats['weapon_skills'] # type: dict
         for skill in json_skills.keys():
             int_skill = int(skill)
             stats.weapon_skills[WeaponType(int_skill)] = json_skills[skill]
     if json_stats.get('magic_skills', None):
-        json_skills = json_stats['magic_skills']
-        stats.magic_skills = {}
+        json_skills = json_stats['magic_skills'] # type: dict
         for skill in json_skills.keys():
             int_skill = int(skill)
-            stats.magic_skills[MagicType(int_skill)] = json_skills[skill]
+            stats.magic_skills.set(MagicType(int_skill), json_skills[skill])
     if json_stats.get('skills', None):
-        json_skills = json_stats['skills']
-        stats.skills = {}
+        json_skills = json_stats['skills'] # type: dict
         for skill in json_skills.keys():
             int_skill = int(skill)
             stats.skills[WeaponType(int_skill)] = json
     return stats
     
-def save_items(items: List[Item]) -> dict:
-    json_items = {}
+def save_items(items: List[Item]) -> []:
+    json_items = []
     for item in items: 
         json_item = item.to_dict()
         item_type = item.__class__.__name__
@@ -705,7 +655,7 @@ def save_items(items: List[Item]) -> dict:
         
         if item_type == 'Food' or item_type == 'Drink':
             json_item['poisoned'] = item.poisoned
-        json_items[item.name] = json_item
+        json_items.append(json_item)
     return json_items
 
 def save_locations(locations: List[Location]) -> dict:
@@ -727,14 +677,9 @@ def save_locations(locations: List[Location]) -> dict:
             json_exit['direction'] = next(iter(exit.aliases)) if exit.aliases else '' # not pretty, but works
             exits.append(json_exit)
         json_location['exits'] = exits
+        json_location['items'] = save_items(location.items)
         json_locations.append(json_location)
     return json_locations
-
-def skills_dict_to_json(weaponskills: dict) -> dict:
-    json_skills = {}
-    for skill in weaponskills.keys():
-        json_skills[skill.value] = weaponskills[skill]
-    return json_skills
 
 def load_mob_spawners(json_spawners: list, locations: dict, creatures: list, world_items: list) -> list:
     spawners = []
