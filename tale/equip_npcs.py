@@ -97,5 +97,5 @@ def dress_npc(npc: LivingNpc, setting: str = 'fantasy', max_attempts = 5) -> Non
             max_attempts -= 1
             continue
         npc.insert(wearable_item, npc)
-        npc.set_wearable(wearable_item, bodypart)
+        npc.set_wearable(wearable_item, wear_location=wearable_item.wear_location)
     return

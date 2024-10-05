@@ -1602,7 +1602,7 @@ class Living(MudObject):
             self.tell_others("{Actor} unwields %s." % self.__wielding.title, evoke=True, short_len=True)
             self.tell("You unwield %s." % self.__wielding.title)
 
-    def set_wearable(self, wearable: Optional[Wearable], wear_location: Optional[wearable.WearLocation] = wearable.WearLocation.TORSO) -> None:
+    def set_wearable(self, wearable: Optional[Wearable], wear_location: Optional[wearable.WearLocation] = None) -> None:
         """ Wear an item if item is not None, else unwear location"""
         if wearable:
             loc = wear_location if wear_location else wearable.wear_location
