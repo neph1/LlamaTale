@@ -28,28 +28,34 @@ def equip_npc(npc: LivingNpc, world_items: list[dict], setting: str = 'fantasy')
             weapon = _get_item_by_name_or_random('Sword', one_handed)
             if weapon:
                 npc.insert(load_item(weapon), npc)
+                npc.wielding = npc.locate_item(weapon['name'])[0]
         else:
             weapon = _get_item_by_name_or_random('Spear', two_handed)
             if weapon:
                 npc.insert(load_item(weapon), npc)
+                npc.wielding = npc.locate_item(weapon['name'])[0]
         if random.random() > 0.5:
             helmet = wearable.random_wearable_for_body_part(WearLocation.HEAD, setting, armor_only=True)
             if helmet:
                 npc.insert(load_item(helmet), npc)
+                npc.set_wearable(npc.locate_item(helmet['name'])[0],  wearable.WearLocation.HEAD)
         if random.random() > 0.5:
             torso = wearable.random_wearable_for_body_part(WearLocation.TORSO, setting, armor_only=True)
             if torso:
                 npc.insert(load_item(torso), npc)
+                npc.set_wearable(npc.locate_item(torso['name'])[0],  wearable.WearLocation.TORSO)
         return
     if occupation in ['archer', 'ranger', 'hunter', 'marksman']: # Archer
         weapon = _get_item_by_name_or_random('Bow', ranged.values)
         if weapon:
             npc.insert(load_item(weapon), npc)
+            npc.wielding = npc.locate_item(weapon['name'])[0]
         return
     if occupation in ['mage', 'sorcerer', 'wizard', 'warlock']: # Caster
         weapon = two_handed.get('Staff', npc)
         if weapon:
             npc.insert(load_item(weapon), npc)
+            npc.wielding = npc.locate_item(weapon['name'])[0]
         return
     if occupation in ['healer', 'cleric', 'priest', 'monk']: # Healer
         potion = random.choice([item for item in world_items if item and item['type'] == 'Health'])
@@ -60,12 +66,14 @@ def equip_npc(npc: LivingNpc, world_items: list[dict], setting: str = 'fantasy')
         weapon = _get_item_by_name_or_random('Dagger', one_handed)
         if weapon:
             npc.insert(load_item(weapon), npc)
+            npc.wielding = npc.locate_item(weapon['name'])[0]
         return
     if occupation in ['peasant', 'farmer', 'commoner', 'villager']:
         if random.random() > 0.3:
             weapon = _get_item_by_name_or_random('Pitchfork', one_handed)
             if weapon:
                 npc.insert(load_item(weapon), npc)
+                npc.wielding = npc.locate_item(weapon['name'])[0]
 
 def _get_item_by_name_or_random(name: str, items: dict) -> dict:
     if not items:
@@ -89,4 +97,5 @@ def dress_npc(npc: LivingNpc, setting: str = 'fantasy', max_attempts = 5) -> Non
             max_attempts -= 1
             continue
         npc.insert(wearable_item, npc)
+        npc.set_wearable(wearable_item, wear_location=wearable_item.wear_location)
     return

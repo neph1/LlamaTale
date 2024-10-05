@@ -42,7 +42,7 @@ def random_wearable_for_body_part(bodypart: WearLocation, setting: str = 'fantas
     # TODO: Fix name
     wearable = wearables[wearable_name]
     wearable['name'] = wearable_name
-    wearable['short_descr'] = f"A {wearable['name']} in {random.choice(wearable_colors)}"
+    wearable['short_descr'] = f"{random.choice(wearable_colors)} {wearable['name']}"
     return wearable
 
 wearable_colors = ['black', 'green', 'blue', 'red', 'yellow', 'white', 'brown', 'grey', 'purple', 'orange', 'pink', 'cyan', 'magenta']
