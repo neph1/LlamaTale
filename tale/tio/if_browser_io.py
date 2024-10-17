@@ -386,9 +386,9 @@ class TaleWsgiAppBase:
                     "items": items if location else '',
                     "exits": exits if location else '',
                 }
-                result = "event: text\nid: {event_id}\ndata: {data}\n\n"\
+                result = "event: text\nid: {event_id}\ndata: {data}"\
                     .format(event_id=str(time.time()), data=json.dumps(response))
-                yield result.encode("utf-8")
+                yield (result + "\n\n"+ ' ' * 150 + "\n\n").encode("utf-8")
             elif data:
                 for d in data:
                     result = "event: data\nid: {event_id}\ndata: {data}\n\n"\

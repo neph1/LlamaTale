@@ -1,6 +1,3 @@
-import json
-import pytest
-import tests.files
 from tale.load_character import CharacterLoader, CharacterV2
 
 class TestCharacterLoader():
