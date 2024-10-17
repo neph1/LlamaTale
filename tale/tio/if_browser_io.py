@@ -241,7 +241,6 @@ class TaleWsgiAppBase:
                 elif method == "GET":
                     qs = environ.get("QUERY_STRING", "")
                 parameters = squash_parameters(parse_qs(qs, encoding="UTF-8"))
-                print("Request: ", path, parameters)
                 return self.wsgi_route(environ, path[5:], parameters, start_response)
             else:
                 return self.wsgi_invalid_request(start_response)
