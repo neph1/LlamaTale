@@ -15,7 +15,7 @@ ZONE_TEMPLATE: '{{"name":name of the room, "description": "75 words", "races":[]
 DUNGEON_LOCATION_TEMPLATE: '{"index": (int), "name": "", "description": 25 words}'
 CHARACTER_TEMPLATE: '{"name":"", "description": "50 words", "appearance": "25 words", "personality": "50 words", "money":(int), "level":"", "gender":"m/f/n", "age":(int), "race":"", "occupation":""}'
 FOLLOW_TEMPLATE: '{{"response":"yes or no", "reason":"50 words"}}'
-ITEM_TYPES: ["Weapon", "Wearable", "Health", "Money", "Trash", "Food", "Drink", "Key"]
+ITEM_TYPES: ["Weapon", "Wearable", "Health", "Money", "Trash"]
 PRE_PROMPT: 'You are a creative game keeper for an interactive fiction story telling session. You craft detailed worlds and interesting characters with unique and deep personalities for the player to interact with. Do not acknowledge the task or speak directly to the user, or respond with anything besides the request..'
 BASE_PROMPT: '<context>{context}</context>\n[USER_START] Rewrite [{input_text}] in your own words. The information inside the <context> tags should be used to ensure it fits the story. Use about {max_words} words.'
 DIALOGUE_PROMPT: '<context>{context}</context>\nThe following is a conversation between {character1} and {character2}; {character2}s sentiment towards {character1}: {sentiment}. Write a single response as {character2} in third person pov, using {character2} description and other information found inside the <context> tags. If {character2} has a quest active, they will discuss it based on its status. Respond in JSON using this template: """{dialogue_template}""". [USER_START]Continue the following conversation as {character2}: {previous_conversation}'

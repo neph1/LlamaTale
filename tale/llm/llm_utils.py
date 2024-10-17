@@ -209,12 +209,12 @@ class LlmUtil():
         world_generation_context = WorldGenerationContext(story_context=story_context, story_type=story_type, world_info=world_info, world_mood=world_info['world_mood'])
         return self._world_building.generate_start_zone(location_desc, context=world_generation_context)
     
-    def generate_world_items(self, story_context: str = '', story_type: str = '', world_info: str = '', world_mood: int = None) -> WorldItemsResponse:
+    def generate_world_items(self, story_context: str = '', story_type: str = '', world_info: str = '', world_mood: int = None, item_types: list = []) -> WorldItemsResponse:
         world_generation_context = WorldGenerationContext(story_context=story_context or self.__story_context,
                                                             story_type=story_type or self.__story_type,
                                                             world_info=world_info or self.__world_info,
                                                             world_mood=world_mood or self.__story.config.world_mood)
-        return self._world_building.generate_world_items(world_generation_context)
+        return self._world_building.generate_world_items(world_generation_context, item_types=item_types)
         
     
     def generate_world_creatures(self, story_context: str = '', story_type: str = '', world_info: str = '', world_mood: int = None) -> WorldCreaturesResponse:

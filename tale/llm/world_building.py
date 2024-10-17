@@ -222,11 +222,10 @@ class WorldBuilding():
             return None
         
 
-    def generate_world_items(self, world_generation_context: WorldGenerationContext) -> WorldItemsResponse:
-        """ Since 0.16.1 returns a json array, rather than a list of items"""
+    def generate_world_items(self, world_generation_context: WorldGenerationContext, item_types: list = []) -> WorldItemsResponse:
         prompt = self.world_items_prompt.format(context = '{context}',
                                                 item_template=self.item_template,
-                                                item_types=self.item_types)
+                                                item_types=item_types or self.item_types)
         request_body = deepcopy(self.default_body)
         if self.json_grammar_key:
             request_body[self.json_grammar_key] = self.json_grammar
@@ -240,7 +239,6 @@ class WorldBuilding():
             return WorldItemsResponse()
     
     def generate_world_creatures(self, world_generation_context: WorldGenerationContext) -> WorldCreaturesResponse:
-        """ Since 0.16.1 returns a json array, rather than a list of creatures"""
         prompt = self.world_creatures_prompt.format(context = '{context}',
                                                 creature_template=self.creature_template)
         request_body = deepcopy(self.default_body)

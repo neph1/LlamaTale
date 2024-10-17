@@ -753,6 +753,13 @@ def do_enrich(player: Player, parsed: base.ParseResult, ctx: util.Context) -> No
     if len(parsed.args) != 1:
         raise ParseError("You need to define 'items' or 'creatures'.")
     
+    if parsed.args[0] == "food":
+        items = ctx.driver.llm_util.generate_world_items(item_types=['Food', 'Drink']) # type: WorldItemsResponse
+        if items.valid:
+            player.tell("(generated: %s, items)" % (len(items.items)))
+            for item in items.items:
+                ctx.driver.story._catalogue.add_item(item)
+        return
     if parsed.args[0] == "items":
         items = ctx.driver.llm_util.generate_world_items() # type: WorldItemsResponse
         if items.valid:
