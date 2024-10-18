@@ -4,7 +4,7 @@ import datetime
 import pytest
 from tale import util, mud_context
 from tale.driver_if import IFDriver
-from tale.llm.llm_ext import DynamicStory
+from tale.llm.dynamic_story import DynamicStory
 from tale.llm.llm_utils import LlmUtil
 from tale.player import PlayerConnection
 from tale.story import StoryConfig

@@ -11,6 +11,7 @@ class StoryBuilding():
         self.io_util = io_util
         self.default_body = default_body
         self.story_background_prompt = llm_config.params['STORY_BACKGROUND_PROMPT'] # Type: str
+        self.advance_story_prompt = llm_config.params['ADVANCE_STORY_PROMPT'] # Type: str
 
     def generate_story_background(self, world_mood: int, world_info: str, story_type: str):
         prompt = self.story_background_prompt.format(
@@ -19,4 +20,7 @@ class StoryBuilding():
             world_info=world_info)
         request_body = self.default_body
         return self.io_util.synchronous_request(request_body, prompt=prompt)
+    
+    def advance_story_section(self):
+        prompt = self.advance_story_prompt.format()
     

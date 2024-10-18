@@ -5,7 +5,7 @@ from tale.base import Container
 from tale.coord import Coord
 from tale.item_spawner import ItemSpawner
 from tale.items.basic import Money
-from tale.llm.llm_ext import DynamicStory
+from tale.llm.dynamic_story import DynamicStory
 from tale.mob_spawner import MobSpawner
 from tale.zone import Zone
 

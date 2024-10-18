@@ -10,7 +10,7 @@ from tale.item_spawner import ItemSpawner
 from tale.llm.LivingNpc import LivingNpc
 from tale.quest import Quest, QuestType
 from tale.mob_spawner import MobSpawner
-from tale.story import StoryBase
+from tale.story import StoryBase, StoryContext
 
 from tale.zone import Zone
 import tale.llm.llm_cache as llm_cache
@@ -21,6 +21,8 @@ class DynamicStory(StoryBase):
         self._zones = dict() # type: dict[str, Zone]
         self._world = WorldInfo()
         self._catalogue = Catalogue()
+        if isinstance(self.config.context, str):
+            self.config.context = StoryContext(self.config.context)
 
     def get_zone(self, name: str) -> Zone:
         """ Find a zone by name."""

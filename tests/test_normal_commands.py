@@ -7,7 +7,7 @@ from tale.base import Door, Item, Location, ParseResult, Weapon, Wearable
 from tale.cmds import normal
 from tale.errors import ActionRefused, ParseError
 from tale.llm.LivingNpc import LivingNpc
-from tale.llm.llm_ext import DynamicStory
+from tale.llm.dynamic_story import DynamicStory
 from tale.llm.llm_utils import LlmUtil
 from tale.player import Player
 from tale.skills.skills import SkillType

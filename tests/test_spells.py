@@ -4,7 +4,7 @@ from tale.base import Location, ParseResult
 from tale.cmds import spells
 from tale.errors import ActionRefused
 from tale.llm.LivingNpc import LivingNpc
-from tale.llm.llm_ext import DynamicStory
+from tale.llm.dynamic_story import DynamicStory
 from tale.llm.llm_utils import LlmUtil
 from tale.skills.magic import MagicType
 from tale.player import Player

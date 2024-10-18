@@ -5,7 +5,6 @@ from tale.web.web_utils import create_chat_container, copy_single_image, _check_
 
 class TestWebUtils():
 
-
     def test_create_chat_container(self):
         result = create_chat_container("Bloated Murklin <:> Hello World!")
 
@@ -17,3 +16,4 @@ class TestWebUtils():
         web_utils.web_resources_path = "tale/web"
         copy_single_image("./tests/files", "test.jpg")
         assert _check_file_exists("test.jpg")
+        web_utils.clear_resources()

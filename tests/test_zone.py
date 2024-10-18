@@ -52,7 +52,8 @@ class TestZone():
                                    "items":['sword', 'shield', 'armor'],
                                    "center":(0, 0, 0),
                                    "level":2,
-                                   "size":5}
+                                   "size":5,
+                                   "lore":''}
         
     def test_get_neighbor(self):
         zone = Zone('test')

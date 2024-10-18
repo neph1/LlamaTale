@@ -8,7 +8,7 @@ from tale.cmds import wizard, wizcmd
 from tale.errors import ParseError
 from tale.items.basic import Food
 from tale.llm.LivingNpc import LivingNpc
-from tale.llm.llm_ext import DynamicStory
+from tale.llm.dynamic_story import DynamicStory
 from tale.llm.llm_utils import LlmUtil
 from tale.player import Player
 from tale.story import StoryConfig

@@ -5,10 +5,12 @@ Demo story.
 Copyright by Irmen de Jong (irmen@razorvine.net)
 """
 import datetime
+import pathlib
 import sys
 from typing import Optional, Generator
 
 from tale.driver import Driver
+from tale.main import run_from_cmdline
 from tale.player import Player, PlayerConnection
 from tale.charbuilder import PlayerNaming
 from tale.story import *
@@ -85,5 +87,9 @@ class Story(StoryBase):
 
 if __name__ == "__main__":
     # story is invoked as a script, start it.
-    from tale.main import run_from_cmdline
-    run_from_cmdline(["--game", sys.path[0]])
+    gamedir = pathlib.Path(__file__).parent
+    if gamedir.is_dir() or gamedir.is_file():
+        cmdline_args = sys.argv[1:]
+        cmdline_args.insert(0, "--game")
+        cmdline_args.insert(1, str(gamedir))
+        run_from_cmdline(cmdline_args)

@@ -3,7 +3,7 @@
 import random
 from tale import _MudContext
 from tale.driver import Driver
-from tale.llm.llm_ext import DynamicStory
+from tale.llm.dynamic_story import DynamicStory
 from tale.player import PlayerConnection
 from tale.util import call_periodically
 

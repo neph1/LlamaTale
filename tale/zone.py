@@ -1,4 +1,3 @@
-import random
 from tale.base import Location
 from tale.coord import Coord
 
@@ -17,6 +16,7 @@ class Zone():
         self.neighbors = dict() # type: dict[str, Zone] # north, east, south or west
         self.center = Coord(0,0,0) 
         self.name = name
+        self.lore = ""
 
     def add_location(self, location: Location) -> bool:
         """ Add a location to the zone. Skip if location already exists."""
@@ -42,7 +42,8 @@ class Zone():
                 "races":self.races,
                 "items":self.items,
                 "size":self.size,
-                "center":self.center.as_tuple()
+                "center":self.center.as_tuple(),
+                "lore":self.lore,
                 }
 
     def get_neighbor(self, direction: str) -> 'Zone':
@@ -86,4 +87,5 @@ def from_json(data: dict) -> 'Zone':
     if data.get("center", None) is not None:
         center = data.get("center")
         zone.center = Coord(center[0], center[1], center[2])
+    zone.lore = data.get("lore", "")
     return zone

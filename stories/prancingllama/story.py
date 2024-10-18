@@ -6,7 +6,7 @@ import tale
 from tale.base import Location
 from tale.cmds import spells
 from tale.driver import Driver
-from tale.llm.llm_ext import DynamicStory
+from tale.llm.dynamic_story import DynamicStory
 from tale.skills.magic import MagicType
 from tale.main import run_from_cmdline
 from tale.player import Player, PlayerConnection
@@ -42,7 +42,7 @@ class Story(DynamicStory):
     def init(self, driver: Driver) -> None:
         """Called by the game driver when it is done with its initial initialization."""
         self.driver = driver
-        self._zones = dict() # type: dict(str, Zone)
+        self._zones = dict() # type: {str, Zone}
         self._zones["The Prancing Llama"] = Zone("The Prancing Llama", description="A cold, craggy mountain range. Snow covered peaks and uncharted valleys hide and attract all manners of creatures.")
         import zones.prancingllama
         for location in zones.prancingllama.all_locations:
@@ -96,13 +96,13 @@ class Story(DynamicStory):
         player.tell("Goodbye, %s. Please come back again soon." % player.title)
         player.tell("\n")
 
-    def races_for_zone(self, zone: str) -> [str]:
+    def races_for_zone(self, zone: str) -> list[str]:
         return self._catalogue._creatures
 
-    def items_for_zone(self, zone: str) -> [str]:
+    def items_for_zone(self, zone: str) -> list[str]:
         return self._catalogue._items
 
-    def zone_info(self, zone_name: str, location: str) -> dict():
+    def zone_info(self, zone_name: str, location: str) -> dict:
         zone_info = super.zone_info(zone_name, location)
         zone_info['races'] = self.races_for_zone(zone_name)
         zone_info['items'] = self.items_for_zone(zone_name)
