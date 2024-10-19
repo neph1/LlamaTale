@@ -342,6 +342,10 @@ class LlmUtil():
         if story.config.image_gen:
             self._init_image_gen(story.config.image_gen)
 
+    def advance_story_section(self, story: DynamicStory):
+        """ Increase the story progress"""
+        self._story_building.advance_story_section(story or self.__story)
+
     def _init_image_gen(self, image_gen: str):
         """ Initialize the image generator"""
         clazz =  getattr(sys.modules['tale.image_gen.' + image_gen.lower()], image_gen)

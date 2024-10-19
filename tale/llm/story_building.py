@@ -1,6 +1,8 @@
 # This file contains the StoryBuilding class, which is responsible for generating the story background
 from tale import parse_utils
 from tale.llm import llm_config
+from tale.llm.contexts.AdvanceStoryContext import AdvanceStoryContext
+from tale.llm.dynamic_story import DynamicStory
 from tale.llm.llm_io import IoUtil
 
 
@@ -21,6 +23,9 @@ class StoryBuilding():
         request_body = self.default_body
         return self.io_util.synchronous_request(request_body, prompt=prompt)
     
-    def advance_story_section(self):
-        prompt = self.advance_story_prompt.format()
+    def advance_story_section(self, story: DynamicStory):
+        story_context = AdvanceStoryContext(story.config.context)
+        prompt = self.advance_story_prompt.format(context=story_context.to_prompt_string())
+        request_body = self.default_body
+        return self.io_util.synchronous_request(request_body, prompt=prompt)
     

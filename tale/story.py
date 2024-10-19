@@ -7,9 +7,9 @@ Copyright by Irmen de Jong (irmen@razorvine.net)
 
 import datetime
 import enum
+import random
 from typing import Optional, Any, List, Set, Generator, Union
 from packaging.version import Version
-
 
 from . import __version__ as tale_version_str
 from .errors import StoryConfigError
@@ -149,6 +149,11 @@ class StoryBase:
         player.tell("You have failed to complete the story.")
         player.tell("\n")
 
+    def increase_progress(self, amount: float = 1.0) -> bool:
+        if isinstance(self.config.context, StoryContext):
+            return self.config.context.increase_progress(amount)
+        return False
+
     def _verify(self, driver) -> None:
         """verify correctness and compatibility of the story configuration"""
         if not isinstance(self.config, StoryConfig):
@@ -173,9 +178,21 @@ class StoryContext:
         self.base_story = base_story
         self.current_section  = ""
         self.past_sections = []
+        self.progress = 0.0
+        self.length = 10.0
+        self.speed = 1.0
+
+    def increase_progress(self, amount: float = 1.0) -> bool:
+        """ increase the progress by the given amount, return True if the progress has changed past the integer value """
+        start_progess = int(self.progress)
+        self.progress += random.random() * amount * self.speed
+        if self.progress >= self.length:
+            self.progress = self.length
+        return start_progess != int(self.progress)
 
     def set_current_section(self, section: str) -> None:
-        self.past_sections.append(self.current_section)
+        if self.current_section:
+            self.past_sections.append(self.current_section)
         self.current_section = section
 
     def to_context(self) -> str:

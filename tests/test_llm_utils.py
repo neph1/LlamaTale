@@ -543,4 +543,14 @@ class TestQuestBuilding():
         assert(quest.reason == 'A test quest')
         assert(quest.target == 'Arto')
 
-        
+# class TestStoryBuilding():
+
+#     llm_util = LlmUtil(FakeIoUtil()) # type: LlmUtil
+
+#     def test_advance_story_section(self):
+#         self.llm_util._story_building.io_util.response = "Chapter 2"
+#         story_context = StoryContext(name='Test', base_story='test')
+
+#         result = self.llm_util._story_building.advance_story_section(story_context)
+
+#         assert(result == 'Chapter 2')
