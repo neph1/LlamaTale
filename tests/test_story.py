@@ -45,18 +45,22 @@ class TestStoryContext:
         context = StoryContext(base_story="A hero's journey")
         context.set_current_section("Chapter 1")
         context.set_current_section("Chapter 2")
-        assert context.to_context_with_past() == "<story> Base plot: A hero's journey; Past: Chapter 1; Active section:Chapter 2</story>"
+        assert context.to_context_with_past() == "<story> Base plot: A hero's journey; Past: Chapter 1; Active section:Chapter 2; Progress: 0.0/10.0;</story>"
 
     def test_from_json(self):
         data = {
             "base_story": "A hero's journey",
             "current_section": "Chapter 1",
-            "past_sections": ["Prologue"]
+            "past_sections": ["Prologue"],
+            "progress": 0.5,
+            "length": 10.0,
         }
         context = StoryContext().from_json(data)
         assert context.base_story == "A hero's journey"
         assert context.current_section == "Chapter 1"
         assert context.past_sections == ["Prologue"]
+        assert context.progress == 0.5
+        assert context.length == 10.0
 
     def test_to_json(self):
         context = StoryContext(base_story="A hero's journey")
@@ -67,5 +71,8 @@ class TestStoryContext:
         assert data == {
             "base_story": "A hero's journey",
             "current_section": "Chapter 2",
-            "past_sections": ["Prologue", "Chapter 1"]
+            "past_sections": ["Prologue", "Chapter 1"],
+            "progress": 0.0,
+            "length": 10.0,
+            "speed": 1.0
         }

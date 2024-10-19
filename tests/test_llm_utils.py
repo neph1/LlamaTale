@@ -5,6 +5,7 @@ from tale.image_gen.automatic1111 import Automatic1111
 from tale.llm.contexts.CharacterContext import CharacterContext
 from tale.llm.contexts.FollowContext import FollowContext
 from tale.llm.contexts.WorldGenerationContext import WorldGenerationContext
+from tale.llm.dynamic_story import DynamicStory
 import tale.llm.llm_cache as llm_cache
 from tale import mud_context
 from tale import zone
@@ -17,7 +18,7 @@ from tale.llm.responses.ActionResponse import ActionResponse
 from tale.llm.responses.FollowResponse import FollowResponse
 from tale.player import Player, PlayerConnection
 from tale.races import UnarmedAttack
-from tale.story import MoneyType
+from tale.story import MoneyType, StoryConfig, StoryContext
 from tale.tio.console_io import ConsoleIo
 from tale.zone import Zone
 from tests.supportstuff import FakeIoUtil
@@ -543,14 +544,23 @@ class TestQuestBuilding():
         assert(quest.reason == 'A test quest')
         assert(quest.target == 'Arto')
 
-# class TestStoryBuilding():
+class TestStoryBuilding():
 
-#     llm_util = LlmUtil(FakeIoUtil()) # type: LlmUtil
+    driver = IFDriver(screen_delay=99, gui=False, web=True, wizard_override=True)
+    driver.game_clock = util.GameDateTime(datetime.datetime(year=2023, month=1, day=1), 1)
+    
+    llm_util = LlmUtil(FakeIoUtil()) # type: LlmUtil
 
-#     def test_advance_story_section(self):
-#         self.llm_util._story_building.io_util.response = "Chapter 2"
-#         story_context = StoryContext(name='Test', base_story='test')
+    story = JsonStory('tests/files/world_story/', parse_utils.load_story_config(parse_utils.load_json('tests/files/test_story_config_empty.json')))
+    
+    story.init(driver)
 
-#         result = self.llm_util._story_building.advance_story_section(story_context)
+    def test_advance_story_section(self):
+        self.llm_util._story_building.io_util.response = "Chapter 2"
 
-#         assert(result == 'Chapter 2')
+        self.story.config.context = StoryContext(base_story='test context')
+
+        result = self.llm_util._story_building.advance_story_section(self.story)
+
+        assert(result == 'Chapter 2')
+        assert(self.story.config.context.current_section == 'Chapter 2')

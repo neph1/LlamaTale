@@ -14,6 +14,7 @@ from tale.charbuilder import PlayerNaming
 from tale.skills.skills import SkillType
 from tale.story import *
 from tale.skills.weapon_type import WeaponType
+from tale.story import StoryContext
 from tale.zone import Zone
 
 class Story(DynamicStory):
@@ -34,7 +35,7 @@ class Story(DynamicStory):
     config.startlocation_player = "prancingllama.entrance"
     config.startlocation_wizard = "prancingllama.entrance"
     config.zones = ["prancingllama"]
-    config.context = "The final outpost high up in a cold, craggy mountain range. It's frequented by adventurers and those seeking to avoid attention."
+    config.context = StoryContext(base_story="The final outpost high up in a cold, craggy mountain range. A drama unfolds between those avoiding the cold and those seeking the cold. And what is lurking underneath the snow covered peaks and uncharted valleys?")
     config.type = "A low level fantasy adventure with focus of character building and interaction."
     config.custom_resources = True
     

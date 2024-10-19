@@ -7,6 +7,7 @@ Copyright by Irmen de Jong (irmen@razorvine.net)
 
 import datetime
 import enum
+import math
 import random
 from typing import Optional, Any, List, Set, Generator, Union
 from packaging.version import Version
@@ -184,11 +185,11 @@ class StoryContext:
 
     def increase_progress(self, amount: float = 1.0) -> bool:
         """ increase the progress by the given amount, return True if the progress has changed past the integer value """
-        start_progess = int(self.progress)
+        start_progess = math.floor(self.progress)
         self.progress += random.random() * amount * self.speed
         if self.progress >= self.length:
             self.progress = self.length
-        return start_progess != int(self.progress)
+        return start_progess != math.floor(self.progress)
 
     def set_current_section(self, section: str) -> None:
         if self.current_section:
@@ -199,13 +200,21 @@ class StoryContext:
         return f"<story> Base plot: {self.base_story}; Active section: {self.current_section}</story>"
     
     def to_context_with_past(self) -> str:
-        return f"<story> Base plot: {self.base_story}; Past: {' '.join(self.past_sections) if self.past_sections else 'This is the beginning of the story'}; Active section:{self.current_section}</story>"
+        return f"<story> Base plot: {self.base_story}; Past: {' '.join(self.past_sections) if self.past_sections else 'This is the beginning of the story'}; Active section:{self.current_section}; Progress: {self.progress}/{self.length};</story>"
     
     def from_json(self, data: dict) -> 'StoryContext':
         self.base_story = data.get("base_story", "")
         self.current_section = data.get("current_section", "")
         self.past_sections = data.get("past_sections", [])
+        self.progress = data.get("progress", 0.0)
+        self.length = data.get("length", 10.0)
+        self.speed = data.get("speed", 1.0)
         return self
 
     def to_json(self) -> dict:
-        return {"base_story": self.base_story, "current_section": self.current_section, "past_sections": self.past_sections}
+        return {"base_story": self.base_story, 
+                "current_section": self.current_section, 
+                "past_sections": self.past_sections,
+                "progress": self.progress,
+                "length": self.length,
+                "speed": self.speed}
