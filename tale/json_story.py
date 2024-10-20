@@ -2,7 +2,7 @@ from tale import load_items
 from tale.day_cycle.day_cycle import DayCycle
 from tale.day_cycle.llm_day_cycle_listener import LlmDayCycleListener
 from tale.items import generic
-from tale.llm.llm_ext import DynamicStory
+from tale.llm.dynamic_story import DynamicStory
 from tale.player import Player
 from tale.random_event import RandomEvent
 from tale.story import GameMode, StoryConfig

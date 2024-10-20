@@ -71,7 +71,7 @@ def _find_image(image_name: str) -> str:
 
 def copy_web_resources(gamepath: str):
     # copy the resources folder to the resources folder in the web folder
-    shutil.copytree(os.path.join(gamepath, "resources"), os.path.join(web_resources_path, resource_folder), dirs_exist_ok=True)
+    shutil.copytree(os.path.join(gamepath, resource_folder), os.path.join(web_resources_path, resource_folder), dirs_exist_ok=True)
     
 def clear_resources():
     resource_path = os.path.join(web_resources_path, resource_folder)
@@ -84,8 +84,13 @@ def clear_resources():
         if os.path.isfile(item_path):
             os.remove(item_path)
 
-def copy_single_image(gamepath: str, image_name: str):
-    shutil.copy(os.path.join(gamepath, "resources", image_name), os.path.join(web_resources_path, resource_folder))
+def copy_single_image(gamepath: str, image_name: str) -> str:
+    from_path = os.path.join(gamepath, resource_folder, image_name)
+    if not os.path.exists(from_path):
+        return
+    to_path = os.path.join(web_resources_path, resource_folder)
+    return shutil.copy(from_path, to_path)
 
 def _check_file_exists(filename: str) -> bool:
-    return os.path.exists(os.path.join(web_resources_path, "resources", filename))
+    check_path = os.path.join(web_resources_path, resource_folder, filename)
+    return os.path.exists(check_path)

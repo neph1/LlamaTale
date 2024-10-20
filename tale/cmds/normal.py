@@ -11,7 +11,7 @@ import random
 from typing import Iterable, List, Dict, Generator, Union, Optional
 from tale.llm.LivingNpc import LivingNpc
 
-from tale.llm.llm_ext import DynamicStory
+from tale.llm.dynamic_story import DynamicStory
 from tale.skills.skills import SkillType
 
 from . import abbreviations, cmd, disabled_in_gamemode, disable_notify_action, overrides_soul, no_soul_parse

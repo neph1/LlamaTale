@@ -8,19 +8,16 @@ from tale.coord import Coord
 from tale.equip_npcs import equip_npc
 from tale.item_spawner import ItemSpawner
 from tale.items import generic
-from tale.items.basic import Boxlike, Drink, Food, Health, Money, Note
 from tale.llm.LivingNpc import LivingNpc
 from tale.load_items import load_item
 from tale.skills.magic import MagicType
 from tale.npc_defs import StationaryMob, StationaryNpc, Trader
 from tale.races import BodyType, UnarmedAttack
 from tale.mob_spawner import MobSpawner
-from tale.story import GameMode, MoneyType, TickMethod, StoryConfig
-from tale.skills.weapon_type import WeaponSkills, WeaponType
-from tale.wearable import WearLocation
+from tale.story import GameMode, MoneyType, StoryContext, TickMethod, StoryConfig
+from tale.skills.weapon_type import WeaponType
 import json
 import re
-import sys
 import os
 
 
@@ -236,7 +233,11 @@ def load_story_config(json_file: dict):
     config.server_mode = GameMode[json_file['server_mode']]
     config.npcs = json_file.get('npcs', '')
     config.items = json_file.get('items', '')
-    config.context = json_file.get('context', '')
+    context = json_file.get('context', '')
+    if isinstance(context, dict):
+        config.context = StoryContext().from_json(context)
+    else:
+        config.context = context
     config.type = json_file.get('type', '')
     config.world_info = json_file.get('world_info', '')
     config.world_mood = json_file.get('world_mood', config.world_mood)
@@ -275,7 +276,7 @@ def save_story_config(config: StoryConfig) -> dict:
     json_file['type'] = config.type
     json_file['world_info'] = config.world_info
     json_file['world_mood'] = config.world_mood
-    json_file['context'] = config.context
+    json_file['context'] = config.context if isinstance(config.context, str) else config.context.to_json()
     json_file['custom_resources'] = config.custom_resources
     json_file['image_gen'] = config.image_gen
     json_file['epoch'] = 0 # TODO: fix later
@@ -295,7 +296,7 @@ def _insert(new_item: Item, locations, location: str):
         loc.insert(new_item, None)
 
 def remove_special_chars(message: str):
-    re.sub('[^A-Za-z0-9 .,_\-\'\"]+', '', message)
+    re.sub('[^A-Za-z0-9 .,_\'\"]+', '', message)
     return message
         
 def trim_response(message: str):
@@ -646,7 +647,7 @@ def load_stats(json_stats: dict) -> Stats:
             stats.skills[WeaponType(int_skill)] = json
     return stats
     
-def save_items(items: List[Item]) -> []:
+def save_items(items: List[Item]) -> list[dict]:
     json_items = []
     for item in items: 
         json_item = item.to_dict()

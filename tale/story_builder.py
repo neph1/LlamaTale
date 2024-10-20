@@ -4,10 +4,11 @@ from typing import Generator
 from tale import lang, load_items
 
 from tale.base import Location
-from tale.llm.llm_ext import DynamicStory
+from tale.llm.dynamic_story import DynamicStory
 from tale.llm.llm_utils import LlmUtil
 from tale.player import PlayerConnection
 from tale.quest import Quest, QuestType
+from tale.story import StoryContext
 from tale.zone import Zone
 
 
@@ -148,10 +149,11 @@ class StoryBuilder(StoryBuilderBase):
         story.config.world_info = self.story_info.world_info
         story.config.world_mood = self.story_info.world_mood
         self.connection.output("Generating story background...")
-        story.config.context = llm_util.generate_story_background(world_info=story.config.world_info, 
+        background = llm_util.generate_story_background(world_info=story.config.world_info, 
                                                                             world_mood=story.config.world_mood,
                                                                             story_type=story.config.type)
-        
+        story_context = StoryContext(base_story=background)
+        story.config.context = story_context
         items = self.generate_world_items(llm_util, story.config.context, story.config.type, story.config.world_info, story.config.world_mood)
         for item in items:
             story._catalogue.add_item(item)

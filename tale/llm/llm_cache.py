@@ -21,7 +21,7 @@ def cache_event(event: str, event_hash: int = -1) -> int:
         event_cache[event_hash] = event
     return event_hash
 
-def get_events(event_hashes: [int]) -> str:
+def get_events(event_hashes: list[int]) -> str:
     """ Gets events from the cache. """
     return "<break>".join([event_cache.get(event_hash, '') for event_hash in event_hashes])
 
@@ -37,7 +37,7 @@ def cache_look(look: str, look_hash: int = -1) -> int:
         look_cache[look_hash] = look
     return look_hash
 
-def get_looks(look_hashes: [int]) -> str:
+def get_looks(look_hashes: list[int]) -> str:
     """ Gets an event from the cache. """
     return ", ".join([look_cache.get(look_hash, '') for look_hash in look_hashes])
 

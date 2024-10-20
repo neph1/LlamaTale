@@ -14,7 +14,7 @@ from tale.llm.contexts.DungeonLocationsContext import DungeonLocationsContext
 from tale.llm.contexts.EvokeContext import EvokeContext
 from tale.llm.contexts.FollowContext import FollowContext
 from tale.llm.contexts.WorldGenerationContext import WorldGenerationContext
-from tale.llm.llm_ext import DynamicStory
+from tale.llm.dynamic_story import DynamicStory
 from tale.llm.llm_io import IoUtil
 from tale.llm.contexts.DialogueContext import DialogueContext
 from tale.llm.quest_building import QuestBuilding
@@ -341,6 +341,10 @@ class LlmUtil():
         self.__world_info = story.config.world_info
         if story.config.image_gen:
             self._init_image_gen(story.config.image_gen)
+
+    def advance_story_section(self, story: DynamicStory) -> str:
+        """ Increase the story progress"""
+        return self._story_building.advance_story_section(story or self.__story)
 
     def _init_image_gen(self, image_gen: str):
         """ Initialize the image generator"""

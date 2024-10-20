@@ -31,12 +31,12 @@ from tale.zone import Zone
 
 from . import __version__ as tale_version_str, _check_required_libraries
 from . import mud_context, errors, util, cmds, player, pubsub, charbuilder, lang, verbdefs, vfs, base
-from .story import TickMethod, GameMode, MoneyType, StoryBase
+from .story import StoryContext, TickMethod, GameMode, MoneyType, StoryBase
 from .tio import DEFAULT_SCREEN_WIDTH
 from .races import playable_races
 from .errors import StoryCompleted
 from tale.load_character import CharacterLoader, CharacterV2
-from tale.llm.llm_ext import DynamicStory
+from tale.llm.dynamic_story import DynamicStory
 from tale.llm.llm_utils import LlmUtil
 from tale.web.web_utils import clear_resources, copy_web_resources
 
@@ -535,6 +535,9 @@ class Driver(pubsub.Listener):
                 events, idle_time, subbers = topicinfo[topicname]
                 if events == 0 and not subbers and idle_time > 30:
                     pubsub.topic(topicname).destroy()
+        progress = self.story.increase_progress(0.0001)
+        if progress:
+            self.llm_util.advance_story_section(self.story)
 
     def disconnect_idling(self, conn: player.PlayerConnection) -> None:
         raise NotImplementedError
@@ -933,7 +936,7 @@ class Driver(pubsub.Listener):
             # try to add location, and if it fails, remove exit to it
             result = dynamic_story.add_location(location, zone=zone.name)
             if not result:
-                for exit in exits: # type: Exit
+                for exit in exits:
                     if exit.name == location.name:
                         exits.remove(exit)
         for exit in exits:
