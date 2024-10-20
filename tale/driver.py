@@ -535,7 +535,7 @@ class Driver(pubsub.Listener):
                 events, idle_time, subbers = topicinfo[topicname]
                 if events == 0 and not subbers and idle_time > 30:
                     pubsub.topic(topicname).destroy()
-        progress = self.story.increase_progress(0.01)
+        progress = self.story.increase_progress(0.0001)
         if progress:
             self.llm_util.advance_story_section(self.story)
 

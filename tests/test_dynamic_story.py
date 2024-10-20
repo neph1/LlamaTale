@@ -1,6 +1,7 @@
 from tale.base import Location
 from tale.coord import Coord
 from tale.llm.dynamic_story import DynamicStory
+from tale.zone import Zone
 
 
 class TestDynamicStory():
