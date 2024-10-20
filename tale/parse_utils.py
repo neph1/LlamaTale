@@ -296,7 +296,7 @@ def _insert(new_item: Item, locations, location: str):
         loc.insert(new_item, None)
 
 def remove_special_chars(message: str):
-    re.sub('[^A-Za-z0-9 .,_\-\'\"]+', '', message)
+    re.sub('[^A-Za-z0-9 .,_\'\"]+', '', message)
     return message
         
 def trim_response(message: str):
