@@ -1,9 +1,17 @@
 
 
 from tale.races import BodyType
-from tale.wearable import WearLocation, body_parts_for_bodytype, random_wearable_for_body_part
+from tale.wearable import WearLocation, body_parts_for_bodytype, load_wearables_from_json, random_wearable_for_body_part
 
+class TestLoadWearablesFromJson:
 
+    def test_load_wearables_from_json(self):
+        wearables = load_wearables_from_json('../items/wearables_fantasy.json')
+        assert wearables
+
+    def test_load_wearables_from_json_modern(self):
+        wearables = load_wearables_from_json('../items/wearables_modern.json')
+        assert wearables
 class TestBodyPartsForBodyType:
 
     def test_body_parts_for_humanoid(self):

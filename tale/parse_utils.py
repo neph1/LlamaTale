@@ -661,7 +661,7 @@ def save_items(items: List[Item]) -> list[dict]:
 
 def save_locations(locations: List[Location]) -> dict:
     json_locations = []
-    for location in locations: # type: Location
+    for location in locations:
         json_location = {}
         json_location['name'] = location.name.capitalize()
         json_location['descr'] = location.description

@@ -8,7 +8,7 @@ import os
 
 def load() -> dict:
     items = dict()
-    with open(os.path.realpath(os.path.join(os.path.dirname(__file__), "../../generic_items.json")), "r") as file:
+    with open(os.path.realpath(os.path.join(os.path.dirname(__file__), "../../items/generic_items.json")), "r") as file:
         items = json.load(file, strict=False)
     return items
 
