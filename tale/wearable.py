@@ -30,6 +30,7 @@ def load_wearables_from_json(file_path):
         data = json.load(file, strict=False)["wearables"]
         for item in data:
             item['location'] = WearLocation[item['location']]
+            item['type'] = 'Wearable'
         return data
     
 wearables_fantasy = load_wearables_from_json('../items/wearables_fantasy.json')

@@ -4,6 +4,7 @@ from tale.llm import llm_config
 from tale.llm.contexts.AdvanceStoryContext import AdvanceStoryContext
 from tale.llm.dynamic_story import DynamicStory
 from tale.llm.llm_io import IoUtil
+from tale.story_context import StoryContext
 
 
 class StoryBuilding():
@@ -23,11 +24,11 @@ class StoryBuilding():
         request_body = self.default_body
         return self.io_util.synchronous_request(request_body, prompt=prompt)
     
-    def advance_story_section(self, story: DynamicStory) -> str:
-        story_context = AdvanceStoryContext(story.config.context)
-        prompt = self.advance_story_prompt.format(context=story_context.to_prompt_string())
+    def advance_story_section(self, story_context: StoryContext) -> str:
+        context = AdvanceStoryContext(story_context)
+        prompt = self.advance_story_prompt.format(context=context.to_prompt_string())
         request_body = self.default_body
         result = self.io_util.synchronous_request(request_body, prompt=prompt)
-        story.config.context.set_current_section(result)
+        story_context.set_current_section(result)
         return result
     

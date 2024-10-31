@@ -1,7 +1,30 @@
 import pytest
-from tale.story import StoryContext
+import responses
+from tale import util
+from tale.llm.llm_io import IoUtil
+from tale.llm.llm_utils import LlmUtil
+from tale.story_context import StoryContext
+from tests.supportstuff import FakeDriver
 
 class TestStoryContext:
+
+    dummy_config = {
+        'BACKEND': 'kobold_cpp',
+        'USER_START': '',
+        'USER_END': '',
+        'DIALOGUE_PROMPT': '',
+    }
+
+    dummy_backend_config = {
+        'URL': 'http://localhost:5001',
+        'ENDPOINT': '/api/v1/generate',
+        'STREAM': False,
+        'STREAM_ENDPOINT': '',
+        'DATA_ENDPOINT': '',
+        'OPENAI_HEADERS': '',
+        'OPENAI_API_KEY': '',
+        'OPENAI_JSON_FORMAT': '',
+    }
 
     def test_initialization(self):
         context = StoryContext(base_story="A hero's journey")
@@ -19,21 +42,36 @@ class TestStoryContext:
         assert context.current_section == "Chapter 2"
         assert context.past_sections == ["Chapter 1"]
 
+    @responses.activate
     def test_increase_progress(self):
         context = StoryContext(base_story="A hero's journey")
-        result = context.increase_progress(0.01)
-        assert result == False
-        assert context.progress < 0.011
-        context.increase_progress(0.01)
-        assert context.progress < 0.021
+        driver = FakeDriver()
+        llm_util = LlmUtil(IoUtil(config=self.dummy_config, backend_config=self.dummy_backend_config)) # type: LlmUtil
+        llm_util.backend = self.dummy_config['BACKEND']
+        driver.llm_util = llm_util
+        ctx = util.Context(driver=FakeDriver(), clock=None, config=None, player_connection=None)
+        responses.add(responses.POST, self.dummy_backend_config['URL'] + self.dummy_backend_config['ENDPOINT'],
+                  json={'results':[{'text':'progress'}]}, status=200)
+        
+        result = context.increase_progress(ctx)
+        assert result == True
+        assert context.progress == 1
+        assert context.current_section == 'progress'
+        assert context.past_sections == []
+        context.increase_progress(ctx)
+        assert context.progress == 2
+
+        assert context.past_sections == ['progress']
 
         context.progress = 0.99999999999
-        result = context.increase_progress(1)
+        result = context.increase_progress(ctx)
         assert result == True
         assert context.progress > 1.0
 
+        assert context.past_sections == ['progress', 'progress']
+
         context.progress = 9.9999999999999999999
-        context.increase_progress(1)
+        context.increase_progress(ctx)
         assert context.progress == 10.0
 
     def test_to_context(self):

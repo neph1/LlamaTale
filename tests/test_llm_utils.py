@@ -5,7 +5,6 @@ from tale.image_gen.automatic1111 import Automatic1111
 from tale.llm.contexts.CharacterContext import CharacterContext
 from tale.llm.contexts.FollowContext import FollowContext
 from tale.llm.contexts.WorldGenerationContext import WorldGenerationContext
-from tale.llm.dynamic_story import DynamicStory
 import tale.llm.llm_cache as llm_cache
 from tale import mud_context
 from tale import zone
@@ -18,7 +17,8 @@ from tale.llm.responses.ActionResponse import ActionResponse
 from tale.llm.responses.FollowResponse import FollowResponse
 from tale.player import Player, PlayerConnection
 from tale.races import UnarmedAttack
-from tale.story import MoneyType, StoryConfig, StoryContext
+from tale.story import MoneyType
+from tale.story_context import StoryContext
 from tale.tio.console_io import ConsoleIo
 from tale.zone import Zone
 from tests.supportstuff import FakeIoUtil

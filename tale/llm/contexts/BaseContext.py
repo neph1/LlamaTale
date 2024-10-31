@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
 from typing import Union
 
-from tale.story import StoryContext
+from tale.story_context import StoryContext
 
 
 class BaseContext(ABC):

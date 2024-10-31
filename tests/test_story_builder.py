@@ -7,8 +7,8 @@ from tale.driver_if import IFDriver
 from tale.llm.dynamic_story import DynamicStory
 from tale.llm.llm_utils import LlmUtil
 from tale.player import PlayerConnection
-from tale.story import StoryConfig, StoryContext
-from tale.story_builder import StoryBuilder, StoryInfo
+from tale.story_builder import StoryBuilder
+from tale.story_context import StoryContext
 from tests.supportstuff import FakeIoUtil
 
 

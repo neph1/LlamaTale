@@ -6,16 +6,22 @@ from typing import List
 from tale import parse_utils
 from tale.base import Item, Living, Location
 from tale.coord import Coord
+from tale.day_cycle.day_cycle import DayCycle
+from tale.day_cycle.llm_day_cycle_listener import LlmDayCycleListener
 from tale.item_spawner import ItemSpawner
 from tale.llm.LivingNpc import LivingNpc
 from tale.quest import Quest, QuestType
 from tale.mob_spawner import MobSpawner
-from tale.story import StoryBase, StoryContext
+from tale.random_event import RandomEvent
+from tale.story import GameMode, StoryBase
 
+from tale.story_context import StoryContext
 from tale.zone import Zone
 import tale.llm.llm_cache as llm_cache
 
 class DynamicStory(StoryBase):
+
+
 
     def __init__(self) -> None:
         self._zones = dict() # type: dict[str, Zone]
@@ -23,6 +29,19 @@ class DynamicStory(StoryBase):
         self._catalogue = Catalogue()
         if isinstance(self.config.context, str):
             self.config.context = StoryContext(self.config.context)
+
+    def init(self, driver) -> None:
+        if self.config.day_night:
+            self.day_cycle = DayCycle(driver.game_clock)
+            driver.register_periodicals(self.day_cycle)
+            if self.config.server_mode == GameMode.IF:
+                self.day_cycle.register_observer(LlmDayCycleListener(driver.llm_util, driver.all_players.values()))
+        
+        if self.config.random_events:
+            self.random_events = RandomEvent(driver.llm_util, driver.all_players.values())
+
+        if isinstance(self.config.context, StoryContext):
+            driver.register_periodicals(self.config.context)
 
     def get_zone(self, name: str) -> Zone:
         """ Find a zone by name."""
@@ -115,8 +134,6 @@ class DynamicStory(StoryBase):
         with open(os.path.join(save_path, 'world.json'), "w") as fp:
             json.dump(story , fp, indent=4)
 
-        if self.driver:
-            self.config.epoch = self.driver.game_clock.clock.timestamp()
         with open(os.path.join(save_path, 'story_config.json'), "w") as fp:
             json.dump(parse_utils.save_story_config(self.config), fp, indent=4)
 

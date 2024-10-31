@@ -10,8 +10,9 @@ from tale.items.basic import Boxlike, Drink, Food, Health
 from tale.mob_spawner import MobSpawner
 from tale.npc_defs import Trader
 from tale.races import BodyType
-from tale.story import GameMode, MoneyType, StoryContext
+from tale.story import GameMode, MoneyType
 from tale.skills.weapon_type import WeaponType
+from tale.story_context import StoryContext
 from tale.wearable import WearLocation
 from tale.zone import Zone
 import tale.parse_utils as parse_utils

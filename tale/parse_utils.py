@@ -14,7 +14,8 @@ from tale.skills.magic import MagicType
 from tale.npc_defs import StationaryMob, StationaryNpc, Trader
 from tale.races import BodyType, UnarmedAttack
 from tale.mob_spawner import MobSpawner
-from tale.story import GameMode, MoneyType, StoryContext, TickMethod, StoryConfig
+from tale.story import GameMode, MoneyType, TickMethod, StoryConfig
+from tale.story_context import StoryContext
 from tale.skills.weapon_type import WeaponType
 import json
 import re

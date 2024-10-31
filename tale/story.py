@@ -7,8 +7,6 @@ Copyright by Irmen de Jong (irmen@razorvine.net)
 
 import datetime
 import enum
-import math
-import random
 from typing import Optional, Any, List, Set, Generator, Union
 from packaging.version import Version
 
@@ -74,7 +72,7 @@ class StoryConfig:
         self.server_mode = GameMode.IF       # the actual game mode the server is operating in (will be set at startup time)
         self.items = ""                      # items to populate the world with. only used by json loading
         self.npcs = ""                       # npcs to populate the world with. only used by json loading
-        self.context = ""                    # type: Union[str, StoryContext] # context to giving background for the story.
+        self.context = ""                    # context to giving background for the story.
         self.type = ""                       # brief description of the setting and type of story, for LLM context
         self.world_info = ""                 # brief description of the world, for LLM context
         self.world_mood = 0                  # how safe is the world? 5 is a happy place, -5 is nightmare mode.
@@ -150,11 +148,6 @@ class StoryBase:
         player.tell("You have failed to complete the story.")
         player.tell("\n")
 
-    def increase_progress(self, amount: float = 1.0) -> bool:
-        if isinstance(self.config.context, StoryContext):
-            return self.config.context.increase_progress(amount)
-        return False
-
     def _verify(self, driver) -> None:
         """verify correctness and compatibility of the story configuration"""
         if not isinstance(self.config, StoryConfig):
@@ -171,50 +164,3 @@ class StoryBase:
         tale_version_required = Version(self.config.requires_tale)
         if tale_version < tale_version_required:
             raise StoryConfigError("This game requires tale " + self.config.requires_tale + ", but " + tale_version_str + " is installed.")
-
-
-class StoryContext:
-
-    def __init__(self, base_story: str = "") -> None:
-        self.base_story = base_story
-        self.current_section  = ""
-        self.past_sections = []
-        self.progress = 0.0
-        self.length = 10.0
-        self.speed = 1.0
-
-    def increase_progress(self, amount: float = 1.0) -> bool:
-        """ increase the progress by the given amount, return True if the progress has changed past the integer value """
-        start_progess = math.floor(self.progress)
-        self.progress += random.random() * amount * self.speed
-        if self.progress >= self.length:
-            self.progress = self.length
-        return start_progess != math.floor(self.progress)
-
-    def set_current_section(self, section: str) -> None:
-        if self.current_section:
-            self.past_sections.append(self.current_section)
-        self.current_section = section
-
-    def to_context(self) -> str:
-        return f"<story> Base plot: {self.base_story}; Active section: {self.current_section}</story>"
-    
-    def to_context_with_past(self) -> str:
-        return f"<story> Base plot: {self.base_story}; Past: {' '.join(self.past_sections) if self.past_sections else 'This is the beginning of the story'}; Active section:{self.current_section}; Progress: {self.progress}/{self.length};</story>"
-    
-    def from_json(self, data: dict) -> 'StoryContext':
-        self.base_story = data.get("base_story", "")
-        self.current_section = data.get("current_section", "")
-        self.past_sections = data.get("past_sections", [])
-        self.progress = data.get("progress", 0.0)
-        self.length = data.get("length", 10.0)
-        self.speed = data.get("speed", 1.0)
-        return self
-
-    def to_json(self) -> dict:
-        return {"base_story": self.base_story, 
-                "current_section": self.current_section, 
-                "past_sections": self.past_sections,
-                "progress": self.progress,
-                "length": self.length,
-                "speed": self.speed}
