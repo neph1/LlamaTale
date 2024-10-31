@@ -1,0 +1,88 @@
+{
+"wearables" : [
+    {
+        "name": "robe",
+        "location": "FULL_BODY",
+        "weight": 1,
+        "value": 10,
+        "ac": 0
+    },
+    {
+        "name": "cloak",
+        "location": "BACK",
+        "weight": 1,
+        "value": 10,
+        "ac": 0
+    },
+    {
+        "name": "tunic",
+        "location": "TORSO",
+        "weight": 1,
+        "value": 10,
+        "ac": 0
+    },
+    {
+        "name": "shirt",
+        "location": "TORSO",
+        "weight": 1,
+        "value": 10,
+        "ac": 0
+    },
+    {
+        "name": "pants",
+        "location": "LEGS",
+        "weight": 1,
+        "value": 10,
+        "ac": 0
+    },
+    {
+        "name": "shoes",
+        "location": "FEET",
+        "weight": 1,
+        "value": 10,
+        "ac": 0
+    },
+    {
+        "name": "belt",
+        "location": "WAIST",
+        "weight": 1,
+        "value": 10,
+        "ac": 0
+    },
+    {
+        "name": "hat",
+        "location": "HEAD",
+        "weight": 1,
+        "value": 10,
+        "ac": 0
+    },
+    {
+        "name": "steel_helmet",
+        "location": "HEAD",
+        "weight": 3,
+        "value": 10,
+        "ac": 3
+    },
+    {
+        "name": "mail_coif",
+        "location": "HEAD",
+        "weight": 3,
+        "value": 10,
+        "ac": 2
+    },
+    {
+        "name": "breeches",
+        "location": "LEGS",
+        "weight": 1,
+        "value": 10,
+        "ac": 0
+    },
+    {
+        "name": "chainmail",
+        "location": "TORSO",
+        "weight": 3,
+        "value": 10,
+        "ac": 3
+    }
+]
+}

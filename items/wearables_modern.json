@@ -1,0 +1,193 @@
+{
+    "wearables" : [
+    {
+        "name": "t-shirt",
+        "location": "TORSO",
+        "weight": 1,
+        "value": 10,
+        "ac": 0
+    },
+    {
+        "name": "shirt",
+        "location": "TORSO",
+        "weight": 1,
+        "value": 10,
+        "ac": 0
+    },
+    {
+        "name": "jeans",
+        "location": "LEGS",
+        "weight": 1,
+        "value": 10,
+        "ac": 0
+    },
+    {
+        "name": "sneakers",
+        "location": "FEET",
+        "weight": 1,
+        "value": 10,
+        "ac": 0
+    },
+    {
+        "name": "belt",
+        "location": "WAIST",
+        "weight": 1,
+        "value": 10,
+        "ac": 0
+    },
+    {
+        "name": "dress_shoes",
+        "location": "FEET",
+        "weight": 1,
+        "value": 10,
+        "ac": 0
+    },
+    {
+        "name": "hat",
+        "location": "HEAD",
+        "weight": 1,
+        "value": 10,
+        "ac": 0
+    },
+    {
+        "name": "dress",
+        "location": "FULL_BODY",
+        "weight": 1,
+        "value": 10,
+        "ac": 0
+    },
+    {
+        "name": "suit",
+        "location": "FULL_BODY",
+        "weight": 1,
+        "value": 10,
+        "ac": 0
+    },
+    {
+        "name": "jacket",
+        "location": "TORSO",
+        "weight": 1,
+        "value": 10,
+        "ac": 0
+    },
+    {
+        "name": "coat",
+        "location": "TORSO",
+        "weight": 1,
+        "value": 10,
+        "ac": 0
+    },
+    {
+        "name": "cap",
+        "location": "HEAD",
+        "weight": 1,
+        "value": 10,
+        "ac": 0
+    },
+    {
+        "name": "pants",
+        "location": "LEGS",
+        "weight": 1,
+        "value": 10,
+        "ac": 0
+    },
+    {
+        "name": "shorts",
+        "location": "LEGS",
+        "weight": 1,
+        "value": 10,
+        "ac": 0
+    },
+    {
+        "name": "boxers",
+        "location": "UNDER_GARMENTS",
+        "weight": 1,
+        "value": 10,
+        "ac": 0
+    },
+    {
+        "name": "briefs",
+        "location": "UNDER_GARMENTS",
+        "weight": 1,
+        "value": 10,
+        "ac": 0
+    },
+    {
+        "name": "bra",
+        "location": "UNDER_GARMENTS",
+        "weight": 1,
+        "value": 10,
+        "ac": 0
+    },
+    {
+        "name": "socks",
+        "location": "UNDER_GARMENTS",
+        "weight": 1,
+        "value": 10,
+        "ac": 0
+    },
+    {
+        "name": "panties",
+        "location": "UNDER_GARMENTS",
+        "weight": 1,
+        "value": 10,
+        "ac": 0
+    },
+    {
+        "name": "thong",
+        "location": "UNDER_GARMENTS",
+        "weight": 1,
+        "value": 10,
+        "ac": 0
+    },
+    {
+        "name": "stockings",
+        "location": "UNDER_GARMENTS",
+        "weight": 1,
+        "value": 10,
+        "ac": 0
+    },
+    {
+        "name": "skirt",
+        "location": "LEGS",
+        "weight": 1,
+        "value": 10,
+        "ac": 0
+    },
+    {
+        "name": "dress_shirt",
+        "location": "TORSO",
+        "weight": 1,
+        "value": 10,
+        "ac": 0
+    },
+    {
+        "name": "blouse",
+        "location": "TORSO",
+        "weight": 1,
+        "value": 10,
+        "ac": 0
+    },
+    {
+        "name": "sweater",
+        "location": "TORSO",
+        "weight": 1,
+        "value": 10,
+        "ac": 0
+    },
+    {
+        "name": "coveralls",
+        "location": "FULL_BODY",
+        "weight": 1,
+        "value": 10,
+        "ac": 0
+    },
+    {
+        "name": "top",
+        "location": "TORSO",
+        "weight": 1,
+        "value": 10,
+        "ac": 0
+    }
+]
+}

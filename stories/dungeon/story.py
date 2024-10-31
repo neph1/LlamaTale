@@ -34,6 +34,7 @@ class Story(JsonStory):
         
 
     def init(self, driver: Driver) -> None:
+        self.llm_util = driver.llm_util
         super(Story, self).init(driver)
 
     def init_player(self, player: Player) -> None:
@@ -91,8 +92,6 @@ class Story(JsonStory):
         """welcome text when player enters the game after loading a saved game"""
         player.tell("<bright>Hello %s, welcome back to %s.</>" % (player.title, self.config.name), end=True)
         player.tell("\n")
-        player.tell(self.driver.resources["messages/welcome.txt"].text)
-        player.tell("\n")
         return ""
 
     def goodbye(self, player: Player) -> None:
@@ -124,7 +123,7 @@ class Story(JsonStory):
             self.world.add_item_spawner(item_spawner)
 
         if zone.center.z == self.max_depth:
-            self.driver.llm_util.generate_character
+            self.llm_util.generate_character
 
         if not first_zone:
             self.layout_generator.spawn_gold(zone=zone)
@@ -137,7 +136,7 @@ class Story(JsonStory):
         for num in range(0, len(rooms), 10):
             sliced_rooms.extend(rooms[num:num+10])
             for i in range(3):
-                described_rooms_slice = self.driver.llm_util.generate_dungeon_locations(zone_info=zone.get_info(), locations=sliced_rooms, depth = self.depth, max_depth=self.max_depth) # type LocationDescriptionResponse
+                described_rooms_slice = self.llm_util.generate_dungeon_locations(zone_info=zone.get_info(), locations=sliced_rooms, depth = self.depth, max_depth=self.max_depth) # type LocationDescriptionResponse
                 if described_rooms_slice.valid:
                     described_rooms.extend(described_rooms_slice.location_descriptions)
                     sliced_rooms = []
@@ -189,7 +188,7 @@ class Story(JsonStory):
                 Exit.connect(cell_location, parent_location.name, '', None, parent_location, cell_location.name, '', None)
 
     def _generate_boss(self, zone: Zone) -> bool:
-        character = self.driver.llm_util.generate_character(keywords=['final boss']) # Characterv2
+        character = self.llm_util.generate_character(keywords=['final boss']) # Characterv2
         if character:
             boss = RoamingMob(character.name, 
                             gender=character.gender, 

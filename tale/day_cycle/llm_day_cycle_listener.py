@@ -1,14 +1,13 @@
-
-
-
+from typing import List
 from tale.day_cycle.day_cycle import DayCycleEventObserver
-from tale.driver import Driver
+from tale.player import PlayerConnection
 
 
 class LlmDayCycleListener(DayCycleEventObserver):
 
-    def __init__(self, driver):
-        self.driver = driver # type: Driver
+    def __init__(self, llm_util, players):
+        self.llm_util = llm_util
+        self.players = players # type: List[PlayerConnection]
 
     def on_dawn(self):
         self._describe_transition("night", "dawn")
@@ -26,4 +25,4 @@ class LlmDayCycleListener(DayCycleEventObserver):
         pass
 
     def _describe_transition(self, from_time: str, to_time: str):
-        self.driver.llm_util.describe_day_cycle_transition(list(self.driver.all_players.values())[0], from_time, to_time)
+        self.llm_util.describe_day_cycle_transition(self.players, from_time, to_time)

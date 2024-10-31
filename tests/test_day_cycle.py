@@ -13,7 +13,7 @@ class TestDayCycle(unittest.TestCase):
         driver = IFDriver(screen_delay=99, gui=False, web=True, wizard_override=True)
         driver.game_clock = util.GameDateTime(time, 1)
         #_MudContext.driver = driver
-        day_cycle = DayCycle(driver)
+        day_cycle = DayCycle(driver.game_clock)
         return day_cycle
 
     def test_register_observer(self):

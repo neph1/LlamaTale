@@ -1,11 +1,8 @@
 from tale import load_items
-from tale.day_cycle.day_cycle import DayCycle
-from tale.day_cycle.llm_day_cycle_listener import LlmDayCycleListener
 from tale.items import generic
 from tale.llm.dynamic_story import DynamicStory
 from tale.player import Player
-from tale.random_event import RandomEvent
-from tale.story import GameMode, StoryConfig
+from tale.story import StoryConfig
 import tale.parse_utils as parse_utils
 import tale.llm.llm_cache as llm_cache
 
@@ -18,7 +15,7 @@ class JsonStory(DynamicStory):
         
     
     def init(self, driver) -> None:
-        self.driver = driver
+        super(JsonStory, self).init(driver)
         locs = {}
         zones = []
         world = parse_utils.load_json(self.path +'world.json')
@@ -56,13 +53,6 @@ class JsonStory(DynamicStory):
             for item in extra_items:
                 self._catalogue.add_item(item)
 
-        if self.config.day_night:
-            self.day_cycle = DayCycle(driver)
-            if self.config.server_mode == GameMode.IF:
-                self.day_cycle.register_observer(LlmDayCycleListener(self.driver))
-        
-        if self.config.random_events:
-            self.random_events = RandomEvent(driver)
 
     def welcome(self, player: Player) -> str:
         player.tell("<bright>Welcome to `%s'.</>" % self.config.name, end=True)

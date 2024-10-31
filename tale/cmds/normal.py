@@ -1368,20 +1368,7 @@ def do_flee(player: Player, parsed: base.ParseResult, ctx: util.Context) -> None
             pass
     raise ActionRefused("You can't flee anywhere!")
 
-
-@cmd("save")
-@disable_notify_action
-@disabled_in_gamemode(GameMode.MUD)
-def do_save(player: Player, parsed: base.ParseResult, ctx: util.Context) -> Generator:
-    """Save your game."""
-    if not ctx.driver.do_check_savefile_free(player):
-        if not (yield "input", ("Are you sure you want to overwrite the previous save game?", lang.yesno)):
-            player.tell("Ok, not saved.")
-            return
-    ctx.driver.do_save(player)
-
-
-@cmd("load", "reload", "restore", "restart")
+@cmd("load", "reload", "restore")
 @disable_notify_action
 @disabled_in_gamemode(GameMode.MUD)
 def do_load(player: Player, parsed: base.ParseResult, ctx: util.Context) -> None:

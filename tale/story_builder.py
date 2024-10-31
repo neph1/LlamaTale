@@ -8,7 +8,7 @@ from tale.llm.dynamic_story import DynamicStory
 from tale.llm.llm_utils import LlmUtil
 from tale.player import PlayerConnection
 from tale.quest import Quest, QuestType
-from tale.story import StoryContext
+from tale.story_context import StoryContext
 from tale.zone import Zone
 
 

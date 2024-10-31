@@ -110,7 +110,7 @@
       {
         "name": "Beer",
         "weight": 0.5,
-        "short_descr": "A glass of beer",
+        "short_descr": "A bottle of beer",
         "effect": 5,
         "type": "Drink",
         "value": 2
@@ -118,7 +118,7 @@
       {
         "name": "Wine",
         "weight": 0.5,
-        "short_descr": "A glass of wine",
+        "short_descr": "A bottle of wine",
         "effect": 5,
         "type": "Drink",
         "value": 3
