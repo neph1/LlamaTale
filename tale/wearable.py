@@ -35,14 +35,8 @@ def load_wearables_from_json(file_path):
     
 wearables_fantasy = load_wearables_from_json('../items/wearables_fantasy.json')
 wearables_modern = load_wearables_from_json('../items/wearables_modern.json')
+wearbles_story = []
 
-# Disclaimer: Not to limit the player, but to give the generator some hints
-female_clothing_modern = {'dress', 'dress_shirt', 'blouse', 'skirt', 'bra', 'panties', 'thong', 'stockings', 'top'}
-male_clothing_modern = {'suit', 'boxers', 'briefs', 'shirt'}
-neutral_clothing_modern = {'t-shirt', 'shirt', 'jeans', 'sneakers', 'belt', 'dress_shoes', 'hat', 'coveralls', 'sweater', 'socks', 'coat', 'jacket'}
-
-
-    
 dressable_body_types = [BodyType.HUMANOID, BodyType.SEMI_BIPEDAL, BodyType.WINGED_MAN]
 
 def body_parts_for_bodytype(bodytype: BodyType) -> list:
@@ -53,13 +47,18 @@ def body_parts_for_bodytype(bodytype: BodyType) -> list:
     return None
 
 def random_wearable_for_body_part(bodypart: WearLocation, setting: str = 'fantasy', armor_only = False) -> dict:
+    wearables = []
     if setting == 'fantasy':
         wearables = wearables_fantasy
-    else:
+    elif setting == 'modern' or setting == 'sci-fi' or setting == 'post-apocalyptic':
         wearables = wearables_modern
+    wearables.extend(wearbles_story)
     available_wearables = [item for item in wearables if item['location'] == bodypart and (not armor_only or item.get('ac', 0) > 0)]
     if not available_wearables:
         return None
     wearable = random.choice(available_wearables)
     wearable['short_descr'] = f"{random.choice(wearable_colors)} {wearable['name']}"
     return wearable
+
+def add_story_wearables(wearables: list):
+    wearbles_story.extend(wearables)
