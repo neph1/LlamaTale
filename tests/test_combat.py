@@ -32,9 +32,10 @@ class TestCombat():
         combat = Combat([attacker], [defender])
 
         text = combat.resolve_attack()
-        assert('attacker hits' in text or 'attacker performs a critical hit' in text)
+        assert('hits' in text)
         assert('defender is injured' in text)
         assert('defender dies' in text)
+        assert not 'defender attacks' in text
 
 
     def test_block_ranged_fails(self):
@@ -235,8 +236,8 @@ class TestCombat():
         text = combat.resolve_attack()
 
         self._assert_combat(attacker, defender, text)
-        assert('attacker hits' in text or 'attacker performs a critical hit' in text)
-        assert('attacker2 hits' in text or 'attacker2 performs a critical hit' in text)
+        assert('attacker attacks')
+        assert('attacker2 attacks')
 
     def test_start_attack_no_combat_points(self):
         attacker = Player(name='att', gender='m')

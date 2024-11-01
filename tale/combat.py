@@ -52,6 +52,11 @@ class Combat():
                 return wearable.ac if wearable else 1
             return actor.stats.ac + 1
     
+    def _subtract_armor_durability(self, actor: 'base.Living', body_part: WearLocation, amount: int):
+        wearable = actor.get_wearable(body_part)
+        if wearable:
+            wearable.durability -= amount
+    
     def resolve_body_part(self, defender: 'base.Living', size_factor: float, target_part: WearLocation = None) -> WearLocation:
         """ Resolve the body part that was hit. """
         body_parts = body_parts_for_bodytype(defender.stats.bodytype)
@@ -94,49 +99,55 @@ class Combat():
         for attacker in self.attackers:
             random_defender = random.choice(self.defenders)
             text_result, damage_to_defender = self._round(attacker, random_defender)   
-            texts.extend(text_result)
+            texts.append(text_result)
             random_defender.stats.hp -= damage_to_defender
             if random_defender.stats.hp < 1:
-                texts.append(f'{random_defender.title} dies')
+                texts.append(f'{random_defender.title} dies from their injuries.')
 
         for defender in self.defenders:
+            if defender.stats.hp < 1:
+                continue
             random_attacker = random.choice(self.attackers)
             text_result, damage_to_attacker = self._round(defender, random_attacker)
-            texts.extend(text_result)
+            texts.append(text_result)
 
             random_attacker.stats.hp -= damage_to_attacker
             if random_attacker.stats.hp < 1:
-                texts.append(f'{random_attacker.title} dies')
+                texts.append(f'{random_attacker.title} dies from their injuries.')
             
-        return ', '.join(texts)
+        return '\n'.join(texts)
     
     def _round(self, actor1: 'base.Living', actor2: 'base.Living') -> Tuple[List[str], int]:
         attack_result = self._calculate_attack_success(actor1)
-        texts = []
+        attack_text = f'{actor1.title} attacks {actor2.title} with their {actor1.wielding.name}'
         if attack_result < 0:
             if attack_result < -actor1.stats.weapon_skills.get(actor1.wielding.type) + 5:
-                texts.append(f'{actor1.title} performs a critical hit on {actor2.title}')
+                attack_text += ' and hits critically'
                 block_result = 100
             else:
-                texts.append(f'{actor1.title} hits {actor2.title}')
+                attack_text += ' and hits'
                 block_result = self._calculate_block_success(actor1, actor2)
-            
+
             if block_result < 0:
-                texts.append(f'but {actor2.title} blocks')
+                attack_text += f', but {actor2.title} blocks with their {actor2.wielding.name}'
+                actor2.wielding.durability -= random.randint(1, 10)
             else:
-                actor1_strength = self._calculate_weapon_bonus(actor1) * actor1.stats.size.order
+                actor1_attack = self._calculate_weapon_bonus(actor1) * actor1.stats.size.order
                 body_part = self.resolve_body_part(actor2, actor1.stats.size.order / actor2.stats.size.order, target_part=self.target_body_part)
-                actor2_strength = self._calculate_armor_bonus(actor2, body_part) * actor2.stats.size.order
-                damage_to_defender = int(max(0, actor1_strength - actor2_strength))
+                actor2_defense = self._calculate_armor_bonus(actor2, body_part) * actor2.stats.size.order
+                damage_to_defender = int(max(0, actor1_attack - actor2_defense))
                 if damage_to_defender > 0:
-                    texts.append(f', {actor2.title} is injured in the {body_part.name.lower()}')
+                    attack_text += f', and {actor2.title} is injured in the {body_part.name.lower()}.'
+                elif actor1_attack < actor2_defense:
+                    attack_text += f', but {actor2.title}\' armor protects them.'
+                    self._subtract_armor_durability(actor2, body_part, actor1_attack)
                 else:
-                    texts.append(f', {actor2.title} is unharmed')
-                return texts, damage_to_defender
+                    attack_text += f', but  {actor2.title} is unharmed.'
+                return attack_text, damage_to_defender
         elif attack_result > 50:
-            texts.append(f'{actor1.title} misses {actor2.title} completely')
+            attack_text + f', but misses completely.'
         elif attack_result > 25:
-            texts.append(f'{actor1.title} misses {actor2.title}')
+            attack_text + f', but misses.'
         else:
-            texts.append(f'{actor1.title} barely misses {actor2.title}')
-        return texts, 0
+            attack_text + f', and barely misses.'
+        return attack_text, 0
