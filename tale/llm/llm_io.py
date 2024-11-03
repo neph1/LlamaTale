@@ -21,7 +21,8 @@ class IoUtil():
             self.headers = headers
             self.io_adapter = LlamaCppAdapter(self.url, backend_config['STREAM_ENDPOINT'], config.get('USER_START', ''), config.get('USER_END', ''), config.get('SYSTEM_START', ''), config.get('PROMPT_END', ''))
         else:
-            headers['Authorization'] = f"Bearer {backend_config['API_PASSWORD']}"
+            if 'API_PASSWORD' in backend_config and backend_config['API_PASSWORD']:
+                headers['Authorization'] = f"Bearer {backend_config['API_PASSWORD']}"
             self.headers = headers
             self.io_adapter = KoboldCppAdapter(self.url, backend_config['STREAM_ENDPOINT'], backend_config['DATA_ENDPOINT'], config.get('USER_START', ''), config.get('USER_END', ''), config.get('SYSTEM_START', ''), config.get('PROMPT_END', ''))
 

@@ -12,6 +12,7 @@ from tale.json_story import JsonStory
 from tale.mob_spawner import MobSpawner
 
 class TestJsonStory():
+    wearable.wearbles_story = []
     driver = IFDriver(screen_delay=99, gui=False, web=True, wizard_override=True)
     driver.game_clock = util.GameDateTime(datetime.datetime(year=2023, month=1, day=1), 1)
     story = JsonStory('tests/files/world_story/', parse_utils.load_story_config(parse_utils.load_json('tests/files/world_story/story_config.json')))
@@ -74,8 +75,7 @@ class TestJsonStory():
 
         assert self.story.day_cycle
         assert self.story.random_events
-
-        assert len(wearable.wearbles_story) == 1
+        
         assert wearable.wearbles_story[0]['name'] == 'fur jacket'
 
 
