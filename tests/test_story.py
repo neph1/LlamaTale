@@ -24,6 +24,7 @@ class TestStoryContext:
         'OPENAI_HEADERS': '',
         'OPENAI_API_KEY': '',
         'OPENAI_JSON_FORMAT': '',
+        'API_PASSWORD': '',
     }
 
     def test_initialization(self):
