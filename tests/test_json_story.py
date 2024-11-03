@@ -5,7 +5,7 @@ import shutil
 from tale.coord import Coord
 from tale.items import generic
 import tale.parse_utils as parse_utils
-from tale import util
+from tale import util, wearable
 from tale.base import Location
 from tale.driver_if import IFDriver
 from tale.json_story import JsonStory
@@ -74,6 +74,9 @@ class TestJsonStory():
 
         assert self.story.day_cycle
         assert self.story.random_events
+
+        assert len(wearable.wearbles_story) == 1
+        assert wearable.wearbles_story[0]['name'] == 'fur jacket'
 
 
     def test_add_location(self):
