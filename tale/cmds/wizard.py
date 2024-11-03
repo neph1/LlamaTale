@@ -904,9 +904,3 @@ def do_create_item(player: Player, parsed: base.ParseResult, ctx: util.Context) 
         player.tell(item.name + ' added.', evoke=False)
     else:
         raise ParseError("Item could not be added")
-
-@wizcmd("restart_story")
-def do_restart(player: Player, parsed: base.ParseResult, ctx: util.Context) -> None:
-    """Restart the game."""
-    player.tell("Restarting the game... Please reconnect")
-    os.execv(sys.executable, ['python3'] + sys.argv)
