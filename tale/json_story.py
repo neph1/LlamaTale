@@ -34,7 +34,7 @@ class JsonStory(DynamicStory):
                 self._catalogue._creatures = world['catalogue']['creatures']
             if  world['catalogue']['items']:
                 self._catalogue._items = world['catalogue']['items']
-            if world['catalogue']['wearables']:
+            if world['catalogue'].get('wearables', None):
                 wearable.add_story_wearables(world['catalogue']['wearables'])
         if world.get('world', None):
             if  world['world']['items']:
