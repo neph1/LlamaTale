@@ -5,13 +5,14 @@ import shutil
 from tale.coord import Coord
 from tale.items import generic
 import tale.parse_utils as parse_utils
-from tale import util
+from tale import util, wearable
 from tale.base import Location
 from tale.driver_if import IFDriver
 from tale.json_story import JsonStory
 from tale.mob_spawner import MobSpawner
 
 class TestJsonStory():
+    wearable.wearbles_story = []
     driver = IFDriver(screen_delay=99, gui=False, web=True, wizard_override=True)
     driver.game_clock = util.GameDateTime(datetime.datetime(year=2023, month=1, day=1), 1)
     story = JsonStory('tests/files/world_story/', parse_utils.load_story_config(parse_utils.load_json('tests/files/world_story/story_config.json')))
@@ -74,6 +75,8 @@ class TestJsonStory():
 
         assert self.story.day_cycle
         assert self.story.random_events
+        
+        assert wearable.wearbles_story[0]['name'] == 'fur jacket'
 
 
     def test_add_location(self):

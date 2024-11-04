@@ -440,6 +440,7 @@ class Item(MudObject):
         self.rent = 0.0    # price to keep in store / day
         self.weight = 0.0  # some abstract unit
         self.takeable = True    # can this item be taken/picked up?
+        self.durability = 100  # how long can this item last?
         super().__init__(name, title=title, descr=descr, short_descr=short_descr)
 
     def init(self) -> None:
@@ -459,6 +460,7 @@ class Item(MudObject):
             "rent": self.rent,
             "weight": self.weight,
             "takeable": self.takeable,
+            "durability": self.durability,
             "location" : self.location.name if self.location else ''
         }
 

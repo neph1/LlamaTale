@@ -13,6 +13,7 @@ class IoUtil():
         self.backend = config['BACKEND']
         self.url = backend_config['URL']
         self.endpoint = backend_config['ENDPOINT']
+        headers = {}
         if self.backend != 'kobold_cpp':
             headers = json.loads(backend_config['OPENAI_HEADERS'])
             headers['Authorization'] = f"Bearer {backend_config['OPENAI_API_KEY']}"
@@ -20,8 +21,10 @@ class IoUtil():
             self.headers = headers
             self.io_adapter = LlamaCppAdapter(self.url, backend_config['STREAM_ENDPOINT'], config.get('USER_START', ''), config.get('USER_END', ''), config.get('SYSTEM_START', ''), config.get('PROMPT_END', ''))
         else:
+            if 'API_PASSWORD' in backend_config and backend_config['API_PASSWORD']:
+                headers['Authorization'] = f"Bearer {backend_config['API_PASSWORD']}"
+            self.headers = headers
             self.io_adapter = KoboldCppAdapter(self.url, backend_config['STREAM_ENDPOINT'], backend_config['DATA_ENDPOINT'], config.get('USER_START', ''), config.get('USER_END', ''), config.get('SYSTEM_START', ''), config.get('PROMPT_END', ''))
-            self.headers = {}
 
         self.stream = backend_config['STREAM']
 
@@ -46,7 +49,7 @@ class IoUtil():
     def stream_request(self, request_body: dict, prompt: str, context: str = '', io = None, wait: bool = False) -> str:
         if self.io_adapter:
             request_body = self.io_adapter.set_prompt(request_body, prompt, context)
-            return self.io_adapter.stream_request(request_body, io, wait)
+            return self.io_adapter.stream_request(self.headers, request_body, io, wait)
         # fall back if no io adapter
         return self.synchronous_request(request_body=request_body, prompt=prompt, context=context)
 

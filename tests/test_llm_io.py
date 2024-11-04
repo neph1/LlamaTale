@@ -76,6 +76,22 @@ class TestLlmIo():
         assert('<context>context</context>' in result['messages'][1]['content'])
         assert(result['messages'][0]['content'] != '<context>context</context>')
 
+
+    def test_password_in_header(self):
+        config_file = self._load_config()
+        config_file['BACKEND'] = 'kobold_cpp'
+
+        backend_config = self._load_backend_config('kobold_cpp')
+        io_util = IoUtil(config=config_file, backend_config=backend_config)
+
+        assert not io_util.headers
+
+        backend_config = self._load_backend_config('kobold_cpp')
+        backend_config['API_PASSWORD'] = 'test_password'
+        io_util = IoUtil(config=config_file, backend_config=backend_config)
+
+        assert io_util.headers['Authorization'] == f"Bearer {backend_config['API_PASSWORD']}"
+
     @responses.activate
     def test_error_response(self):
         config_file = self._load_config()
