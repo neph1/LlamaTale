@@ -25,6 +25,7 @@ from typing import Sequence, Union, Tuple, Any, Dict, Callable, Iterable, Genera
 import appdirs
 from tale.items.basic import Note
 
+from tale.llm import llm_config
 from tale.llm.LivingNpc import LivingNpc
 from tale.npc_defs import StationaryNpc
 from tale.zone import Zone
@@ -908,7 +909,7 @@ class Driver(pubsub.Listener):
             defender_titles.append(defender_title)
         
 
-        return self.llm_util.combat_prompt.format(attackers=attacker_names, 
+        return llm_config['COMBAT_PROMPT'].format(attackers=attacker_names, 
                                                     defenders=defender_titles,
                                                     location=location_title,
                                                     input_text=combat_result,

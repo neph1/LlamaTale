@@ -17,13 +17,10 @@ class QuestBuilding():
         self.io_util = io_util
         self.json_grammar = llm_config.params['JSON_GRAMMAR']
         self.json_grammar_key = json_grammar_key # Type: str
-        self.quest_prompt = llm_config.params['QUEST_PROMPT']
-        self.note_quest_prompt = llm_config.params['NOTE_QUEST_PROMPT']
-        self.note_lore_prompt = llm_config.params['NOTE_LORE_PROMPT']
 
     def generate_quest(self, base_quest: dict, character_name: str, location: Location, context: WorldGenerationContext, character_card: str = '', story_type: str = '', world_info: str = '', zone_info: str = '') -> Quest:
         prompt = self.pre_prompt
-        prompt += self.quest_prompt.format(
+        prompt += self.llm_config.params['QUEST_PROMPT'].format(
             context='{context}',
             base_quest=base_quest,
             location_name=location.name,
@@ -36,7 +33,7 @@ class QuestBuilding():
     
     def generate_note_quest(self, context: WorldGenerationContext, zone_info: str) -> Quest:
         prompt = self.pre_prompt
-        prompt += self.note_quest_prompt.format(
+        prompt += self.llm_config.params['NOTE_QUEST_PROMPT'].format(
             context='{context}',
             zone_info=zone_info)
         request_body = deepcopy(self.default_body)

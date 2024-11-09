@@ -13,11 +13,9 @@ class StoryBuilding():
         self.backend = backend
         self.io_util = io_util
         self.default_body = default_body
-        self.story_background_prompt = llm_config.params['STORY_BACKGROUND_PROMPT'] # Type: str
-        self.advance_story_prompt = llm_config.params['ADVANCE_STORY_PROMPT'] # Type: str
 
     def generate_story_background(self, world_mood: int, world_info: str, story_type: str) -> str:
-        prompt = self.story_background_prompt.format(
+        prompt = llm_config.params['STORY_BACKGROUND_PROMPT'].format(
             story_type=story_type,
             world_mood=parse_utils.mood_string_from_int(world_mood),
             world_info=world_info)
@@ -26,7 +24,7 @@ class StoryBuilding():
     
     def advance_story_section(self, story_context: StoryContext) -> str:
         context = AdvanceStoryContext(story_context)
-        prompt = self.advance_story_prompt.format(context=context.to_prompt_string())
+        prompt = llm_config.params['ADVANCE_STORY_PROMPT'].format(context=context.to_prompt_string())
         request_body = self.default_body
         result = self.io_util.synchronous_request(request_body, prompt=prompt)
         story_context.set_current_section(result)

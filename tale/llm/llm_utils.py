@@ -48,13 +48,9 @@ class LlmUtil():
         self.default_body = json.loads(backend_config['DEFAULT_BODY'])
         self.memory_size = llm_config.params['MEMORY_SIZE']
         self.pre_prompt = llm_config.params['PRE_PROMPT'] # type: str
-        self.evoke_prompt = llm_config.params['BASE_PROMPT'] # type: str
-        self.combat_prompt = llm_config.params['COMBAT_PROMPT'] # type: str
         self.word_limit = llm_config.params['WORD_LIMIT']
         self.short_word_limit = llm_config.params['SHORT_WORD_LIMIT']
-        self.story_background_prompt = llm_config.params['STORY_BACKGROUND_PROMPT'] # type: str
-        self.day_cycle_event_prompt = llm_config.params['DAY_CYCLE_EVENT_PROMPT'] # type: str
-        self.narrative_event_prompt = llm_config.params['NARRATIVE_EVENT_PROMPT']
+        
         self.__story = None # type: DynamicStory
         self.io_util = io_util or IoUtil(config=llm_config.params, backend_config=backend_config)
         self.stream = backend_config['STREAM']
@@ -63,7 +59,7 @@ class LlmUtil():
         self.__story_context = ''
         self.__story_type = ''
         self.__world_info = ''
-        self.action_list = llm_config.params['ACTION_LIST']
+        #self.action_list = llm_config.params['ACTION_LIST']
         json_grammar_key = backend_config['JSON_GRAMMAR_KEY']
         
         #self._look_hashes = dict() # type: dict[int, str] # location hashes for look command. currently never cleared.
@@ -108,7 +104,7 @@ class LlmUtil():
                                         history=rolling_prompt if not (skip_history or alt_prompt) else '', 
                                         extra_context=extra_context)
         prompt = self.pre_prompt
-        prompt += (alt_prompt or self.evoke_prompt).format(
+        prompt += (alt_prompt or llm_config.params['BASE_PROMPT']).format(
             context = '{context}',
             max_words=self.word_limit if not short_len else self.short_word_limit,
             input_text=str(trimmed_message))
@@ -308,7 +304,7 @@ class LlmUtil():
         prompt = self.pre_prompt
         location = player.player.location
         context = self._get_world_context()
-        prompt += self.day_cycle_event_prompt.format(
+        prompt += llm_config.params['DAY_CYCLE_EVENT_PROMPT'].format(
             context= '{context}',
             location_name=location.name,
             from_time=from_time,
@@ -325,7 +321,7 @@ class LlmUtil():
     def generate_narrative_event(self, location: Location) -> str:
         prompt = self.pre_prompt
         context = self._get_world_context()
-        prompt += self.narrative_event_prompt.format(
+        prompt += llm_config.params['NARRATIVE_EVENT_PROMPT'].format(
             context= '{context}',
             location_name=location.name)
         request_body = deepcopy(self.default_body)
