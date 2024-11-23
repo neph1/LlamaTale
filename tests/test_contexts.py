@@ -1,6 +1,6 @@
 
 
-from tale.base import Location
+from tale.base import Living, Location
 from tale.llm.contexts.ActionContext import ActionContext
 from tale.llm.contexts.DungeonLocationsContext import DungeonLocationsContext
 from tale.llm.contexts.EvokeContext import EvokeContext
@@ -57,6 +57,10 @@ class TestPromptContexts():
         character_card = "{actions}"
         history = "[history]"
         location = Location("TestLocation")
+        npc1 = Living("Npc", gender="m", short_descr="A test npc")
+        npc_hidden = Living("Npc Hidden", gender="m")
+        npc_hidden.hidden = True
+        location.init_inventory([npc1, npc_hidden])
         action_list = ["say", "take", "wear"]
         action_context = ActionContext(story_context="test_context",
                                        story_type="test type",
@@ -67,10 +71,13 @@ class TestPromptContexts():
                                        actions=action_list)
         
         result = action_context.to_prompt_string()
+        assert 'npc: A test npc' in result
+        assert 'npc Hidden' not in result
 
         assert character_card in result
         assert character_name in result
-        assert "say" in result
+        assert 'test_context' in result
+        assert "say, take, wear" in result
 
 
     def test_follow_context(self):
