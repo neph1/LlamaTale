@@ -22,7 +22,7 @@ class ActionContext(BaseContext):
         actions = ', '.join(self.actions)
         characters = {}
         for living in self.location.livings:
-            if living.visible and living.name != self.character_name.lower():
+            if living.visible and not living.hidden and living.name != self.character_name.lower():
                 if living.alive:
                     characters[living.name] = living.short_description
                 else:

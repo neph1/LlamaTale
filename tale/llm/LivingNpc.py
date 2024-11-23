@@ -373,7 +373,7 @@ class LivingNpc(Living):
         items = []
         for i in self.inventory:
             items.append(f'"{str(i.name)}"')
-        return '{{"name":"{name}", "gender":"{gender}","age":{age},"occupation":"{occupation}","personality":"{personality}","appearance":"{description}","items":[{items}], "race":"{race}", "quest":"{quest}", "example_voice":"{example_voice}", "wearing":"{wearing}", "wielding":"{wielding}"}}'.format(
+        return '{{"name":"{name}", "gender":"{gender}","age":{age},"occupation":"{occupation}","personality":"{personality}","appearance":"{description}","items":[{items}], "race":"{race}", "quest":"{quest}", "goal":"{goal}", "example_voice":"{example_voice}", "wearing":"{wearing}", "wielding":"{wielding}"}}'.format(
                 name=self.title,
                 gender=lang.gender_string(self.gender),
                 age=self.age,
