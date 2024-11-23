@@ -909,7 +909,7 @@ class Driver(pubsub.Listener):
             defender_titles.append(defender_title)
         
 
-        return llm_config['COMBAT_PROMPT'].format(attackers=attacker_names, 
+        return llm_config.params['COMBAT_PROMPT'].format(attackers=attacker_names, 
                                                     defenders=defender_titles,
                                                     location=location_title,
                                                     input_text=combat_result,

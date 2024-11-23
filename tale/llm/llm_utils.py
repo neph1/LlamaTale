@@ -286,7 +286,7 @@ class LlmUtil():
                                        character_card=character_card,
                                        event_history=event_history,
                                        location=location,
-                                       actions=self.action_list)
+                                       actions=llm_config.params['ACTION_LIST'])
         return self._character.free_form_action(action_context)
 
     def request_follow(self, actor: MudObject, character_name: str, character_card: str, event_history: str, location: Location, asker_reason: str):

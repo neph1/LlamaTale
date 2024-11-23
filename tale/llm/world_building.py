@@ -64,7 +64,7 @@ class WorldBuilding():
         if item_amount > 0:
             items_prompt = llm_config.params['ITEMS_PROMPT'].format(items=item_amount)
 
-        prompt = self.pre_json_prompt
+        prompt = llm_config.params['PRE_JSON_PROMPT']
         prompt += llm_config.params['CREATE_LOCATION_PROMPT'].format(
             context = '{context}',
             zone_info=zone_info,

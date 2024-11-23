@@ -74,6 +74,7 @@ class TestLivingNpc():
         assert(json_card['name'] == 'test')
         assert('ale' in json_card['items'])
         assert('knife' in json_card['items'])
+        assert('goal' in json_card.keys())
         assert(eval(json_card['wielding']) == knife.to_dict())
 
         npc.wielding = None

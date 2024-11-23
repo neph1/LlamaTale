@@ -20,7 +20,7 @@ class QuestBuilding():
 
     def generate_quest(self, base_quest: dict, character_name: str, location: Location, context: WorldGenerationContext, character_card: str = '', story_type: str = '', world_info: str = '', zone_info: str = '') -> Quest:
         prompt = self.pre_prompt
-        prompt += self.llm_config.params['QUEST_PROMPT'].format(
+        prompt += llm_config.params['QUEST_PROMPT'].format(
             context='{context}',
             base_quest=base_quest,
             location_name=location.name,
@@ -33,7 +33,7 @@ class QuestBuilding():
     
     def generate_note_quest(self, context: WorldGenerationContext, zone_info: str) -> Quest:
         prompt = self.pre_prompt
-        prompt += self.llm_config.params['NOTE_QUEST_PROMPT'].format(
+        prompt += llm_config.params['NOTE_QUEST_PROMPT'].format(
             context='{context}',
             zone_info=zone_info)
         request_body = deepcopy(self.default_body)
