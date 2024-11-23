@@ -31,24 +31,8 @@ class WorldBuilding():
         self.default_body = default_body
         self.json_grammar = llm_config.params['JSON_GRAMMAR'] # Type: str
         self.json_grammar_key = json_grammar_key # Type: str
-        self.world_items_prompt = llm_config.params['WORLD_ITEMS'] # Type: str
-        self.world_creatures_prompt = llm_config.params['WORLD_CREATURES'] # Type: str
-        self.player_enter_prompt = llm_config.params['PLAYER_ENTER_PROMPT'] # Type: str
-        self.note_lore_prompt = llm_config.params['NOTE_LORE_PROMPT'] # Type: str
-        self.dungeon_locations_prompt = llm_config.params['CREATE_DUNGEON_LOCATIONS'] # Type: str
-        self.creature_template = llm_config.params['CREATURE_TEMPLATE'] # Type: str
-        self.item_template = llm_config.params['ITEM_TEMPLATE'] # Type: str
-        self.exit_template = llm_config.params['EXIT_TEMPLATE'] # Type: str
-        self.npc_template = llm_config.params['NPC_TEMPLATE']
-        self.location_template = llm_config.params['LOCATION_TEMPLATE']
+     
         self.item_types = llm_config.params['ITEM_TYPES'] # Type: list
-        self.pre_json_prompt = llm_config.params['PRE_JSON_PROMPT'] # Type: str
-        self.location_prompt = llm_config.params['CREATE_LOCATION_PROMPT'] # Type: str
-        self.spawn_prompt = llm_config.params['SPAWN_PROMPT'] # Type: str
-        self.items_prompt = llm_config.params['ITEMS_PROMPT'] # Type: str
-        self.create_zone_prompt = llm_config.params['CREATE_ZONE_PROMPT'] # Type: str
-        self.zone_template = llm_config.params['ZONE_TEMPLATE'] # Type: str
-        self.dungeon_location_template = llm_config.params['DUNGEON_LOCATION_TEMPLATE'] # Type: str
 
 
     def build_location(self, location: Location, 
@@ -73,15 +57,15 @@ class WorldBuilding():
             num_mood = (int) (random.gauss(num_mood, 2))
             level = (int) (random.gauss(zone_info.get('level', 1), 2))
             mood_string = parse_utils.mood_string_from_int(num_mood)
-            spawn_prompt = self.spawn_prompt.format(alignment=mood_string, level=level)
+            spawn_prompt = llm_config.params['SPAWN_PROMPT'].format(alignment=mood_string, level=level)
 
         items_prompt = ''
         item_amount = (int) (random.gauss(1, 2))
         if item_amount > 0:
-            items_prompt = self.items_prompt.format(items=item_amount)
+            items_prompt = llm_config.params['ITEMS_PROMPT'].format(items=item_amount)
 
-        prompt = self.pre_json_prompt
-        prompt += self.location_prompt.format(
+        prompt = llm_config.params['PRE_JSON_PROMPT']
+        prompt += llm_config.params['CREATE_LOCATION_PROMPT'].format(
             context = '{context}',
             zone_info=zone_info,
             exit_locations=exit_location_name,
@@ -89,9 +73,9 @@ class WorldBuilding():
             spawn_prompt=spawn_prompt,
             items_prompt=items_prompt,
             exit_location_name=exit_location_name,
-            exit_template=self.exit_template,
-            npc_template=self.npc_template,
-            location_template=self.location_template,)
+            exit_template=llm_config.params['EXIT_TEMPLATE'],
+            npc_template=llm_config.params['NPC_TEMPLATE'],
+            location_template=llm_config.params['LOCATION_TEMPLATE'])
             
 
         request_body = deepcopy(self.default_body)
@@ -201,14 +185,14 @@ class WorldBuilding():
     def generate_start_zone(self, location_desc: str, context: WorldGenerationContext) -> Zone:
         """ Generate a zone based on the current story context"""
 
-        prompt = self.pre_json_prompt
-        prompt += self.create_zone_prompt.format(
+        prompt = llm_config.params['PRE_JSON_PROMPT']
+        prompt += llm_config.params['CREATE_ZONE_PROMPT'] .format(
             context = '{context}',
             direction='',
             zone_info='',
             exit_location='',
             location_desc=location_desc,
-            zone_template=self.zone_template)
+            zone_template=llm_config.params['ZONE_TEMPLATE'])
         
         request_body = deepcopy(self.default_body)
         if self.json_grammar_key:
@@ -223,8 +207,8 @@ class WorldBuilding():
         
 
     def generate_world_items(self, world_generation_context: WorldGenerationContext, item_types: list = []) -> WorldItemsResponse:
-        prompt = self.world_items_prompt.format(context = '{context}',
-                                                item_template=self.item_template,
+        prompt = llm_config.params['WORLD_ITEMS'].format(context = '{context}',
+                                                item_template=llm_config.params['ITEM_TEMPLATE'],
                                                 item_types=item_types or self.item_types)
         request_body = deepcopy(self.default_body)
         if self.json_grammar_key:
@@ -239,8 +223,8 @@ class WorldBuilding():
             return WorldItemsResponse()
     
     def generate_world_creatures(self, world_generation_context: WorldGenerationContext) -> WorldCreaturesResponse:
-        prompt = self.world_creatures_prompt.format(context = '{context}',
-                                                creature_template=self.creature_template)
+        prompt = llm_config.params['WORLD_CREATURES'].format(context = '{context}',
+                                                creature_template=llm_config.params['CREATURE_TEMPLATE'])
         request_body = deepcopy(self.default_body)
         if self.json_grammar_key:
             request_body[self.json_grammar_key] = self.json_grammar
@@ -254,8 +238,8 @@ class WorldBuilding():
     
     def generate_random_spawn(self, location: Location, context: WorldGenerationContext, zone_info: dict, world_creatures: list, world_items: list) -> bool:
         location_info = {'name': location.title, 'description': location.look(short=True), 'exits': location.exits}
-        prompt = self.player_enter_prompt.format(context = '{context}',
-                                                npc_template=self.npc_template,
+        prompt = llm_config.params['PLAYER_ENTER_PROMPT'].format(context = '{context}',
+                                                npc_template=llm_config.params['NPC_TEMPLATE'],
                                                 zone_info=zone_info,
                                                 location_info=location_info)
         request_body = deepcopy(self.default_body)
@@ -283,7 +267,7 @@ class WorldBuilding():
         
     def generate_note_lore(self, context: WorldGenerationContext, zone_info: str) -> str:
         """ Generate a note with story lore."""
-        prompt = self.note_lore_prompt.format(context = '{context}',
+        prompt = llm_config.params['NOTE_LORE_PROMPT'].format(context = '{context}',
                                                 zone_info=zone_info)
         request_body = deepcopy(self.default_body)
         result = self.io_util.synchronous_request(request_body, prompt=prompt, context=context.to_prompt_string())
@@ -295,7 +279,7 @@ class WorldBuilding():
         
     def generate_dungeon_locations(self, context: DungeonLocationsContext) -> LocationDescriptionResponse:
         """ Generate a list of descriptins for locations in a dungeon."""
-        prompt = self.dungeon_locations_prompt.format(context = context.to_prompt_string(), dungeon_location_template=self.dungeon_location_template)
+        prompt = llm_config.params['CREATE_DUNGEON_LOCATIONS'].format(context = context.to_prompt_string(), dungeon_location_template=llm_config.params['DUNGEON_LOCATION_TEMPLATE'])
         request_body = deepcopy(self.default_body)
         if self.json_grammar_key:
             request_body[self.json_grammar_key] = self.json_grammar
