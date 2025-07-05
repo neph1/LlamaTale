@@ -494,7 +494,7 @@ def direction_from_coordinates(direction: Coord):
 def mood_string_from_int(mood: int):
     """ Returns a mood string based on the supplied int"""
 
-    if mood == 0:
+    if mood == None or mood == 0:
         return ' neutral'
     
     base_mood = 'friendly' if mood > 0 else 'hostile'
@@ -671,7 +671,7 @@ def save_locations(locations: List[Location]) -> dict:
         json_location['world_location'] = location.world_location.as_tuple()
         json_location['built'] = location.built
         exits = []
-        for exit in location.exits.values(): # type: Exit
+        for exit in location.exits.values():
             json_exit = {}
             json_exit['name'] = exit.name.capitalize()
             json_exit['short_descr'] = exit.short_description

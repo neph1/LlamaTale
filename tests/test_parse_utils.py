@@ -382,6 +382,7 @@ class TestParseUtils():
         assert parse_utils.mood_string_from_int(5) == ' uttermost friendly'
         assert parse_utils.mood_string_from_int(0) == ' neutral'
         assert parse_utils.mood_string_from_int(-4) == ' extremely hostile'
+        assert parse_utils.mood_string_from_int(None) == ' neutral'
 
 class TestLoadNpcs:
 
