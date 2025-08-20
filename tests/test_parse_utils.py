@@ -1,7 +1,7 @@
 import datetime
 import json
 from typing import List
-from tale import load_items, util
+from tale import json_util, load_items, util
 from tale.base import Exit, Living, Location, Weapon, Wearable
 from tale.coord import Coord
 from tale.driver_if import IFDriver
@@ -375,7 +375,7 @@ class TestParseUtils():
 
     def test_sanitize_json(self):
         json_string = '{ "name": "Whispering Woods", "description": "A dense, misty forest teeming with life. The trees whisper secrets to those who listen, and the creatures here are said to possess ancient wisdom. Friendly creatures roam the area, and the air is filled with the sweet scent of enchanted flowers.", "races": [], "items": [], "mood": 5, "level": 1} '
-        sanitized = json.loads(parse_utils.sanitize_json(json_string))
+        sanitized = json_util.safe_load(json_string)
         assert sanitized['name'] == 'Whispering Woods'
 
     def test_mood_string_from_int(self):

@@ -14,6 +14,7 @@ from .tio import DEFAULT_SCREEN_DELAY
 from .story import GameMode
 from .driver import Driver
 
+stored_args = None
 
 def run_from_cmdline(cmdline: Sequence[str]) -> None:
     """Run Tale from the commandline."""
@@ -32,25 +33,50 @@ def run_from_cmdline(cmdline: Sequence[str]) -> None:
     parser.add_argument('-z', '--wizard', help='force wizard mode on if story character (for debug purposes)', action='store_true')
     parser.add_argument('-c', '--character', help='load a v2 character card as player (skips character builder)')
     args = parser.parse_args(cmdline)
+    vargs = vars(args)
+    global stored_args
+    stored_args = vargs
+    run_game(vargs)
+
+def run_game(vargs) -> None:
+    """Run the game."""
     try:
         # select the correct driver type, configure it, and start the story.
-        game_mode = GameMode(args.mode)
+        game_mode = GameMode(vargs.get('mode', 'if'))
         if game_mode == GameMode.IF:
             from .driver_if import IFDriver
-            driver = IFDriver(screen_delay=args.delay, gui=args.gui, web=args.web, wizard_override=args.wizard, character_to_load=args.character)   # type: Driver
+            driver = IFDriver(
+                screen_delay=vargs.get('delay', DEFAULT_SCREEN_DELAY),
+                gui=vargs.get('gui', False),
+                web=vargs.get('web', False),
+                wizard_override=vargs.get('wizard', False),
+                character_to_load=vargs.get('character')
+            )   # type: Driver
         elif game_mode == GameMode.MUD:
             from .driver_mud import MudDriver
-            driver = MudDriver(args.restricted)
+            driver = MudDriver(vargs.get('restricted', False))
         else:
             raise ValueError("invalid game mode")
-        driver.start(args.game)
+        driver.start(vargs.get('game', '.'))
     except:
-        if args.gui:
+        if vargs.get('gui', False):
             tb = traceback.format_exc()
             from .tio import tkinter_io
             tkinter_io.show_error_dialog("Exception during start", "An error occurred while starting up the game:\n\n" + tb)
         raise
 
+def restart_game(game: str) -> None:
+    """Restart the game."""
+    del sys.modules["story"]
+    args = dict()
+    args['game'] = game
+    args['delay'] = DEFAULT_SCREEN_DELAY
+    args['mode'] = "if"
+    args['gui'] = False
+    args['web'] = False
+    args['restricted'] = False
+    args['wizard'] = True
+    run_game(args)
 
 if __name__ == "__main__":
     run_from_cmdline(sys.argv[1:])
