@@ -432,13 +432,16 @@ def parse_generated_exits(exits: list, exit_location_name: str, location: Locati
             
             new_location.built = False
             new_location.generated = True
-            from_description = f'To the {directions_from[1]} you see {location.name}.' if len(directions_from) > 1 else f'You see {location.name}.'
+            # Ensure we have a valid direction before using it in description
+            has_return_direction = len(directions_from) > 1 and directions_from[1]
+            from_description = f'To the {directions_from[1]} you see {location.name}.' if has_return_direction else f'You see {location.name}.'
             exit_back = Exit(directions=directions_from, 
                     target_location=location, 
                     short_descr=from_description)
             new_location.add_exits([exit_back])
             exit_description = exit.get('short_descr', new_location.name).lower()
-            to_description = 'To the {direction} you see {exit_description}'.format(direction=directions_to[1], exit_description=exit_description)  if len(directions_to) > 1 else f'You see {exit_description}.'
+            has_to_direction = len(directions_to) > 1 and directions_to[1]
+            to_description = f'To the {directions_to[1]} you see {exit_description}' if has_to_direction else f'You see {exit_description}.'
             exit_to = Exit(directions=directions_to, 
                             target_location=new_location, 
                             short_descr=to_description, 
