@@ -206,20 +206,20 @@ class LlmUtil():
         world_generation_context = WorldGenerationContext(story_context=story_context, story_type=story_type, world_info=world_info, world_mood=world_info['world_mood'])
         return self._world_building.generate_start_zone(location_desc, context=world_generation_context)
     
-    def generate_world_items(self, story_context: str = '', story_type: str = '', world_info: str = '', world_mood: int = None, item_types: list = []) -> WorldItemsResponse:
+    def generate_world_items(self, story_context: str = '', story_type: str = '', world_info: str = '', world_mood: int = None, item_types: list = [], count: int = 7) -> WorldItemsResponse:
         world_generation_context = WorldGenerationContext(story_context=story_context or self.__story_context,
                                                             story_type=story_type or self.__story_type,
                                                             world_info=world_info or self.__world_info,
                                                             world_mood=world_mood or self.__story.config.world_mood)
-        return self._world_building.generate_world_items(world_generation_context, item_types=item_types)
+        return self._world_building.generate_world_items(world_generation_context, item_types=item_types, count=count)
         
     
-    def generate_world_creatures(self, story_context: str = '', story_type: str = '', world_info: str = '', world_mood: int = None) -> WorldCreaturesResponse:
+    def generate_world_creatures(self, story_context: str = '', story_type: str = '', world_info: str = '', world_mood: int = None, count: int = 5) -> WorldCreaturesResponse:
         world_generation_context = WorldGenerationContext(story_context=story_context or self.__story_context,
                                                             story_type=story_type or self.__story_type,
                                                             world_info=world_info or self.__world_info,
                                                             world_mood=world_mood or self.__story.config.world_mood)
-        return self._world_building.generate_world_creatures(world_generation_context)
+        return self._world_building.generate_world_creatures(world_generation_context, count=count)
         
     def generate_random_spawn(self, location: Location, zone_info: dict) -> bool:
         return self._world_building.generate_random_spawn(location=location, 

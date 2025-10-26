@@ -244,37 +244,86 @@ class TestWorldBuilding():
         assert(result.races == ['human', 'elf', 'dwarf'])
 
     def test_generate_world_items(self):
-        self.llm_util._world_building.io_util.response = '{"items":[{"name": "sword", "type": "Weapon","value": 100}, {"name": "shield", "type": "Armor", "value": 60}]}'
+        # Test generating items one at a time (new chunked approach)
+        # For 7 items, we need to provide 7 responses
+        item_responses = [
+            '{"item":{"name": "sword", "type": "Weapon","value": 100}}',
+            '{"item":{"name": "shield", "type": "Armor", "value": 60}}',
+            '{"item":{"name": "potion", "type": "Health", "value": 30}}',
+            '{"item":{"name": "gold coin", "type": "Money", "value": 1}}',
+            '{"item":{"name": "leather armor", "type": "Wearable", "value": 50}}',
+            '{"item":{"name": "dagger", "type": "Weapon", "value": 25}}',
+            '{"item":{"name": "bread", "type": "Food", "value": 5}}'
+        ]
+        self.llm_util._world_building.io_util.response = item_responses
         result = self.llm_util._world_building.generate_world_items(world_generation_context=WorldGenerationContext(story_context='',story_type='',world_info='',world_mood=0))
         assert(result.valid)
-        assert(len(result.items) == 2)
+        assert(len(result.items) == 7)
         sword = result.items[0]
         assert(sword['name'] == 'sword')
         shield = result.items[1]
         assert(shield['name'] == 'shield')
 
-        self.llm_util._world_building.io_util.response = ''
-        result = self.llm_util._world_building.generate_world_items(world_generation_context=WorldGenerationContext(story_context='',story_type='',world_info='',world_mood=0))
-        assert not result.valid
-        assert(len(result.items) == 0)
+        # Test with count parameter
+        item_responses_2 = [
+            '{"item":{"name": "axe", "type": "Weapon","value": 80}}',
+            '{"item":{"name": "helm", "type": "Armor", "value": 40}}'
+        ]
+        self.llm_util._world_building.io_util.response = item_responses_2
+        result = self.llm_util._world_building.generate_world_items(world_generation_context=WorldGenerationContext(story_context='',story_type='',world_info='',world_mood=0), count=2)
+        assert(result.valid)
+        assert(len(result.items) == 2)
+
+        # Test with empty/invalid responses - should continue with other items
+        mixed_responses = [
+            '{"item":{"name": "ring", "type": "Wearable","value": 200}}',
+            '',  # Invalid response
+            '{"item":{"name": "bow", "type": "Weapon","value": 90}}'
+        ]
+        self.llm_util._world_building.io_util.response = mixed_responses
+        result = self.llm_util._world_building.generate_world_items(world_generation_context=WorldGenerationContext(story_context='',story_type='',world_info='',world_mood=0), count=3)
+        assert(len(result.items) == 2)  # Only 2 valid items out of 3 attempts
 
 
     def test_generate_world_creatures(self):
-        # mostly for coverage
-        self.llm_util._world_building.io_util.response = '{"creatures":[{"name": "dragon", "body": "Creature", "unarmed_attack": "BITE", "hp":100, "level":10}]}'
+        # Test generating creatures one at a time (new chunked approach)
+        # For 5 creatures, we need to provide 5 responses
+        creature_responses = [
+            '{"creature":{"name": "dragon", "body": "Creature", "unarmed_attack": "BITE", "hp":100, "level":10}}',
+            '{"creature":{"name": "wolf", "body": "Beast", "unarmed_attack": "CLAWS", "hp":50, "level":5}}',
+            '{"creature":{"name": "goblin", "body": "Humanoid", "unarmed_attack": "FISTS", "hp":30, "level":3}}',
+            '{"creature":{"name": "bear", "body": "Beast", "unarmed_attack": "CLAWS", "hp":80, "level":7}}',
+            '{"creature":{"name": "rat", "body": "Vermin", "unarmed_attack": "BITE", "hp":5, "level":1}}'
+        ]
+        self.llm_util._world_building.io_util.response = creature_responses
         result = self.llm_util._world_building.generate_world_creatures(world_generation_context=WorldGenerationContext(story_context='',story_type='',world_info='',world_mood=0))
         assert(result.valid)
-        assert(len(result.creatures) == 1)
+        assert(len(result.creatures) == 5)
         dragon = result.creatures[0]
         assert(dragon["name"] == 'dragon')
         assert(dragon["hp"] == 100)
         assert(dragon["level"] == 10)
         assert(dragon["unarmed_attack"] == UnarmedAttack.BITE.name)
 
-        self.llm_util._world_building.io_util.response = ''
-        result = self.llm_util._world_building.generate_world_creatures(world_generation_context=WorldGenerationContext(story_context='',story_type='',world_info='',world_mood=0))
-        assert not result.valid
-        assert(len(result.creatures) == 0)
+        # Test with count parameter
+        creature_responses_2 = [
+            '{"creature":{"name": "spider", "body": "Arachnid", "unarmed_attack": "BITE", "hp":20, "level":2}}',
+            '{"creature":{"name": "orc", "body": "Humanoid", "unarmed_attack": "FISTS", "hp":60, "level":6}}'
+        ]
+        self.llm_util._world_building.io_util.response = creature_responses_2
+        result = self.llm_util._world_building.generate_world_creatures(world_generation_context=WorldGenerationContext(story_context='',story_type='',world_info='',world_mood=0), count=2)
+        assert(result.valid)
+        assert(len(result.creatures) == 2)
+
+        # Test with empty/invalid responses - should continue with other creatures
+        mixed_responses = [
+            '{"creature":{"name": "skeleton", "body": "Undead", "unarmed_attack": "FISTS", "hp":40, "level":4}}',
+            '',  # Invalid response
+            '{"creature":{"name": "zombie", "body": "Undead", "unarmed_attack": "BITE", "hp":35, "level":3}}'
+        ]
+        self.llm_util._world_building.io_util.response = mixed_responses
+        result = self.llm_util._world_building.generate_world_creatures(world_generation_context=WorldGenerationContext(story_context='',story_type='',world_info='',world_mood=0), count=3)
+        assert(len(result.creatures) == 2)  # Only 2 valid creatures out of 3 attempts
 
     def test_get_neighbor_or_generate_zone(self):
         """ Tests the get_neighbor_or_generate_zone method of llm_utils.
@@ -374,15 +423,32 @@ class TestWorldBuilding():
         assert(len(response.new_locations) == 2)
 
     def test_chatgpt_generated_story(self):
-        item_response = '{   "items": [     {       "name": "Enchanted Rose",       "type": "Other",       "short_descr": "A magical rose that never withers",       "level": 1,       "value": 50     },     {       "name": "Tea Set",       "type": "Wearable",       "short_descr": "A delightful tea set for elegant gatherings",       "level": 2,       "value": 80     },     {       "name": "Winged Boots",       "type": "Wearable",       "short_descr": "Boots that allow the wearer to fly short distances",       "level": 3,       "value": 120     },     {       "name": "Pixie\'s Elixir",       "type": "Health",       "short_descr": "A revitalizing potion that restores health",       "level": 4,       "value": 150     },     {       "name": "Jester\'s Hat",       "type": "Wearable",       "short_descr": "A colorful hat that brings joy and laughter",       "level": 5,       "value": 200     },     {       "name": "Rainbow Wand",       "type": "Weapon",       "short_descr": "A wand that shoots dazzling rainbow projectiles",       "level": 6,       "value": 250     },     {       "name": "Golden Oz Coin",       "type": "Money",       "short_descr": "A rare and valuable coin from the Land of Oz",       "level": 7,       "value": 300     }   ] }'
-        creature_response = '{"creatures": [   {"name": "Whisperwing",    "body": "Small dragon",    "mass": 10,    "hp": 50,    "level": 3,    "unarmed_attack": "CLAWS",    "short_descr": "A colorful dragon with feathered wings and a mischievous personality."},    {"name": "Glowbug",    "body": "Bioluminescent insect",    "mass": 1,    "hp": 10,    "level": 1,    "unarmed_attack": "BITE",    "short_descr": "A tiny insect that emits a soft, soothing glow in the dark."},    {"name": "Fluffpuff",    "body": "Fluffy creature",    "mass": 5,    "hp": 25,    "level": 2,    "unarmed_attack": "TAIL",    "short_descr": "A round, fluffy creature with a cuddly appearance and a playful nature."},    {"name": "Coralite",    "body": "Coral-like sea creature",    "mass": 20,    "hp": 75,    "level": 4,    "unarmed_attack": "TENTACLES",    "short_descr": "A graceful creature that dwells in underwater caves, adorned with vibrant coral-like formations."},    {"name": "Whiskerbeast",    "body": "Feline creature",    "mass": 15,    "hp": 60,    "level": 3,    "unarmed_attack": "CLAWS",    "short_descr": "A playful and agile creature with long, fluffy whiskers and a shimmering fur coat."} ]}'
+        # Create individual item responses (7 items)
+        item_responses = [
+            '{"item":{"name": "Enchanted Rose", "type": "Other", "short_descr": "A magical rose that never withers", "level": 1, "value": 50}}',
+            '{"item":{"name": "Tea Set", "type": "Wearable", "short_descr": "A delightful tea set for elegant gatherings", "level": 2, "value": 80}}',
+            '{"item":{"name": "Winged Boots", "type": "Wearable", "short_descr": "Boots that allow the wearer to fly short distances", "level": 3, "value": 120}}',
+            '{"item":{"name": "Pixie\'s Elixir", "type": "Health", "short_descr": "A revitalizing potion that restores health", "level": 4, "value": 150}}',
+            '{"item":{"name": "Jester\'s Hat", "type": "Wearable", "short_descr": "A colorful hat that brings joy and laughter", "level": 5, "value": 200}}',
+            '{"item":{"name": "Rainbow Wand", "type": "Weapon", "short_descr": "A wand that shoots dazzling rainbow projectiles", "level": 6, "value": 250}}',
+            '{"item":{"name": "Golden Oz Coin", "type": "Money", "short_descr": "A rare and valuable coin from the Land of Oz", "level": 7, "value": 300}}'
+        ]
+        # Create individual creature responses (5 creatures)
+        creature_responses = [
+            '{"creature":{"name": "Whisperwing", "body": "Small dragon", "mass": 10, "hp": 50, "level": 3, "unarmed_attack": "CLAWS", "short_descr": "A colorful dragon with feathered wings and a mischievous personality."}}',
+            '{"creature":{"name": "Glowbug", "body": "Bioluminescent insect", "mass": 1, "hp": 10, "level": 1, "unarmed_attack": "BITE", "short_descr": "A tiny insect that emits a soft, soothing glow in the dark."}}',
+            '{"creature":{"name": "Fluffpuff", "body": "Fluffy creature", "mass": 5, "hp": 25, "level": 2, "unarmed_attack": "TAIL", "short_descr": "A round, fluffy creature with a cuddly appearance and a playful nature."}}',
+            '{"creature":{"name": "Coralite", "body": "Coral-like sea creature", "mass": 20, "hp": 75, "level": 4, "unarmed_attack": "TENTACLES", "short_descr": "A graceful creature that dwells in underwater caves, adorned with vibrant coral-like formations."}}',
+            '{"creature":{"name": "Whiskerbeast", "body": "Feline creature", "mass": 15, "hp": 60, "level": 3, "unarmed_attack": "CLAWS", "short_descr": "A playful and agile creature with long, fluffy whiskers and a shimmering fur coat."}}'
+        ]
         zone_desc = '{   "name": "Cozy Meadows",   "description": "A tranquil expanse of lush green meadows, dotted with colorful wildflowers and tall, swaying grass. The air is filled with the sweet fragrance of nature, inviting weary wanderers to rest and enjoy the serene surroundings. Sunlight filters through the canopy of trees, casting golden rays upon the meadows and creating a picturesque setting for picnics and leisurely strolls. Squirrels chase each other playfully, and birds sing melodious tunes from the branches above. It\'s a perfect place to unwind and find respite from the troubles of the world.",   "races": ["whisperwing", "glowbug", "fluffpuff", "coralite", "whiskerbeast"],   "items": {     "enchanted rose": "flower",     "tea set": "utensils",     "winged boots": "footwear",     "pixie\'s elixir": "potion",     "jester\'s hat": "headgear"   },   "mood": "friendly",   "level": 1 }'
         location_desc = '{   "description": "A gentle transition between the lush meadows and the enchanting forests, Meadow\'s Edge is a place where tranquility meets adventure. Tall grass sways in the breeze, beckoning explorers to venture further. The air carries the sweet scent of wildflowers, creating a blissful harmony with nature\'s orchestra.",   "exits": [     {"direction": "North", "name": "Whispering Grove", "short_descr": "A mystical grove filled with ancient whispering trees."},     {"direction": "East", "name": "Butterfly Meadow", "short_descr": "A haven for delicate butterflies, fluttering amidst colorful blooms."},     {"direction": "West", "name": "Sunlit Glade", "short_descr": "A sun-dappled glade where rays of light dance upon the moss-covered ground."}   ],   "items": [     {"name": "Songbird Feather", "type": "treasure"},     {"name": "Dewdrop Pendant", "type": "accessory"},     {"name": "Meadowlark Whistle", "type": "instrument"}   ],   "npcs": [     {"name": "Flora", "sentiment": "friendly", "race": "whisperwing", "gender": "f", "level": 2, "description": "A graceful whisperwing with iridescent wings, known for her soothing melodies."},     {"name": "Bramble", "sentiment": "neutral", "race": "fluffpuff", "gender": "m", "level": 3, "description": "A mischievous fluffpuff with a twinkle in his eye, able to shape-shift into various plants."},     {"name": "Corvus", "sentiment": "hostile", "race": "whiskerbeast", "gender": "m", "level": 5, "description": "A fierce whiskerbeast with sleek black fur, his piercing gaze holds a hint of danger."}   ] }'
         location_desc_2 = '{     "description": "A gentle slope leads to Meadow\'s Edge, where wildflowers stretch out as far as the eye can see. Butterflies dance between the blades of grass, creating a kaleidoscope of colors. A babbling brook runs alongside, inviting visitors to dip their toes in its crystal-clear water.",     "exits": [         {"direction": "North", "name": "Whispering Woods", "short_descr": "A mysterious forest filled with ancient trees that whisper secrets to those who dare to listen."},         {"direction": "East", "name": "Glowing Glade", "short_descr": "An enchanted clearing bathed in a soft, ethereal glow, where fireflies dance in mesmerizing patterns."},         {"direction": "South", "name": "Fluffy Fields", "short_descr": "Rolling hills covered in plush tufts of grass, where fluffy sheep graze peacefully under the watchful eye of their shepherd."}     ],     "items": [],     "npcs": [] }'
         location = Location(name='Meadow\'s Edge')
         exit_location_name = 'Sunflower Way'
         self.llm_util.set_story(self.story)
-        self.llm_util._world_building.io_util.response = [item_response, creature_response, zone_desc, location_desc, location_desc_2]
+        # Provide responses in order: items (7), creatures (5), zone, location, location_desc_2
+        self.llm_util._world_building.io_util.response = item_responses + creature_responses + [zone_desc, location_desc, location_desc_2]
         world_items = self.llm_util.generate_world_items(story_context='', 
                                                    story_type='',
                                                    world_mood=0,

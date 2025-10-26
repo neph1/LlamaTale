@@ -131,8 +131,25 @@ class TestEnrichCommand():
     
     context = tale._MudContext()
     context.config = StoryConfig()
-    io_util = FakeIoUtil(response=['{"items":[{"name":"Enchanted Petals", "type":"Health", "value": 20, "description": "A handful of enchanted petals that can be used to heal wounds and cure ailments."}]}',
-                                   '{"creatures": [   {   "name": "Whimsy Woozle",   "description": "A gentle, ethereal creature with a penchant for gardening and poetry. They tend to the area\'s lush fields and forests, filling the air with sweet melodies and the scent of blooming wildflowers. They are friendly and welcoming to all visitors.",   "level": 1   },   {   "name": "Lunar Lopster",   "description": "A mysterious crustacean with an affinity for the moon\'s gentle light. They roam the area at night, their glowing shells lighting the way through the darkness. They are neutral towards visitors, but may offer cryptic advice or guidance to those who seek it.",   "level": 2   },   {   "name": "Shadow Stag",   "description": "A sleek and elusive creature with a mischievous grin. They roam the area\'s forests, their dark forms blending into the shadows. They are hostile towards intruders, and will not hesitate to attack those who threaten their home.",   "level": 3   },   {   "name": "Moonflower",   "description": "A rare and beautiful flower that blooms only under the light of the full moon. They can be found in the area\'s forests, and are said to have powerful healing properties. They are very friendly towards visitors, and will offer their petals to those who show kindness and respect.",   "level": 4   },   {   "name": "Moonstone",   "description": "A rare and valuable mineral that can be found in the area\'s mountains. It glows with a soft, ethereal light, and is said to have powerful magical properties. It is highly sought after by collectors, and can be found in both the earth and the water.",   "level": 5   }]}'])
+    # Individual item responses (7 items for default count)
+    item_responses = [
+        '{"item":{"name":"Enchanted Petals", "type":"Health", "value": 20, "description": "A handful of enchanted petals that can be used to heal wounds and cure ailments."}}',
+        '{"item":{"name":"Magic Seed", "type":"Other", "value": 10, "description": "A magical seed that can grow into anything."}}',
+        '{"item":{"name":"Moonstone", "type":"Other", "value": 50, "description": "A glowing stone from the moon."}}',
+        '{"item":{"name":"Healing Potion", "type":"Health", "value": 30, "description": "A potion that heals wounds."}}',
+        '{"item":{"name":"Golden Coin", "type":"Money", "value": 1, "description": "A shiny golden coin."}}',
+        '{"item":{"name":"Fairy Dust", "type":"Other", "value": 15, "description": "Magical dust from fairies."}}',
+        '{"item":{"name":"Crystal Wand", "type":"Weapon", "value": 100, "description": "A wand made of pure crystal."}}'
+    ]
+    # Individual creature responses (5 creatures for default count)
+    creature_responses = [
+        '{"creature":{"name": "Whimsy Woozle", "description": "A gentle, ethereal creature with a penchant for gardening and poetry. They tend to the area\'s lush fields and forests, filling the air with sweet melodies and the scent of blooming wildflowers. They are friendly and welcoming to all visitors.", "level": 1}}',
+        '{"creature":{"name": "Lunar Lopster", "description": "A mysterious crustacean with an affinity for the moon\'s gentle light. They roam the area at night, their glowing shells lighting the way through the darkness. They are neutral towards visitors, but may offer cryptic advice or guidance to those who seek it.", "level": 2}}',
+        '{"creature":{"name": "Shadow Stag", "description": "A sleek and elusive creature with a mischievous grin. They roam the area\'s forests, their dark forms blending into the shadows. They are hostile towards intruders, and will not hesitate to attack those who threaten their home.", "level": 3}}',
+        '{"creature":{"name": "Moonflower", "description": "A rare and beautiful flower that blooms only under the light of the full moon. They can be found in the area\'s forests, and are said to have powerful healing properties. They are very friendly towards visitors, and will offer their petals to those who show kindness and respect.", "level": 4}}',
+        '{"creature":{"name": "Moonstone Spirit", "description": "A rare and valuable entity that can be found in the area\'s mountains. It glows with a soft, ethereal light, and is said to have powerful magical properties. It is highly sought after by collectors, and can be found in both the earth and the water.", "level": 5}}'
+    ]
+    io_util = FakeIoUtil(response=item_responses + creature_responses)
     llm_util = LlmUtil(io_util)
     story = DynamicStory()
     llm_util.set_story(story)
@@ -152,14 +169,16 @@ class TestEnrichCommand():
         assert(len(self.story._catalogue._items) == 0)
 
     def test_enrich_items(self):
-        self.context.driver.llm_util.io_util.set_response('{"items":[{"name":"Enchanted Petals", "type":"Health", "value": 20, "description": "A handful of enchanted petals that can be used to heal wounds and cure ailments."}]}')
+        # Set individual item responses (7 items)
+        self.context.driver.llm_util.io_util.set_response(self.item_responses)
         parse_result = ParseResult(verb='enrich items', args=['items'])
         wizard.do_enrich(self.test_player, parse_result, self.context)
 
-        assert(len(self.story._catalogue._items) == 1)
+        assert(len(self.story._catalogue._items) == 7)  # Now generates 7 items by default
 
     def test_enrich_creatures(self):
-        self.context.driver.llm_util.io_util.set_response('{"creatures": [   {   "name": "Whimsy Woozle",   "description": "A gentle, ethereal creature with a penchant for gardening and poetry. They tend to the area\'s lush fields and forests, filling the air with sweet melodies and the scent of blooming wildflowers. They are friendly and welcoming to all visitors.",   "level": 1   },   {   "name": "Lunar Lopster",   "description": "A mysterious crustacean with an affinity for the moon\'s gentle light. They roam the area at night, their glowing shells lighting the way through the darkness. They are neutral towards visitors, but may offer cryptic advice or guidance to those who seek it.",   "level": 2   },   {   "name": "Shadow Stag",   "description": "A sleek and elusive creature with a mischievous grin. They roam the area\'s forests, their dark forms blending into the shadows. They are hostile towards intruders, and will not hesitate to attack those who threaten their home.",   "level": 3   },   {   "name": "Moonflower",   "description": "A rare and beautiful flower that blooms only under the light of the full moon. They can be found in the area\'s forests, and are said to have powerful healing properties. They are very friendly towards visitors, and will offer their petals to those who show kindness and respect.",   "level": 4   },   {   "name": "Moonstone",   "description": "A rare and valuable mineral that can be found in the area\'s mountains. It glows with a soft, ethereal light, and is said to have powerful magical properties. It is highly sought after by collectors, and can be found in both the earth and the water.",   "level": 5   }]}')
+        # Set individual creature responses (5 creatures)
+        self.context.driver.llm_util.io_util.set_response(self.creature_responses)
         parse_result = ParseResult(verb='enrich creatures', args=['creatures'])
         wizard.do_enrich(self.test_player, parse_result, self.context)
 
