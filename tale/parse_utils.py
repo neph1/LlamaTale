@@ -424,14 +424,15 @@ def parse_generated_exits(exits: list, exit_location_name: str, location: Locati
             
             directions_to = [new_location.name]
             directions_from = [location.name]
-            direction = exit.get('direction', '').lower()
+            direction = exit.get('direction', '')
             if direction:
+                direction = direction.lower()
                 new_location.world_location = coordinates_from_direction(location.world_location, direction)
                 directions_to.append(direction)
                 opposite = opposite_direction(direction)
                 if opposite:  # Only append if opposite direction is not None
                     directions_from.append(opposite)
-            
+
             new_location.built = False
             new_location.generated = True
             # Ensure we have a valid direction before using it in description
@@ -696,7 +697,7 @@ def save_locations(locations: List[Location]) -> dict:
             json_exit['long_descr'] = exit.description
             json_exit['direction'] = next(iter(exit.aliases)) if exit.aliases else '' # not pretty, but works
             exits.append(json_exit)
-        json_location['exits'] = exits
+        json_location['exits'] = list({exit['name']: exit for exit in exits}.values())
         json_location['items'] = save_items(location.items)
         json_locations.append(json_location)
     return json_locations
