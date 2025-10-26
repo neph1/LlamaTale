@@ -1,19 +1,10 @@
 import pathlib
 import sys
-from typing import Optional, Generator
 
-import tale
 from tale import parse_utils
-from tale.base import Location
 from tale.driver import Driver
 from tale.json_story import JsonStory
-from tale.llm.llm_ext import DynamicStory
 from tale.main import run_from_cmdline
-from tale.player import Player, PlayerConnection
-from tale.charbuilder import PlayerNaming
-from tale.story import *
-from tale.skills.weapon_type import WeaponType
-from tale.zone import Zone
 
 class Story(JsonStory):
 

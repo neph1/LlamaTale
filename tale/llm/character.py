@@ -5,9 +5,8 @@ from json import JSONDecodeError
 import json
 import random
 
-from tale import _MudContext, parse_utils
+from tale import json_util, parse_utils
 from tale.base import Location
-from tale.errors import LlmResponseException
 from tale.llm import llm_config
 from tale.llm.contexts.ActionContext import ActionContext
 from tale.llm.contexts.CharacterContext import CharacterContext
@@ -58,7 +57,7 @@ class CharacterBuilding():
         request_body['grammar'] = self.json_grammar
         response = self.io_util.synchronous_request(request_body, prompt=prompt, context=context.to_prompt_string())
         try:
-            json_result = json.loads(parse_utils.sanitize_json(response))
+            json_result = json_util.safe_load(response)
             text = json_result["response"]
             if isinstance(text, list):
                 text = text[0]
@@ -84,7 +83,7 @@ class CharacterBuilding():
             request_body[self.json_grammar_key] = self.json_grammar
         result = self.io_util.synchronous_request(request_body, prompt=prompt, context=character_context.to_prompt_string())
         try:
-            json_result = json.loads(parse_utils.sanitize_json(result))
+            json_result = json_util.safe_load(result)
         except JSONDecodeError as exc:
             print(exc)
             return None
@@ -165,7 +164,7 @@ class CharacterBuilding():
             text = self.io_util.synchronous_request(request_body, prompt=prompt, context=action_context.to_prompt_string())
             if not text:
                 return None
-            response = json.loads(parse_utils.sanitize_json(text))
+            response = json_util.safe_load(text)
             if isinstance(response, dict):
                 return [ActionResponse(response)]
             actions = []
@@ -191,5 +190,5 @@ class CharacterBuilding():
         text = self.io_util.synchronous_request(request_body, prompt=prompt)
         if not text:
             return None
-        return FollowResponse(json.loads(parse_utils.sanitize_json(text)))
+        return FollowResponse(json_util.safe_load(text))
         

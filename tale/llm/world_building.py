@@ -3,7 +3,7 @@ from copy import deepcopy
 import json
 import random
 from typing import Any, Tuple
-from tale import load_items, parse_utils, races
+from tale import json_util, load_items, parse_utils, races
 from tale import zone
 from tale.base import Location
 from tale.coord import Coord
@@ -82,7 +82,7 @@ class WorldBuilding():
         request_body['grammar'] = self.json_grammar
         result = self.io_util.synchronous_request(request_body, prompt=prompt, context=context.to_prompt_string())
         try:
-            json_result = json.loads(parse_utils.sanitize_json(result))
+            json_result = json_util.safe_load(result)
             result = LocationResponse(json_result, location=location, exit_location_name=exit_location_name, world_items=world_items, world_creatures=world_creatures, neighbors=neighbors, item_types=self.item_types)
             spawner = None
             if result.npcs and world_creatures:
@@ -173,7 +173,7 @@ class WorldBuilding():
         if not result:
             return LocationResponse.empty()
         try:
-            json_result = json.loads(parse_utils.sanitize_json(result))
+            json_result = json_util.safe_load(result)
             if not json_result.get('name', None):
                 return LocationResponse.empty()
             location.name=json_result['name']
@@ -199,7 +199,7 @@ class WorldBuilding():
             request_body[self.json_grammar_key] = self.json_grammar
         result = self.io_util.synchronous_request(request_body, prompt=prompt, context=context.to_prompt_string())
         try:
-            json_result = json.loads(parse_utils.sanitize_json(result))
+            json_result = json_util.safe_load(result)
             return zone.from_json(json_result)
         except json.JSONDecodeError as exc:
             print(f'Error generating zone: {exc}')
@@ -236,7 +236,7 @@ class WorldBuilding():
 
             result = self.io_util.synchronous_request(request_body, prompt=prompt, context=world_generation_context.to_prompt_string())
             try:
-                json_result = json.loads(parse_utils.sanitize_json(result))
+                json_result = json.loads(json_util.safe_load(result))
                 if 'item' in json_result and json_result['item']:
                     item = json_result['item']
                     items.append(item)
@@ -277,7 +277,7 @@ class WorldBuilding():
 
             result = self.io_util.synchronous_request(request_body, prompt=prompt, context=world_generation_context.to_prompt_string())
             try:
-                json_result = json.loads(parse_utils.sanitize_json(result))
+                json_result = json.loads(json_util.safe_load(result))
                 if 'creature' in json_result and json_result['creature']:
                     creature = json_result['creature']
                     creatures.append(creature)
@@ -302,7 +302,7 @@ class WorldBuilding():
         
         result = self.io_util.synchronous_request(request_body, prompt=prompt, context=context.to_prompt_string())
         try:
-            json_result = json.loads(parse_utils.sanitize_json(result))
+            json_result = json_util.safe_load(result)
             creatures = json_result["npcs"]
             creatures.extend(json_result["mobs"])
             creatures = parse_utils.replace_creature_with_world_creature(creatures, world_creatures)
@@ -339,7 +339,7 @@ class WorldBuilding():
             request_body[self.json_grammar_key] = self.json_grammar
         result = self.io_util.synchronous_request(request_body, prompt=prompt, context=context.to_prompt_string())
         try:
-            parsed = json.loads(parse_utils.sanitize_json(result))
+            parsed = json_util.safe_load(result)
             return LocationDescriptionResponse(parsed)
         except json.JSONDecodeError as exc:
             print(exc)
