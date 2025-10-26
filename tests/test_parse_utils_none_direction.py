@@ -12,7 +12,7 @@ class TestParseUtilsNoneDirection:
 
     def test_parse_generated_exits_missing_direction(self):
         """Test that exits without direction field don't cause None values"""
-        exits = json.loads('{"exits": [{"name": "The Cave", "short_descr": "A dark opening."}]}')
+        exits = json.loads('{"exits": [{"name": "The Cave", "short_descr": "A dark opening"}]}')
         exit_location_name = 'Entrance'
         location = Location(name='Outside')
         
@@ -31,7 +31,7 @@ class TestParseUtilsNoneDirection:
 
     def test_parse_generated_exits_null_direction(self):
         """Test that exits with null direction don't cause crashes"""
-        exits = [{"name": "Willowdale", "direction": None, "short_descr": "A path."}]
+        exits = [{"name": "Willowdale", "direction": None, "short_descr": "A path"}]
         exit_location_name = 'Start'
         location = Location(name='Beginning')
         
