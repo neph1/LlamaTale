@@ -134,3 +134,31 @@ class TestParseUtilsNoneDirection:
         # Join all paragraphs and check that 'None' doesn't appear
         full_text = ' '.join(paragraphs)
         assert 'None' not in full_text
+
+    def test_parse_generated_exits_duplicate_exits(self):
+        """Test that duplicate exits (same name and direction) are filtered out"""
+        exits = [
+            {"name": "Willowdale farmstead", "direction": "north", "short_descr": "Path to farmhouse."},
+            {"name": "Willowdale farmstead", "direction": "north", "short_descr": "Path to farmhouse."},
+            {"name": "Forest path", "direction": "east", "short_descr": "Dense forest."}
+        ]
+        exit_location_name = 'Start'
+        location = Location(name='Beginning')
+        
+        new_locations, parsed_exits = parse_utils.parse_generated_exits(
+            exits=exits,
+            exit_location_name=exit_location_name,
+            location=location
+        )
+        
+        # Should only create 2 exits (duplicate filtered out)
+        assert len(parsed_exits) == 2
+        assert len(new_locations) == 2
+        
+        # Verify the exits are the unique ones
+        exit_names = [e.name for e in parsed_exits]
+        assert 'willowdale farmstead' in exit_names
+        assert 'forest path' in exit_names
+        
+        # Ensure no duplicate in the list
+        assert exit_names.count('willowdale farmstead') == 1

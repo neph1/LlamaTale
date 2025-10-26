@@ -387,6 +387,8 @@ def parse_generated_exits(exits: list, exit_location_name: str, location: Locati
     new_locations = []
     new_exits = []
     occupied_directions = []
+    seen_exits = set()  # Track seen exit names to prevent duplicates
+    
     for exit in location.exits.values():
         for dir in exit.names:
             occupied_directions.append(dir)
@@ -402,6 +404,15 @@ def parse_generated_exits(exits: list, exit_location_name: str, location: Locati
             exit['direction'] = dir
             
     for exit in exits:
+        # Skip duplicate exits (same name and direction)
+        exit_name = exit.get('name', '')
+        exit_direction = exit.get('direction', '')
+        # Create a unique identifier for this exit
+        exit_key = (exit_name.lower().replace('the ', '').replace('The ', ''), exit_direction)
+        if exit_key in seen_exits:
+            continue  # Skip duplicate exit
+        seen_exits.add(exit_key)
+        
         if exit.get('name', None) is None:
             # With JSON grammar, exits are sometimes generated without name. So until that is fixed,
             # we'll do a work-around
