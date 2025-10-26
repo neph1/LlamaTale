@@ -222,9 +222,7 @@ class WorldBuilding():
         
         for i in range(count):
             # Build prompt with previously generated items to avoid repetition
-            previously_generated = ""
-            if previously_generated_names:
-                previously_generated = f"Previously generated items: {', '.join(previously_generated_names)}. Ensure this item is different. "
+            previously_generated = f"Previously generated items: {', '.join(previously_generated_names)}. Ensure this item is different. " if previously_generated_names else ""
             
             prompt = llm_config.params['WORLD_ITEM_SINGLE'].format(
                 context = '{context}',
@@ -266,9 +264,7 @@ class WorldBuilding():
         
         for i in range(count):
             # Build prompt with previously generated creatures to avoid repetition
-            previously_generated = ""
-            if previously_generated_names:
-                previously_generated = f"Previously generated creatures: {', '.join(previously_generated_names)}. Ensure this creature is different. "
+            previously_generated = f"Previously generated creatures: {', '.join(previously_generated_names)}. Ensure this creature is different. " if previously_generated_names else ""
             
             prompt = llm_config.params['WORLD_CREATURE_SINGLE'].format(
                 context = '{context}',
