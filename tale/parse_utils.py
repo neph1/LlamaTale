@@ -315,22 +315,6 @@ def trim_response(message: str):
     
     return message
 
-def sanitize_json(result: str) -> str:
-    """ Removes special chars from json string. Some common, and some 'creative' ones. """
-    if result is None:
-        return ''
-    result = result.strip()
-    result = result.replace('```json', '') #.replace('\\"', '"').replace('"\\n"', '","').replace('\\n', '').replace('}\n{', '},{').replace('}{', '},{').replace('\\r', '').replace('\\t', '').replace('"{', '{').replace('}"', '}').replace('"\\', '"').replace('\\”', '"').replace('" "', '","').replace(':,',':').replace('},]', '}]').replace('},}', '}}')
-    result = result.split('```')[0]
-    result = result.replace('False', 'false').replace('True', 'true').replace('None', 'null').replace('\\r', '')
-    if not result.endswith('}') and not result.endswith(']'):
-        result = result + '}'
-    #print('sanitized json: ' + result)
-    return result
-
-def _convert_name(name: str):
-    return name.lower().replace(' ', '_')
-
 # These are related to LLM generated content
 
 def connect_location_to_exit(location_to: Location, location_from: Location, exit_from: Exit):

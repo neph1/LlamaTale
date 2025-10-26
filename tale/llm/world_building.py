@@ -236,7 +236,7 @@ class WorldBuilding():
 
             result = self.io_util.synchronous_request(request_body, prompt=prompt, context=world_generation_context.to_prompt_string())
             try:
-                json_result = json.loads(json_util.safe_load(result))
+                json_result = json.loads(json_util.sanitize_json(result))
                 if 'item' in json_result and json_result['item']:
                     item = json_result['item']
                     items.append(item)
@@ -277,7 +277,7 @@ class WorldBuilding():
 
             result = self.io_util.synchronous_request(request_body, prompt=prompt, context=world_generation_context.to_prompt_string())
             try:
-                json_result = json.loads(json_util.safe_load(result))
+                json_result = json.loads(json_util.sanitize_json(result))
                 if 'creature' in json_result and json_result['creature']:
                     creature = json_result['creature']
                     creatures.append(creature)

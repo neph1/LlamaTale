@@ -4,7 +4,7 @@ from typing import Any, Optional
 
 def strip_markdown_fences(s: str) -> str:
     """Remove ```json fences or plain ``` fences."""
-    return re.sub(r"^```(?:json)?|```$", "", s.strip(), flags=re.MULTILINE).strip()
+    return re.sub(r'^```(?:json)?|```$', '', s.strip(), flags=re.MULTILINE).strip()
 
 def extract_json_block(s: str) -> str:
     """Extract the first {...} or [...] block if there is extra text around it."""
@@ -23,7 +23,7 @@ def unwrap_double_encoded(s: str) -> str:
 
 def fix_trailing_commas(s: str) -> str:
     """Remove trailing commas before ] or }."""
-    return re.sub(r",\s*([}\]])", r"\1", s)
+    return re.sub(r',\s*([}\]])', r'\1', s)
 
 def normalize_literals(s: str) -> str:
     """Normalize Python-style literals to JSON literals."""
