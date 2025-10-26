@@ -138,7 +138,7 @@ class WorldBuilding():
         request_body = deepcopy(self.default_body)
         result = self.io_util.synchronous_request(request_body, prompt=prompt, context=context.to_prompt_string())
         try:
-            return json.loads(parse_utils.sanitize_json(result))
+            return json.loads(json_util.sanitize_json(result))
         except json.JSONDecodeError as exc:
             print(exc)
             return None
