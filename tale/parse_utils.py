@@ -369,6 +369,14 @@ def opposite_direction(direction: str):
         return 'out'
     if direction == 'out':
         return 'in'
+    if direction == 'northeast':
+        return 'southwest'
+    if direction == 'southwest':
+        return 'northeast'
+    if direction == 'northwest':
+        return 'southeast'
+    if direction == 'southeast':
+        return 'northwest'
     return None
 
 def parse_generated_exits(exits: list, exit_location_name: str, location: Location, neighbor_locations: dict = {}):
@@ -418,7 +426,9 @@ def parse_generated_exits(exits: list, exit_location_name: str, location: Locati
             if direction:
                 new_location.world_location = coordinates_from_direction(location.world_location, direction)
                 directions_to.append(direction)
-                directions_from.append(opposite_direction(direction))
+                opposite = opposite_direction(direction)
+                if opposite:  # Only append if opposite direction is not None
+                    directions_from.append(opposite)
             
             new_location.built = False
             new_location.generated = True
@@ -440,9 +450,12 @@ def parse_generated_exits(exits: list, exit_location_name: str, location: Locati
 
 def _select_non_occupied_direction(occupied_directions: list[str]):
     """ Selects a direction that is not occupied by an exit"""
-    for dir in ['north', 'south', 'east', 'west']:
+    for dir in ['north', 'south', 'east', 'west', 'northeast', 'northwest', 'southeast', 'southwest', 'up', 'down']:
         if dir not in occupied_directions:
             return dir
+    # If all standard directions are occupied, return 'north' as a fallback
+    # This shouldn't happen in normal gameplay but prevents None from being returned
+    return 'north'
         
 def coordinates_from_direction(coord: Coord, direction: str) -> Coord:
     """ Returns coordinates for a new location based on the direction and location"""
