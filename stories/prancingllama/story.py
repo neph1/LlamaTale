@@ -14,7 +14,7 @@ from tale.charbuilder import PlayerNaming
 from tale.skills.skills import SkillType
 from tale.story import *
 from tale.skills.weapon_type import WeaponType
-from tale.story import StoryContext
+from tale.story_context import StoryContext
 from tale.zone import Zone
 
 class Story(DynamicStory):
