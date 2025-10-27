@@ -1,7 +1,7 @@
 import datetime
 import json
 from typing import List
-from tale import load_items, util
+from tale import json_util, load_items, util
 from tale.base import Exit, Living, Location, Weapon, Wearable
 from tale.coord import Coord
 from tale.driver_if import IFDriver
@@ -158,6 +158,18 @@ class TestParseUtils():
         assert(parsed_exits[0].name == 'glacier')
         assert(parsed_exits[0].short_description == 'You see glacier.')
         assert(parsed_exits[0].enter_msg == 'You enter the glacier')
+
+    def test_parse_abbreviated_direction(self):
+        exits = json.loads('{"exits": [{"name": "The Glacier", "direction": "n", "short_descr": "A treacherous path."}]}')
+        exit_location_name = 'Entrance'
+        location = Location(name='Outside')
+        new_locations, parsed_exits = parse_utils.parse_generated_exits(exits=exits.get('exits'), 
+                                                                        exit_location_name=exit_location_name, 
+                                                                        location=location)
+        location.add_exits(parsed_exits)
+        assert(len(parsed_exits) == 1)
+        assert(parsed_exits[0].names == ['glacier', 'north'])
+        assert(parsed_exits[0].short_description == 'To the north you see a treacherous path.')
 
     def test_coordinates_from_direction(self):
         coord = Coord(0,0,0)
@@ -375,7 +387,7 @@ class TestParseUtils():
 
     def test_sanitize_json(self):
         json_string = '{ "name": "Whispering Woods", "description": "A dense, misty forest teeming with life. The trees whisper secrets to those who listen, and the creatures here are said to possess ancient wisdom. Friendly creatures roam the area, and the air is filled with the sweet scent of enchanted flowers.", "races": [], "items": [], "mood": 5, "level": 1} '
-        sanitized = json.loads(parse_utils.sanitize_json(json_string))
+        sanitized = json_util.safe_load(json_string)
         assert sanitized['name'] == 'Whispering Woods'
 
     def test_mood_string_from_int(self):

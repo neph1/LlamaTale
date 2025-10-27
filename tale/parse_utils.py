@@ -315,22 +315,6 @@ def trim_response(message: str):
     
     return message
 
-def sanitize_json(result: str) -> str:
-    """ Removes special chars from json string. Some common, and some 'creative' ones. """
-    if result is None:
-        return ''
-    result = result.strip()
-    result = result.replace('```json', '') #.replace('\\"', '"').replace('"\\n"', '","').replace('\\n', '').replace('}\n{', '},{').replace('}{', '},{').replace('\\r', '').replace('\\t', '').replace('"{', '{').replace('}"', '}').replace('"\\', '"').replace('\\”', '"').replace('" "', '","').replace(':,',':').replace('},]', '}]').replace('},}', '}}')
-    result = result.split('```')[0]
-    result = result.replace('False', 'false').replace('True', 'true').replace('None', 'null').replace('\\r', '')
-    if not result.endswith('}') and not result.endswith(']'):
-        result = result + '}'
-    #print('sanitized json: ' + result)
-    return result
-
-def _convert_name(name: str):
-    return name.lower().replace(' ', '_')
-
 # These are related to LLM generated content
 
 def connect_location_to_exit(location_to: Location, location_from: Location, exit_from: Exit):
@@ -369,6 +353,14 @@ def opposite_direction(direction: str):
         return 'out'
     if direction == 'out':
         return 'in'
+    if direction == 'northeast':
+        return 'southwest'
+    if direction == 'southwest':
+        return 'northeast'
+    if direction == 'northwest':
+        return 'southeast'
+    if direction == 'southeast':
+        return 'northwest'
     return None
 
 def parse_generated_exits(exits: list, exit_location_name: str, location: Location, neighbor_locations: dict = {}):
@@ -379,11 +371,12 @@ def parse_generated_exits(exits: list, exit_location_name: str, location: Locati
     new_locations = []
     new_exits = []
     occupied_directions = []
+    
     for exit in location.exits.values():
         for dir in exit.names:
             occupied_directions.append(dir)
     for exit in exits:
-        dir = exit.get('direction', '')
+        dir = validate_direction(exit.get('direction', ''))
         if not dir:
             continue
         if dir not in occupied_directions:
@@ -394,6 +387,7 @@ def parse_generated_exits(exits: list, exit_location_name: str, location: Locati
             exit['direction'] = dir
             
     for exit in exits:
+        direction = validate_direction(exit.get('direction', ''))
         if exit.get('name', None) is None:
             # With JSON grammar, exits are sometimes generated without name. So until that is fixed,
             # we'll do a work-around
@@ -403,7 +397,6 @@ def parse_generated_exits(exits: list, exit_location_name: str, location: Locati
             exit.name = description.split(' ')[:2]
         if exit.get('direction', '') in neighbor_locations.keys():
             # connect to existing location. No new location needed
-            direction = exit['direction']
             neighbor = neighbor_locations[direction] # type: Location
             new_exit = Exit(directions=[neighbor.name, direction], target_location=neighbor, short_descr= f'To the {direction} you see {neighbor.name}.')
             connect_location_to_exit(neighbor, location, new_exit)
@@ -414,21 +407,25 @@ def parse_generated_exits(exits: list, exit_location_name: str, location: Locati
             
             directions_to = [new_location.name]
             directions_from = [location.name]
-            direction = exit.get('direction', '').lower()
             if direction:
                 new_location.world_location = coordinates_from_direction(location.world_location, direction)
                 directions_to.append(direction)
-                directions_from.append(opposite_direction(direction))
-            
+                opposite = opposite_direction(direction)
+                if opposite:  # Only append if opposite direction is not None
+                    directions_from.append(opposite)
+
             new_location.built = False
             new_location.generated = True
-            from_description = f'To the {directions_from[1]} you see {location.name}.' if len(directions_from) > 1 else f'You see {location.name}.'
+            # Ensure we have a valid direction before using it in description
+            has_return_direction = len(directions_from) > 1 and directions_from[1]
+            from_description = f'To the {directions_from[1]} you see {location.name}.' if has_return_direction else f'You see {location.name}.'
             exit_back = Exit(directions=directions_from, 
                     target_location=location, 
                     short_descr=from_description)
             new_location.add_exits([exit_back])
             exit_description = exit.get('short_descr', new_location.name).lower()
-            to_description = 'To the {direction} you see {exit_description}'.format(direction=directions_to[1], exit_description=exit_description)  if len(directions_to) > 1 else f'You see {exit_description}.'
+            has_to_direction = len(directions_to) > 1 and directions_to[1]
+            to_description = f'To the {directions_to[1]} you see {exit_description}' if has_to_direction else f'You see {exit_description}.'
             exit_to = Exit(directions=directions_to, 
                             target_location=new_location, 
                             short_descr=to_description, 
@@ -440,9 +437,12 @@ def parse_generated_exits(exits: list, exit_location_name: str, location: Locati
 
 def _select_non_occupied_direction(occupied_directions: list[str]):
     """ Selects a direction that is not occupied by an exit"""
-    for dir in ['north', 'south', 'east', 'west']:
+    for dir in ['north', 'south', 'east', 'west', 'northeast', 'northwest', 'southeast', 'southwest', 'up', 'down']:
         if dir not in occupied_directions:
             return dir
+    # If all standard directions are occupied, return 'north' as a fallback
+    # This shouldn't happen in normal gameplay but prevents None from being returned
+    return 'north'
         
 def coordinates_from_direction(coord: Coord, direction: str) -> Coord:
     """ Returns coordinates for a new location based on the direction and location"""
@@ -678,7 +678,7 @@ def save_locations(locations: List[Location]) -> dict:
             json_exit['long_descr'] = exit.description
             json_exit['direction'] = next(iter(exit.aliases)) if exit.aliases else '' # not pretty, but works
             exits.append(json_exit)
-        json_location['exits'] = exits
+        json_location['exits'] = list({exit['name']: exit for exit in exits}.values())
         json_location['items'] = save_items(location.items)
         json_locations.append(json_location)
     return json_locations
@@ -740,3 +740,32 @@ def load_item_spawners(json_spawners: list, zones: dict, world_items: list) -> l
         item_spawner = ItemSpawner(zone=zone, spawn_rate=spawner['spawn_rate'], container=container, max_items=spawner['max_items'], items=loaded_items, item_probabilities=spawner['item_probabilities'])
         spawners.append(item_spawner)
     return spawners
+
+def validate_direction(direction: str):
+    """ Asserts that the direction is valid"""
+    valid_directions = ['north', 'south', 'east', 'west', 'up', 'down', 'northeast', 'northwest', 'southeast', 'southwest', 'in', 'out']
+    if not direction:
+        return None
+    if direction.lower() in valid_directions:
+        return direction.lower()
+    if direction == 'n':
+        return 'north'
+    if direction == 's':
+        return 'south'
+    if direction == 'e':
+        return 'east'
+    if direction == 'w':
+        return 'west'
+    if direction == 'u':
+        return 'up'
+    if direction == 'd':
+        return 'down'
+    if direction == 'ne':
+        return 'northeast'
+    if direction == 'nw':
+        return 'northwest'
+    if direction == 'se':
+        return 'southeast'
+    if direction == 'sw':
+        return 'southwest'
+    return None

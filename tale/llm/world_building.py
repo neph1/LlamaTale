@@ -3,7 +3,7 @@ from copy import deepcopy
 import json
 import random
 from typing import Any, Tuple
-from tale import load_items, parse_utils, races
+from tale import json_util, load_items, parse_utils, races
 from tale import zone
 from tale.base import Location
 from tale.coord import Coord
@@ -82,7 +82,7 @@ class WorldBuilding():
         request_body['grammar'] = self.json_grammar
         result = self.io_util.synchronous_request(request_body, prompt=prompt, context=context.to_prompt_string())
         try:
-            json_result = json.loads(parse_utils.sanitize_json(result))
+            json_result = json_util.safe_load(result)
             result = LocationResponse(json_result, location=location, exit_location_name=exit_location_name, world_items=world_items, world_creatures=world_creatures, neighbors=neighbors, item_types=self.item_types)
             spawner = None
             if result.npcs and world_creatures:
@@ -138,7 +138,7 @@ class WorldBuilding():
         request_body = deepcopy(self.default_body)
         result = self.io_util.synchronous_request(request_body, prompt=prompt, context=context.to_prompt_string())
         try:
-            return json.loads(parse_utils.sanitize_json(result))
+            return json.loads(json_util.sanitize_json(result))
         except json.JSONDecodeError as exc:
             print(exc)
             return None
@@ -173,7 +173,7 @@ class WorldBuilding():
         if not result:
             return LocationResponse.empty()
         try:
-            json_result = json.loads(parse_utils.sanitize_json(result))
+            json_result = json_util.safe_load(result)
             if not json_result.get('name', None):
                 return LocationResponse.empty()
             location.name=json_result['name']
@@ -199,42 +199,96 @@ class WorldBuilding():
             request_body[self.json_grammar_key] = self.json_grammar
         result = self.io_util.synchronous_request(request_body, prompt=prompt, context=context.to_prompt_string())
         try:
-            json_result = json.loads(parse_utils.sanitize_json(result))
+            json_result = json_util.safe_load(result)
             return zone.from_json(json_result)
         except json.JSONDecodeError as exc:
             print(f'Error generating zone: {exc}')
             return None
         
 
-    def generate_world_items(self, world_generation_context: WorldGenerationContext, item_types: list = []) -> WorldItemsResponse:
-        prompt = llm_config.params['WORLD_ITEMS'].format(context = '{context}',
-                                                item_template=llm_config.params['ITEM_TEMPLATE'],
-                                                item_types=item_types or self.item_types)
-        request_body = deepcopy(self.default_body)
-        if self.json_grammar_key:
-            request_body[self.json_grammar_key] = self.json_grammar
+    def generate_world_items(self, world_generation_context: WorldGenerationContext, item_types: list = [], count: int = 7) -> WorldItemsResponse:
+        """Generate world items one at a time to avoid large JSON arrays and token limits.
+        
+        Args:
+            world_generation_context: Context for world generation
+            item_types: List of valid item types
+            count: Number of items to generate (default 7)
+            
+        Returns:
+            WorldItemsResponse containing the generated items
+        """
+        items = []
+        previously_generated_names = []
+        
+        for i in range(count):
+            # Build prompt with previously generated items to avoid repetition
+            previously_generated = f"Previously generated items: {', '.join(previously_generated_names)}. Ensure this item is different. " if previously_generated_names else ""
+            
+            prompt = llm_config.params['WORLD_ITEM_SINGLE'].format(
+                context = '{context}',
+                item_template=llm_config.params['ITEM_TEMPLATE'],
+                item_types=item_types or self.item_types,
+                previously_generated=previously_generated)
+            
+            request_body = deepcopy(self.default_body)
+            if self.json_grammar_key:
+                request_body[self.json_grammar_key] = self.json_grammar
 
-        result = self.io_util.synchronous_request(request_body, prompt=prompt, context=world_generation_context.to_prompt_string())
-        try:
-            return WorldItemsResponse(json.loads(parse_utils.sanitize_json(result)))
-            #return load_items.load_items(self._validate_items(json_result["items"]))
-        except json.JSONDecodeError as exc:
-            print(f'Error generating items: {exc}')
-            return WorldItemsResponse()
+            result = self.io_util.synchronous_request(request_body, prompt=prompt, context=world_generation_context.to_prompt_string())
+            try:
+                json_result = json.loads(json_util.sanitize_json(result))
+                if 'item' in json_result and json_result['item']:
+                    item = json_result['item']
+                    items.append(item)
+                    if 'name' in item:
+                        previously_generated_names.append(item['name'])
+            except json.JSONDecodeError as exc:
+                print(f'Error generating item {i+1}/{count}: {exc}')
+                # Continue to next item instead of failing completely
+                continue
+        
+        return WorldItemsResponse({'items': items})
     
-    def generate_world_creatures(self, world_generation_context: WorldGenerationContext) -> WorldCreaturesResponse:
-        prompt = llm_config.params['WORLD_CREATURES'].format(context = '{context}',
-                                                creature_template=llm_config.params['CREATURE_TEMPLATE'])
-        request_body = deepcopy(self.default_body)
-        if self.json_grammar_key:
-            request_body[self.json_grammar_key] = self.json_grammar
+    def generate_world_creatures(self, world_generation_context: WorldGenerationContext, count: int = 5) -> WorldCreaturesResponse:
+        """Generate world creatures one at a time to avoid large JSON arrays and token limits.
+        
+        Args:
+            world_generation_context: Context for world generation
+            count: Number of creatures to generate (default 5)
+            
+        Returns:
+            WorldCreaturesResponse containing the generated creatures
+        """
+        creatures = []
+        previously_generated_names = []
+        
+        for i in range(count):
+            # Build prompt with previously generated creatures to avoid repetition
+            previously_generated = f"Previously generated creatures: {', '.join(previously_generated_names)}. Ensure this creature is different. " if previously_generated_names else ""
+            
+            prompt = llm_config.params['WORLD_CREATURE_SINGLE'].format(
+                context = '{context}',
+                creature_template=llm_config.params['CREATURE_TEMPLATE'],
+                previously_generated=previously_generated)
+            
+            request_body = deepcopy(self.default_body)
+            if self.json_grammar_key:
+                request_body[self.json_grammar_key] = self.json_grammar
 
-        result = self.io_util.synchronous_request(request_body, prompt=prompt, context=world_generation_context.to_prompt_string())
-        try:
-            return WorldCreaturesResponse(json.loads(parse_utils.sanitize_json(result)))
-        except json.JSONDecodeError as exc:
-            print(exc)
-            return WorldCreaturesResponse()
+            result = self.io_util.synchronous_request(request_body, prompt=prompt, context=world_generation_context.to_prompt_string())
+            try:
+                json_result = json.loads(json_util.sanitize_json(result))
+                if 'creature' in json_result and json_result['creature']:
+                    creature = json_result['creature']
+                    creatures.append(creature)
+                    if 'name' in creature:
+                        previously_generated_names.append(creature['name'])
+            except json.JSONDecodeError as exc:
+                print(f'Error generating creature {i+1}/{count}: {exc}')
+                # Continue to next creature instead of failing completely
+                continue
+        
+        return WorldCreaturesResponse({'creatures': creatures})
     
     def generate_random_spawn(self, location: Location, context: WorldGenerationContext, zone_info: dict, world_creatures: list, world_items: list) -> bool:
         location_info = {'name': location.title, 'description': location.look(short=True), 'exits': location.exits}
@@ -248,7 +302,7 @@ class WorldBuilding():
         
         result = self.io_util.synchronous_request(request_body, prompt=prompt, context=context.to_prompt_string())
         try:
-            json_result = json.loads(parse_utils.sanitize_json(result))
+            json_result = json_util.safe_load(result)
             creatures = json_result["npcs"]
             creatures.extend(json_result["mobs"])
             creatures = parse_utils.replace_creature_with_world_creature(creatures, world_creatures)
@@ -285,7 +339,7 @@ class WorldBuilding():
             request_body[self.json_grammar_key] = self.json_grammar
         result = self.io_util.synchronous_request(request_body, prompt=prompt, context=context.to_prompt_string())
         try:
-            parsed = json.loads(parse_utils.sanitize_json(result))
+            parsed = json_util.safe_load(result)
             return LocationDescriptionResponse(parsed)
         except json.JSONDecodeError as exc:
             print(exc)

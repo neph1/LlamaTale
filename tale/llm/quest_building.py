@@ -1,7 +1,6 @@
 
 from copy import deepcopy
-import json
-from tale import parse_utils
+from tale import json_util, parse_utils
 from tale.base import Location
 from tale.llm import llm_config
 from tale.llm.contexts.WorldGenerationContext import WorldGenerationContext
@@ -40,5 +39,5 @@ class QuestBuilding():
         if self.json_grammar_key:
             request_body[self.json_grammar_key] = self.json_grammar
         text = self.io_util.synchronous_request(request_body, prompt=prompt, context=context)
-        quest_data = json.loads(parse_utils.sanitize_json(text))
+        quest_data = json_util.safe_load(text)
         return Quest(name=quest_data['name'], type=QuestType[quest_data['type'].upper()], reason=quest_data['reason'], target=quest_data['target'])
