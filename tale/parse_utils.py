@@ -376,7 +376,7 @@ def parse_generated_exits(exits: list, exit_location_name: str, location: Locati
         for dir in exit.names:
             occupied_directions.append(dir)
     for exit in exits:
-        dir = exit.get('direction', '')
+        dir = validate_direction(exit.get('direction', ''))
         if not dir:
             continue
         if dir not in occupied_directions:
@@ -387,7 +387,7 @@ def parse_generated_exits(exits: list, exit_location_name: str, location: Locati
             exit['direction'] = dir
             
     for exit in exits:
-        
+        direction = validate_direction(exit.get('direction', ''))
         if exit.get('name', None) is None:
             # With JSON grammar, exits are sometimes generated without name. So until that is fixed,
             # we'll do a work-around
@@ -397,7 +397,6 @@ def parse_generated_exits(exits: list, exit_location_name: str, location: Locati
             exit.name = description.split(' ')[:2]
         if exit.get('direction', '') in neighbor_locations.keys():
             # connect to existing location. No new location needed
-            direction = exit['direction']
             neighbor = neighbor_locations[direction] # type: Location
             new_exit = Exit(directions=[neighbor.name, direction], target_location=neighbor, short_descr= f'To the {direction} you see {neighbor.name}.')
             connect_location_to_exit(neighbor, location, new_exit)
@@ -408,9 +407,7 @@ def parse_generated_exits(exits: list, exit_location_name: str, location: Locati
             
             directions_to = [new_location.name]
             directions_from = [location.name]
-            direction = exit.get('direction', '')
             if direction:
-                direction = direction.lower()
                 new_location.world_location = coordinates_from_direction(location.world_location, direction)
                 directions_to.append(direction)
                 opposite = opposite_direction(direction)
@@ -743,3 +740,30 @@ def load_item_spawners(json_spawners: list, zones: dict, world_items: list) -> l
         item_spawner = ItemSpawner(zone=zone, spawn_rate=spawner['spawn_rate'], container=container, max_items=spawner['max_items'], items=loaded_items, item_probabilities=spawner['item_probabilities'])
         spawners.append(item_spawner)
     return spawners
+
+def validate_direction(direction: str):
+    """ Asserts that the direction is valid"""
+    valid_directions = ['north', 'south', 'east', 'west', 'up', 'down', 'northeast', 'northwest', 'southeast', 'southwest', 'in', 'out']
+    if direction.lower() in valid_directions:
+        return direction.lower()
+    if direction == 'n':
+        return 'north'
+    if direction == 's':
+        return 'south'
+    if direction == 'e':
+        return 'east'
+    if direction == 'w':
+        return 'west'
+    if direction == 'u':
+        return 'up'
+    if direction == 'd':
+        return 'down'
+    if direction == 'ne':
+        return 'northeast'
+    if direction == 'nw':
+        return 'northwest'
+    if direction == 'se':
+        return 'southeast'
+    if direction == 'sw':
+        return 'southwest'
+    return None

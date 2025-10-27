@@ -159,6 +159,18 @@ class TestParseUtils():
         assert(parsed_exits[0].short_description == 'You see glacier.')
         assert(parsed_exits[0].enter_msg == 'You enter the glacier')
 
+    def test_parse_abbreviated_direction(self):
+        exits = json.loads('{"exits": [{"name": "The Glacier", "direction": "n", "short_descr": "A treacherous path."}]}')
+        exit_location_name = 'Entrance'
+        location = Location(name='Outside')
+        new_locations, parsed_exits = parse_utils.parse_generated_exits(exits=exits.get('exits'), 
+                                                                        exit_location_name=exit_location_name, 
+                                                                        location=location)
+        location.add_exits(parsed_exits)
+        assert(len(parsed_exits) == 1)
+        assert(parsed_exits[0].names == ['glacier', 'north'])
+        assert(parsed_exits[0].short_description == 'To the north you see a treacherous path.')
+
     def test_coordinates_from_direction(self):
         coord = Coord(0,0,0)
         assert(parse_utils.coordinates_from_direction(coord, 'north') == Coord(0,1,0))
