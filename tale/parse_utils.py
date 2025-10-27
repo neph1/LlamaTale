@@ -744,6 +744,8 @@ def load_item_spawners(json_spawners: list, zones: dict, world_items: list) -> l
 def validate_direction(direction: str):
     """ Asserts that the direction is valid"""
     valid_directions = ['north', 'south', 'east', 'west', 'up', 'down', 'northeast', 'northwest', 'southeast', 'southwest', 'in', 'out']
+    if not direction:
+        return None
     if direction.lower() in valid_directions:
         return direction.lower()
     if direction == 'n':
