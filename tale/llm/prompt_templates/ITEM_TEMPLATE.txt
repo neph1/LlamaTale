@@ -1,0 +1,1 @@
+{{"name":"", "type":"", "short_descr":"", "level":int, "value":int}}

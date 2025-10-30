@@ -1,0 +1,1 @@
+{{"response":"may be both dialogue and action.", "sentiment":"sentiment based on response", "give":"if any physical item of {character2}s is given as part of the dialogue. Or nothing."}}

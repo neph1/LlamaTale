@@ -1,0 +1,1 @@
+{{"name":"", "sentiment":"", "race":"", "gender":"m, f, or n", "level":(int), "aggressive":bool, "description":"25 words", "occupation":"", "appearance":"25 words"}}

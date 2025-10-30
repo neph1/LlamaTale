@@ -1,0 +1,1 @@
+<context>{context}</context>\n[USER_START] An npc or a mob has entered {location_name}. Select either and fill in one of the following templates using the information supplied inside the <context> tags. Respond using JSON in the following format: {npc_template}
