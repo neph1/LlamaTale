@@ -1,0 +1,1 @@
+<context>{context}</context> Zone info: {zone_info};\n[USER_START]FUsing the information supplied inside the <context> tags, decide what is written on a note that has been found. Use the provided story and world information to generate a piece of lore. Use about 50 words.

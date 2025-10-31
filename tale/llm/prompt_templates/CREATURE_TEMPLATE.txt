@@ -1,0 +1,1 @@
+{{"name":"", "body":"", "mass":int(kg), "hp":int, "type":"Npc or Mob", "level":int, "aggressive":bool, "unarmed_attack":One of [FISTS, CLAWS, BITE, TAIL, HOOVES, HORN, TUSKS, BEAK, TALON], "short_descr":""}}

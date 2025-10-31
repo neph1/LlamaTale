@@ -1,0 +1,1 @@
+<context>{context}</context>\n[USER_START] Write up to two sentences describing the transition from {from_time} to {to_time} in {location_name}, using the information supplied inside the <context> tags.

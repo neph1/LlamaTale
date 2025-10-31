@@ -6,6 +6,7 @@ from aioresponses import aioresponses
 import responses
 
 import yaml
+from tale.llm import llm_config
 from tale.llm.llm_io import IoUtil
 from tale.player import Player, PlayerConnection
 from tale.tio.iobase import IoAdapterBase
@@ -14,11 +15,8 @@ from tale.tio.iobase import IoAdapterBase
 class TestLlmIo():
 
     def _load_config(self) -> dict:
-        with open(os.path.realpath(os.path.join(os.path.dirname(__file__), "../llm_config.yaml")), "r") as stream:
-            try:
-                return yaml.safe_load(stream)
-            except yaml.YAMLError as exc:
-                print(exc)
+        # Use the llm_config module which loads from YAML and prompt templates
+        return llm_config.load_config()
 
     def _load_backend_config(self, backend) -> dict:
         with open(os.path.realpath(os.path.join(os.path.dirname(__file__), f"../backend_{backend}.yaml")), "r") as stream:

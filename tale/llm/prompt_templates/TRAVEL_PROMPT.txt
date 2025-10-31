@@ -1,0 +1,1 @@
+[USER_START] For {character}: pick a location from [{locations}] they would like to travel to or a direction from [{directions}], or stay in the current location. Do not make up new locations. Write what {character_name} chooses. Write only the location name, direction, or write nothing to stay in the same location. Write nothing else.

@@ -1,0 +1,1 @@
+Add a level {level}, {alignment} npc or mob.

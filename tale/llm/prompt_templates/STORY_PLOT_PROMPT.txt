@@ -1,0 +1,1 @@
+[USER_START] For an RPG described as {story_type} set in a world described as {world_mood}, {world_info}. Based on the following background: {story_background} write an innovative and engaging plot that the player can become part of. Use less than 400 words.
