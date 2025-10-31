@@ -1,0 +1,1 @@
+<context>{context}</context>\nThe following is a combat scene between {attackers} and {defenders} in {location}. [USER_START] Describe the following combat result in about 150 words in vivid language, using the characters weapons and describe their health status without mentioning numbers: 1.0 is highest, 0.0 is dead. <combat result> {input_text}</combat result>

@@ -1,0 +1,1 @@
+<context>{context}</context>\n[USER_START] Create a diverse character with rich personality that can be interacted with using the story context and keywords. {{quest_prompt}} Do not mention height. Keywords: {keywords}. Fill in the blanks in this JSON template and write nothing else: {character_template}

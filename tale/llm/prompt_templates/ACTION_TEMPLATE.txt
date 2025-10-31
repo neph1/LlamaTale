@@ -1,0 +1,1 @@
+{{"goal": reason for action, "thoughts":thoughts about performing action, 25 words "action":chosen action, "target":character, item or exit or description, "text": if anything is said during the action}}

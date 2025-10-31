@@ -1,0 +1,1 @@
+{{"name":name of the room, "description": "75 words", "races":[], "items":[], "mood":"5 to -5, where 5 is extremely friendly and -5 is extremely hostile.", "level":(int)}}
