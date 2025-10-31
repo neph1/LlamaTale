@@ -3,6 +3,7 @@ from copy import deepcopy
 from tale import json_util, parse_utils
 from tale.base import Location
 from tale.llm import llm_config
+from tale.llm.character_card import CharacterCard
 from tale.llm.contexts.WorldGenerationContext import WorldGenerationContext
 from tale.llm.llm_io import IoUtil
 from tale.quest import Quest, QuestType
@@ -17,7 +18,7 @@ class QuestBuilding():
         self.json_grammar = llm_config.params['JSON_GRAMMAR']
         self.json_grammar_key = json_grammar_key # Type: str
 
-    def generate_quest(self, base_quest: dict, character_name: str, location: Location, context: WorldGenerationContext, character_card: str = '', story_type: str = '', world_info: str = '', zone_info: str = '') -> Quest:
+    def generate_quest(self, base_quest: dict, character_name: str, location: Location, context: WorldGenerationContext, character_card: CharacterCard, story_type: str = '', world_info: str = '', zone_info: str = '') -> Quest:
         prompt = self.pre_prompt
         prompt += llm_config.params['QUEST_PROMPT'].format(
             context='{context}',

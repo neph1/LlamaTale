@@ -1,5 +1,4 @@
-
-
+from tale.llm.character_card import CharacterCard
 from tale.llm.contexts.BaseContext import BaseContext
 
 
@@ -8,7 +7,7 @@ class DialogueContext(BaseContext):
     def __init__(self, 
             story_context: str,
             location_description: str,
-            speaker_card: str,
+            speaker_card: CharacterCard,
             speaker_name: str,
             target_name: str,
             target_description: str,

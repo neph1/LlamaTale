@@ -347,8 +347,6 @@ class MudObject:
         self._extradesc["roleplay_prompt"] = prompt
         self._extradesc["roleplay_description"] = description
         if timeout > 0:
-            def clear_prompt_later():
-                self.clear_roleplay_prompt()
             mud_context.driver.defer(timeout, self.clear_roleplay_prompt, owner=self)
 
     @property

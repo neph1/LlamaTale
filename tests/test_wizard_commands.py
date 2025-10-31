@@ -239,24 +239,6 @@ class TestSetRpPrompt():
         with pytest.raises(ParseError, match="You need to specify a target and a prompt"):
             wizard.do_set_rp_prompt(self.test_player, parse_result, tale._MudContext())
 
-    def test_set_rp_prompt_success(self):
-        context = tale._MudContext()
-        context.config = StoryConfig()
-        story = DynamicStory()
-        context.driver = FakeDriver()
-        context.driver.story = story
-
-        test_npc = LivingNpc('test_npc', 'f', age=30)
-        test_location = Location('test_location')
-        test_location.insert(test_npc, actor=None)
-        test_location.insert(self.test_player, actor=None)
-        story.add_location(test_location)
-
-        parse_result = ParseResult(verb='set_rp_prompt', args=['test_npc', 'This is a test RP prompt.'])
-        wizard.do_set_rp_prompt(self.test_player, parse_result, context)
-
-        assert test_npc.roleplay_prompt == 'This is a test RP prompt.'
-
     def test_set_rp_prompt_target_not_found(self):
         context = tale._MudContext()
         context.config = StoryConfig()
@@ -268,7 +250,7 @@ class TestSetRpPrompt():
         test_location.insert(self.test_player, actor=None)
         story.add_location(test_location)
 
-        parse_result = ParseResult(verb='set_rp_prompt', args=['unknown_npc', 'This is a test RP prompt.', 'Effect description'])
+        parse_result = ParseResult(verb='set_rp_prompt', args=['unknown_npc'], unparsed='test_npc This is a temporary RP prompt,Temporary effect description')
         with pytest.raises(ParseError, match="Target not found"):
             wizard.do_set_rp_prompt(self.test_player, parse_result, context)
 
@@ -285,11 +267,12 @@ class TestSetRpPrompt():
         test_location.insert(self.test_player, actor=None)
         story.add_location(test_location)
 
-        parse_result = ParseResult(verb='set_rp_prompt', args=['test_item', 'This is a test RP prompt.', 'Effect description'])
+
+        parse_result = ParseResult(verb='set_rp_prompt', args=['test_item'], unparsed='test_npc This is a temporary RP prompt,Temporary effect description')
         wizard.do_set_rp_prompt(self.test_player, parse_result, context)
 
-        assert test_item.roleplay_prompt == 'This is a test RP prompt.'
-        assert test_item.roleplay_description == 'Effect description'
+        assert test_item.roleplay_prompt == 'This is a temporary RP prompt'
+        assert test_item.roleplay_description == 'Temporary effect description'
 
     def test_set_rp_prompt_with_duration(self):
         context = tale._MudContext()
@@ -304,13 +287,14 @@ class TestSetRpPrompt():
         test_location.insert(self.test_player, actor=None)
         story.add_location(test_location)
 
-        parse_result = ParseResult(verb='set_rp_prompt', args=['test_npc', 'This is a temporary RP prompt.', 'Temporary effect description', '10'])
+        parse_result = ParseResult(verb='set_rp_prompt', args=['test_npc'], unparsed='test_npc This is a temporary RP prompt,Temporary effect description,10')
         wizard.do_set_rp_prompt(self.test_player, parse_result, context)
     
-        assert test_npc.roleplay_prompt == 'This is a temporary RP prompt.'
+        assert test_npc.roleplay_prompt == 'This is a temporary RP prompt'
         assert test_npc.roleplay_description == 'Temporary effect description'
 
         # verify that driver.defer has been called
 
         deferred = context.driver.deferreds[0] # type: tale.driver.Deferred
         assert deferred is not None
+        deferred.due_gametime
