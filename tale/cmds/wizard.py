@@ -925,9 +925,9 @@ def do_set_rp_prompt(player: Player, parsed: base.ParseResult, ctx: util.Context
     If time is not given, the prompt will be permanent until changed again.
     
     """
-    print('set rp prompt ' + str(parsed))
+    
     if len(parsed.args) < 1:
-        raise ParseError("You need to specify a target and a prompt")
+        raise ParseError("You need to specify a target")
     try:
         target = player.location.search_living(parsed.args[0])
         if not target:
@@ -936,8 +936,13 @@ def do_set_rp_prompt(player: Player, parsed: base.ParseResult, ctx: util.Context
             target = player.location if player.location.name == parsed.args[0] else None
         if not target:
             raise ParseError("Target not found")
+        
+        if(parsed.unparsed.count(' ') == 0):
+            raise ParseError("You need to specify a prompt and a description")
 
         unparsed_args = parsed.unparsed.split(' ', 1)[1].split(',')
+        if len(unparsed_args) < 2:
+            raise ParseError("You need to specify a prompt and a description")
         prompt =  unparsed_args[0].strip()
         effect_description = unparsed_args[1].strip()
 

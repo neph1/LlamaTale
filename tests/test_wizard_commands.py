@@ -234,11 +234,6 @@ class TestSetRpPrompt():
         with pytest.raises(ParseError, match="You need to specify a target and a prompt"):
             wizard.do_set_rp_prompt(self.test_player, parse_result, tale._MudContext())
 
-    def test_set_rp_prompt_one_arg(self):
-        parse_result = ParseResult(verb='set_rp_prompt', args=['test_player'])
-        with pytest.raises(ParseError, match="You need to specify a target and a prompt"):
-            wizard.do_set_rp_prompt(self.test_player, parse_result, tale._MudContext())
-
     def test_set_rp_prompt_target_not_found(self):
         context = tale._MudContext()
         context.config = StoryConfig()
@@ -249,9 +244,28 @@ class TestSetRpPrompt():
         test_location = Location('test_location')
         test_location.insert(self.test_player, actor=None)
         story.add_location(test_location)
-
         parse_result = ParseResult(verb='set_rp_prompt', args=['unknown_npc'], unparsed='test_npc This is a temporary RP prompt,Temporary effect description')
         with pytest.raises(ParseError, match="Target not found"):
+            wizard.do_set_rp_prompt(self.test_player, parse_result, context)
+        
+
+    def test_set_rp_prompt_no_unparsed(self):
+        context = tale._MudContext()
+        context.config = StoryConfig()
+        story = DynamicStory()
+        context.driver = FakeDriver()
+        context.driver.story = story
+
+        test_item = Item('test_item')
+        test_location = Location('test_location')
+        test_location.insert(test_item, actor=None)
+        test_location.insert(self.test_player, actor=None)
+        story.add_location(test_location)
+
+
+        parse_result = ParseResult(verb='set_rp_prompt', args=['test_item'], unparsed='test_item')
+        
+        with pytest.raises(ParseError, match="You need to specify a prompt and a description"):
             wizard.do_set_rp_prompt(self.test_player, parse_result, context)
 
     def test_set_rp_prompt(self):
