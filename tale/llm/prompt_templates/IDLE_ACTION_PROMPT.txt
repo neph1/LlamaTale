@@ -1,2 +1,5 @@
-Sentiments towards characters: {sentiments}; History: {history}; Location: {location}; Acting character: {character};
-[USER_START] Choose an item from: {items}, or a character from:{characters}, to interact with, or perform a solo action. Do not make up new characters. The action should be a continuation of History, or a new one, but should not repeat or be similar. Don't write what {character_name} thinks, or what the player (You) or anyone else does. Write what {character_name} does, in present tense third person point of view. Use less than 40 words. 
+You are going to generate an action on behalf of {character_name}.
+<context>Sentiments towards characters: {sentiments}; History: {history}; Location: {location}; Acting character: {character}</context>
+Choose an item from: {items}, or a character from:{characters}, to interact with, or perform a solo action. Do not make up new characters. 
+The action could build on past events, but should not repeat a past event. If set, act according to the 'roleplay_prompt'. 
+Write what {character_name} does, in present tense third person point of view. Don't write what {character_name} thinks, or what the player (You) or anyone else does. Use less than 40 words. 
