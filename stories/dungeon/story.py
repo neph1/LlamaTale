@@ -123,7 +123,7 @@ class Story(JsonStory):
             self.world.add_item_spawner(item_spawner)
 
         if zone.center.z == self.max_depth:
-            self.llm_util.generate_character
+            self._generate_boss(zone=zone)
 
         if not first_zone:
             self.layout_generator.spawn_gold(zone=zone)
