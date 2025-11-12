@@ -25,9 +25,13 @@ class Story(JsonStory):
 
     driver = None
 
-    def __init__(self) -> None:
-        config = parse_utils.load_story_config(parse_utils.load_json('story_config.json'))
-        super(Story, self).__init__('', config)
+    def __init__(self, path: str = '') -> None:
+        if not path:
+            # If no path provided, use the directory containing this file
+            import os
+            path = os.path.dirname(os.path.abspath(__file__)) + '/'
+        config = parse_utils.load_story_config(parse_utils.load_json(path + 'story_config.json'))
+        super(Story, self).__init__(path, config)
         self.dungeon = None
 
     def init(self, driver: Driver) -> None:
@@ -57,6 +61,15 @@ class Story(JsonStory):
         town_zone.races = ["human"]
         town_zone.items = ["torch", "Sword"]
         
+        # Also set these on the dungeon zones
+        # (They need to be set for mob/item population)
+        if self.dungeon:
+            # Pre-configure the dungeon zone template
+            self.dungeon_zone_template = {
+                "races": ["bat", "wolf"],
+                "items": ["torch"]
+            }
+        
         # Create town square location
         town_square = Location(
             "Town Square",
@@ -79,9 +92,11 @@ class Story(JsonStory):
                       "A cold wind blows from the depths below."
         )
         
-        # Bind the entrance to the location (this will generate the first dungeon level)
-        dungeon_entrance.bind(town_square)
+        # Add the entrance to the location first
         town_square.add_exits([dungeon_entrance])
+        
+        # Then bind the entrance (this will generate the first dungeon level)
+        dungeon_entrance.bind(town_square)
 
     def welcome(self, player: Player) -> str:
         """Welcome text when player enters a new game."""

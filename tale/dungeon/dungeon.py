@@ -281,6 +281,9 @@ class DungeonEntrance(Exit):
         zone = Zone(f"{self.dungeon.name}_level_0", f"Level 0 of {self.dungeon.name}")
         zone.level = 1
         zone.center = Coord(0, 0, 0)
+        # Set default creatures and items for the dungeon
+        zone.races = ["bat", "wolf"]
+        zone.items = ["torch"]
         
         # Add zone to story
         self.dungeon.story.add_zone(zone)
@@ -288,8 +291,11 @@ class DungeonEntrance(Exit):
         # Generate the first level
         self.dungeon.generate_level(zone, depth=0)
         
-        # Get the entrance location
+        # Get the entrance location and update the target
         entrance_loc = self.dungeon.get_entrance_location()
         if entrance_loc:
             self.target = entrance_loc
             self._dungeon_bound = True
+            
+            # Call the parent bind method to actually add the exit to the location
+            super().bind(from_location)
