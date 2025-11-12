@@ -1,0 +1,42 @@
+{
+    "story": {
+        "name": "Town of Mysteries"
+    },
+    "zones": {},
+    "world": {
+        "npcs": {},
+        "items": {},
+        "spawners": [],
+        "item_spawners": []
+    },
+    "catalogue": {
+        "items": [
+            {
+                "name": "torch",
+                "type": "light",
+                "value": 5,
+                "description": "A simple wooden torch"
+            },
+            {
+                "name": "Sword",
+                "type": "weapon",
+                "value": 50,
+                "description": "A steel sword"
+            }
+        ],
+        "creatures": [
+            {
+                "name": "bat",
+                "level": 1,
+                "aggressive": true,
+                "description": "A small cave bat"
+            },
+            {
+                "name": "wolf",
+                "level": 2,
+                "aggressive": true,
+                "description": "A grey wolf"
+            }
+        ]
+    }
+}
