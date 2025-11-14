@@ -8,6 +8,7 @@ from mock import MagicMock
 from tale import parse_utils, util
 from tale.coord import Coord
 from tale.driver_if import IFDriver
+from tale.dungeon.dungeon import DungeonEntrance
 from tale.dungeon.dungeon_generator import LayoutGenerator, MobPopulator, ItemPopulator
 from tale.llm.llm_utils import LlmUtil
 from tests.supportstuff import FakeIoUtil
@@ -33,7 +34,8 @@ class TestDungeonExampleStory:
         "0": {
         "index": 0,
         "name": "Entrance to dungeon",
-        "description": "A dark and ominous entrance to the ancient crypt."
+        "description": "A dark and ominous entrance to the ancient crypt.",
+        "type": "DungeonEntrance"
         },
         "1": {
         "index": 1,
@@ -75,22 +77,10 @@ class TestDungeonExampleStory:
         for direction in ["north", "down", "crypt"]:
             if direction in exits:
                 dungeon_exit = exits[direction]
+                assert isinstance(dungeon_exit, DungeonEntrance)
                 break
         
         assert dungeon_exit is not None, "Dungeon entrance not found in town square"
         
-        # Verify the dungeon was created
-        assert story.dungeon is not None
-        assert story.dungeon.name == "Ancient Crypt"
-        assert story.dungeon.max_depth == 3
-        
-        # Verify the first dungeon level was generated
-        assert len(story.dungeon.zones) == 1
-        dungeon_zone = story.dungeon.zones[0]
-        assert dungeon_zone.name == "Ancient Crypt_level_0"
-        
-        # Verify dungeon has locations
-        assert len(dungeon_zone.locations) > 0
         
         print(f"Story loaded successfully with {len(town_zone.locations)} town location(s)")
-        print(f"Dungeon has {len(dungeon_zone.locations)} location(s) in level 0")

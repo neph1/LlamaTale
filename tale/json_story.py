@@ -1,6 +1,7 @@
 from tale import load_items, wearable
 from tale.items import generic
 from tale.llm.dynamic_story import DynamicStory
+from tale.parse import parse_locations
 from tale.player import Player
 from tale.story import StoryConfig
 import tale.parse_utils as parse_utils
@@ -20,7 +21,7 @@ class JsonStory(DynamicStory):
         zones = []
         world = parse_utils.load_json(self.path +'world.json')
         for zone in world['zones'].values():
-            zones, exits = parse_utils.load_locations(zone)
+            zones, exits = parse_locations.load_locations(zone)
         if len(zones) < 1:
             print("No zones found in story config")
             return

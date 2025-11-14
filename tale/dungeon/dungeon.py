@@ -6,7 +6,7 @@ levels with rooms, corridors, mobs, and loot.
 """
 
 import random
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Sequence, Tuple, Union
 
 from tale.base import Door, Exit, Location
 from tale.coord import Coord
@@ -148,7 +148,7 @@ class Dungeon:
                     name=unique_name,
                     descr=room_data.get("description", "A dungeon room.")
                 )
-                location.world_location = list(layout.cells.values())[i].coord
+                #location.world_location = list(layout.cells.values())[i].coord
                 zone.add_location(location=location)
                 self.story.add_location(zone=zone.name, location=location)
             return
@@ -181,7 +181,7 @@ class Dungeon:
                 i += 1
             
             location = Location(name=room_name, descr=room.description)
-            location.world_location = list(layout.cells.values())[room.index].coord
+            # location.world_location = list(layout.cells.values())[room.index].coord
             zone.add_location(location=location)
             self.story.add_location(zone=zone.name, location=location)
         
@@ -249,36 +249,24 @@ class DungeonEntrance(Exit):
     
     This can be added to any normal location to provide access to a dungeon.
     """
-    
-    def __init__(self, directions: list, dungeon: Dungeon, 
-                 short_descr: str = "A dark entrance leads into a dungeon.",
-                 long_descr: str = ""):
+
+    def build_dungeon(self, story: 'DynamicStory', llm_util) -> None:
         """
-        Create a dungeon entrance.
-        
-        Args:
-            directions: Direction names to use for this exit
-            dungeon: The dungeon this entrance leads to
-            short_descr: Short description of the entrance
-            long_descr: Long description of the entrance
+        Build the dungeon if not already built.
         """
-        self.dungeon = dungeon
-        # Use a placeholder string target that will be resolved later
-        super().__init__(directions, "__dungeon_placeholder__", short_descr, long_descr)
-        self._dungeon_bound = False
-    
-    def bind(self, from_location: Location):
-        """
-        Bind the entrance to a location and generate the first dungeon level.
-        
-        Args:
-            from_location: The location this entrance is in
-        """
-        if self._dungeon_bound:
-            return
-            
+
         # Create the first zone for the dungeon
-        zone = Zone(f"{self.dungeon.name}_level_0", f"Level 0 of {self.dungeon.name}")
+        self.dungeon = Dungeon(
+        name=self.short_description,
+        story=story,
+        llm_util=llm_util,
+        layout_generator=LayoutGenerator(),
+        mob_populator=MobPopulator(),
+        item_populator=ItemPopulator(),
+        max_depth=3
+        )
+                # Create the first zone for the dungeon
+        zone = Zone(f"{self.name}_level_0", f"Level 0 of {self.name}")
         zone.level = 1
         zone.center = Coord(0, 0, 0)
         # Set default creatures and items for the dungeon
@@ -292,10 +280,4 @@ class DungeonEntrance(Exit):
         self.dungeon.generate_level(zone, depth=0)
         
         # Get the entrance location and update the target
-        entrance_loc = self.dungeon.get_entrance_location()
-        if entrance_loc:
-            self.target = entrance_loc
-            self._dungeon_bound = True
-            
-            # Call the parent bind method to actually add the exit to the location
-            super().bind(from_location)
+        self.target = self.dungeon.get_entrance_location()

@@ -38,66 +38,6 @@ class Story(JsonStory):
         """Initialize the story and create the dungeon."""
         super(Story, self).init(driver)
         
-        # Create a dungeon
-        self.dungeon = Dungeon(
-            name="Ancient Crypt",
-            story=self,
-            llm_util=driver.llm_util,
-            layout_generator=LayoutGenerator(),
-            mob_populator=MobPopulator(),
-            item_populator=ItemPopulator(),
-            max_depth=3
-        )
-        
-        # Create the town zone with a normal location
-        self._create_town()
-        
-    def _create_town(self):
-        """Create a simple town with a dungeon entrance."""
-        # Create town zone
-        town_zone = Zone("town", "A peaceful town")
-        town_zone.level = 1
-        town_zone.center = Coord(0, 0, 0)
-        town_zone.races = ["human"]
-        town_zone.items = ["torch", "Sword"]
-        
-        # Also set these on the dungeon zones
-        # (They need to be set for mob/item population)
-        if self.dungeon:
-            # Pre-configure the dungeon zone template
-            self.dungeon_zone_template = {
-                "races": ["bat", "wolf"],
-                "items": ["torch"]
-            }
-        
-        # Create town square location
-        town_square = Location(
-            "Town Square",
-            "A bustling town square with a fountain in the center. "
-            "To the north, you see an old stone archway leading down into darkness."
-        )
-        town_square.world_location = Coord(0, 0, 0)
-        
-        # Add location to zone
-        town_zone.add_location(town_square)
-        self.add_zone(town_zone)
-        self.add_location(town_square, zone="town")
-        
-        # Create a dungeon entrance in the town square
-        dungeon_entrance = DungeonEntrance(
-            directions=["north", "down", "crypt"],
-            dungeon=self.dungeon,
-            short_descr="An ancient stone archway descends into darkness.",
-            long_descr="The archway is covered in moss and strange runes. "
-                      "A cold wind blows from the depths below."
-        )
-        
-        # Add the entrance to the location first
-        town_square.add_exits([dungeon_entrance])
-        
-        # Then bind the entrance (this will generate the first dungeon level)
-        dungeon_entrance.bind(town_square)
-
     def welcome(self, player: Player) -> str:
         """Welcome text when player enters a new game."""
         player.tell("<bright>Welcome to the Town of Mysteries!</>", end=True)

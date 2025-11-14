@@ -623,6 +623,7 @@ class Driver(pubsub.Listener):
         xt = player.location.exits[direction]
         xt.allow_passage(player)
         target_location = xt.target # type: base.Location
+
         if not target_location.built:
             dynamic_story = typing.cast(DynamicStory, self.story)
             zone = dynamic_story.find_zone(location=player.location.name)
