@@ -8,7 +8,7 @@ from mock import MagicMock
 from tale import parse_utils, util
 from tale.coord import Coord
 from tale.driver_if import IFDriver
-from tale.dungeon.dungeon import DungeonEntrance
+from tale.dungeon.DungeonEntrance import DungeonEntrance
 from tale.dungeon.dungeon_generator import LayoutGenerator, MobPopulator, ItemPopulator
 from tale.llm.llm_utils import LlmUtil
 from tests.supportstuff import FakeIoUtil

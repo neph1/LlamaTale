@@ -3,7 +3,7 @@ from typing import Tuple
 from tale import zone
 from tale.base import Exit
 from tale.coord import Coord
-from tale.dungeon.dungeon import DungeonEntrance
+from tale.dungeon.DungeonEntrance import DungeonEntrance
 from tale.load_items import load_item
 from tale.parse_utils import location_from_json, opposite_direction
 

@@ -1,7 +1,7 @@
 
 
 from tale import parse_utils
-from tale.dungeon.dungeon import DungeonEntrance
+from tale.dungeon.DungeonEntrance import DungeonEntrance
 from tale.parse import parse_locations
 
 

@@ -12,7 +12,8 @@ from tale import parse_utils
 from tale.base import Location
 from tale.coord import Coord
 from tale.driver import Driver
-from tale.dungeon.dungeon import Dungeon, DungeonEntrance
+from tale.dungeon.DungeonEntrance import DungeonEntrance
+from tale.dungeon.dungeon import Dungeon
 from tale.dungeon.dungeon_generator import ItemPopulator, LayoutGenerator, MobPopulator
 from tale.json_story import JsonStory
 from tale.main import run_from_cmdline
