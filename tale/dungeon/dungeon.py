@@ -55,6 +55,7 @@ class Dungeon:
         self.max_depth = max_depth
         self.current_depth = 0
         self.zones = []  # type: list[Zone]
+        self._grid = dict() # type: dict[Coord, Location]
         
     def generate_level(self, zone: Zone, depth: int = 0) -> bool:
         """
@@ -148,9 +149,10 @@ class Dungeon:
                     name=unique_name,
                     descr=room_data.get("description", "A dungeon room.")
                 )
-                #location.world_location = list(layout.cells.values())[i].coord
+                location.world_location = list(layout.cells.values())[i].coord
                 zone.add_location(location=location)
-                self.story.add_location(zone=zone.name, location=location)
+                self.story.add_location(zone=zone.name, location=location, add_to_grid=False)
+                self._grid[location.world_location.as_tuple()] = location
             return
         
         # Process rooms in batches of 10
@@ -181,9 +183,10 @@ class Dungeon:
                 i += 1
             
             location = Location(name=room_name, descr=room.description)
-            # location.world_location = list(layout.cells.values())[room.index].coord
+            location.world_location = list(layout.cells.values())[room.index].coord
             zone.add_location(location=location)
-            self.story.add_location(zone=zone.name, location=location)
+            self.story.add_location(zone=zone.name, location=location, add_to_grid=False)
+            self._grid[location.world_location.as_tuple()] = location
         
         return described_rooms
     
@@ -191,8 +194,8 @@ class Dungeon:
         """Connect locations based on the layout."""
         connections = layout.connections
         for connection in connections:
-            cell_location = self.story.world._grid.get(connection.coord.as_tuple(), None)
-            parent_location = self.story.world._grid.get(connection.other.as_tuple(), None)
+            cell_location = self._grid.get(connection.coord.as_tuple(), None)
+            parent_location = self._grid.get(connection.other.as_tuple(), None)
             
             if not cell_location or not parent_location:
                 continue

@@ -59,7 +59,7 @@ def load_locations(json_file: dict) -> Tuple[dict, list]:
                                         target_location=to_loc,
                                         short_descr=exit_to['short_descr'], 
                                         long_descr=exit_to['long_descr'],
-                                        enter_msg=exit_to.get('enter_msg', 'You enter the dungeon.'))
+                                        enter_msg=exit_to.get('enter_msg', 'You enter a dungeon.'))
                 exits.append(exit1)
                 exit1.bind(from_loc)
                 exit2 = Exit(directions=return_directions,

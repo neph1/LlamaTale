@@ -71,13 +71,14 @@ class DynamicStory(StoryBase):
                 return zone
         return None
     
-    def add_location(self, location: Location, zone: str = '') -> bool:
+    def add_location(self, location: Location, zone: str = '', add_to_grid: bool = True) -> bool:
         """ Add a location to the story. 
         If zone is specified, add to that zone, otherwise add to first zone.
         """
         self._world._locations[location.name] = location
         coord = location.world_location
-        self._world._grid[coord.as_tuple()] = location
+        if add_to_grid:
+            self._world._grid[coord.as_tuple()] = location
         if zone:
             return self._zones[zone].add_location(location)
         for zone in self._zones:
