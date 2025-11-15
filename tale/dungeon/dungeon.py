@@ -55,6 +55,7 @@ class Dungeon:
         self.max_depth = max_depth
         self.current_depth = 0
         self.zones = []  # type: list[Zone]
+        self._grid = dict() # type: dict[Coord, Location]
         
     def generate_level(self, zone: Zone, depth: int = 0) -> bool:
         """
@@ -150,7 +151,8 @@ class Dungeon:
                 )
                 location.world_location = list(layout.cells.values())[i].coord
                 zone.add_location(location=location)
-                self.story.add_location(zone=zone.name, location=location)
+                self.story.add_location(zone=zone.name, location=location, add_to_grid=False)
+                self._grid[location.world_location.as_tuple()] = location
             return
         
         # Process rooms in batches of 10
@@ -183,7 +185,8 @@ class Dungeon:
             location = Location(name=room_name, descr=room.description)
             location.world_location = list(layout.cells.values())[room.index].coord
             zone.add_location(location=location)
-            self.story.add_location(zone=zone.name, location=location)
+            self.story.add_location(zone=zone.name, location=location, add_to_grid=False)
+            self._grid[location.world_location.as_tuple()] = location
         
         return described_rooms
     
@@ -191,8 +194,8 @@ class Dungeon:
         """Connect locations based on the layout."""
         connections = layout.connections
         for connection in connections:
-            cell_location = self.story.world._grid.get(connection.coord.as_tuple(), None)
-            parent_location = self.story.world._grid.get(connection.other.as_tuple(), None)
+            cell_location = self._grid.get(connection.coord.as_tuple(), None)
+            parent_location = self._grid.get(connection.other.as_tuple(), None)
             
             if not cell_location or not parent_location:
                 continue
@@ -243,59 +246,3 @@ class Dungeon:
         return list(self.zones[0].locations.values())[0]
 
 
-class DungeonEntrance(Exit):
-    """
-    A special exit that leads to a dungeon.
-    
-    This can be added to any normal location to provide access to a dungeon.
-    """
-    
-    def __init__(self, directions: list, dungeon: Dungeon, 
-                 short_descr: str = "A dark entrance leads into a dungeon.",
-                 long_descr: str = ""):
-        """
-        Create a dungeon entrance.
-        
-        Args:
-            directions: Direction names to use for this exit
-            dungeon: The dungeon this entrance leads to
-            short_descr: Short description of the entrance
-            long_descr: Long description of the entrance
-        """
-        self.dungeon = dungeon
-        # Use a placeholder string target that will be resolved later
-        super().__init__(directions, "__dungeon_placeholder__", short_descr, long_descr)
-        self._dungeon_bound = False
-    
-    def bind(self, from_location: Location):
-        """
-        Bind the entrance to a location and generate the first dungeon level.
-        
-        Args:
-            from_location: The location this entrance is in
-        """
-        if self._dungeon_bound:
-            return
-            
-        # Create the first zone for the dungeon
-        zone = Zone(f"{self.dungeon.name}_level_0", f"Level 0 of {self.dungeon.name}")
-        zone.level = 1
-        zone.center = Coord(0, 0, 0)
-        # Set default creatures and items for the dungeon
-        zone.races = ["bat", "wolf"]
-        zone.items = ["torch"]
-        
-        # Add zone to story
-        self.dungeon.story.add_zone(zone)
-        
-        # Generate the first level
-        self.dungeon.generate_level(zone, depth=0)
-        
-        # Get the entrance location and update the target
-        entrance_loc = self.dungeon.get_entrance_location()
-        if entrance_loc:
-            self.target = entrance_loc
-            self._dungeon_bound = True
-            
-            # Call the parent bind method to actually add the exit to the location
-            super().bind(from_location)

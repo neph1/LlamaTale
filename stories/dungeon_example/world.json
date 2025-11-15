@@ -2,7 +2,64 @@
     "story": {
         "name": "Town of Mysteries"
     },
-    "zones": {},
+    "zones": {
+        "Town": {
+            "description": "town",
+            "level": 1,
+            "mood": 3,
+            "races": [],
+            "items": [],
+            "size": 5,
+            "center": [
+                0,
+                0,
+                0
+            ],
+            "name": "town",
+            "locations": [
+                {
+                    "name": "Town Square",
+                    "descr": "A bustling town square with a fountain in the center. ",
+                    "short_descr": "",
+                    "exits": [
+                        {
+                            "name": "Ancient Crypt",
+                            "direction": "north",
+                            "short_descr": "An ancient stone archway descends into darkness.",
+                            "long_descr": "The archway is covered in moss and strange runes. A cold wind blows from the depths below.",
+                            "type": "DungeonEntrance",
+                            "dungeon_name": "Ancient Crypt"
+                        }
+                    ],
+                    "world_location": [
+                        0,
+                        0,
+                        0
+                    ],
+                    "built": false
+                },
+                {
+                    "name": "Ancient Crypt",
+                    "exits": [
+                        {
+                            "name": "Town Square",
+                            "direction": "south",
+                            "short_descr": "A stone archway leading back to the town square.",
+                            "long_descr": "The archway is covered in moss and strange runes. Sunlight filters down from above."
+                        }
+                        ]
+                    ,
+                    "world_location": [
+                        0,
+                        0,
+                        1
+                    ],
+                    "built": false
+
+                }
+            ]
+        }
+    },
     "world": {
         "npcs": {},
         "items": {},

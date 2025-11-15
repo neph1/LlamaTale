@@ -9,7 +9,8 @@ from tale import parse_utils, util
 from tale.base import Location
 from tale.coord import Coord
 from tale.driver_if import IFDriver
-from tale.dungeon.dungeon import Dungeon, DungeonEntrance
+from tale.dungeon.DungeonEntrance import DungeonEntrance
+from tale.dungeon.dungeon import Dungeon
 from tale.dungeon.dungeon_generator import Cell, Connection, Layout, LayoutGenerator, MobPopulator, ItemPopulator
 from tale.json_story import JsonStory
 from tale.llm.llm_utils import LlmUtil
@@ -124,14 +125,6 @@ class TestDungeon:
         mock_layout_generator = MagicMock()
         mock_layout_generator.generate.return_value = self.get_mock_layout()
         
-        dungeon = Dungeon(
-            name="Test Dungeon",
-            story=self.story,
-            layout_generator=mock_layout_generator,
-            mob_populator=MobPopulator(),
-            item_populator=ItemPopulator(),
-            max_depth=3
-        )
         
         # Create a location to add the entrance to
         location = Location("Test Location", "A test location")
@@ -139,18 +132,18 @@ class TestDungeon:
         
         # Create the entrance
         entrance = DungeonEntrance(
-            directions=["down"],
-            dungeon=dungeon,
-            short_descr="A dark entrance"
+            directions=["test dungeon", "down"],
+            short_descr="A dark entrance",
+            target_location=location,
         )
-        
-        # Bind the entrance
         entrance.bind(location)
+
+        dungeon = entrance.build_dungeon(self.story, self.llm_util)
         
         # Verify the dungeon was created
         assert entrance.target is not None
         assert len(dungeon.zones) == 1
-        assert dungeon.zones[0].name == "Test Dungeon_level_0"
+        assert dungeon.zones[0].name == "test dungeon_level_0"
 
     def test_dungeon_get_entrance_location(self):
         """Test getting the entrance location of a dungeon."""
