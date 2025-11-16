@@ -1,0 +1,1 @@
+[USER_START] For an RPG described as {story_type} set in a world described as {world_mood}, {world_info}, write a captivating background story that the player can interact with. Include a large scale plot conflict that the player will encounter. Use less than 400 words.

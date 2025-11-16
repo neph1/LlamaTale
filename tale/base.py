@@ -334,6 +334,33 @@ class MudObject:
     @property
     def extra_desc(self) -> Dict[str, str]:
         return self._extradesc
+    
+    @property
+    def roleplay_prompt(self) -> str:
+        return self._extradesc.get("roleplay_prompt","")
+    
+    @property
+    def roleplay_description(self) -> str:
+        return self._extradesc.get("roleplay_description","")
+    
+    def set_roleplay_prompt(self, prompt: str, description: str = '', timeout: int = -1) -> None:
+        self._extradesc["roleplay_prompt"] = prompt
+        self._extradesc["roleplay_description"] = description
+        if timeout > 0:
+            mud_context.driver.defer(timeout, self.clear_roleplay_prompt, owner=self)
+
+    @property
+    def look_description(self) -> str:
+        """Returns the description text shown when a player 'looks' in a location."""
+        if self.roleplay_description:
+            return " ".join([self.short_description, self.roleplay_description])
+        return self.short_description
+
+    def clear_roleplay_prompt(self) -> None:
+        if "roleplay_prompt" in self._extradesc:
+            del self._extradesc["roleplay_prompt"]
+        if "roleplay_description" in self._extradesc:
+            del self._extradesc["roleplay_description"]
 
     @extra_desc.setter
     def extra_desc(self, value: Dict[str, str]) -> None:
@@ -785,6 +812,8 @@ class Location(MudObject):
         # normal (long) output
         if self.description:
             paragraphs.append(self.description)
+        if self.roleplay_description:
+            paragraphs.append(self.roleplay_description)
         if self.exits and mud_context.config.show_exits_in_look:
             exits_seen = set()  # type: Set[Exit]
             exit_paragraph = []  # type: List[str]
@@ -792,21 +821,21 @@ class Location(MudObject):
                 exit = self.exits[exit_name]
                 if exit not in exits_seen:
                     exits_seen.add(exit)
-                    exit_paragraph.append(exit.short_description)
+                    exit_paragraph.append(exit.look_description)
             paragraphs.append(" ".join(exit_paragraph))
         items_and_livings = []  # type: List[str]
-        items_with_short_descr = [item for item in self.items if item.short_description and item.visible and not item.hidden]
-        items_without_short_descr = [item for item in self.items if not item.short_description and item.visible and not item.hidden]
+        items_with_short_descr = [item for item in self.items if item.look_description and item.visible and not item.hidden]
+        items_without_short_descr = [item for item in self.items if not item.look_description and item.visible and not item.hidden]
         uniq_descriptions = set()
         if items_with_short_descr:
             for item in items_with_short_descr:
-                uniq_descriptions.add(": ".join([item.title, item.short_description]))
+                uniq_descriptions.add(f"{item.title}: {item.look_description}")
         items_and_livings.extend(uniq_descriptions)
         if items_without_short_descr:
             titles = sorted([lang.a(item.title) for item in items_without_short_descr])
             items_and_livings.append("You see " + lang.join(titles) + ".")
-        livings_with_short_descr = [living for living in self.livings if living != exclude_living and living.short_description and living.visible and not living.hidden]
-        livings_without_short_descr = [living for living in self.livings if living != exclude_living and not living.short_description and living.visible and not living.hidden]
+        livings_with_short_descr = [living for living in self.livings if living != exclude_living and living.look_description and living.visible and not living.hidden]
+        livings_without_short_descr = [living for living in self.livings if living != exclude_living and not living.look_description and living.visible and not living.hidden]
         if livings_without_short_descr:
             titles = sorted(living.title for living in livings_without_short_descr)
             if titles:
@@ -819,7 +848,7 @@ class Location(MudObject):
         uniq_descriptions = set()
         if livings_with_short_descr:
             for living in livings_with_short_descr:
-                uniq_descriptions.add(", ".join([living.title, living.short_description]))
+                uniq_descriptions.add(", ".join([living.title, living.look_description]))
         items_and_livings.extend(uniq_descriptions)
         if items_and_livings:
             paragraphs.append(" ".join(items_and_livings))

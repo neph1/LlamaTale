@@ -69,18 +69,17 @@ class TestLivingNpc():
         npc.wielding = knife
         npc.init_inventory([self.drink, knife])
         card = npc.character_card
-        assert('ale' in card)
-        json_card = json.loads(card)
-        assert(json_card['name'] == 'test')
-        assert('ale' in json_card['items'])
-        assert('knife' in json_card['items'])
-        assert('goal' in json_card.keys())
-        assert(eval(json_card['wielding']) == knife.to_dict())
+        
+        assert(card['name'] == 'test')
+        assert('ale' in card['items'])
+        assert('knife' in card['items'])
+        assert('goal' in card.keys())
+        assert(card['wielding'] == knife.to_dict())
 
         npc.wielding = None
         card = npc.character_card
-        json_card = json.loads(card)
-        assert(eval(json_card['wielding']) == npc.stats.unarmed_attack.to_dict())
+        
+        assert(card['wielding'] == npc.stats.unarmed_attack.to_dict())
 
 
     def test_wearing(self):

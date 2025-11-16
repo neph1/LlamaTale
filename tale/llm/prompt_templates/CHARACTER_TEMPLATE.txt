@@ -1,0 +1,1 @@
+{"name":"", "description": "50 words", "appearance": "25 words", "personality": "50 words", "money":(int), "level":"", "gender":"m/f/n", "age":(int), "race":"", "occupation":""}

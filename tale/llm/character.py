@@ -8,6 +8,7 @@ import random
 from tale import json_util, parse_utils
 from tale.base import Location
 from tale.llm import llm_config
+from tale.llm.character_card import CharacterCard
 from tale.llm.contexts.ActionContext import ActionContext
 from tale.llm.contexts.CharacterContext import CharacterContext
 from tale.llm.contexts.FollowContext import FollowContext
@@ -55,6 +56,8 @@ class CharacterBuilding():
                 sentiment=sentiment)
         request_body = deepcopy(self.default_body)
         request_body['grammar'] = self.json_grammar
+        print(prompt)
+        print(context.to_prompt_string())
         response = self.io_util.synchronous_request(request_body, prompt=prompt, context=context.to_prompt_string())
         try:
             json_result = json_util.safe_load(response)
@@ -93,7 +96,7 @@ class CharacterBuilding():
             print(f'Exception while parsing character {json_result}')
             return None
     
-    def perform_idle_action(self, character_name: str, location: Location, story_context: str, character_card: str = '', sentiments: dict = {}, last_action: str = '', event_history: str = '') -> list:
+    def perform_idle_action(self, character_name: str, location: Location, story_context: str, character_card: CharacterCard, sentiments: dict = {}, last_action: str = '', event_history: str = '') -> list:
         characters = {}
         for living in location.livings:
             if living.visible and living.name != character_name.lower():
@@ -119,7 +122,7 @@ class CharacterBuilding():
         text = self.io_util.synchronous_request(request_body, prompt=prompt)
         return (parse_utils.trim_response(text)) if text else None
     
-    def perform_travel_action(self, character_name: str, location: Location, locations: list, directions: list, character_card: str = ''):
+    def perform_travel_action(self, character_name: str, location: Location, locations: list, directions: list, character_card: CharacterCard):
         if location.name in locations:
             locations.remove(location.name)
 
@@ -134,7 +137,7 @@ class CharacterBuilding():
         text = self.io_util.synchronous_request(request_body, prompt=prompt)
         return text
     
-    def perform_reaction(self, action: str, character_name: str, acting_character_name: str, location: Location, story_context: str, character_card: str = '', sentiment: str = '', event_history: str = ''):
+    def perform_reaction(self, action: str, character_name: str, acting_character_name: str, location: Location, story_context: str, character_card: CharacterCard, sentiment: str = '', event_history: str = ''):
         prompt = self.pre_prompt
         prompt += self.reaction_prompt.format(
             action=action,

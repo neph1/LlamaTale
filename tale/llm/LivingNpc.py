@@ -1,7 +1,6 @@
 import random
-from tale.llm.contexts.FollowContext import FollowContext
+from tale.llm.character_card import CharacterCard
 from tale.llm.item_handling_result import ItemHandlingResult
-from tale.llm import llm_config
 import tale.llm.llm_cache as llm_cache
 from tale import lang, mud_context
 from tale.base import ContainingType, Living, ParseResult
@@ -369,24 +368,25 @@ class LivingNpc(Living):
         self.quest = None
 
     @property
-    def character_card(self) -> str:
-        items = []
-        for i in self.inventory:
-            items.append(f'"{str(i.name)}"')
-        return '{{"name":"{name}", "gender":"{gender}","age":{age},"occupation":"{occupation}","personality":"{personality}","appearance":"{description}","items":[{items}], "race":"{race}", "quest":"{quest}", "goal":"{goal}", "example_voice":"{example_voice}", "wearing":"{wearing}", "wielding":"{wielding}"}}'.format(
-                name=self.title,
-                gender=lang.gender_string(self.gender),
-                age=self.age,
-                personality=self.personality,
-                description=self.description,
-                occupation=self.occupation,
-                race=self.stats.race,
-                quest=self.quest,
-                goal=self.goal,
-                example_voice=self.example_voice,
-                wearing=','.join([f'"{str(i.name)}"' for i in self.get_worn_items()]),
-                wielding=self.wielding.to_dict() if self.wielding else None,
-                items=','.join(items))
+    def character_card(self) -> dict:
+        data = CharacterCard(
+            name=self.title,
+            gender=lang.gender_string(self.gender),
+            age=self.age,
+            occupation=self.occupation,
+            personality=self.personality,
+            appearance=self.description,
+            items=[str(i.name) for i in self.inventory],
+            race=self.stats.race,
+            quest=self.quest,
+            goal=self.goal,
+            example_voice=self.example_voice,
+            wearing=[str(i.name) for i in self.get_worn_items()],
+            wielding=self.wielding.to_dict() if self.wielding else None,
+            roleplay_prompt=self.roleplay_prompt,
+            roleplay_description=self.roleplay_description
+        )
+        return data
     
     def dump_memory(self) -> dict:
         return dict(
@@ -405,3 +405,5 @@ class LivingNpc(Living):
         self.action_history = memory.get('action_history', [])
         self.planned_actions = memory.get('planned_actions', [])
         self.goal = memory.get('goal', None)
+
+        

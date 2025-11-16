@@ -1,0 +1,5 @@
+<context>{context}</context>\n[USER_START]Act as as {character_name}.
+
+Using the information supplied inside the <context> tags, pick an action according to {character_name}s description and mood. If suitable, select something to perform the action on (target). 
+The action should be in the supplied list and should be related to {character_name}s goal and thoughts, or if a 'roleplay_prompt' is set, that takes precedence.
+Build on events in "History" without repeating them. Respond using JSON in the following format with up to 3 actions: """{action_template}""". Continue the sequence of events: {previous_events}

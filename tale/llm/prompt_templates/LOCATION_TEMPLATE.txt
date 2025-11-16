@@ -1,0 +1,1 @@
+{{"name": "", "description":"", "exits":[], "items":[], "npcs":[], "indoors":"true or false"}}

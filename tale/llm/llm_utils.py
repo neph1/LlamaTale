@@ -7,7 +7,7 @@ import yaml
 from tale.base import Location, MudObject
 from tale.image_gen.base_gen import ImageGeneratorBase
 from tale.llm import llm_config
-from tale.llm.character import CharacterBuilding
+from tale.llm.character import CharacterBuilding, CharacterCard
 from tale.llm.contexts.ActionContext import ActionContext
 from tale.llm.contexts.CharacterContext import CharacterContext
 from tale.llm.contexts.DungeonLocationsContext import DungeonLocationsContext
@@ -121,7 +121,7 @@ class LlmUtil():
         return '\n', rolling_prompt
     
     def generate_dialogue(self, conversation: str, 
-                          character_card: str, 
+                          character_card: CharacterCard, 
                           character_name: str, 
                           target: str, 
                           target_description: str='', 
@@ -178,13 +178,13 @@ class LlmUtil():
         return location_result, spawner
                     
      
-    def perform_idle_action(self, character_name: str, location: Location, character_card: str = '', sentiments: dict = {}, last_action: str = '', event_history: str = '') -> list:
+    def perform_idle_action(self, character_name: str, location: Location, character_card: CharacterCard, sentiments: dict = {}, last_action: str = '', event_history: str = '') -> list:
         return self._character.perform_idle_action(character_name, location, self.__story_context, character_card, sentiments, last_action, event_history=event_history)
     
-    def perform_travel_action(self, character_name: str, location: Location, locations: list, directions: list, character_card: str = ''):
+    def perform_travel_action(self, character_name: str, location: Location, locations: list, directions: list, character_card: CharacterCard):
         return self._character.perform_travel_action(character_name, location, locations, directions, character_card)
     
-    def perform_reaction(self, action: str, character_name: str, acting_character_name: str, location: Location, character_card: str = '', sentiment: str = '', event_history: str = ''):
+    def perform_reaction(self, action: str, character_name: str, acting_character_name: str, location: Location, character_card: CharacterCard, sentiment: str = '', event_history: str = ''):
         return self._character.perform_reaction(action=action, 
                                                 character_name=character_name, 
                                                 acting_character_name=acting_character_name, 
@@ -228,7 +228,7 @@ class LlmUtil():
                                                           world_creatures=self.__story.catalogue._creatures,
                                                           world_items=self.__story.catalogue._items)
     
-    def generate_quest(self, base_quest: dict, character_name: str, location: Location, character_card: str, zone_info: dict, event_history: str = '') -> Quest:
+    def generate_quest(self, base_quest: dict, character_name: str, location: Location, character_card: CharacterCard, zone_info: dict, event_history: str = '') -> Quest:
         return self._quest_building.generate_quest(base_quest=base_quest,
                                             context=self._get_world_context(),
                                             character_name=character_name, 
@@ -279,7 +279,7 @@ class LlmUtil():
                 target.avatar = image_name + '.jpg'
             return result
 
-    def free_form_action(self, location: Location, character_name: str,  character_card: str = '', event_history: str = '') -> list:
+    def free_form_action(self, location: Location, character_name: str,  character_card: CharacterCard, event_history: str = '') -> list:
         action_context = ActionContext(story_context=self.__story_context,
                                        story_type=self.__story_type,
                                        character_name=character_name,
@@ -289,7 +289,7 @@ class LlmUtil():
                                        actions=llm_config.params['ACTION_LIST'])
         return self._character.free_form_action(action_context)
 
-    def request_follow(self, actor: MudObject, character_name: str, character_card: str, event_history: str, location: Location, asker_reason: str):
+    def request_follow(self, actor: MudObject, character_name: str, character_card: CharacterCard, event_history: str, location: Location, asker_reason: str):
         return self._character.request_follow(FollowContext(story_context=self.__story_context,
                                         story_type=self.__story_type,
                                         character_name=character_name,

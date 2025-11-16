@@ -1,0 +1,1 @@
+<context>{context}</context>\n[USER_START] Write a narrative event that occurs in {location_name} using the information supplied inside the <context> tags. The event should be related to the location and the characters present. Use up to 50 words.

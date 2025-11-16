@@ -1,0 +1,1 @@
+{{"direction":"", "name":"name of new location", "short_descr":"exit description"}}

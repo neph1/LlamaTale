@@ -1,11 +1,12 @@
 import random
 from tale.base import Location
+from tale.llm.character_card import CharacterCard
 from tale.llm.contexts.BaseContext import BaseContext
 
 
 class ActionContext(BaseContext):
 
-    def __init__(self, story_context: str, story_type: str, character_name: str, character_card: str, event_history: str, location: Location, actions: list):
+    def __init__(self, story_context: str, story_type: str, character_name: str, character_card: CharacterCard, event_history: str, location: Location, actions: list):
         super().__init__(story_context)
         self.story_type = story_type
         self.character_name = character_name

@@ -1,0 +1,5 @@
+[Characters:{characters}][Sentiments towards characters: {sentiments}]  [Last action: {last_action}] [Location: {location}] [Known locations: {locations}][Acting character: {character}] [Actions available:{actions}] 
+Describe a goal for {character_name}, that goes along with their character description that involves an item, a character or a location in the prompt. If set, act according to the 'roleplay_prompt'.
+Then construct up to three tasks that will lead towards the achievement of said goal. 
+
+Fill in the following JSON template: {{"goal":"", "tasks":[{"action":"", "what":""}, {"action":"", "what":""}, {"action":"", "what":""}]}}

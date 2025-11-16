@@ -1,0 +1,1 @@
+<context>{context}</context> Zone info: {zone_info}; Npc example: {npc_template}.\n[USER_START] The player has just re-entered this location: {location_info}. Consider whether any items, npcs or mobs should be spawned. For mobs, only enter the name of race. Fill in this JSON template and do not write anything else: {{"items":[], "npcs":[] "mobs":[]}}.

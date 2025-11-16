@@ -1,0 +1,1 @@
+<context>{context}</context>\n[USER_START] Rewrite [{input_text}] in your own words. The information inside the <context> tags should be used to ensure it fits the story. Use about {max_words} words.
