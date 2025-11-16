@@ -35,6 +35,7 @@ class TestLocations(unittest.TestCase):
         self.hall.add_exits([e1, e2])
         self.table = Item("table", "oak table", descr="a large dark table with a lot of cracks in its surface")
         self.key = Item("key", "rusty key", descr="an old rusty key without a label", short_descr="Someone forgot a key.")
+        self.key.set_roleplay_prompt("The key is enchanted", "It glows faintly.")
         self.magazine = Item("magazine", "university magazine")
         self.magazine2 = Item("magazine", "university magazine")
         self.rat = Living("rat", "n", race="rodent")
@@ -67,11 +68,11 @@ class TestLocations(unittest.TestCase):
     def test_look(self):
         expected = ["[Main hall]", "A very large hall.",
                     "A heavy wooden door to the east blocks the noises from the street outside. A ladder leads up.",
-                    "rusty key: Someone forgot a key. You see two university magazines and an oak table. Player, attractive Julie, and two rats are here. fly, A fly buzzes around your head."]
+                    "rusty key: Someone forgot a key. It glows faintly. You see two university magazines and an oak table. Player, attractive Julie, and two rats are here. fly, A fly buzzes around your head."]
         self.assertEqual(expected, strip_text_styles(self.hall.look()))
         expected = ["[Main hall]", "A very large hall.",
                     "A heavy wooden door to the east blocks the noises from the street outside. A ladder leads up.",
-                    "rusty key: Someone forgot a key. You see two university magazines and an oak table. Attractive Julie and two rats are here. fly, A fly buzzes around your head."]
+                    "rusty key: Someone forgot a key. It glows faintly. You see two university magazines and an oak table. Attractive Julie and two rats are here. fly, A fly buzzes around your head."]
         self.assertEqual(expected, strip_text_styles(self.hall.look(exclude_living=self.player)))
         expected = ["[Attic]", "A dark attic."]
         self.assertEqual(expected, strip_text_styles(self.attic.look()))

@@ -1,0 +1,1 @@
+<context>{context}</context>\n[USER_START] Using the information supplied inside the <context> tags, come up with 7 common items that can be found in the world. Item example: {item_template}, type is one of: {item_types}; Reply with a list of items in JSON format and do not write anything else: {{"items": []}}.

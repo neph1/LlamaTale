@@ -777,7 +777,9 @@ def do_enrich(player: Player, parsed: base.ParseResult, ctx: util.Context) -> No
     
 @wizcmd("add_event")
 def do_add_event(player: Player, parsed: base.ParseResult, ctx: util.Context) -> None:
-    """ Add an event that happens in the current location. """
+    """ Add an event that happens in the current location.
+    Usage: add_event <event description>
+    """
     if len(parsed.args) < 1:
         raise ParseError("You need to define an event")
     player.location._notify_action_all( base.ParseResult(verb='location-event', unparsed=parsed.unparsed, who_info=None), actor=None)
@@ -798,7 +800,9 @@ def do_spawn(player: Player, parsed: base.ParseResult, ctx: util.Context) -> Non
     
 @wizcmd("load_character")
 def do_load_character(player: Player, parsed: base.ParseResult, ctx: util.Context) -> None:
-    """Load a companion character from file."""
+    """Load a companion character from file.
+    Usage: load_character <path to character file>
+    """
     print('load character ' + str(parsed.args) + str(parsed.unparsed))
     if len(parsed.args) != 1:
         raise ParseError("You need to specify the path to the character file")
@@ -814,7 +818,9 @@ def do_load_character(player: Player, parsed: base.ParseResult, ctx: util.Contex
     
 @wizcmd("load_character_from_data")
 def do_load_character_from_data(player: Player, parsed: base.ParseResult, ctx: util.Context) -> None:
-    """Load a companion character from file."""
+    """Load a companion character from file.
+    Usage: load_character_from_data <json data>
+    """
     try:
         unparsed = str(parsed.unparsed)
         data = json.loads(unparsed)
@@ -828,7 +834,9 @@ def do_load_character_from_data(player: Player, parsed: base.ParseResult, ctx: u
     
 @wizcmd("set_visibility")
 def do_set_visible(player: Player, parsed: base.ParseResult, ctx: util.Context) -> None:
-    """Set the visibility of a creature."""
+    """Set the visibility of a creature.
+        Usage: set_visibility <object> <true|false>
+    """
     if len(parsed.args) != 2:
         raise ParseError("You need to specify the object and the visibility(true or false)")
     try:
@@ -866,7 +874,9 @@ def do_set_description(player: Player, parsed: base.ParseResult, ctx: util.Conte
 
 @wizcmd("set_goal")
 def do_set_goal(player: Player, parsed: base.ParseResult, ctx: util.Context) -> None:
-    """Set a goal for a LivingNpc."""
+    """Set a goal for a LivingNpc.
+    Usage: set_goal <character> <goal>
+    """
     if not parsed.who_1:
         raise ParseError("You need to specify a character")
     if len(parsed.args) < 2:
@@ -883,7 +893,9 @@ def do_set_goal(player: Player, parsed: base.ParseResult, ctx: util.Context) -> 
 
 @wizcmd("create_item")
 def do_create_item(player: Player, parsed: base.ParseResult, ctx: util.Context) -> None:
-    """Create an item in the current location."""
+    """Create an item in the current location.
+    Usage: create_item <item_type> [<name>] [<short_description>]
+    """
     if len(parsed.args) < 1:
         raise ParseError("You need to define an item type. Name and description are optional")
     item_dict = dict()
@@ -904,3 +916,42 @@ def do_create_item(player: Player, parsed: base.ParseResult, ctx: util.Context) 
         player.tell(item.name + ' added.', evoke=False)
     else:
         raise ParseError("Item could not be added")
+
+@wizcmd("set_rp_prompt")
+def do_set_rp_prompt(player: Player, parsed: base.ParseResult, ctx: util.Context) -> None:
+    """Set a temporary prompt for roleplaying. Takes both a prompt for the target, and a description of the 'effect'.
+    Any MudObject can have a roleplay prompt, including locations.
+    Usage: set_rp_prompt <target> <prompt> <effect description> [<time in seconds>]
+    If time is not given, the prompt will be permanent until changed again.
+    
+    """
+    
+    if len(parsed.args) < 1:
+        raise ParseError("You need to specify a target")
+    try:
+        target = player.location.search_living(parsed.args[0])
+        if not target:
+            target = player.search_item(parsed.args[0], include_inventory=True, include_location=True)
+        if not target:
+            target = player.location if player.location.name == parsed.args[0] else None
+        if not target:
+            raise ParseError("Target not found")
+        
+        if(parsed.unparsed.count(' ') == 0):
+            raise ParseError("You need to specify a prompt and a description")
+
+        unparsed_args = parsed.unparsed.split(' ', 1)[1].split(',')
+        if len(unparsed_args) < 2:
+            raise ParseError("You need to specify a prompt and a description")
+        prompt =  unparsed_args[0].strip()
+        effect_description = unparsed_args[1].strip()
+
+        if len(unparsed_args) == 3:
+            time = float(unparsed_args[2].strip())
+        else:
+            time = -1
+
+        target.set_roleplay_prompt(prompt, effect_description, time)
+        player.tell("RP prompt set to: %s with effect: %s" % (prompt, effect_description))
+    except ValueError as x:
+        raise ActionRefused(str(x))

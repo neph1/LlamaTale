@@ -1,0 +1,3 @@
+Story context: {story_context}; History: {history};
+[USER_START] Act as {character}. {acting_character_name} has performed the following action that involves {character_name}: {action}. {character_name}'s sentiment towards {acting_character_name}: {sentiment}. 
+[USER_START] Respond with a suitable action for {character_name}, in present tense third person point of view. If set, act according to the 'roleplay_prompt'. Use less than 40 words.
