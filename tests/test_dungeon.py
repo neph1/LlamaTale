@@ -11,6 +11,7 @@ from tale.coord import Coord
 from tale.driver_if import IFDriver
 from tale.dungeon.DungeonEntrance import DungeonEntrance
 from tale.dungeon.dungeon import Dungeon
+from tale.dungeon.dungeon_config import DungeonConfig
 from tale.dungeon.dungeon_generator import Cell, Connection, Layout, LayoutGenerator, MobPopulator, ItemPopulator
 from tale.json_story import JsonStory
 from tale.llm.llm_utils import LlmUtil
@@ -138,7 +139,12 @@ class TestDungeon:
         )
         entrance.bind(location)
 
-        dungeon = entrance.build_dungeon(self.story, self.llm_util)
+        dungeon_config = DungeonConfig(
+            name="A dark entrance",
+            description="A dark entrance to a dungeon.",
+        )
+
+        dungeon = entrance.build_dungeon(self.story, self.llm_util, dungeon_config)
         
         # Verify the dungeon was created
         assert entrance.target is not None

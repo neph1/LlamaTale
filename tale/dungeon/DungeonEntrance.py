@@ -1,4 +1,5 @@
-from tale.base import Exit
+from typing import Sequence, Union
+from tale.base import Exit, Location
 from tale.coord import Coord
 from tale.dungeon.dungeon import Dungeon
 from tale.dungeon.dungeon_config import DungeonConfig
@@ -14,24 +15,20 @@ class DungeonEntrance(Exit):
     This can be added to any normal location to provide access to a dungeon.
     """
 
-    def build_dungeon(self, story: 'DynamicStory', llm_util, config: DungeonConfig = None) -> Dungeon:
+    def __init__(self, directions: Union[str, Sequence[str]], target_location: Union[str, Location],
+                 short_descr: str, long_descr: str="", *, enter_msg: str="") -> None:
+       super().__init__(directions, target_location, short_descr, long_descr, enter_msg=enter_msg)
+       self.dungeon: Dungeon = None
+
+    def build_dungeon(self, story: 'DynamicStory', llm_util, config: DungeonConfig) -> Dungeon:
         """
         Build the dungeon if not already built.
         
         Args:
             story: The story this dungeon belongs to
             llm_util: LLM utility for generating descriptions
-            config: DungeonConfig defining the dungeon properties (optional)
+            config: DungeonConfig defining the dungeon properties
         """
-        # Use provided config or create default
-        if config is None:
-            config = DungeonConfig(
-                name=self.short_description if hasattr(self, 'short_description') else "Dungeon",
-                description="A dark dungeon",
-                races=["bat", "wolf"],
-                items=["torch"],
-                max_depth=3
-            )
 
         # Create the dungeon
         self.dungeon = Dungeon(
