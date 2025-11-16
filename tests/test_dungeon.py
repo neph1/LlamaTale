@@ -143,7 +143,8 @@ class TestDungeon:
         # Verify the dungeon was created
         assert entrance.target is not None
         assert len(dungeon.zones) == 1
-        assert dungeon.zones[0].name == "test dungeon_level_0"
+        # The zone name is based on the dungeon name from config, which defaults to short_descr
+        assert dungeon.zones[0].name == "A dark entrance_level_0"
 
     def test_dungeon_get_entrance_location(self):
         """Test getting the entrance location of a dungeon."""
@@ -172,3 +173,43 @@ class TestDungeon:
         
         assert entrance_location is not None
         assert entrance_location.name in zone.locations
+
+    def test_dungeon_entrance_with_config(self):
+        """Test creating a dungeon entrance with a custom config."""
+        from tale.dungeon.dungeon_config import DungeonConfig
+        
+        mock_layout_generator = MagicMock()
+        mock_layout_generator.generate.return_value = self.get_mock_layout()
+        
+        # Create a location to add the entrance to
+        location = Location("Test Location", "A test location")
+        location.world_location = Coord(0, 0, 0)
+        
+        # Create a custom dungeon config
+        config = DungeonConfig(
+            name="Custom Dungeon",
+            description="A custom dungeon",
+            races=["dragon", "goblin"],
+            items=["sword", "shield"],
+            max_depth=7
+        )
+        
+        # Create the entrance
+        entrance = DungeonEntrance(
+            directions=["custom", "down"],
+            short_descr="A mystical entrance",
+            target_location=location,
+        )
+        entrance.bind(location)
+
+        dungeon = entrance.build_dungeon(self.story, self.llm_util, config)
+        
+        # Verify the dungeon was created with custom config
+        assert entrance.target is not None
+        assert len(dungeon.zones) == 1
+        assert dungeon.zones[0].name == "Custom Dungeon_level_0"
+        assert dungeon.zones[0].races == ["dragon", "goblin"]
+        assert dungeon.zones[0].items == ["sword", "shield"]
+        assert dungeon.max_depth == 7
+        assert dungeon.zones[0].dungeon_config is not None
+        assert dungeon.zones[0].dungeon_config.name == "Custom Dungeon"

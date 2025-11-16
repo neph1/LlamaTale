@@ -16,6 +16,13 @@
                 0
             ],
             "name": "town",
+            "dungeon_config": {
+                "name": "Ancient Crypt",
+                "description": "A dark and ancient crypt beneath the town",
+                "races": ["bat", "wolf", "skeleton"],
+                "items": ["torch", "Sword"],
+                "max_depth": 5
+            },
             "locations": [
                 {
                     "name": "Town Square",
@@ -93,6 +100,12 @@
                 "level": 2,
                 "aggressive": true,
                 "description": "A grey wolf"
+            },
+            {
+                "name": "skeleton",
+                "level": 3,
+                "aggressive": true,
+                "description": "An animated skeleton warrior"
             }
         ]
     }

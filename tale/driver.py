@@ -628,7 +628,11 @@ class Driver(pubsub.Listener):
         if isinstance(xt, DungeonEntrance.DungeonEntrance):
             dungeon_entrance = typing.cast(DungeonEntrance.DungeonEntrance, xt)
             if not dungeon_entrance.dungeon:
-                dungeon_entrance.build_dungeon(self.story, self.llm_util)
+                # Get the dungeon config from the zone containing the entrance
+                dynamic_story = typing.cast(DynamicStory, self.story)
+                zone = dynamic_story.find_zone(location=player.location.name)
+                dungeon_config = zone.dungeon_config if zone else None
+                dungeon_entrance.build_dungeon(self.story, self.llm_util, dungeon_config)
 
         if not target_location.built:
             dynamic_story = typing.cast(DynamicStory, self.story)

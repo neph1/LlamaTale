@@ -1,5 +1,9 @@
 from tale.base import Location
 from tale.coord import Coord
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from tale.dungeon.dungeon_config import DungeonConfig
 
 
 class Zone():
@@ -17,6 +21,7 @@ class Zone():
         self.center = Coord(0,0,0) 
         self.name = name
         self.lore = ""
+        self.dungeon_config = None  # type: DungeonConfig
 
     def add_location(self, location: Location) -> bool:
         """ Add a location to the zone. Skip if location already exists."""
@@ -36,7 +41,7 @@ class Zone():
         return self.locations.get(name, None)
     
     def get_info(self) -> dict:
-        return {"description":self.description,
+        info = {"description":self.description,
                 "level":self.level,
                 "mood":self.mood,
                 "races":self.races,
@@ -45,6 +50,9 @@ class Zone():
                 "center":self.center.as_tuple(),
                 "lore":self.lore,
                 }
+        if self.dungeon_config:
+            info["dungeon_config"] = self.dungeon_config.to_json()
+        return info
 
     def get_neighbor(self, direction: str) -> 'Zone':
         return self.neighbors[direction]
@@ -78,6 +86,8 @@ class Zone():
         return False
     
 def from_json(data: dict) -> 'Zone':
+    from tale.dungeon.dungeon_config import DungeonConfig
+    
     zone = Zone(data.get("name", "unknown"), data.get("description", "unknown"))
     zone.level = data.get("level", 1)
     zone.mood = data.get("mood", 0)
@@ -88,4 +98,9 @@ def from_json(data: dict) -> 'Zone':
         center = data.get("center")
         zone.center = Coord(center[0], center[1], center[2])
     zone.lore = data.get("lore", "")
+    
+    # Load dungeon config if present
+    if data.get("dungeon_config", None) is not None:
+        zone.dungeon_config = DungeonConfig.from_json(data["dungeon_config"])
+    
     return zone
