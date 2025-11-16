@@ -7,7 +7,9 @@ from tale import parse_utils
 from tale import lang
 from tale.base import Door, Exit, Location
 from tale.charbuilder import PlayerNaming
+from tale.coord import Coord
 from tale.driver import Driver
+from tale.dungeon.dungeon import Dungeon
 from tale.dungeon.dungeon_generator import ItemPopulator, Layout, LayoutGenerator, MobPopulator
 from tale.items.basic import Money
 from tale.json_story import JsonStory
@@ -31,10 +33,21 @@ class Story(JsonStory):
         self.item_populator = item_populator
         self.max_depth = 5
         self.depth = 0
+        self.dungeon = None  # Will be created after init
         
 
     def init(self, driver: Driver) -> None:
         self.llm_util = driver.llm_util
+        # Create the dungeon instance BEFORE calling super().init()
+        self.dungeon = Dungeon(
+            name="The Depths",
+            story=self,
+            llm_util=self.llm_util,
+            layout_generator=self.layout_generator,
+            mob_populator=self.mob_populator,
+            item_populator=self.item_populator,
+            max_depth=self.max_depth
+        )
         super(Story, self).init(driver)
 
     def init_player(self, player: Player) -> None:
@@ -104,88 +117,14 @@ class Story(JsonStory):
             return False
         if zone.locations != {}:
             return True
-        first_zone = len(self._zones.values()) == 0
-        zone.size_z = 1
-        layout = self.layout_generator.generate()
-
-        rooms = self._prepare_locations(layout=layout, first_zone=first_zone)
-
-        self._describe_rooms(zone=zone, layout=layout, rooms=rooms)
         
-        self._connect_locations(layout=layout)
-
-        mob_spawners = self.mob_populator.populate(zone=zone, layout=layout, story=self)
-        for mob_spawner in mob_spawners:
-            self.world.add_mob_spawner(mob_spawner)
-
-        item_spawners = self.item_populator.populate(zone=zone, story=self)
-        for item_spawner in item_spawners:
-            self.world.add_item_spawner(item_spawner)
-
-        if zone.center.z == self.max_depth:
-            self._generate_boss(zone=zone)
-
-        if not first_zone:
-            self.layout_generator.spawn_gold(zone=zone)
-    
+        # Use the dungeon to generate the level
+        if self.dungeon:
+            depth = len(self.dungeon.zones)
+            self.depth = depth
+            self.dungeon.generate_level(zone, depth=depth)
+        
         return True
-    
-    def _describe_rooms(self, zone: Zone, layout: Layout, rooms: list):
-        described_rooms = []
-        sliced_rooms = []
-        for num in range(0, len(rooms), 10):
-            sliced_rooms.extend(rooms[num:num+10])
-            for i in range(3):
-                described_rooms_slice = self.llm_util.generate_dungeon_locations(zone_info=zone.get_info(), locations=sliced_rooms, depth = self.depth, max_depth=self.max_depth) # type LocationDescriptionResponse
-                if described_rooms_slice.valid:
-                    described_rooms.extend(described_rooms_slice.location_descriptions)
-                    sliced_rooms = []
-                    break
-        if len(rooms) != len(described_rooms):
-            print(f'Rooms list not same length: {len(rooms)} vs {len(described_rooms)}')
-        for room in described_rooms:
-            i = 1
-            if zone.get_location(room.name):
-                # ensure unique names
-                room.name = f'{room.name}({i})'
-                i += 1
-            location = Location(name=room.name, descr=room.description)
-            location.world_location = list(layout.cells.values())[room.index].coord
-            zone.add_location(location=location)
-            self.add_location(zone=zone.name, location=location)
-        return described_rooms
-
-    
-    def _prepare_locations(self, layout: Layout, first_zone: bool = False) -> list:
-        index = 0
-        rooms = []
-        for cell in list(layout.cells.values()):
-            if cell.is_dungeon_entrance:
-                rooms.append(f'{{"index": {index}, "name": "Entrance to dungeon"}}')
-            if cell.is_entrance:
-                rooms.append(f'{{"index": {index}, "name": "Room with pathway leading up to this level."}}')
-            elif cell.is_exit:
-                rooms.append(f'{{"index": {index}, "name": "Room with pathway leading down"}}')
-            elif cell.is_room:
-                rooms.append(f'{{"index": {index}, "name": "Room"}}')
-            else:
-                rooms.append(f'{{"index": {index}, "name": "Hallway", "description": "A hallway"}}')
-            index += 1
-        return rooms
-    
-    def _connect_locations(self, layout: Layout) -> None:
-        connections = layout.connections
-        for connection in connections:
-            cell_location = self.world._grid.get(connection.coord.as_tuple(), None) # type: Location
-            parent_location = self.world._grid.get(connection.other.as_tuple(), None) # type: Location
-            if cell_location.exits.get(parent_location.name, None):
-                continue
-            elif parent_location.exits.get(cell_location.name, None):
-                continue
-            if connection.door:
-                Door.connect(cell_location, parent_location.name, '', None, parent_location, cell_location.name, '', None, opened=False, locked=connection.locked, key_code=connection.key_code)
-            else:
-                Exit.connect(cell_location, parent_location.name, '', None, parent_location, cell_location.name, '', None)
 
     def _generate_boss(self, zone: Zone) -> bool:
         character = self.llm_util.generate_character(keywords=['final boss']) # Characterv2

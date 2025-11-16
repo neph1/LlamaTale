@@ -212,8 +212,12 @@ class MobPopulator():
             return []
         mob_spawners = []
         leaves = layout.get_leaves()
+        # Filter leaves to only those that have locations in the grid
+        valid_leaves = [cell for cell in leaves if cell.coord.as_tuple() in story.grid]
+        if not valid_leaves:
+            return []
         for i in range(self.max_spawns):
-            cell = random.choice(leaves)
+            cell = random.choice(valid_leaves)
             location = story.grid[cell.coord.as_tuple()]
             mob_type = story.get_catalogue.get_creature(random.choice(zone.races))
             if not mob_type:

@@ -124,3 +124,12 @@ class TestDungeonPopulator():
 
         assert len(spawners) == populator.max_items
         assert spawners[0].items[0]['name'] in ['torch', 'Sword', ]
+
+    def test_populate_items_only_one(self):
+        self.zone.level = 3
+        populator = ItemPopulator()
+        self.zone.items = ['Sword']
+        spawners = populator.populate(zone=self.zone, story=self.story)
+
+        assert len(spawners) == populator.max_items
+        assert spawners[0].items[0]['name'] in ['Sword']
