@@ -231,7 +231,7 @@ class TestSetRpPrompt():
 
     def test_set_rp_prompt_no_args(self):
         parse_result = ParseResult(verb='set_rp_prompt', args=[])
-        with pytest.raises(ParseError, match="You need to specify a target and a prompt"):
+        with pytest.raises(ParseError, match="You need to specify a target"):
             wizard.do_set_rp_prompt(self.test_player, parse_result, tale._MudContext())
 
     def test_set_rp_prompt_target_not_found(self):
