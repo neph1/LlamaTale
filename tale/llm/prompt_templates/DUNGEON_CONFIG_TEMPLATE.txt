@@ -1,0 +1,1 @@
+{"name": "", "description": "50 words", "races": [], "items": [], "max_depth": (int)}
