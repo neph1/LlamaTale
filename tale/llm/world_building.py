@@ -372,6 +372,29 @@ class WorldBuilding():
         except json.JSONDecodeError as exc:
             print(exc)
             return LocationDescriptionResponse([])
+    
+    def generate_dungeon_entrance(self, location: Location, dungeon_config: dict, context: WorldGenerationContext) -> dict:
+        """Generate a dungeon entrance that fits the location and dungeon config."""
+        prompt = llm_config.params['CREATE_DUNGEON_ENTRANCE_PROMPT'].format(
+            context='{context}',
+            location_name=location.name,
+            location_description=location.description,
+            dungeon_config=dungeon_config,
+            dungeon_entrance_template=llm_config.params['DUNGEON_ENTRANCE_TEMPLATE'])
+        
+        request_body = deepcopy(self.default_body)
+        if self.json_grammar_key:
+            request_body[self.json_grammar_key] = self.json_grammar
+        
+        result = self.io_util.synchronous_request(request_body, prompt=prompt, context=context.to_prompt_string())
+        try:
+            return json_util.safe_load(result)
+        except json.JSONDecodeError as exc:
+            print(f'Error generating dungeon entrance: {exc}')
+            return None
+        except Exception as exc:
+            print(f'Error generating dungeon entrance: {exc}')
+            return None
 
     def _validate_creatures(self, creatures: dict) -> dict:
         new_creatures = {}

@@ -4,6 +4,7 @@ from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from tale.dungeon.dungeon_config import DungeonConfig
+    from tale.dungeon.dungeon import Dungeon
 
 
 class Zone():
@@ -22,6 +23,7 @@ class Zone():
         self.name = name
         self.lore = ""
         self.dungeon_config = None  # type: DungeonConfig
+        self.dungeon = None  # type: Dungeon - tracks if a dungeon has been generated for this zone
 
     def add_location(self, location: Location) -> bool:
         """ Add a location to the zone. Skip if location already exists."""

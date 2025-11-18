@@ -595,6 +595,123 @@ class TestWorldBuilding():
         result = self.llm_util.generate_dungeon_locations(zone_info="", locations= [], depth= 1, max_depth=2) # type LocationDescriptionResponse
         assert len(result.location_descriptions) == 19
 
+    def test_generate_dungeon_entrance(self):
+        """Test generating a dungeon entrance."""
+        self.llm_util._world_building.io_util.response = '{"direction": "down", "name": "Dark Cave Entrance", "short_descr": "A dark cave entrance descending into the depths", "long_descr": "A foreboding entrance to a dark cave system. The air is cold and damp."}'
+        
+        location = Location(name='Mountain Pass', descr='A rocky mountain pass')
+        dungeon_config = {
+            "name": "Dark Caves",
+            "description": "A network of dark caves",
+            "races": ["bat", "spider"],
+            "items": ["torch"],
+            "max_depth": 3
+        }
+        
+        self.llm_util.set_story(self.story)
+        result = self.llm_util.generate_dungeon_entrance(location, dungeon_config)
+        
+        assert result is not None
+        assert result.get('direction') == 'down'
+        assert result.get('name') == 'Dark Cave Entrance'
+        assert 'short_descr' in result
+        assert 'long_descr' in result
+
+    def test_build_location_with_dungeon_generation(self):
+        """Test that build_location can generate a dungeon entrance."""
+        from tale.dungeon.dungeon_config import DungeonConfig
+        
+        # Create a zone with dungeon config
+        zone = Zone('Test Zone', description='A test zone')
+        zone.dungeon_config = DungeonConfig(
+            name="Test Dungeon",
+            description="A test dungeon",
+            races=["bat"],
+            items=["torch"],
+            max_depth=3
+        )
+        zone_info = zone.get_info()
+        
+        # Set up responses: first for build_location, then for dungeon entrance
+        location_response = '{"name": "Forest Path", "description": "A path through the forest", "exits": [{"direction": "north", "name": "Dark Woods", "short_descr": "Dense dark woods"}], "items": [], "npcs": []}'
+        dungeon_entrance_response = '{"direction": "north", "name": "Cave Entrance", "short_descr": "A dark cave entrance", "long_descr": "An ominous cave entrance"}'
+        
+        self.llm_util._world_building.io_util.response = [location_response, dungeon_entrance_response]
+        self.llm_util.set_story(self.story)
+        
+        location = Location(name='Forest Path')
+        
+        # Mock random to always trigger dungeon generation
+        import random
+        original_random = random.random
+        random.random = lambda: 0.05  # Below 0.1 threshold
+        
+        try:
+            result, spawner = self.llm_util.build_location(location, 'start', zone_info, zone=zone)
+            
+            # Check that a dungeon was generated
+            if zone.dungeon:
+                assert zone.dungeon is not None
+                # Check that one of the exits is a DungeonEntrance
+                from tale.dungeon.DungeonEntrance import DungeonEntrance
+                has_dungeon_entrance = any(isinstance(exit, DungeonEntrance) for exit in result.exits)
+                assert has_dungeon_entrance
+        finally:
+            random.random = original_random
+
+    def test_build_location_no_dungeon_without_config(self):
+        """Test that build_location doesn't generate dungeon without config."""
+        zone = Zone('Test Zone', description='A test zone')
+        zone_info = zone.get_info()  # No dungeon_config
+        
+        location_response = '{"name": "Forest Path", "description": "A path through the forest", "exits": [{"direction": "north", "name": "Dark Woods", "short_descr": "Dense dark woods"}], "items": [], "npcs": []}'
+        self.llm_util._world_building.io_util.response = location_response
+        self.llm_util.set_story(self.story)
+        
+        location = Location(name='Forest Path')
+        result, spawner = self.llm_util.build_location(location, 'start', zone_info, zone=zone)
+        
+        # Zone should not have a dungeon
+        assert zone.dungeon is None
+
+    def test_build_location_no_dungeon_if_already_exists(self):
+        """Test that build_location doesn't generate another dungeon if one exists."""
+        from tale.dungeon.dungeon_config import DungeonConfig
+        from tale.dungeon.dungeon import Dungeon
+        
+        zone = Zone('Test Zone', description='A test zone')
+        zone.dungeon_config = DungeonConfig(
+            name="Test Dungeon",
+            description="A test dungeon",
+            races=["bat"],
+            items=["torch"],
+            max_depth=3
+        )
+        # Simulate that dungeon already exists
+        zone.dungeon = object()  # Just a placeholder
+        zone_info = zone.get_info()
+        
+        location_response = '{"name": "Forest Path", "description": "A path through the forest", "exits": [{"direction": "north", "name": "Dark Woods", "short_descr": "Dense dark woods"}], "items": [], "npcs": []}'
+        self.llm_util._world_building.io_util.response = location_response
+        self.llm_util.set_story(self.story)
+        
+        location = Location(name='Forest Path')
+        
+        # Mock random to always try dungeon generation
+        import random
+        original_random = random.random
+        random.random = lambda: 0.05
+        
+        try:
+            result, spawner = self.llm_util.build_location(location, 'start', zone_info, zone=zone)
+            
+            # Check that no new DungeonEntrance was added (since dungeon already exists)
+            from tale.dungeon.DungeonEntrance import DungeonEntrance
+            has_dungeon_entrance = any(isinstance(exit, DungeonEntrance) for exit in result.exits)
+            assert not has_dungeon_entrance
+        finally:
+            random.random = original_random
+
 
 
 class TestQuestBuilding():

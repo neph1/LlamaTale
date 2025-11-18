@@ -934,7 +934,8 @@ class Driver(pubsub.Listener):
                                                         zone_info=zone.get_info(),
                                                         world_creatures=dynamic_story.catalogue._creatures,
                                                         world_items=dynamic_story.catalogue._items,
-                                                        neighbors=neighbor_locations)
+                                                        neighbors=neighbor_locations,
+                                                        zone=zone)
         new_locations = result.new_locations
         exits = result.exits
         npcs = result.npcs
