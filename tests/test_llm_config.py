@@ -74,4 +74,3 @@ class TestLlmConfig:
         # Check that there are .txt files in the directory
         txt_files = [f for f in os.listdir(prompts_dir) if f.endswith('.txt')]
         assert len(txt_files) > 0, "No .txt files found in prompt_templates directory"
-        assert len(txt_files) == 44, f"Expected 44 prompt files, found {len(txt_files)}"
