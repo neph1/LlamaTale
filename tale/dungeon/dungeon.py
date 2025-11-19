@@ -8,6 +8,8 @@ levels with rooms, corridors, mobs, and loot.
 import random
 from typing import TYPE_CHECKING
 
+from stories.anything.npcs.npc_defs import RoamingMob
+from tale import lang
 from tale.base import Door, Exit, Location
 from tale.coord import Coord
 from tale.dungeon.dungeon_generator import ItemPopulator, Layout, LayoutGenerator, MobPopulator
@@ -103,6 +105,9 @@ class Dungeon:
         # Add gold if not the first level
         if depth > 0:
             self._spawn_gold(zone=zone)
+
+        if zone.center.z == self.max_depth:
+            self._generate_boss(zone=zone)
         
         self.zones.append(zone)
         return True
@@ -244,5 +249,23 @@ class Dungeon:
         if not self.zones or not self.zones[0].locations:
             return None
         return list(self.zones[0].locations.values())[0]
+    
+
+    def _generate_boss(self, zone: Zone) -> bool:
+        character = self.llm_util.generate_character(keywords=['final boss']) # Characterv2
+        if character:
+            boss = RoamingMob(character.name, 
+                            gender=character.gender, 
+                            title=lang.capital(character.name), 
+                            descr=character.description, 
+                            short_descr=character.appearance, 
+                            age=character.age,
+                            personality=character.personality)
+            boss.aliases = [character.name.split(' ')[0]]
+            boss.stats.level = self.max_depth
+            location = random.choice(list(zone.locations.values()))
+            location.insert(boss, None)
+            return True
+        return False
 
 
