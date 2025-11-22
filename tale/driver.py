@@ -23,6 +23,7 @@ from types import ModuleType
 from typing import Sequence, Union, Tuple, Any, Dict, Callable, Iterable, Generator, Set, List, MutableSequence, Optional
 
 import appdirs
+from tale.dungeon import DungeonEntrance
 from tale.items.basic import Note
 
 from tale.llm import llm_config
@@ -623,6 +624,16 @@ class Driver(pubsub.Listener):
         xt = player.location.exits[direction]
         xt.allow_passage(player)
         target_location = xt.target # type: base.Location
+
+        if isinstance(xt, DungeonEntrance.DungeonEntrance):
+            dungeon_entrance = typing.cast(DungeonEntrance.DungeonEntrance, xt)
+            if not dungeon_entrance.dungeon:
+                # Get the dungeon config from the zone containing the entrance
+                dynamic_story = typing.cast(DynamicStory, self.story)
+                zone = dynamic_story.find_zone(location=player.location.name)
+                dungeon_config = zone.dungeon_config if zone else None
+                dungeon_entrance.build_dungeon(self.story, self.llm_util, dungeon_config)
+
         if not target_location.built:
             dynamic_story = typing.cast(DynamicStory, self.story)
             zone = dynamic_story.find_zone(location=player.location.name)
@@ -923,7 +934,8 @@ class Driver(pubsub.Listener):
                                                         zone_info=zone.get_info(),
                                                         world_creatures=dynamic_story.catalogue._creatures,
                                                         world_items=dynamic_story.catalogue._items,
-                                                        neighbors=neighbor_locations)
+                                                        neighbors=neighbor_locations,
+                                                        zone=zone)
         new_locations = result.new_locations
         exits = result.exits
         npcs = result.npcs

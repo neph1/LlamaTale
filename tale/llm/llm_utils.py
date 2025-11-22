@@ -159,7 +159,7 @@ class LlmUtil():
     def get_neighbor_or_generate_zone(self, current_zone: Zone, current_location: Location, target_location: Location) -> Zone:
         return self._world_building.get_neighbor_or_generate_zone(current_zone, current_location, target_location, self.__story)
 
-    def build_location(self, location: Location, exit_location_name: str, zone_info: dict, world_items: dict = {}, world_creatures: dict = {}, neighbors: dict = {}) -> Tuple[LocationResponse, MobSpawner]:
+    def build_location(self, location: Location, exit_location_name: str, zone_info: dict, world_items: dict = {}, world_creatures: dict = {}, neighbors: dict = {}, zone: Zone = None) -> Tuple[LocationResponse, MobSpawner]:
         """ Generate a location based on the current story context"""
         world_generation_context = WorldGenerationContext(story_context=self.__story_context,
                                                             story_type=self.__story_type,
@@ -172,6 +172,42 @@ class LlmUtil():
                                                     world_creatures=world_creatures if world_creatures else self.__story.catalogue._creatures,
                                                     world_items=world_items if world_items else self.__story.catalogue._items,
                                                     neighbors=neighbors)
+        
+        # Maybe generate a dungeon entrance if conditions are met
+        if zone and zone_info.get('dungeon_config') and not zone.dungeon and location_result.exits:
+            import random
+            if random.random() < 0.1:  # 10% chance
+                # Pick a random exit to replace with dungeon entrance
+                exit_to_replace = random.choice(location_result.exits)
+                
+                # Generate dungeon entrance
+                dungeon_entrance_data = self.generate_dungeon_entrance(location, zone_info['dungeon_config'])
+                
+                if dungeon_entrance_data:
+                    from tale.dungeon.DungeonEntrance import DungeonEntrance
+                    from tale.dungeon.dungeon_config import DungeonConfig
+                    
+                    # Create DungeonEntrance object
+                    dungeon_config = DungeonConfig.from_json(zone_info['dungeon_config'])
+                    
+                    # Use direction from generated data or fall back to exit's direction
+                    direction = dungeon_entrance_data.get('direction', exit_to_replace.name)
+                    
+                    dungeon_entrance = DungeonEntrance(
+                        directions=direction,
+                        target_location=exit_to_replace.target,
+                        short_descr=dungeon_entrance_data.get('short_descr', ''),
+                        long_descr=dungeon_entrance_data.get('long_descr', ''),
+                        enter_msg=''
+                    )
+                    
+                    # Build the dungeon for this entrance
+                    dungeon = dungeon_entrance.build_dungeon(self.__story, self, dungeon_config)
+                    zone.dungeon = dungeon
+                    
+                    # Replace the exit in the location_result
+                    exit_index = location_result.exits.index(exit_to_replace)
+                    location_result.exits[exit_index] = dungeon_entrance
         
         if not location.avatar and self.__story.config.image_gen:
             self.generate_image(location.name, location.description)
@@ -254,6 +290,12 @@ class LlmUtil():
                                                                                                     rooms=locations,
                                                                                                     depth=depth,
                                                                                                     max_depth=max_depth))
+    
+    def generate_dungeon_entrance(self, location: Location, dungeon_config: dict) -> dict:
+        """Generate a dungeon entrance that fits the location and dungeon config."""
+        return self._world_building.generate_dungeon_entrance(location=location,
+                                                               dungeon_config=dungeon_config,
+                                                               context=self._get_world_context())
 
     # visible for testing
     def generate_image(self, name: str, description: dict = '', save_path: str = "./resources", copy_file: bool = True, target: MudObject = None, id: str = None) -> bool:

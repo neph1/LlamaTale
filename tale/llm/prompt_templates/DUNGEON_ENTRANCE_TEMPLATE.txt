@@ -1,0 +1,1 @@
+{{"direction":"", "name":"name of dungeon entrance", "short_descr":"entrance description", "long_descr":"detailed entrance description"}}

@@ -12,6 +12,7 @@ from tale.llm.contexts.DungeonLocationsContext import DungeonLocationsContext
 from tale.llm.contexts.WorldGenerationContext import WorldGenerationContext
 from tale.llm.dynamic_story import DynamicStory
 from tale.llm.llm_io import IoUtil
+from tale.llm.requests.generate_dungeon_config import GenerateDungeonConfig
 from tale.llm.requests.generate_zone import GenerateZone
 from tale.llm.requests.start_location import StartLocation
 from tale.llm.responses.LocationDescriptionResponse import LocationDescriptionResponse
@@ -120,6 +121,11 @@ class WorldBuilding():
                                                       direction.multiply(json_result.get('size', current_zone.size_z if direction.z != 0 else current_zone.size))))
                         if zone and story.add_zone(zone):
                             zone.level = (zone.level + 1) if random.random() < 0.5 else zone.level
+                            # Generate dungeon config at 10% chance
+                            if random.random() < 0.1:
+                                dungeon_config = self._generate_dungeon_config(zone, world_generation_context)
+                                if dungeon_config:
+                                    zone.dungeon_config = dungeon_config
                             return zone
         return current_zone
 
@@ -141,6 +147,28 @@ class WorldBuilding():
             return json.loads(json_util.sanitize_json(result))
         except json.JSONDecodeError as exc:
             print(exc)
+            return None
+    
+    def _generate_dungeon_config(self, zone: Zone, context: WorldGenerationContext):
+        """Generate a dungeon config for the given zone."""
+        from tale.dungeon.dungeon_config import DungeonConfig
+        
+        prompt = GenerateDungeonConfig().build_prompt({
+            'zone_info': zone.get_info(),
+        })
+        
+        request_body = deepcopy(self.default_body)
+        if self.json_grammar_key:
+            request_body[self.json_grammar_key] = self.json_grammar
+        result = self.io_util.synchronous_request(request_body, prompt=prompt, context=context.to_prompt_string())
+        try:
+            json_result = json.loads(json_util.sanitize_json(result))
+            return DungeonConfig.from_json(json_result)
+        except json.JSONDecodeError as exc:
+            print(f'Error generating dungeon config: {exc}')
+            return None
+        except Exception as exc:
+            print(f'Error generating dungeon config: {exc}')
             return None
 
     def validate_zone(self, json_result: dict, center: Coord) -> Zone:
@@ -344,6 +372,29 @@ class WorldBuilding():
         except json.JSONDecodeError as exc:
             print(exc)
             return LocationDescriptionResponse([])
+    
+    def generate_dungeon_entrance(self, location: Location, dungeon_config: dict, context: WorldGenerationContext) -> dict:
+        """Generate a dungeon entrance that fits the location and dungeon config."""
+        prompt = llm_config.params['CREATE_DUNGEON_ENTRANCE_PROMPT'].format(
+            context='{context}',
+            location_name=location.name,
+            location_description=location.description,
+            dungeon_config=dungeon_config,
+            dungeon_entrance_template=llm_config.params['DUNGEON_ENTRANCE_TEMPLATE'])
+        
+        request_body = deepcopy(self.default_body)
+        if self.json_grammar_key:
+            request_body[self.json_grammar_key] = self.json_grammar
+        
+        result = self.io_util.synchronous_request(request_body, prompt=prompt, context=context.to_prompt_string())
+        try:
+            return json_util.safe_load(result)
+        except json.JSONDecodeError as exc:
+            print(f'Error generating dungeon entrance: {exc}')
+            return None
+        except Exception as exc:
+            print(f'Error generating dungeon entrance: {exc}')
+            return None
 
     def _validate_creatures(self, creatures: dict) -> dict:
         new_creatures = {}

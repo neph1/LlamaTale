@@ -24,21 +24,6 @@ class TestParseUtils():
     def test_load_json(self):
         assert(parse_utils.load_json("tests/files/test.json"))
         
-    def test_load_locations(self):
-        room_json = parse_utils.load_json("tests/files/test_locations.json")
-        zones, exits = parse_utils.load_locations(room_json)
-        room_one = zones['test house'].get_location('test room')
-        assert(room_one.name == 'test room')
-        assert(room_one.description == 'test room description')
-        room_two = zones['test house'].get_location('test room 2')
-        assert(room_two.name == 'test room 2')
-        assert(room_two.description == 'test room 2 description')
-        assert(len(room_two.exits) == 2)
-        assert(room_two.exits['north'].target == room_one)
-        assert(room_two.exits['test room'].target == room_one)
-
-        assert(exits[0].__repr__().startswith("(<base.Exit to 'test room 2'"))
-
     def test_load_story_config(self):
         config_json = parse_utils.load_json("tests/files/test_story_config.json")
         config = parse_utils.load_story_config(config_json)
@@ -486,4 +471,6 @@ class TestLoadNpcs:
         assert(guard.stats.weapon_skills.get(WeaponType.TWO_HANDED) > 0)
         assert(guard.stats.weapon_skills.get(WeaponType.TWO_HANDED_RANGED) == 0)
         assert(guard.locate_item('Sword')[1] or guard.locate_item('Spear')[1])
+
+
 

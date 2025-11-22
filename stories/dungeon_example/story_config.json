@@ -1,0 +1,29 @@
+{
+    "name": "Town of Mysteries",
+    "author": "LlamaTale Example",
+    "author_address": "",
+    "version": "1.0",
+    "requires_tale": "4.0",
+    "supported_modes": ["IF"],
+    "player_name": "",
+    "player_gender": "m",
+    "player_race": "human",
+    "player_money": 50.0,
+    "money_type": "MODERN",
+    "server_tick_method": "TIMER",
+    "server_tick_time": 1.0,
+    "gametime_to_realtime": 1,
+    "max_load_time": 60.0,
+    "display_gametime": true,
+    "startlocation_player": "town.Town Square",
+    "startlocation_wizard": "town.Town Square",
+    "zones": ["town"],
+    "server_mode": "IF",
+    "context": "A peaceful town with an ancient crypt beneath it.",
+    "type": "fantasy",
+    "world_mood": 5,
+    "world_info": {
+        "races": ["human", "elf"],
+        "items": ["torch", "Sword"]
+    }
+}

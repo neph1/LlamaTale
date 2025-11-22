@@ -1,9 +1,8 @@
 import random
-from typing import List, Tuple
+from typing import List
 from tale import lang
-from tale import zone
 from tale import wearable
-from tale.base import Living, Location, Exit, Item, Stats, Weapon, Wearable
+from tale.base import Living, Location, Exit, Item, Stats, Weapon
 from tale.coord import Coord
 from tale.equip_npcs import equip_npc
 from tale.item_spawner import ItemSpawner
@@ -34,62 +33,6 @@ def load_json(file_path: str):
     with open(file_path) as f:
         return json.load(f, strict=False)
 
-def load_locations(json_file: dict) -> Tuple[dict, list]:
-    """
-        Loads locations from supplied json file and generates exits connecting them
-        Returns dict of locations, list of exits
-    """
-    locations = {}
-    exits = []
-    temp_exits = {}
-    parsed_exits = []
-    zones = {}
-    zone1 = zone.from_json(json_file)
-    zones[json_file['name']] = zone1
-    for loc in json_file['locations']:
-        name = loc['name']
-        location = location_from_json(loc)
-        if loc.get('world_location', None):
-            location.world_location = Coord(loc['world_location'][0], loc['world_location'][1], loc['world_location'][2])
-        locations[name] = location
-        zone1.add_location(location)
-        loc_exits = loc['exits']
-        for loc_exit in loc_exits:
-            temp_exits.setdefault(name,{})[loc_exit['name']] = loc_exit
-        
-        if loc.get('items', None):
-            for item in loc['items']:
-                loaded_item = load_item(item)
-                location.insert(loaded_item, None)
-
-    for from_name, exits_dict in temp_exits.items():
-        from_loc = locations[from_name]
-        for to_name, exit_to in exits_dict.items():
-            exit_from = temp_exits[to_name][from_name]
-            if [exit_from, exit_to] in parsed_exits or [exit_to, exit_from] in parsed_exits:
-                continue
-            to_loc = locations[to_name]
-            
-            directions = [to_name]
-            
-            return_directions = [from_name]
-            direction = exit_to.get('direction', '')
-            return_direction = exit_from.get('direction', '')
-            # doing opposite since exit_to has direction
-            if direction or return_direction:
-                directions.append(direction or opposite_direction(return_direction))
-                return_directions.append(opposite_direction(direction) or return_direction)
-
-            exits.append(Exit.connect(from_loc=from_loc,
-                                      directions=directions,
-                                      short_descr=exit_to['short_descr'], 
-                                      long_descr=exit_to['long_descr'],
-                                      to_loc=to_loc,
-                                      return_short_descr=exit_from['short_descr'], 
-                                      return_long_descr=exit_from['long_descr'],
-                                      return_directions=return_directions))
-            parsed_exits.append([exit_from, exit_to])
-    return zones, exits
 
 def location_from_json(json_object: dict):
     location = Location(name=json_object['name'], descr=json_object.get('descr', ''))
