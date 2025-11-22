@@ -1,6 +1,8 @@
 "use strict";
 
 let none_action = 'None';
+let websocket = null;
+let useWebSocket = false;  // Will be detected automatically
 
 function setup()
 {
@@ -19,7 +21,70 @@ function setup()
     document.smoothscrolling_busy = false;
     window.onbeforeunload = function(e) { return "Are you sure you want to abort the session and close the window?"; }
 
-    // use eventsource (server-side events) to update the text, rather than manual ajax polling
+    // Try WebSocket first, fallback to EventSource
+    tryWebSocket();
+
+    populateActionDropdown();
+}
+
+function tryWebSocket() {
+    // Attempt to connect via WebSocket
+    var protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+    var wsUrl = protocol + '//' + window.location.host + '/tale/ws';
+    
+    try {
+        websocket = new WebSocket(wsUrl);
+        
+        websocket.onopen = function(e) {
+            console.log("WebSocket connection established");
+            useWebSocket = true;
+        };
+        
+        websocket.onmessage = function(e) {
+            console.log("WS message received");
+            var data = JSON.parse(e.data);
+            if (data.type === "connected") {
+                console.log("WebSocket connected successfully");
+            } else if (data.type === "text" || data.text) {
+                process_text(data);
+            } else if (data.type === "data") {
+                // Handle data messages
+                process_data(data);
+            }
+        };
+        
+        websocket.onerror = function(e) {
+            console.error("WebSocket error:", e);
+            if (!useWebSocket) {
+                // WebSocket failed, fallback to EventSource
+                console.log("Falling back to EventSource");
+                setupEventSource();
+            } else {
+                var txtdiv = document.getElementById("textframe");
+                txtdiv.innerHTML += "<p class='server-error'>WebSocket connection error.<br><br>Refresh the page to restore it.</p>";
+                txtdiv.scrollTop = txtdiv.scrollHeight;
+            }
+        };
+        
+        websocket.onclose = function(e) {
+            console.log("WebSocket closed:", e.code, e.reason);
+            var txtdiv = document.getElementById("textframe");
+            if (useWebSocket) {
+                txtdiv.innerHTML += "<p class='server-error'>Connection closed.<br><br>Refresh the page to restore it.</p>";
+                txtdiv.scrollTop = txtdiv.scrollHeight;
+                var cmd_input = document.getElementById("input-cmd");
+                cmd_input.disabled = true;
+            }
+        };
+    } catch (e) {
+        console.error("WebSocket not supported or failed to connect:", e);
+        setupEventSource();
+    }
+}
+
+function setupEventSource() {
+    // Fallback to original EventSource implementation
+    useWebSocket = false;
     var esource = new EventSource("eventsource");
     esource.addEventListener("text", function(e) {
         console.log("ES text event");
@@ -44,9 +109,16 @@ function setup()
         cmd_input.disabled=true;
         //   esource.close();       // close the eventsource, so that it won't reconnect
     }, false);
+}
 
-    populateActionDropdown();
-
+function process_data(json) {
+    if (json.data) {
+        var id = json.id || "default-image";
+        var element = document.getElementById(id);
+        if (element) {
+            element.src = json.data;
+        }
+    }
 }
 
 function process_text(json)
@@ -148,23 +220,41 @@ function submit_cmd()
 }
 
 function send_cmd(command, npcAddress) {
-    var ajax = new XMLHttpRequest();
-    ajax.open("POST", "input", true);
-    ajax.setRequestHeader("Content-type","application/x-www-form-urlencoded; charset=UTF-8");
+    var fullCommand = command + npcAddress;
+    
+    if (useWebSocket && websocket && websocket.readyState === WebSocket.OPEN) {
+        // Use WebSocket
+        var message = JSON.stringify({ cmd: fullCommand });
+        console.log("Sending command via WebSocket: " + fullCommand);
+        websocket.send(message);
+    } else {
+        // Fallback to AJAX POST
+        var ajax = new XMLHttpRequest();
+        ajax.open("POST", "input", true);
+        ajax.setRequestHeader("Content-type","application/x-www-form-urlencoded; charset=UTF-8");
 
-    var encoded_cmd = encodeURIComponent(command + npcAddress);
-    console.log("Sending command: " + encoded_cmd);
-    ajax.send("cmd=" + encoded_cmd);
+        var encoded_cmd = encodeURIComponent(fullCommand);
+        console.log("Sending command via AJAX: " + encoded_cmd);
+        ajax.send("cmd=" + encoded_cmd);
+    }
 }
 
 function autocomplete_cmd()
 {
     var cmd_input = document.getElementById("input-cmd");
     if(cmd_input.value) {
-        var ajax = new XMLHttpRequest();
-        ajax.open("POST", "input", true);
-        ajax.setRequestHeader("Content-type","application/x-www-form-urlencoded");
-        ajax.send("cmd=" + encodeURIComponent(cmd_input.value)+"&autocomplete=1");
+        if (useWebSocket && websocket && websocket.readyState === WebSocket.OPEN) {
+            // Use WebSocket for autocomplete
+            var message = JSON.stringify({ cmd: cmd_input.value, autocomplete: 1 });
+            console.log("Sending autocomplete via WebSocket");
+            websocket.send(message);
+        } else {
+            // Fallback to AJAX
+            var ajax = new XMLHttpRequest();
+            ajax.open("POST", "input", true);
+            ajax.setRequestHeader("Content-type","application/x-www-form-urlencoded");
+            ajax.send("cmd=" + encodeURIComponent(cmd_input.value)+"&autocomplete=1");
+        }
     }
     cmd_input.focus();
     return false;
