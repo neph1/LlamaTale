@@ -231,19 +231,29 @@ function send_cmd(command, npcAddress) {
     
     if (useWebSocket && websocket && websocket.readyState === WebSocket.OPEN) {
         // Use WebSocket
-        var message = JSON.stringify({ cmd: fullCommand });
-        console.log("Sending command via WebSocket: " + fullCommand);
-        websocket.send(message);
+        try {
+            var message = JSON.stringify({ cmd: fullCommand });
+            console.log("Sending command via WebSocket: " + fullCommand);
+            websocket.send(message);
+        } catch (e) {
+            console.error("WebSocket send failed, falling back to AJAX:", e);
+            // Fallback to AJAX if WebSocket send fails
+            sendViaAjax(fullCommand);
+        }
     } else {
         // Fallback to AJAX POST
-        var ajax = new XMLHttpRequest();
-        ajax.open("POST", "input", true);
-        ajax.setRequestHeader("Content-type","application/x-www-form-urlencoded; charset=UTF-8");
-
-        var encoded_cmd = encodeURIComponent(fullCommand);
-        console.log("Sending command via AJAX: " + encoded_cmd);
-        ajax.send("cmd=" + encoded_cmd);
+        sendViaAjax(fullCommand);
     }
+}
+
+function sendViaAjax(command) {
+    var ajax = new XMLHttpRequest();
+    ajax.open("POST", "input", true);
+    ajax.setRequestHeader("Content-type","application/x-www-form-urlencoded; charset=UTF-8");
+    
+    var encoded_cmd = encodeURIComponent(command);
+    console.log("Sending command via AJAX: " + encoded_cmd);
+    ajax.send("cmd=" + encoded_cmd);
 }
 
 function autocomplete_cmd()

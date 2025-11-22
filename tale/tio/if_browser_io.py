@@ -787,9 +787,18 @@ if FASTAPI_AVAILABLE:
                                 await asyncio.sleep(0.1)
                             
                 except WebSocketDisconnect:
+                    print(f"WebSocket disconnected for player {player.player.name if player and player.player else 'unknown'}")
                     self._cleanup_player(player)
+                except asyncio.CancelledError:
+                    # Task was cancelled, clean shutdown
+                    print(f"WebSocket task cancelled for player {player.player.name if player and player.player else 'unknown'}")
+                    self._cleanup_player(player)
+                    raise
                 except Exception as e:
-                    print(f"WebSocket error: {e}")
+                    # Log the error with context
+                    import traceback
+                    print(f"WebSocket error for player {player.player.name if player and player.player else 'unknown'}: {e}")
+                    print(traceback.format_exc())
                     self._cleanup_player(player)
         
         def _get_player_from_headers(self, headers) -> Optional[PlayerConnection]:
@@ -814,22 +823,20 @@ if FASTAPI_AVAILABLE:
                             conn.io.append_html_to_browser("<p>No matching commands.</p>")
                 else:
                     # Normal command processing
-                    cmd = html_escape(cmd, False)
-                    if cmd:
-                        if conn.io.dont_echo_next_cmd:
-                            conn.io.dont_echo_next_cmd = False
-                        elif conn.io.echo_input:
-                            conn.io.append_html_to_browser("<span class='txt-userinput'>%s</span>" % cmd)
-                    conn.player.store_input_line(cmd)
+                    self._process_command(conn, cmd)
             except json.JSONDecodeError:
                 # Handle plain text input for backward compatibility
-                cmd = html_escape(data, False)
-                if cmd:
-                    if conn.io.dont_echo_next_cmd:
-                        conn.io.dont_echo_next_cmd = False
-                    elif conn.io.echo_input:
-                        conn.io.append_html_to_browser("<span class='txt-userinput'>%s</span>" % cmd)
-                conn.player.store_input_line(cmd)
+                self._process_command(conn, data)
+        
+        def _process_command(self, conn: PlayerConnection, cmd: str) -> None:
+            """Process a command from the player"""
+            cmd = html_escape(cmd, False)
+            if cmd:
+                if conn.io.dont_echo_next_cmd:
+                    conn.io.dont_echo_next_cmd = False
+                elif conn.io.echo_input:
+                    conn.io.append_html_to_browser("<span class='txt-userinput'>%s</span>" % cmd)
+            conn.player.store_input_line(cmd)
         
         def _cleanup_player(self, conn: PlayerConnection) -> None:
             """Cleanup when player disconnects"""
