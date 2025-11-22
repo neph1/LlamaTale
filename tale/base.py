@@ -1013,8 +1013,8 @@ class Stats:
         self.weapon_skills = WeaponSkills()
         self.magic_skills  = MagicSkills()
         self.skills = Skills()
-        self.action_points = 0 # combat points
-        self.max_action_points = 5 # max combat points
+        self.action_points = 10 # combat points
+        self.max_action_points = 10 # max combat points
         self.max_magic_points = 5 # max magic points
         self.magic_points = 0 # magic points
 
