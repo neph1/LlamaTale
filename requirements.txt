@@ -4,7 +4,7 @@ PyYAML==6.0.1
 Requests==2.31.0
 smartypants>=1.8.6
 serpent>=1.23
-aiohttp==3.8.5
+aiohttp>=3.9.0
 pillow
 packaging>=20.3
 fastapi>=0.104.0
