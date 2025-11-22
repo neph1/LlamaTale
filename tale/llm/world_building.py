@@ -121,8 +121,7 @@ class WorldBuilding():
                                                       direction.multiply(json_result.get('size', current_zone.size_z if direction.z != 0 else current_zone.size))))
                         if zone and story.add_zone(zone):
                             zone.level = (zone.level + 1) if random.random() < 0.5 else zone.level
-                            # Generate dungeon config at 10% chance
-                            if random.random() < 0.1:
+                            if random.random() < 0.25:
                                 dungeon_config = self._generate_dungeon_config(zone, world_generation_context)
                                 if dungeon_config:
                                     zone.dungeon_config = dungeon_config
