@@ -732,54 +732,59 @@ if FASTAPI_AVAILABLE:
                 
                 try:
                     while self.driver.is_running():
-                        # 1. Handle new player input (if any)
-                        try:
-                            data = await asyncio.wait_for(websocket.receive_text(), timeout=0.05)
-                            self._handle_player_input(player, data)
-                        except asyncio.TimeoutError:
-                            pass  # no input received
-                        
-                        # 2. Handle new server output
+                        # Check for server output first
+                        has_output = False
                         if player.io:
-                            try:
-                                # Check for HTML output
-                                html = player.io.get_html_to_browser()
-                                special = player.io.get_html_special()
-                                data_items = player.io.get_data_to_browser()
+                            # Check for HTML output
+                            html = player.io.get_html_to_browser()
+                            special = player.io.get_html_special()
+                            data_items = player.io.get_data_to_browser()
+                            
+                            if html or special:
+                                location = player.player.location
+                                if player.io.dont_echo_next_cmd:
+                                    special.append("noecho")
+                                npc_names = ''
+                                items = ''
+                                exits = ''
+                                if location:
+                                    npc_names = ','.join([l.name for l in location.livings if l.alive and l.visible and l != player.player])
+                                    items = ','.join([i.name for i in location.items if i.visible])
+                                    exits = ','.join(list(set([e.name for e in location.exits.values() if e.visible])))
                                 
-                                if html or special:
-                                    location = player.player.location
-                                    if player.io.dont_echo_next_cmd:
-                                        special.append("noecho")
-                                    npc_names = ''
-                                    items = ''
-                                    exits = ''
-                                    if location:
-                                        npc_names = ','.join([l.name for l in location.livings if l.alive and l.visible and l != player.player])
-                                        items = ','.join([i.name for i in location.items if i.visible])
-                                        exits = ','.join(list(set([e.name for e in location.exits.values() if e.visible])))
-                                    
-                                    response = {
-                                        "type": "text",
-                                        "text": "\n".join(html),
-                                        "special": special,
-                                        "turns": player.player.turns,
-                                        "location": location.title if location else "???",
-                                        "location_image": location.avatar if location and location.avatar else "",
-                                        "npcs": npc_names if location else '',
-                                        "items": items if location else '',
-                                        "exits": exits if location else '',
-                                    }
+                                response = {
+                                    "type": "text",
+                                    "text": "\n".join(html),
+                                    "special": special,
+                                    "turns": player.player.turns,
+                                    "location": location.title if location else "???",
+                                    "location_image": location.avatar if location and location.avatar else "",
+                                    "npcs": npc_names if location else '',
+                                    "items": items if location else '',
+                                    "exits": exits if location else '',
+                                }
+                                await websocket.send_text(json.dumps(response))
+                                has_output = True
+                            elif data_items:
+                                for d in data_items:
+                                    response = {"type": "data", "data": d}
                                     await websocket.send_text(json.dumps(response))
-                                elif data_items:
-                                    for d in data_items:
-                                        response = {"type": "data", "data": d}
-                                        await websocket.send_text(json.dumps(response))
-                                else:
-                                    # No output available, wait briefly
-                                    await asyncio.sleep(0.05)
+                                has_output = True
                         else:
                             break
+                        
+                        # Handle player input with adaptive timeout
+                        # Use shorter timeout if we just sent output (expecting response)
+                        # Use longer timeout if idle (reduce CPU usage)
+                        timeout = 0.1 if has_output else 0.5
+                        try:
+                            data = await asyncio.wait_for(websocket.receive_text(), timeout=timeout)
+                            self._handle_player_input(player, data)
+                        except asyncio.TimeoutError:
+                            # No input received, continue loop
+                            if not has_output:
+                                # Nothing happened, wait a bit longer to reduce CPU usage
+                                await asyncio.sleep(0.1)
                             
                 except WebSocketDisconnect:
                     self._cleanup_player(player)

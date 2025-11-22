@@ -39,6 +39,7 @@ function tryWebSocket() {
     // Attempt to connect via WebSocket
     var protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
     var wsUrl = protocol + '//' + window.location.host + '/tale/ws';
+    var connectionEstablished = false;
     
     try {
         websocket = new WebSocket(wsUrl);
@@ -46,6 +47,7 @@ function tryWebSocket() {
         websocket.onopen = function(e) {
             console.log("WebSocket connection established");
             useWebSocket = true;
+            connectionEstablished = true;
         };
         
         websocket.onmessage = function(e) {
@@ -63,18 +65,21 @@ function tryWebSocket() {
         
         websocket.onerror = function(e) {
             console.error("WebSocket error:", e);
-            if (!useWebSocket) {
-                // WebSocket failed, fallback to EventSource
-                console.log("Falling back to EventSource");
+            // Check if connection was never established (initial connection failure)
+            if (!connectionEstablished) {
+                // Initial connection failed, fallback to EventSource
+                console.log("Initial WebSocket connection failed, falling back to EventSource");
                 setupEventSource();
             } else {
+                // Connection was established but then failed
                 displayConnectionError("<p class='server-error'>WebSocket connection error.<br><br>Refresh the page to restore it.</p>");
             }
         };
         
         websocket.onclose = function(e) {
             console.log("WebSocket closed:", e.code, e.reason);
-            if (useWebSocket) {
+            // Only show error if connection was previously established
+            if (connectionEstablished) {
                 displayConnectionError("<p class='server-error'>Connection closed.<br><br>Refresh the page to restore it.</p>");
             }
         };
