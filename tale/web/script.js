@@ -27,6 +27,14 @@ function setup()
     populateActionDropdown();
 }
 
+function displayConnectionError(message) {
+    var txtdiv = document.getElementById("textframe");
+    txtdiv.innerHTML += message;
+    txtdiv.scrollTop = txtdiv.scrollHeight;
+    var cmd_input = document.getElementById("input-cmd");
+    cmd_input.disabled = true;
+}
+
 function tryWebSocket() {
     // Attempt to connect via WebSocket
     var protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
@@ -60,20 +68,14 @@ function tryWebSocket() {
                 console.log("Falling back to EventSource");
                 setupEventSource();
             } else {
-                var txtdiv = document.getElementById("textframe");
-                txtdiv.innerHTML += "<p class='server-error'>WebSocket connection error.<br><br>Refresh the page to restore it.</p>";
-                txtdiv.scrollTop = txtdiv.scrollHeight;
+                displayConnectionError("<p class='server-error'>WebSocket connection error.<br><br>Refresh the page to restore it.</p>");
             }
         };
         
         websocket.onclose = function(e) {
             console.log("WebSocket closed:", e.code, e.reason);
-            var txtdiv = document.getElementById("textframe");
             if (useWebSocket) {
-                txtdiv.innerHTML += "<p class='server-error'>Connection closed.<br><br>Refresh the page to restore it.</p>";
-                txtdiv.scrollTop = txtdiv.scrollHeight;
-                var cmd_input = document.getElementById("input-cmd");
-                cmd_input.disabled = true;
+                displayConnectionError("<p class='server-error'>Connection closed.<br><br>Refresh the page to restore it.</p>");
             }
         };
     } catch (e) {

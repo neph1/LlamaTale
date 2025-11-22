@@ -8,7 +8,6 @@ import json
 import time
 import socket
 import asyncio
-from queue import Empty
 from socketserver import ThreadingMixIn
 from email.utils import formatdate, parsedate
 from hashlib import md5
@@ -777,10 +776,8 @@ if FASTAPI_AVAILABLE:
                                         response = {"type": "data", "data": d}
                                         await websocket.send_text(json.dumps(response))
                                 else:
-                                    # Send keepalive
+                                    # No output available, wait briefly
                                     await asyncio.sleep(0.05)
-                            except Empty:
-                                await asyncio.sleep(0.05)  # prevent busy-looping
                         else:
                             break
                             
