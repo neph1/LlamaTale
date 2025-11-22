@@ -9,7 +9,7 @@ import random
 from typing import TYPE_CHECKING
 
 from stories.anything.npcs.npc_defs import RoamingMob
-from tale import lang
+from tale import lang, parse_utils
 from tale.base import Door, Exit, Location
 from tale.coord import Coord
 from tale.dungeon.dungeon_generator import ItemPopulator, Layout, LayoutGenerator, MobPopulator
@@ -201,27 +201,29 @@ class Dungeon:
         for connection in connections:
             cell_location = self._grid.get(connection.coord.as_tuple(), None)
             parent_location = self._grid.get(connection.other.as_tuple(), None)
+            direction = parse_utils.direction_from_coordinates(connection.other.subtract(connection.coord))
+            reverse_direction = parse_utils.opposite_direction(direction)
             
             if not cell_location or not parent_location:
                 continue
                 
             # Skip if already connected
-            if cell_location.exits.get(parent_location.name, None):
+            if cell_location.exits.get(parent_location.name, None) or cell_location.exits.get(direction, None):
                 continue
-            elif parent_location.exits.get(cell_location.name, None):
+            elif parent_location.exits.get(cell_location.name, None) or parent_location.exits.get(reverse_direction, None):
                 continue
             
             # Create connection
             if connection.door:
                 Door.connect(
-                    cell_location, parent_location.name, '', None,
-                    parent_location, cell_location.name, '', None,
+                    cell_location, [parent_location.name, direction], '', None,
+                    parent_location, [cell_location.name, reverse_direction], '', None,
                     opened=False, locked=connection.locked, key_code=connection.key_code
                 )
             else:
                 Exit.connect(
-                    cell_location, parent_location.name, '', None,
-                    parent_location, cell_location.name, '', None
+                    cell_location, [parent_location.name, direction], '', None,
+                    parent_location, [cell_location.name, reverse_direction], '', None
                 )
     
     def _spawn_gold(self, zone: Zone):

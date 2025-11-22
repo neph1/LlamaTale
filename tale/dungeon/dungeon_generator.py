@@ -223,7 +223,8 @@ class MobPopulator():
             if not mob_type:
                 continue
             mob_type['level'] = zone.level
-            item_probabilities = [random.random() * 0.15 + 0.5 for i in range(len(zone.items))]
+            item_types = [zone.items]
+            item_probabilities = [(random.random() * 0.15 + 0.5) for i in range(len(item_types))]
             mob_spawner = MobSpawner(location=location, mob_type=mob_type, spawn_rate=30, spawn_limit=2, drop_items=zone.items, drop_item_probabilities=item_probabilities)
             mob_spawners.append(mob_spawner)
         if len(mob_spawners) == 1:
@@ -249,7 +250,7 @@ class ItemPopulator():
                 continue
             item_type['level'] = zone.level
             item_types = [item_type]
-            item_probabilities = [random.random() * 0.15 + 0.5 for i in range(len(zone.items))]
+            item_probabilities = [(random.random() * 0.15 + 0.5) for i in range(len(item_types))]
             item_spawners.append(ItemSpawner(zone=zone, items=item_types, item_probabilities=item_probabilities, spawn_rate=30))
         if len(item_spawners) == 1:
             return [item_spawners]

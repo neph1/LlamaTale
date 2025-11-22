@@ -23,7 +23,7 @@ class Zone():
         self.name = name
         self.lore = ""
         self.dungeon_config = None  # type: DungeonConfig
-        self.dungeon = None  # type: Dungeon - tracks if a dungeon has been generated for this zone
+        self.dungeon = None  # type: Dungeon
 
     def add_location(self, location: Location) -> bool:
         """ Add a location to the zone. Skip if location already exists."""
