@@ -898,6 +898,110 @@ class Driver(pubsub.Listener):
         minutes, seconds = divmod(seconds, 60)
         return int(hours), int(minutes), int(seconds)
     
+    def reset_story(self) -> None:
+        """
+        Reset/restart the story without restarting the server.
+        This reloads zones, resets the game clock, clears deferreds,
+        and moves players back to starting locations.
+        Player inventory and stats are preserved.
+        """
+        # Notify all players
+        for conn in self.all_players.values():
+            if conn.player:
+                conn.player.tell("\n<bright>*** The story is being reset! ***</>")
+                conn.player.tell("Please wait...\n")
+                conn.write_output()
+        
+        # Clear all deferreds
+        with self.deferreds_lock:
+            self.deferreds.clear()
+        
+        # Clear the MudObject registry to remove all old objects
+        base.MudObjRegistry.all_items.clear()
+        base.MudObjRegistry.all_livings.clear()
+        base.MudObjRegistry.all_locations.clear()
+        base.MudObjRegistry.all_exits.clear()
+        base.MudObjRegistry.all_remains.clear()
+        base.MudObjRegistry.seq_nr = 1
+        
+        # Clear unbound exits
+        self.unbound_exits.clear()
+        
+        # Reload the story module
+        import story
+        importlib.reload(story)
+        self.story = story.Story()
+        self.story._verify(self)
+        
+        # Update configurations
+        self.story.config.server_mode = self.game_mode
+        mud_context.config = self.story.config
+        
+        # Re-initialize the story
+        self.story.init(self)
+        self.llm_util.set_story(self.story)
+        
+        # Reset game clock to the story's epoch or current time
+        self.game_clock = util.GameDateTime(
+            self.story.config.epoch or datetime.datetime.now().replace(microsecond=0),
+            self.story.config.gametime_to_realtime
+        )
+        
+        # Reload zones
+        # First, unload zone modules from sys.modules
+        zone_modules_to_reload = [key for key in sys.modules.keys() if key.startswith('zones.')]
+        for module_name in zone_modules_to_reload:
+            del sys.modules[module_name]
+        if 'zones' in sys.modules:
+            del sys.modules['zones']
+        
+        # Now reload zones
+        self.zones = self._load_zones(self.story.config.zones)
+        
+        # Bind exits
+        for x in self.unbound_exits:
+            x._bind_target(self.zones)
+        self.unbound_exits.clear()
+        
+        # Register periodicals again
+        self.register_periodicals(self)
+        
+        # Move all players to their starting locations
+        try:
+            start_location = self.lookup_location(self.story.config.startlocation_player)
+            wizard_start = self.lookup_location(self.story.config.startlocation_wizard)
+        except errors.TaleError:
+            # If locations not found, try to find them again
+            start_location = None
+            wizard_start = None
+        
+        for conn in self.all_players.values():
+            if conn.player:
+                p = conn.player
+                # Remove player from old location if it still exists
+                if p.location:
+                    try:
+                        p.location.remove(p, silent=True)
+                    except:
+                        pass
+                
+                # Determine starting location based on privileges
+                if "wizard" in p.privileges and wizard_start:
+                    target_location = wizard_start
+                else:
+                    target_location = start_location if start_location else wizard_start
+                
+                if target_location:
+                    # Move player to starting location
+                    p.move(target_location, silent=True)
+                    p.tell("\n<bright>Story reset complete!</>")
+                    p.tell("You find yourself back at the beginning.\n")
+                    p.look()
+                else:
+                    p.tell("\n<bright>Error: Could not find starting location after reset.</>")
+                
+                conn.write_output()
+    
     def prepare_combat_prompt(self, 
                               attackers: List[base.Living], 
                               defenders: List[base.Living], 
