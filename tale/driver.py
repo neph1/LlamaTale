@@ -935,16 +935,24 @@ class Driver(pubsub.Listener):
         base.MudObjRegistry.all_remains.clear()
         
         # Reset sequence number but account for existing players
-        base.MudObjRegistry.seq_nr = max(player_vnums) + 1 if player_vnums else 1
+        # We need to ensure new objects get vnums higher than any existing objects
+        if player_vnums:
+            base.MudObjRegistry.seq_nr = max(player_vnums) + 1
+        else:
+            # No players, safe to reset to 1
+            base.MudObjRegistry.seq_nr = 1
         
         # Clear unbound exits
         self.unbound_exits.clear()
         
-        # Reload the story module
-        import story
-        importlib.reload(story)
-        self.story = story.Story()
-        self.story._verify(self)
+        # Reload the story module using importlib
+        try:
+            import story as story_module
+            importlib.reload(story_module)
+            self.story = story_module.Story()
+            self.story._verify(self)
+        except (ImportError, AttributeError) as e:
+            raise errors.TaleError("Failed to reload story module: %s" % str(e))
         
         # Update configurations
         self.story.config.server_mode = self.game_mode
