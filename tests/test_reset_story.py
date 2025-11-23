@@ -35,7 +35,6 @@ class TestResetStory(unittest.TestCase):
     
     def test_reset_story_is_generator(self):
         """Test that reset_story is a generator (for the confirmation dialog)."""
-        import inspect
         # The @wizcmd decorator wraps the function, so we check the 'is_generator' attribute
         # that was set by the decorator
         self.assertTrue(hasattr(wizard.do_reset_story, 'is_generator'))

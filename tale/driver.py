@@ -995,7 +995,8 @@ class Driver(pubsub.Listener):
                 if p.location:
                     try:
                         p.location.remove(p, silent=True)
-                    except:
+                    except (AttributeError, KeyError, ValueError):
+                        # Location might be in an invalid state after reset
                         pass
                 
                 # Determine starting location based on privileges

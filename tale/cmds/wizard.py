@@ -13,6 +13,7 @@ import json
 import os
 import platform
 import sys
+import traceback
 from types import ModuleType
 from typing import Generator, Optional
 
@@ -975,5 +976,4 @@ def do_reset_story(player: Player, parsed: base.ParseResult, ctx: util.Context) 
         player.tell("All players have been moved to their starting locations.")
     except Exception as x:
         player.tell("Error resetting story: %s" % str(x))
-        import traceback
         traceback.print_exc()
