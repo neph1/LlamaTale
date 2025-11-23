@@ -128,8 +128,8 @@ class HttpIo(iobase.IoAdapterBase):
         if self.fastapi_mode:
             # FastAPI mode
             protocol = "https" if self.fastapi_server.use_ssl else "http"
-            hostname = player_connection.driver.story.config.mud_host
-            port = player_connection.driver.story.config.mud_port
+            hostname = self.fastapi_server.driver.story.config.mud_host
+            port = self.fastapi_server.driver.story.config.mud_port
             if hostname.startswith("127.0"):
                 hostname = "localhost"
             url = "%s://%s:%d/tale/" % (protocol, hostname, port)
@@ -141,8 +141,8 @@ class HttpIo(iobase.IoAdapterBase):
             
             # Run FastAPI server in the main thread
             try:
-                self.fastapi_server.run(player_connection.driver.story.config.mud_host, 
-                                      player_connection.driver.story.config.mud_port)
+                self.fastapi_server.run(self.fastapi_server.driver.story.config.mud_host, 
+                                      self.fastapi_server.driver.story.config.mud_port)
             except KeyboardInterrupt:
                 print("* break - stopping server loop")
                 if lang.yesno(input("Are you sure you want to exit the Tale driver, and kill the game? ")):
