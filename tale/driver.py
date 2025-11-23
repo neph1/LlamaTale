@@ -912,17 +912,30 @@ class Driver(pubsub.Listener):
                 conn.player.tell("Please wait...\n")
                 conn.write_output()
         
+        # Save player references (they should not be cleared)
+        players = [conn.player for conn in self.all_players.values() if conn.player]
+        
         # Clear all deferreds
         with self.deferreds_lock:
             self.deferreds.clear()
         
-        # Clear the MudObject registry to remove all old objects
+        # Clear the MudObject registry to remove all old objects (except players)
+        # Items first
         base.MudObjRegistry.all_items.clear()
-        base.MudObjRegistry.all_livings.clear()
+        
+        # Remove non-player livings from registry
+        player_vnums = {p.vnum for p in players}
+        livings_to_remove = [vnum for vnum in base.MudObjRegistry.all_livings.keys() if vnum not in player_vnums]
+        for vnum in livings_to_remove:
+            del base.MudObjRegistry.all_livings[vnum]
+        
+        # Clear locations and exits
         base.MudObjRegistry.all_locations.clear()
         base.MudObjRegistry.all_exits.clear()
         base.MudObjRegistry.all_remains.clear()
-        base.MudObjRegistry.seq_nr = 1
+        
+        # Reset sequence number but account for existing players
+        base.MudObjRegistry.seq_nr = max(player_vnums) + 1 if player_vnums else 1
         
         # Clear unbound exits
         self.unbound_exits.clear()
