@@ -348,7 +348,7 @@ class TaleWsgiAppBase:
     def wsgi_handle_eventsource(self, environ: Dict[str, Any], parameters: Dict[str, str],
                                 start_response: WsgiStartResponseType) -> Iterable[bytes]:
         session = environ["wsgi.session"]
-        conn = session.get("player_connection")
+        conn = session.get("player_connection") # type: PlayerConnection
         if not conn:
             return self.wsgi_internal_server_error_json(start_response, "not logged in")
         start_response('200 OK', [('Content-Type', 'text/event-stream; charset=utf-8'),
