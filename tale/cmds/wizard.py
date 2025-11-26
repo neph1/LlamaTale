@@ -13,6 +13,7 @@ import json
 import os
 import platform
 import sys
+import traceback
 from types import ModuleType
 from typing import Generator, Optional
 
@@ -955,3 +956,24 @@ def do_set_rp_prompt(player: Player, parsed: base.ParseResult, ctx: util.Context
         player.tell("RP prompt set to: %s with effect: %s" % (prompt, effect_description))
     except ValueError as x:
         raise ActionRefused(str(x))
+
+
+@wizcmd("reset_story")
+def do_reset_story(player: Player, parsed: base.ParseResult, ctx: util.Context) -> Generator:
+    """Reset/restart the story without restarting the server.
+    This will reload all zones, reset the game clock, clear all deferreds,
+    and move all players to their starting locations. Player inventory and stats are preserved.
+    Usage: !reset_story
+    """
+    if not (yield "input", ("Are you sure you want to reset the story? This will affect all players!", lang.yesno)):
+        player.tell("Story reset cancelled.")
+        return
+    
+    player.tell("Resetting the story...")
+    try:
+        ctx.driver.reset_story()
+        player.tell("Story has been reset successfully!")
+        player.tell("All players have been moved to their starting locations.")
+    except Exception as x:
+        player.tell("Error resetting story: %s" % str(x))
+        traceback.print_exc()
