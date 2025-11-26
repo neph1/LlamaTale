@@ -28,6 +28,10 @@ import uvicorn
 
 __all__ = ["MudHttpIo", "TaleMudFastAPIApp"]
 
+# Timeout constants for WebSocket communication (in seconds)
+WEBSOCKET_TIMEOUT_ACTIVE = 0.1   # Timeout when there's active output
+WEBSOCKET_TIMEOUT_IDLE = 0.5     # Timeout when idle
+
 
 class MudHttpIo(HttpIo):
     """
@@ -83,8 +87,8 @@ class TaleMudFastAPIApp:
     FastAPI-based application with WebSocket support for multi-player (MUD) mode.
     This handles multiple connected clients with session management.
     """
-    def __init__(self, driver: Driver, use_ssl: bool=False, 
-                 ssl_certs: Tuple[str, str, str]=None) -> None:
+    def __init__(self, driver: Driver, use_ssl: bool = False, 
+                 ssl_certs: Tuple[str, str, str] = None) -> None:
         self.driver = driver
         self.use_ssl = use_ssl
         self.ssl_certs = ssl_certs
@@ -223,14 +227,14 @@ class TaleMudFastAPIApp:
                         break
                     
                     # Handle player input with adaptive timeout
-                    timeout = 0.1 if has_output else 0.5
+                    timeout = WEBSOCKET_TIMEOUT_ACTIVE if has_output else WEBSOCKET_TIMEOUT_IDLE
                     try:
                         data = await asyncio.wait_for(websocket.receive_text(), timeout=timeout)
                         self._handle_player_input(conn, data)
                     except asyncio.TimeoutError:
                         # No input received, continue loop
                         if not has_output:
-                            await asyncio.sleep(0.1)
+                            await asyncio.sleep(WEBSOCKET_TIMEOUT_ACTIVE)
                         
             except WebSocketDisconnect:
                 print(f"WebSocket disconnected for player {conn.player.name if conn and conn.player else 'unknown'}")
@@ -285,7 +289,7 @@ class TaleMudFastAPIApp:
     
     @classmethod
     def create_app_server(cls, driver: Driver, *,
-                          use_ssl: bool=False, ssl_certs: Tuple[str, str, str]=None):
+                          use_ssl: bool = False, ssl_certs: Tuple[str, str, str] = None):
         """Create and return a FastAPI app instance"""
         instance = cls(driver, use_ssl, ssl_certs)
         return instance
