@@ -14,14 +14,14 @@ class TestHttpIo:
     wsgi_server=WSGIServer(server_address=('', 8000), RequestHandlerClass=None)
 
     def test_render_output_non_formatted(self):
-        http_io = HttpIo(player_connection=self.player_conn, wsgi_server=self.wsgi_server)
+        http_io = HttpIo(player_connection=self.player_conn, server=self.wsgi_server)
 
         http_io.render_output([("Hello World!", False)])
 
         assert http_io.get_html_to_browser()[0] == "<pre>Hello World!</pre>\n"
 
     def test_render_output_formatted(self):
-        http_io = HttpIo(player_connection=self.player_conn, wsgi_server=self.wsgi_server)
+        http_io = HttpIo(player_connection=self.player_conn, server=self.wsgi_server)
 
         http_io.render_output([("Hello World!", True)])
 
@@ -29,7 +29,7 @@ class TestHttpIo:
 
 
     def test_render_output_dialogue_token(self):
-        http_io = HttpIo(player_connection=self.player_conn, wsgi_server=self.wsgi_server)
+        http_io = HttpIo(player_connection=self.player_conn, server=self.wsgi_server)
 
         http_io.render_output([("Bloated Murklin <:> Hello World!", True)])
 
@@ -65,7 +65,7 @@ class TestHttpIo:
         assert save_button not in result
 
     def test_send_data(self):
-        http_io = HttpIo(player_connection=self.player_conn, wsgi_server=self.wsgi_server)
+        http_io = HttpIo(player_connection=self.player_conn, server=self.wsgi_server)
 
         http_io.send_data('{"test": "test"}')
 
