@@ -6,16 +6,13 @@ Copyright by Irmen de Jong (irmen@razorvine.net)
 """
 import json
 import time
-import socket
 import asyncio
-from socketserver import ThreadingMixIn
 from email.utils import formatdate, parsedate
 from hashlib import md5
 from html import escape as html_escape
 from threading import Lock, Event, Thread
 from typing import Iterable, Sequence, Tuple, Any, Optional, Dict, Callable, List
 from urllib.parse import parse_qs
-from wsgiref.simple_server import make_server, WSGIRequestHandler, WSGIServer
 
 from tale.web.web_utils import create_chat_container, dialogue_splitter
 
@@ -26,7 +23,7 @@ from .. import __version__ as tale_version_str
 from ..driver import Driver
 from ..player import PlayerConnection
 
-__all__ = ["HttpIo", "TaleWsgiApp", "TaleWsgiAppBase", "WsgiStartResponseType", "TaleFastAPIApp"]
+__all__ = ["HttpIo", "TaleWsgiAppBase", "WsgiStartResponseType", "TaleFastAPIApp"]
 
 WsgiStartResponseType = Callable[..., None]
 
@@ -69,14 +66,12 @@ def squash_parameters(parameters: Dict[str, Any]) -> Dict[str, Any]:
 class HttpIo(iobase.IoAdapterBase):
     """
     I/O adapter for a http/browser based interface.
-    This doubles as a wsgi app and runs as a web server using wsgiref or FastAPI.
+    This runs as a web server using FastAPI with WebSocket support.
     This way it is a simple call for the driver, it starts everything that is needed.
     """
     def __init__(self, player_connection: PlayerConnection, server: Any) -> None:
         super().__init__(player_connection)
-        self.wsgi_server = server  # Can be WSGI or FastAPI server
-        self.fastapi_mode = False  # Will be set to True if using FastAPI
-        self.fastapi_server = None  # Reference to FastAPI app instance
+        self.fastapi_server = server  # Reference to FastAPI app instance
         self.__html_to_browser = []    # type: List[str]   # the lines that need to be displayed in the player's browser
         self.__html_special = []       # type: List[str]   # special out of band commands (such as 'clear')
         self.__html_to_browser_lock = Lock()
@@ -121,59 +116,30 @@ class HttpIo(iobase.IoAdapterBase):
         self.__new_html_available.clear()
 
     def singleplayer_mainloop(self, player_connection: PlayerConnection) -> None:
-        """mainloop for the web browser interface for single player mode"""
+        """mainloop for the web browser interface for single player mode using FastAPI/WebSocket"""
         import webbrowser
         from threading import Thread
         
-        if self.fastapi_mode:
-            # FastAPI mode
-            protocol = "https" if self.fastapi_server.use_ssl else "http"
-            hostname = self.fastapi_server.driver.story.config.mud_host
-            port = self.fastapi_server.driver.story.config.mud_port
-            if hostname.startswith("127.0"):
-                hostname = "localhost"
-            url = "%s://%s:%d/tale/" % (protocol, hostname, port)
-            print("Access the game on this web server url (FastAPI/WebSocket):  ", url, end="\n\n")
-            
-            t = Thread(target=webbrowser.open, args=(url, ))
-            t.daemon = True
-            t.start()
-            
-            # Run FastAPI server in the main thread
-            try:
-                self.fastapi_server.run(self.fastapi_server.driver.story.config.mud_host, 
-                                      self.fastapi_server.driver.story.config.mud_port)
-            except KeyboardInterrupt:
-                print("* break - stopping server loop")
-                if lang.yesno(input("Are you sure you want to exit the Tale driver, and kill the game? ")):
-                    pass
-            print("Game shutting down.")
-        else:
-            # WSGI mode (original implementation)
-            protocol = "https" if self.wsgi_server.use_ssl else "http"
-
-            if self.wsgi_server.address_family == socket.AF_INET6:
-                hostname, port, _, _ = self.wsgi_server.server_address
-                if hostname[0] != '[':
-                    hostname = '[' + hostname + ']'
-                url = "%s://%s:%d/tale/" % (protocol, hostname, port)
-                print("Access the game on this web server url (ipv6):  ", url, end="\n\n")
-            else:
-                hostname, port = self.wsgi_server.server_address
-                if hostname.startswith("127.0"):
-                    hostname = "localhost"
-                url = "%s://%s:%d/tale/" % (protocol, hostname, port)
-                print("Access the game on this web server url (ipv4):  ", url, end="\n\n")
-            t = Thread(target=webbrowser.open, args=(url, ))        # type: ignore
+        protocol = "https" if self.fastapi_server.use_ssl else "http"
+        hostname = self.fastapi_server.driver.story.config.mud_host
+        port = self.fastapi_server.driver.story.config.mud_port
+        if hostname.startswith("127.0"):
+            hostname = "localhost"
+        url = "%s://%s:%d/tale/" % (protocol, hostname, port)
+        print("Access the game on this web server url (WebSocket):  ", url, end="\n\n")
+        
+        t = Thread(target=webbrowser.open, args=(url, ))
         t.daemon = True
         t.start()
-        while not self.stop_main_loop:
-            try:
-                self.wsgi_server.handle_request()
-            except KeyboardInterrupt:
-                print("* break - stopping server loop")
-                if lang.yesno(input("Are you sure you want to exit the Tale driver, and kill the game? ")):
-                    break
+        
+        # Run FastAPI server in the main thread
+        try:
+            self.fastapi_server.run(self.fastapi_server.driver.story.config.mud_host, 
+                                  self.fastapi_server.driver.story.config.mud_port)
+        except KeyboardInterrupt:
+            print("* break - stopping server loop")
+            if lang.yesno(input("Are you sure you want to exit the Tale driver, and kill the game? ")):
+                pass
         print("Game shutting down.")
 
     def pause(self, unpause: bool=False) -> None:
@@ -542,97 +508,6 @@ class TaleWsgiAppBase:
             html_content = html_content.replace('<label for="fileInput">Load character:</label>', '')
             html_content = html_content.replace('<input type="file" id="loadCharacterInput" accept=".json, .png, .jpeg, .jpg">', '')
         return html_content
-
-
-
-class TaleWsgiApp(TaleWsgiAppBase):
-    """
-    The actual wsgi app that the player's browser connects to.
-    Note that it is deliberatly simplistic and ony able to handle a single
-    player connection; it only works for 'if' single-player game mode.
-    """
-    def __init__(self, driver: Driver, player_connection: PlayerConnection,
-                 use_ssl: bool, ssl_certs: Tuple[str, str, str]) -> None:
-        super().__init__(driver)
-        self.completer = None
-        self.player_connection = player_connection   # just a single player here
-        CustomWsgiServer.use_ssl = use_ssl
-        if use_ssl and ssl_certs:
-            CustomWsgiServer.ssl_cert_locations = ssl_certs
-
-    @classmethod
-    def create_app_server(cls, driver: Driver, player_connection: PlayerConnection, *,
-                          use_ssl: bool=False, ssl_certs: Tuple[str, str, str]=None) -> Callable:
-        wsgi_app = SessionMiddleware(cls(driver, player_connection, use_ssl, ssl_certs))        # type: ignore
-        wsgi_server = make_server(driver.story.config.mud_host, driver.story.config.mud_port, app=wsgi_app,
-                                  handler_class=CustomRequestHandler, server_class=CustomWsgiServer)
-        wsgi_server.timeout = 0.5
-        return wsgi_server
-
-    def wsgi_handle_quit(self, environ: Dict[str, Any], parameters: Dict[str, str],
-                         start_response: WsgiStartResponseType) -> Iterable[bytes]:
-        # Quit/logged out page. For single player, simply close down the whole driver.
-        start_response('200 OK', [('Content-Type', 'text/html')])
-        self.driver._stop_driver()
-        return [b"<html><body><script>window.close();</script><p><strong>Tale game session ended.</strong></p>"
-                b"<p>You may close this window/tab.</p></body></html>"]
-
-    def wsgi_handle_about(self, environ: Dict[str, Any], parameters: Dict[str, str],
-                          start_response: WsgiStartResponseType) -> Iterable[bytes]:
-        # about page
-        if "license" in parameters:
-            return self.wsgi_handle_license(environ, parameters, start_response)
-        start_response("200 OK", [('Content-Type', 'text/html; charset=utf-8')])
-        resource = vfs.internal_resources["web/about.html"]
-        txt = resource.text.format(tale_version=tale_version_str,
-                                   story_version=self.driver.story.config.version,
-                                   story_name=self.driver.story.config.name,
-                                   uptime="%d:%02d:%02d" % self.driver.uptime,
-                                   starttime=self.driver.server_started)
-        return [txt.encode("utf-8")]
-
-
-class CustomRequestHandler(WSGIRequestHandler):
-    def log_message(self, format: str, *args: Any):
-        pass
-
-
-class CustomWsgiServer(ThreadingMixIn, WSGIServer):
-    """
-    A simple wsgi server with a modest request queue size, meant for single user access.
-    Set use_ssl to True to enable HTTPS mode instead of unencrypted HTTP.
-    """
-    request_queue_size = 10
-    use_ssl = False
-    ssl_cert_locations = ("./certs/localhost_cert.pem", "./certs/localhost_key.pem", "")    # certfile, keyfile, certpassword
-
-    def __init__(self, server_address, rh_class):
-        self.address_family = socket.AF_INET
-        if server_address[0][0] == '[' and server_address[0][-1] == ']':
-            self.address_family = socket.AF_INET6
-            server_address = (server_address[0][1:-1], server_address[1], 0, 0)
-        super().__init__(server_address, rh_class)
-
-    def server_bind(self):
-        if self.use_ssl:
-            print("\n\nUsing SSL\n\n")
-            import ssl
-            ctx = ssl.create_default_context(ssl.Purpose.CLIENT_AUTH)
-            ctx.load_cert_chain(self.ssl_cert_locations[0], self.ssl_cert_locations[1] or None, self.ssl_cert_locations[2] or None)
-            self.socket = ctx.wrap_socket(self.socket, server_side=True)
-        return super().server_bind()
-
-
-class SessionMiddleware:
-    def __init__(self, app):
-        self.app = app
-
-    def __call__(self, environ: Dict[str, Any], start_response: WsgiStartResponseType) -> None:
-        environ["wsgi.session"] = {
-            "id": None,
-            "player_connection": self.app.player_connection
-        }
-        return self.app(environ, start_response)
 
 
 if FASTAPI_AVAILABLE:

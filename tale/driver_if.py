@@ -30,14 +30,13 @@ class IFDriver(driver.Driver):
     The Single user 'driver'.
     Used to control interactive fiction where there's only one 'player'.
     """
-    def __init__(self, *, screen_delay: int=DEFAULT_SCREEN_DELAY, gui: bool=False, web: bool=False, wizard_override: bool=False, character_to_load: str='', use_websocket: bool=False) -> None:
+    def __init__(self, *, screen_delay: int=DEFAULT_SCREEN_DELAY, gui: bool=False, web: bool=False, wizard_override: bool=False, character_to_load: str='') -> None:
         super().__init__()
         self.game_mode = GameMode.IF
         if screen_delay < 0 or screen_delay > 100:
             raise ValueError("invalid delay, valid range is 0-100")
         self.screen_delay = screen_delay
         self.io_type = "console"
-        self.use_websocket = use_websocket  # Store WebSocket preference
         if gui:
             self.io_type = "gui"
         if web:
@@ -115,28 +114,16 @@ class IFDriver(driver.Driver):
             from .tio.tkinter_io import TkinterIo
             io = TkinterIo(self.story.config, connection)  # type: iobase.IoAdapterBase
         elif player_io_type == "web":
-            if self.use_websocket:
-                # Use FastAPI with WebSocket support
-                from .tio.if_browser_io import FASTAPI_AVAILABLE
-                if not FASTAPI_AVAILABLE:
-                    raise RuntimeError("FastAPI is not available. Install it with: pip install fastapi websockets uvicorn")
-                from .tio.if_browser_io import HttpIo, TaleFastAPIApp
-                fastapi_server = TaleFastAPIApp.create_app_server(self, connection, use_ssl=False, ssl_certs=None)
-                # you can enable SSL by using the following:
-                # fastapi_server = TaleFastAPIApp.create_app_server(self, connection, use_ssl=True,
-                #                   ssl_certs=("certs/localhost_cert.pem", "certs/localhost_key.pem", ""))
-                io = HttpIo(connection, fastapi_server)
-                io.fastapi_mode = True  # Mark as FastAPI mode
-                io.fastapi_server = fastapi_server  # Store reference
-            else:
-                # Use traditional WSGI server
-                from .tio.if_browser_io import HttpIo, TaleWsgiApp
-                wsgi_server = TaleWsgiApp.create_app_server(self, connection, use_ssl=False, ssl_certs=None)
-                # you can enable SSL by using the following:
-                # wsgi_server = TaleWsgiApp.create_app_server(self, connection, use_ssl=True,
-                #                   ssl_certs=("certs/localhost_cert.pem", "certs/localhost_key.pem", ""))
-                io = HttpIo(connection, wsgi_server)
-                io.fastapi_mode = False
+            # Use FastAPI with WebSocket support
+            from .tio.if_browser_io import FASTAPI_AVAILABLE
+            if not FASTAPI_AVAILABLE:
+                raise RuntimeError("FastAPI is not available. Install it with: pip install fastapi websockets uvicorn")
+            from .tio.if_browser_io import HttpIo, TaleFastAPIApp
+            fastapi_server = TaleFastAPIApp.create_app_server(self, connection, use_ssl=False, ssl_certs=None)
+            # you can enable SSL by using the following:
+            # fastapi_server = TaleFastAPIApp.create_app_server(self, connection, use_ssl=True,
+            #                   ssl_certs=("certs/localhost_cert.pem", "certs/localhost_key.pem", ""))
+            io = HttpIo(connection, fastapi_server)
         elif player_io_type == "console":
             from .tio.console_io import ConsoleIo
             io = ConsoleIo(connection)

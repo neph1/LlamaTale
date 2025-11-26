@@ -1,9 +1,8 @@
 
 
 from os import getcwd
-from wsgiref.simple_server import WSGIServer
 from tale.player import PlayerConnection
-from tale.tio.if_browser_io import HttpIo, TaleWsgiApp
+from tale.tio.if_browser_io import HttpIo, TaleWsgiAppBase
 from tale.tio.mud_browser_io import TaleMudWsgiApp
 from tests.supportstuff import FakeDriver
 
@@ -11,17 +10,16 @@ from tests.supportstuff import FakeDriver
 class TestHttpIo:
 
     player_conn = PlayerConnection()
-    wsgi_server=WSGIServer(server_address=('', 8000), RequestHandlerClass=None)
 
     def test_render_output_non_formatted(self):
-        http_io = HttpIo(player_connection=self.player_conn, server=self.wsgi_server)
+        http_io = HttpIo(player_connection=self.player_conn, server=None)
 
         http_io.render_output([("Hello World!", False)])
 
         assert http_io.get_html_to_browser()[0] == "<pre>Hello World!</pre>\n"
 
     def test_render_output_formatted(self):
-        http_io = HttpIo(player_connection=self.player_conn, server=self.wsgi_server)
+        http_io = HttpIo(player_connection=self.player_conn, server=None)
 
         http_io.render_output([("Hello World!", True)])
 
@@ -29,7 +27,7 @@ class TestHttpIo:
 
 
     def test_render_output_dialogue_token(self):
-        http_io = HttpIo(player_connection=self.player_conn, server=self.wsgi_server)
+        http_io = HttpIo(player_connection=self.player_conn, server=None)
 
         http_io.render_output([("Bloated Murklin <:> Hello World!", True)])
 
@@ -41,7 +39,7 @@ class TestHttpIo:
     def test_remove_load_character_button(self):
         connection = PlayerConnection()
         driver = FakeDriver()
-        wsgi_app = TaleWsgiApp(driver=driver, player_connection=connection, use_ssl=False, ssl_certs=None)
+        wsgi_app = TaleWsgiAppBase(driver=driver)
 
         load_button = '<input type="file" id="loadCharacterInput" accept=".json, .png, .jpeg, .jpg">'
         with open('tale/web/story.html', 'r') as file:
@@ -65,7 +63,7 @@ class TestHttpIo:
         assert save_button not in result
 
     def test_send_data(self):
-        http_io = HttpIo(player_connection=self.player_conn, server=self.wsgi_server)
+        http_io = HttpIo(player_connection=self.player_conn, server=None)
 
         http_io.send_data('{"test": "test"}')
 
