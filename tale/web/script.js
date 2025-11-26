@@ -2,27 +2,17 @@
 
 let none_action = 'None';
 let websocket = null;
-let useWebSocket = false;  // Will be detected automatically
 
 function setup()
 {
-    if(/Edge\//.test(navigator.userAgent))
-    {
-        // Edge has problems with the eventsoure polyfill :(
-        alert("You seem to be using Microsoft Edge.\n\nUnfortunately, Edge doesn't support the EventSource API.\n"+
-        "We use a polyfill (substitute code) but Edge has a problem with updating the text output anyway.\n\n" +
-        "You are strongly advised to use a browser that does support the required feature, such as FIREFOX or CHROME or SAFARI.\n\n" +
-        "(or even Internet Explorer 11, where the polyfill works fine. Somehow only Edge has this problem)");
-    }
-
     var but=document.getElementById("button-autocomplete");
     if(but.accessKeyLabel) { but.value += ' ('+but.accessKeyLabel+')'; }
 
     document.smoothscrolling_busy = false;
     window.onbeforeunload = function(e) { return "Are you sure you want to abort the session and close the window?"; }
 
-    // Try WebSocket first, fallback to EventSource
-    tryWebSocket();
+    // Connect via WebSocket
+    connectWebSocket();
 
     populateActionDropdown();
 }
@@ -35,19 +25,16 @@ function displayConnectionError(message) {
     cmd_input.disabled = true;
 }
 
-function tryWebSocket() {
-    // Attempt to connect via WebSocket
+function connectWebSocket() {
+    // Connect via WebSocket
     var protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
     var wsUrl = protocol + '//' + window.location.host + '/tale/ws';
-    var connectionEstablished = false;
     
     try {
         websocket = new WebSocket(wsUrl);
         
         websocket.onopen = function(e) {
             console.log("WebSocket connection established");
-            useWebSocket = true;
-            connectionEstablished = true;
         };
         
         websocket.onmessage = function(e) {
@@ -65,57 +52,17 @@ function tryWebSocket() {
         
         websocket.onerror = function(e) {
             console.error("WebSocket error:", e);
-            // Check if connection was never established (initial connection failure)
-            if (!connectionEstablished) {
-                // Initial connection failed, fallback to EventSource
-                console.log("Initial WebSocket connection failed, falling back to EventSource");
-                setupEventSource();
-            } else {
-                // Connection was established but then failed
-                displayConnectionError("<p class='server-error'>WebSocket connection error.<br><br>Refresh the page to restore it.</p>");
-            }
+            displayConnectionError("<p class='server-error'>WebSocket connection error.<br><br>Refresh the page to restore it.</p>");
         };
         
         websocket.onclose = function(e) {
             console.log("WebSocket closed:", e.code, e.reason);
-            // Only show error if connection was previously established
-            if (connectionEstablished) {
-                displayConnectionError("<p class='server-error'>Connection closed.<br><br>Refresh the page to restore it.</p>");
-            }
+            displayConnectionError("<p class='server-error'>Connection closed.<br><br>Refresh the page to restore it.</p>");
         };
     } catch (e) {
-        console.error("WebSocket not supported or failed to connect:", e);
-        setupEventSource();
+        console.error("WebSocket failed to connect:", e);
+        displayConnectionError("<p class='server-error'>Failed to connect to server.<br><br>Please refresh the page.</p>");
     }
-}
-
-function setupEventSource() {
-    // Fallback to original EventSource implementation
-    useWebSocket = false;
-    var esource = new EventSource("eventsource");
-    esource.addEventListener("text", function(e) {
-        console.log("ES text event");
-        process_text(JSON.parse(e.data));
-        return false;
-    }, false);
-    esource.addEventListener("message", function(e) {
-        console.log("ES unclassified message - ignored");
-        return false;
-    }, false);
-
-    esource.addEventListener("error", function(e) {
-        console.error("ES error:", e, e.target.readyState);
-        var txtdiv = document.getElementById("textframe");
-        if(e.target.readyState == EventSource.CLOSED) {
-            txtdiv.innerHTML += "<p class='server-error'>Connection closed.<br><br>Refresh the page to restore it. If that doesn't work, quit or close your browser and try with a new window.</p>";
-        } else {
-            txtdiv.innerHTML += "<p class='server-error'>Connection error.<br><br>Perhaps refreshing the page fixes it. If it doesn't, quit or close your browser and try with a new window.</p>";
-        }
-        txtdiv.scrollTop = txtdiv.scrollHeight;
-        var cmd_input = document.getElementById("input-cmd");
-        cmd_input.disabled=true;
-        //   esource.close();       // close the eventsource, so that it won't reconnect
-    }, false);
 }
 
 function process_data(json) {
@@ -229,48 +176,33 @@ function submit_cmd()
 function send_cmd(command, npcAddress) {
     var fullCommand = command + npcAddress;
     
-    if (useWebSocket && websocket && websocket.readyState === WebSocket.OPEN) {
+    if (websocket && websocket.readyState === WebSocket.OPEN) {
         // Use WebSocket
         try {
             var message = JSON.stringify({ cmd: fullCommand });
             console.log("Sending command via WebSocket: " + fullCommand);
             websocket.send(message);
         } catch (e) {
-            console.error("WebSocket send failed, falling back to AJAX:", e);
-            // Fallback to AJAX if WebSocket send fails
-            sendViaAjax(fullCommand);
+            console.error("WebSocket send failed:", e);
+            displayConnectionError("<p class='server-error'>Failed to send command.<br><br>Please refresh the page.</p>");
         }
     } else {
-        // Fallback to AJAX POST
-        sendViaAjax(fullCommand);
+        console.error("WebSocket not connected");
+        displayConnectionError("<p class='server-error'>Not connected to server.<br><br>Please refresh the page.</p>");
     }
-}
-
-function sendViaAjax(command) {
-    var ajax = new XMLHttpRequest();
-    ajax.open("POST", "input", true);
-    ajax.setRequestHeader("Content-type","application/x-www-form-urlencoded; charset=UTF-8");
-    
-    var encoded_cmd = encodeURIComponent(command);
-    console.log("Sending command via AJAX: " + encoded_cmd);
-    ajax.send("cmd=" + encoded_cmd);
 }
 
 function autocomplete_cmd()
 {
     var cmd_input = document.getElementById("input-cmd");
     if(cmd_input.value) {
-        if (useWebSocket && websocket && websocket.readyState === WebSocket.OPEN) {
+        if (websocket && websocket.readyState === WebSocket.OPEN) {
             // Use WebSocket for autocomplete
             var message = JSON.stringify({ cmd: cmd_input.value, autocomplete: 1 });
             console.log("Sending autocomplete via WebSocket");
             websocket.send(message);
         } else {
-            // Fallback to AJAX
-            var ajax = new XMLHttpRequest();
-            ajax.open("POST", "input", true);
-            ajax.setRequestHeader("Content-type","application/x-www-form-urlencoded");
-            ajax.send("cmd=" + encodeURIComponent(cmd_input.value)+"&autocomplete=1");
+            console.error("WebSocket not connected for autocomplete");
         }
     }
     cmd_input.focus();

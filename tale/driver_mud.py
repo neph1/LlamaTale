@@ -6,7 +6,6 @@ Copyright by Irmen de Jong (irmen@razorvine.net)
 """
 
 import time
-import socket
 import threading
 from typing import Union, Generator, Dict, Tuple, Optional, Any
 
@@ -20,7 +19,7 @@ from . import lang
 from . import pubsub
 from . import util
 from .player import PlayerConnection, Player
-from .tio.mud_browser_io import TaleMudWsgiApp
+from .tio.mud_browser_io import TaleMudFastAPIApp
 
 
 class MudDriver(driver.Driver):
@@ -35,28 +34,24 @@ class MudDriver(driver.Driver):
         self.mud_accounts = None   # type: accounts.MudAccounts
 
     def start_main_loop(self):
-        # Driver runs as main thread, wsgi webserver runs in background thread
+        # Driver runs as main thread, FastAPI webserver runs in background thread
         accounts_db_file = self.user_resources.validate_path("useraccounts.sqlite")
         self.mud_accounts = accounts.MudAccounts(accounts_db_file)
         base._limbo.init_inventory([LimboReaper()])  # add the grim reaper to Limbo
-        wsgi_server = TaleMudWsgiApp.create_app_server(self, use_ssl=False, ssl_certs=None)    # you can enable SSL here
-        wsgi_thread = threading.Thread(name="wsgi", target=wsgi_server.serve_forever)
-        wsgi_thread.daemon = True
-        wsgi_thread.start()
+        fastapi_server = TaleMudFastAPIApp.create_app_server(self, use_ssl=False, ssl_certs=None)    # you can enable SSL here
+        fastapi_thread = threading.Thread(name="fastapi", target=fastapi_server.run, 
+                                          args=(self.story.config.mud_host, self.story.config.mud_port))
+        fastapi_thread.daemon = True
+        fastapi_thread.start()
         self.print_game_intro(None)
         if self.restricted:
             print("\n* Restricted mode: no new players allowed *\n")
-        protocol = "https" if wsgi_server.use_ssl else "http"
-        if wsgi_server.address_family == socket.AF_INET6:
-            hostname, port, _, _ = wsgi_server.server_address
-            if hostname[0] != '[':
-                hostname = '[' + hostname + ']'
-            print("Access the game on this web server url (ipv6):   %s://%s:%d/tale/" % (protocol, hostname, port), end="\n\n")
-        else:
-            hostname, port = wsgi_server.server_address
-            if hostname.startswith("127.0"):
-                hostname = "localhost"
-            print("Access the game on this web server url (ipv4):   %s://%s:%d/tale/" % (protocol, hostname, port), end="\n\n")
+        protocol = "https" if fastapi_server.use_ssl else "http"
+        hostname = self.story.config.mud_host
+        port = self.story.config.mud_port
+        if hostname.startswith("127.0"):
+            hostname = "localhost"
+        print("Access the game on this web server url (WebSocket):   %s://%s:%d/tale/" % (protocol, hostname, port), end="\n\n")
         self._main_loop_wrapper(None)   # this doesn't return!
 
     def show_motd(self, player: Player, notify_no_motd: bool=False) -> None:

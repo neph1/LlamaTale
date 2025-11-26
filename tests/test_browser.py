@@ -2,8 +2,7 @@
 
 from os import getcwd
 from tale.player import PlayerConnection
-from tale.tio.if_browser_io import HttpIo, TaleWsgiAppBase
-from tale.tio.mud_browser_io import TaleMudWsgiApp
+from tale.tio.if_browser_io import HttpIo
 from tests.supportstuff import FakeDriver
 
 
@@ -35,32 +34,6 @@ class TestHttpIo:
         assert "chat-container" in result
         assert '<div class="user-name" content="Bloated Murklin"></div>' in result
         assert '<div class="text-field" type="text">Hello World!</div>' in result
-
-    def test_remove_load_character_button(self):
-        connection = PlayerConnection()
-        driver = FakeDriver()
-        wsgi_app = TaleWsgiAppBase(driver=driver)
-
-        load_button = '<input type="file" id="loadCharacterInput" accept=".json, .png, .jpeg, .jpg">'
-        with open('tale/web/story.html', 'r') as file:
-            contents = file.read()
-            assert load_button in contents
-            result = wsgi_app.modify_web_page(connection, contents)
-        
-        assert load_button not in result
-
-    def test_remove_save_button(self):
-        connection = PlayerConnection()
-        driver = FakeDriver()
-        wsgi_app = TaleMudWsgiApp(driver=driver, use_ssl=False, ssl_certs=None)
-
-        save_button = '<input type="button" id="saveButton" value="Save story" onclick="showSaveDialog()" readonly/>'
-        with open('tale/web/story.html', 'r') as file:
-            contents = file.read()
-            assert save_button in contents
-            result = wsgi_app.modify_web_page(connection, contents)
-        
-        assert save_button not in result
 
     def test_send_data(self):
         http_io = HttpIo(player_connection=self.player_conn, server=None)
