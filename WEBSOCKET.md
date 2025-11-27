@@ -2,24 +2,24 @@
 
 ## Overview
 
-LlamaTale now supports WebSocket connections for the web browser interface, providing a modern bidirectional communication channel between the client and server. This is an alternative to the traditional Server-Sent Events (EventSource) approach.
+LlamaTale uses WebSocket connections for the web browser interface in both single-player (IF) mode and multi-player (MUD) mode, providing a modern bidirectional communication channel between the client and server.
 
 ## Features
 
 - **Bidirectional Communication**: WebSocket enables real-time, two-way communication between the browser and server
-- **Reduced Latency**: Direct WebSocket communication can be faster than HTTP polling or EventSource
+- **Reduced Latency**: Direct WebSocket communication is faster than HTTP polling or EventSource
 - **Modern Stack**: Uses FastAPI and uvicorn for a modern, async Python web framework
-- **Backward Compatibility**: The JavaScript client automatically falls back to EventSource if WebSocket is not available
+- **Unified Approach**: Both IF and MUD modes now use the same WebSocket-based architecture
 
 ## Requirements
 
-Install the additional dependencies:
+Install the required dependencies:
 
 ```bash
 pip install fastapi websockets uvicorn
 ```
 
-Or install all requirements including WebSocket support:
+Or install all requirements:
 
 ```bash
 pip install -r requirements.txt
@@ -27,29 +27,16 @@ pip install -r requirements.txt
 
 ## Usage
 
-### Starting a Game with WebSocket Support
+### Starting a Single-Player Game
 
-To enable WebSocket mode, use the `--websocket` flag when starting a game with the web interface:
-
-```bash
-python -m tale.main --game stories/dungeon --web --websocket
-```
-
-### Command-Line Arguments
-
-- `--web`: Enable web browser interface
-- `--websocket`: Use WebSocket instead of EventSource (requires `--web`)
-
-### Example Commands
-
-**Standard EventSource mode (default):**
 ```bash
 python -m tale.main --game stories/dungeon --web
 ```
 
-**WebSocket mode:**
+### Starting a Multi-Player (MUD) Game
+
 ```bash
-python -m tale.main --game stories/dungeon --web --websocket
+python -m tale.main --game stories/dungeon --mode mud
 ```
 
 ## Architecture
@@ -58,7 +45,8 @@ python -m tale.main --game stories/dungeon --web --websocket
 
 The WebSocket implementation uses FastAPI and includes:
 
-- **TaleFastAPIApp**: Main FastAPI application with WebSocket endpoint
+- **TaleFastAPIApp** (IF mode): FastAPI application for single-player with WebSocket endpoint
+- **TaleMudFastAPIApp** (MUD mode): FastAPI application for multi-player with session management
 - **WebSocket Endpoint** (`/tale/ws`): Handles bidirectional communication
 - **HTTP Routes**: Serves static files and HTML pages
 - **Message Protocol**: JSON-based messages for commands and responses
@@ -67,7 +55,7 @@ The WebSocket implementation uses FastAPI and includes:
 
 The JavaScript client (`script.js`) includes:
 
-- **Automatic Detection**: Tries WebSocket first, falls back to EventSource
+- **WebSocket Connection**: Connects to the WebSocket endpoint
 - **Message Handling**: Processes incoming text, data, and status messages
 - **Command Sending**: Sends commands and autocomplete requests via WebSocket
 
@@ -109,48 +97,44 @@ The JavaScript client (`script.js`) includes:
 ### Key Components
 
 1. **`tale/tio/if_browser_io.py`**:
-   - `TaleFastAPIApp`: FastAPI application with WebSocket support
-   - `HttpIo`: Updated to support both WSGI and FastAPI modes
+   - `TaleFastAPIApp`: FastAPI application for single-player mode
+   - `HttpIo`: I/O adapter for the FastAPI web server
 
-2. **`tale/driver_if.py`**:
-   - `IFDriver`: Updated constructor with `use_websocket` parameter
-   - `connect_player()`: Creates FastAPI server when WebSocket mode is enabled
+2. **`tale/tio/mud_browser_io.py`**:
+   - `TaleMudFastAPIApp`: FastAPI application for multi-player mode with session management
+   - `MudHttpIo`: I/O adapter for multi-player browser interface
 
-3. **`tale/web/script.js`**:
-   - `tryWebSocket()`: Attempts WebSocket connection
-   - `setupEventSource()`: Fallback to EventSource
-   - `send_cmd()`: Sends commands via WebSocket or AJAX
+3. **`tale/driver_if.py`**:
+   - `IFDriver`: Creates FastAPI server for IF web interface
 
-4. **`tale/main.py`**:
-   - Added `--websocket` command-line argument
+4. **`tale/driver_mud.py`**:
+   - `MudDriver`: Creates FastAPI server for MUD web interface
 
-### Limitations
-
-- WebSocket mode is currently only supported in single-player (IF) mode
-- SSL/TLS configuration may require additional setup for WebSocket secure connections
-- The implementation maintains backward compatibility with the original WSGI-based approach
+5. **`tale/web/script.js`**:
+   - `connectWebSocket()`: Establishes WebSocket connection
+   - `send_cmd()`: Sends commands via WebSocket
 
 ## Troubleshooting
 
 ### WebSocket Connection Fails
 
-If the WebSocket connection fails, the client will automatically fall back to EventSource. Check:
+If the WebSocket connection fails:
 
-1. FastAPI and uvicorn are installed
-2. Port is not blocked by firewall
-3. Browser console for error messages
+1. Ensure FastAPI and uvicorn are installed
+2. Check that the port is not blocked by firewall
+3. Check browser console for error messages
 
 ### Module Not Found Errors
 
 Ensure all dependencies are installed:
 
 ```bash
-pip install -r requirements.txt
+pip install fastapi websockets uvicorn
 ```
 
 ### ImportError for FastAPI
 
-If FastAPI is not available, the system will fall back to the traditional WSGI server. Install FastAPI to enable WebSocket support:
+If FastAPI is not available, an error will be raised when starting with web interface. Install FastAPI:
 
 ```bash
 pip install fastapi websockets uvicorn
@@ -160,7 +144,6 @@ pip install fastapi websockets uvicorn
 
 Possible improvements for the WebSocket implementation:
 
-- Multi-player (MUD) mode support
 - Compression for large text outputs
 - Reconnection handling with session persistence
 - WebSocket authentication and security enhancements
