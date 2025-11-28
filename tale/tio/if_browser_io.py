@@ -284,6 +284,9 @@ if FASTAPI_AVAILABLE:
                         # For binary files, we need to return appropriate response
                         from fastapi.responses import Response
                         return Response(content=resource.data, media_type=resource.mimetype)
+                except FileNotFoundError:
+                    from fastapi import HTTPException
+                    raise HTTPException(status_code=404, detail="File not found")
                 except KeyError:
                     from fastapi import HTTPException
                     raise HTTPException(status_code=404, detail="File not found")

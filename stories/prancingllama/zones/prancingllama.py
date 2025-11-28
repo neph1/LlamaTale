@@ -1,7 +1,7 @@
 import random
 
 from tale.base import Location, Item, Exit, Weapon
-from tale.errors import StoryCompleted
+from tale.dungeon.DungeonEntrance import DungeonEntrance
 from tale.items.basic import Note
 from tale.util import Context, call_periodically
 from tale.verbdefs import AGGRESSIVE_VERBS
@@ -46,6 +46,12 @@ entrance.add_exits([Exit(["outside", "south"], short_descr="A biting wind reache
 
 outside.add_exits([Exit(["entrance", "north"], short_descr="The door to the north leads inside The Prancing Llama.", target_location=entrance)])
 outside.generated = True
+
+dungeon_start = Location("Cave Entrance", "A dark and foreboding entrance to the ice caves.")
+
+dungeon_entrance = DungeonEntrance("cave", dungeon_start, "A dark stairway leads down into the ice caves beneath The Prancing Llama.", "")
+dungeon_start.add_exits([dungeon_entrance])
+cellar.add_exits([dungeon_entrance])
 
 main_hall.init_inventory([shanda, elid_gald])
 

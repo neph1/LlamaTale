@@ -32,8 +32,8 @@ class DungeonConfig:
         """
         self.name = name
         self.description = description
-        self.races = races or ["bat", "wolf"]
-        self.items = items or ["torch"]
+        self.races = races
+        self.items = items
         self.max_depth = max_depth
     
     def to_json(self) -> dict:
@@ -54,7 +54,7 @@ class DungeonConfig:
         return DungeonConfig(
             name=data.get("name", "Dungeon"),
             description=data.get("description", "A dark dungeon"),
-            races=data.get("races", ["bat", "wolf"]),
-            items=data.get("items", ["torch"]),
+            races=data.get("races"),
+            items=data.get("items"),
             max_depth=data.get("max_depth", 3)
         )
