@@ -3,6 +3,8 @@
 let none_action = 'None';
 let websocket = null;
 
+document.waitingForResponse = false;
+
 function setup()
 {
     var but=document.getElementById("button-autocomplete");
@@ -44,6 +46,10 @@ function connectWebSocket() {
                 console.log("WebSocket connected successfully");
             } else if (data.type === "text" || data.text) {
                 process_text(data);
+
+                // We'll treat anything sent as being complete
+                setWaitingState(false);
+                    
             } else if (data.type === "data") {
                 // Handle data messages
                 process_data(data);
@@ -53,15 +59,18 @@ function connectWebSocket() {
         websocket.onerror = function(e) {
             console.error("WebSocket error:", e);
             displayConnectionError("<p class='server-error'>WebSocket connection error.<br><br>Refresh the page to restore it.</p>");
+            setWaitingState(false);
         };
         
         websocket.onclose = function(e) {
             console.log("WebSocket closed:", e.code, e.reason);
             displayConnectionError("<p class='server-error'>Connection closed.<br><br>Refresh the page to restore it.</p>");
+            setWaitingState(false);
         };
     } catch (e) {
         console.error("WebSocket failed to connect:", e);
         displayConnectionError("<p class='server-error'>Failed to connect to server.<br><br>Please refresh the page.</p>");
+        setWaitingState(false);
     }
 }
 
@@ -81,6 +90,8 @@ function process_text(json)
     if(json["error"]) {
         txtdiv.innerHTML += "<p class='server-error'>Server error: "+JSON.stringify(json)+"<br>Perhaps refreshing the page might help. If it doesn't, quit or close your browser and try with a new window.</p>";
         txtdiv.scrollTop = txtdiv.scrollHeight;
+        
+        setWaitingState(false);
     }
     else
     {
@@ -129,6 +140,7 @@ function process_text(json)
             data = json["data"];   // the image data
             document.getElementById(id).src = data;
         }
+
     }
 }
 
@@ -148,9 +160,59 @@ function smoothscroll(div, previousTop)
 }
 
 
+// Add helper to toggle "waiting for response" UI and block input while waiting
+function setWaitingState(waiting) {
+    var cmd_input = document.getElementById("input-cmd");
+    var autocompleteBtn = document.getElementById("button-autocomplete");
+    var submitBtn = document.getElementById("button-submit"); // optional; may not exist in all layouts
+    document.waitingForResponse = waiting;
+
+    if (waiting) {
+        if (cmd_input) {
+            cmd_input.disabled = true;
+            cmd_input.classList.add('disabled-while-waiting');
+        }
+        if (autocompleteBtn) autocompleteBtn.disabled = true;
+        if (submitBtn) submitBtn.disabled = true;
+
+        var indicator = document.getElementById('waiting-indicator');
+        if (!indicator) {
+            indicator = document.createElement('span');
+            indicator.id = 'waiting-indicator';
+            indicator.className = 'waiting-indicator';
+            indicator.textContent = 'Waiting for server...';
+            indicator.style.marginLeft = '8px';
+            indicator.style.color = '#666';
+            // try to append next to the input or button area
+            var parent = (cmd_input && cmd_input.parentNode) ? cmd_input.parentNode : document.body;
+            parent.appendChild(indicator);
+        } else {
+            indicator.style.display = '';
+        }
+    } else {
+        if (cmd_input) {
+            cmd_input.disabled = false;
+            cmd_input.classList.remove('disabled-while-waiting');
+            cmd_input.focus();
+        }
+        if (autocompleteBtn) autocompleteBtn.disabled = false;
+        if (submitBtn) submitBtn.disabled = false;
+
+        var indicator = document.getElementById('waiting-indicator');
+        if (indicator) indicator.style.display = 'none';
+    }
+}
+
+
 function submit_cmd()
 {
     var cmd_input = document.getElementById("input-cmd");
+
+    if (document.waitingForResponse) {
+        console.log("Command ignored because waiting for server response");
+        return false;
+    }
+
     var selectedNpc = document.getElementById('npc-dropdown').value;
     var npcAddress = '';
     var selectedAction = document.getElementById('action-dropdown').value;
@@ -164,6 +226,8 @@ function submit_cmd()
             npcAddress = ' ' + selectedNpc;
         }
     }
+
+    setWaitingState(true);
     send_cmd(cmd_input.value, npcAddress);
     cmd_input.value="";
     cmd_input.focus();
