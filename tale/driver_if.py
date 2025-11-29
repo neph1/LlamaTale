@@ -114,12 +114,16 @@ class IFDriver(driver.Driver):
             from .tio.tkinter_io import TkinterIo
             io = TkinterIo(self.story.config, connection)  # type: iobase.IoAdapterBase
         elif player_io_type == "web":
-            from .tio.if_browser_io import HttpIo, TaleWsgiApp
-            wsgi_server = TaleWsgiApp.create_app_server(self, connection, use_ssl=False, ssl_certs=None)
+            # Use FastAPI with WebSocket support
+            from .tio.if_browser_io import FASTAPI_AVAILABLE
+            if not FASTAPI_AVAILABLE:
+                raise RuntimeError("FastAPI is not available. Install it with: pip install fastapi websockets uvicorn")
+            from .tio.if_browser_io import HttpIo, TaleFastAPIApp
+            fastapi_server = TaleFastAPIApp.create_app_server(self, connection, use_ssl=False, ssl_certs=None)
             # you can enable SSL by using the following:
-            # wsgi_server = TaleWsgiApp.create_app_server(self, connection, use_ssl=True,
+            # fastapi_server = TaleFastAPIApp.create_app_server(self, connection, use_ssl=True,
             #                   ssl_certs=("certs/localhost_cert.pem", "certs/localhost_key.pem", ""))
-            io = HttpIo(connection, wsgi_server)
+            io = HttpIo(connection, fastapi_server)
         elif player_io_type == "console":
             from .tio.console_io import ConsoleIo
             io = ConsoleIo(connection)

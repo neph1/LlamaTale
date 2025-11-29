@@ -137,11 +137,14 @@ class TestDungeon:
             short_descr="A dark entrance",
             target_location=location,
         )
-        entrance.bind(location)
+        location.add_exits([entrance])
 
         dungeon_config = DungeonConfig(
             name="A dark entrance",
             description="A dark entrance to a dungeon.",
+            races=["goblin", "skeleton"],
+            items=["potion", "gold"],
+            max_depth=5
         )
 
         dungeon = entrance.build_dungeon(self.story, self.llm_util, dungeon_config)

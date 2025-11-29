@@ -3,9 +3,11 @@ import sys
 from typing import Optional, Generator
 
 import tale
-from tale.base import Location
+from tale.base import Location, Weapon, Wearable
 from tale.cmds import spells
 from tale.driver import Driver
+from tale.dungeon.dungeon_config import DungeonConfig
+from tale.items.basic import Food, Health
 from tale.llm.dynamic_story import DynamicStory
 from tale.skills.magic import MagicType
 from tale.main import run_from_cmdline
@@ -15,6 +17,7 @@ from tale.skills.skills import SkillType
 from tale.story import *
 from tale.skills.weapon_type import WeaponType
 from tale.story_context import StoryContext
+from tale.wearable import WearLocation
 from tale.zone import Zone
 
 class Story(DynamicStory):
@@ -44,12 +47,32 @@ class Story(DynamicStory):
         """Called by the game driver when it is done with its initial initialization."""
         self.driver = driver
         self._zones = dict() # type: {str, Zone}
-        self._zones["The Prancing Llama"] = Zone("The Prancing Llama", description="A cold, craggy mountain range. Snow covered peaks and uncharted valleys hide and attract all manners of creatures.")
+         
+
+        prancing_llama_zone= Zone("The Prancing Llama", description="A cold, craggy mountain range. Snow covered peaks and uncharted valleys hide and attract all manners of creatures.")
+        prancing_llama_zone.dungeon_config = DungeonConfig(
+            name="The Ice Caves",
+            description="A series of dark and icy caves beneath The Prancing Llama.",
+            races=["kobold", "bat", "giant rat"],
+            items=["woolly gloves", "ice pick", "fur cap", "rusty sword", "lantern", "food rations"],
+            max_depth=3
+        )
+        self._zones["The Prancing Llama"] = prancing_llama_zone
+
         import zones.prancingllama
         for location in zones.prancingllama.all_locations:
             self._zones["The Prancing Llama"].add_location(location)
-        self._catalogue._creatures = ["human", "giant rat", "bat", "balrog", "dwarf", "elf", "gnome", "halfling", "hobbit", "kobold", "orc", "troll", "vampire", "werewolf", "zombie"]
-        self._catalogue._items = ["woolly gloves", "ice pick", "fur cap", "rusty sword", "lantern", "food rations"]
+            import tale.races as races
+
+        race_names = ["human", "giant rat", "bat", "balrog", "dwarf", "elf", "gnome", "halfling", "hobbit", "kobold", "orc", "troll", "vampire", "werewolf", "zombie"]
+        self._catalogue._creatures = [dict(races._races.get(name, {"name": name})) for name in race_names]
+
+        wolly_gloves = Wearable(name='woolly gloves', short_descr='a pair of woolly gloves', descr='A pair of thick woolly gloves, perfect for keeping your hands warm in icy conditions.', wear_location=WearLocation.HANDS, weight=0.5, value=15 )
+        ice_pick = Weapon(name='ice pick', short_descr='an ice pick', descr='A sturdy ice pick, useful for climbing icy surfaces or as a makeshift weapon.', wc=WeaponType.ONE_HANDED, base_damage=3, weight=1.5, value=25 )
+        rusty_sword = Weapon(name='rusty sword', short_descr='a rusty sword', descr='An old and rusty sword, its blade dulled by time but still capable of inflicting damage.', wc=WeaponType.ONE_HANDED, base_damage=4, weight=3.0, value=10 )
+        fur_cap = Wearable(name='fur cap', short_descr='a warm fur cap', descr='A warm fur cap that provides excellent insulation against the cold.', wear_location=WearLocation.HEAD, weight=0.7, value=20 )
+        food_ration = Food(name='food rations', short_descr='a pack of food rations', descr='A pack of preserved food rations, essential for survival in harsh environments.', value=5 )
+        self._catalogue._items = [wolly_gloves.to_dict(), ice_pick.to_dict(), rusty_sword.to_dict(), fur_cap.to_dict(), food_ration.to_dict()]
 
     def init_player(self, player: Player) -> None:
         """
@@ -108,6 +131,12 @@ class Story(DynamicStory):
         zone_info['races'] = self.races_for_zone(zone_name)
         zone_info['items'] = self.items_for_zone(zone_name)
         return zone_info
+    
+    def find_zone(self, location: str) -> Zone:
+        zone = super().find_zone(location)
+        if zone is None:
+            zone = self._zones.get("The Prancing Llama")
+        return zone
 
 if __name__ == "__main__":
     # story is invoked as a script, start it in the Tale Driver.

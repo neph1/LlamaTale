@@ -27,7 +27,7 @@ def run_from_cmdline(cmdline: Sequence[str]) -> None:
                         default=DEFAULT_SCREEN_DELAY)
     parser.add_argument('-m', '--mode', type=str, help='game mode, default=if', default="if", choices=["if", "mud"])
     parser.add_argument('-i', '--gui', help='gui interface', action='store_true')
-    parser.add_argument('-w', '--web', help='web browser interface', action='store_true')
+    parser.add_argument('-w', '--web', help='web browser interface (uses WebSocket)', action='store_true')
     parser.add_argument('-r', '--restricted', help='restricted mud mode; do not allow new players', action='store_true')
     parser.add_argument('-z', '--wizard', help='force wizard mode on if story character (for debug purposes)', action='store_true')
     parser.add_argument('-c', '--character', help='load a v2 character card as player (skips character builder)')

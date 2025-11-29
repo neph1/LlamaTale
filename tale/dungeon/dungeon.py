@@ -216,14 +216,14 @@ class Dungeon:
             # Create connection
             if connection.door:
                 Door.connect(
-                    cell_location, [parent_location.name, direction], '', None,
-                    parent_location, [cell_location.name, reverse_direction], '', None,
+                    cell_location, [parent_location.name, direction], f'Door to {parent_location.name}', None,
+                    parent_location, [cell_location.name, reverse_direction], f'Door to {cell_location.name}', None,
                     opened=False, locked=connection.locked, key_code=connection.key_code
                 )
             else:
                 Exit.connect(
-                    cell_location, [parent_location.name, direction], '', None,
-                    parent_location, [cell_location.name, reverse_direction], '', None
+                    cell_location, [parent_location.name, direction], f'Leads to {parent_location.name}', None,
+                    parent_location, [cell_location.name, reverse_direction], f'Leads to {cell_location.name}', None
                 )
     
     def _spawn_gold(self, zone: Zone):
