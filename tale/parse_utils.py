@@ -531,7 +531,7 @@ def save_npcs(creatures: list) -> dict:
             stored_npc['planned_actions'] = npc.planned_actions
 
         
-        npcs[npc.name.capitalize()] = stored_npc
+        npcs[npc.name.lower()] = stored_npc
     return npcs
 
 def save_stats(stats: Stats) -> dict:

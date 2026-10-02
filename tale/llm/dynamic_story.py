@@ -13,22 +13,39 @@ from tale.llm.LivingNpc import LivingNpc
 from tale.quest import Quest, QuestType
 from tale.mob_spawner import MobSpawner
 from tale.random_event import RandomEvent
-from tale.story import GameMode, StoryBase
+from tale.story import GameMode, StoryBase, StoryConfig
 
 from tale.story_context import StoryContext
 from tale.zone import Zone
 import tale.llm.llm_cache as llm_cache
 
 class DynamicStory(StoryBase):
-
-
+    """ This is the base for stories with LLM generated content """
 
     def __init__(self) -> None:
+        # A story class that defines its own class-level config (the usual way
+        # for code-defined stories) keeps it. Otherwise (a bare DynamicStory, or
+        # a JsonStory that receives its config via the constructor) every
+        # instance would share the single StoryBase.config object; give this
+        # instance its own config instead.
+        if not self._class_defines_config(type(self)):
+            self.config = StoryConfig()
         self._zones = dict() # type: dict[str, Zone]
         self._world = WorldInfo()
         self._catalogue = Catalogue()
         if isinstance(self.config.context, str):
             self.config.context = StoryContext(self.config.context)
+
+    @staticmethod
+    def _class_defines_config(cls) -> bool:
+        """ True if the class (or an intermediate base, other than StoryBase)
+        defines a class-level config attribute."""
+        for klass in cls.__mro__:
+            if klass is StoryBase:
+                continue
+            if 'config' in klass.__dict__:
+                return True
+        return False
 
     def init(self, driver) -> None:
         if self.config.day_night:
@@ -205,7 +222,8 @@ class WorldInfo():
         self._item_spawners = [] # type: list[ItemSpawner]
 
     def get_npc(self, npc: str) -> Living:
-        return self._npcs[npc]
+        # names are always stored lowercase (MudObject lowercases them)
+        return self._npcs[npc.lower()]
     
     def add_npc(self, npc: Living) -> bool:
         if npc.name in self._npcs:
@@ -252,7 +270,10 @@ class WorldInfo():
 
     @npcs.setter
     def npcs(self, value: dict):
-        self._npcs = value
+        # normalize: WorldInfo stores npcs keyed by (lowercase) npc.name,
+        # even though e.g. parse_utils.load_npcs returns a dict keyed by the
+        # original (mixed case) names from the saved json
+        self._npcs = {npc.name: npc for npc in value.values()}
  
     @property
     def items(self) -> dict:

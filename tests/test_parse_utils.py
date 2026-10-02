@@ -432,9 +432,9 @@ class TestLoadNpcs:
         saved_npcs = parse_utils.save_npcs(npcs.values())
 
         assert(len(saved_npcs.values()) == 3)
-        assert(saved_npcs['Kobbo']['name'] == 'Kobbo')
-        assert(saved_npcs['Kobbo']['title'] == 'Kobbo the King')
-        assert(saved_npcs['Kobbo']['location'] == 'Royal grotto')
+        assert(saved_npcs['kobbo']['name'] == 'Kobbo')
+        assert(saved_npcs['kobbo']['title'] == 'Kobbo the King')
+        assert(saved_npcs['kobbo']['location'] == 'Royal grotto')
  
     def test_load_npcs_generated(self):
         npcs_string = '{"npcs": [{"name": "Rosewood Fairy", "sentiment": "friendly", "race": "Fae", "gender": "female", "level": 5, "description": "A delicate creature with wings as soft as rose petals, offering quests and guidance.", "occupation":"healer"}]}'

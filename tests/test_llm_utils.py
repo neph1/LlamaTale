@@ -413,7 +413,7 @@ class TestWorldBuilding():
         assert(zone.mood == -2)
         
     def test_issue_1_build_location(self):
-        z = zone.from_json(json.loads('{   "name": "Whispering Meadows",   "description": "Whispering Meadows is a serene and idyllic area nestled within Eldervale. It is a sprawling expanse of lush green meadows, dotted with colorful wildflowers swaying gently in the breeze. The sweet fragrance of blooming lavender fills the air, creating an enchanting atmosphere. The meadows are home to a variety of friendly creatures, and the soothing whispers of the wind carry tales of peace and harmony. With its tranquil beauty, Whispering Meadows provides the perfect backdrop for a cosy social and farming experience.",   "races": ["Fairie", "Centaur", "Unicorn", "Pixie", "Sylph"],   "items": ["Enchanted Seeds (plantable)", "Harvesting Scythe", "Rainbow Fruit Basket", "Magic Beehive", "Fairy Lantern"],   "mood": "friendly",   "level": 1 }'))
+        z = Zone.from_json(json.loads('{   "name": "Whispering Meadows",   "description": "Whispering Meadows is a serene and idyllic area nestled within Eldervale. It is a sprawling expanse of lush green meadows, dotted with colorful wildflowers swaying gently in the breeze. The sweet fragrance of blooming lavender fills the air, creating an enchanting atmosphere. The meadows are home to a variety of friendly creatures, and the soothing whispers of the wind carry tales of peace and harmony. With its tranquil beauty, Whispering Meadows provides the perfect backdrop for a cosy social and farming experience.",   "races": ["Fairie", "Centaur", "Unicorn", "Pixie", "Sylph"],   "items": ["Enchanted Seeds (plantable)", "Harvesting Scythe", "Rainbow Fruit Basket", "Magic Beehive", "Fairy Lantern"],   "mood": "friendly",   "level": 1 }'))
         
         location = Location(name='Whispering Meadows')
         exit_location_name = 'Harvest Grove'
@@ -487,7 +487,7 @@ class TestWorldBuilding():
 
         world_items = [{'name':'sword', 'type': 'Weapon', 'value': 100, 'weapon_type': 'ONE_HANDED'}]
         world_creatures = [{'name': 'wolf', 'body': 'Creature', 'unarmed_attack': 'BITE', 'hp':10, 'level':10}]
-        zone_info = zone.from_json(json.loads(self.generated_zone)).get_info()
+        zone_info = Zone.from_json(json.loads(self.generated_zone)).get_info()
         world_generation_context = WorldGenerationContext(story_context=self.story.config.context, story_type=self.story.config.type, world_info='', world_mood=0)
 
         result = self.llm_util._world_building.generate_random_spawn(location, 
@@ -508,7 +508,7 @@ class TestWorldBuilding():
 
         world_items = []
         world_creatures = []
-        zone_info = zone.from_json(json.loads(self.generated_zone)).get_info()
+        zone_info = Zone.from_json(json.loads(self.generated_zone)).get_info()
         world_generation_context = WorldGenerationContext(story_context=self.story.config.context, story_type=self.story.config.type, world_info='', world_mood=0)
 
         result = self.llm_util._world_building.generate_random_spawn(location, 

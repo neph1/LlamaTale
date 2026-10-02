@@ -40,6 +40,7 @@ from .errors import StoryCompleted
 from tale.load_character import CharacterLoader, CharacterV2
 from tale.llm.dynamic_story import DynamicStory
 from tale.llm.llm_utils import LlmUtil
+from tale.story_manager import StoryManager
 from tale.web.web_utils import clear_resources, copy_web_resources
 
 
@@ -216,6 +217,7 @@ class Driver(pubsub.Listener):
         self.resources = None   # type: vfs.VirtualFileSystem
         self.user_resources = None  # type: vfs.VirtualFileSystem
         self.story = None       # type: StoryBase
+        self.story_manager = None  # type: StoryManager
         self.game_clock = None    # type: util.GameDateTime
         self.game_mode = None     # type: GameMode
         self._stop_mainloop = True
@@ -296,6 +298,11 @@ class Driver(pubsub.Listener):
         self.user_resources = vfs.VirtualFileSystem(root_path=user_data_dir, readonly=False)  # r/w to the local 'user data' directory
         self.story.init(self)
         self.llm_util.set_story(self.story)
+        # create the story modification layer and register it for in-process access.
+        # this is done for every dynamic story so the LLM handoff works regardless
+        # of whether the MCP endpoint is started.
+        self.story_manager = StoryManager(self.story, self.llm_util, self)
+        story_manager.register(self.story_manager)
         if self.story.config.playable_races:
             # story provides playable races. Check that every race is known.
             invalid = self.story.config.playable_races - playable_races
@@ -961,6 +968,11 @@ class Driver(pubsub.Listener):
         # Re-initialize the story
         self.story.init(self)
         self.llm_util.set_story(self.story)
+        # create the story modification layer and register it for in-process access.
+        # this is done for every dynamic story so the LLM handoff works regardless
+        # of whether the MCP endpoint is started.
+        self.story_manager = StoryManager(self.story, self.llm_util, self)
+        story_manager.register(self.story_manager)
         
         # Reset game clock to the story's epoch or current time
         self.game_clock = util.GameDateTime(

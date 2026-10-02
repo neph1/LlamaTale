@@ -36,7 +36,7 @@ class Zone():
         """ Remove a location from the zone. Skip if location does not exist."""
         if name not in self.locations:
             return False
-        self.locations[name] = None
+        del self.locations[name]
         return True
 
     def get_location(self, name: str) -> Location:
@@ -51,6 +51,7 @@ class Zone():
                 "size":self.size,
                 "center":self.center.as_tuple(),
                 "lore":self.lore,
+                "name":self.name
                 }
         if self.dungeon_config:
             info["dungeon_config"] = self.dungeon_config.to_json()
@@ -86,23 +87,24 @@ class Zone():
         if (direction.z != 0 and zone_distance.z > self.size_z - 1):
             return True
         return False
-    
-def from_json(data: dict) -> 'Zone':
-    from tale.dungeon.dungeon_config import DungeonConfig
-    
-    zone = Zone(data.get("name", "unknown"), data.get("description", "unknown"))
-    zone.level = data.get("level", 1)
-    zone.mood = data.get("mood", 0)
-    zone.items = data.get("items", [])
-    zone.races = data.get("races", [])
-    zone.size = data.get("size", 5)
-    if data.get("center", None) is not None:
-        center = data.get("center")
-        zone.center = Coord(center[0], center[1], center[2])
-    zone.lore = data.get("lore", "")
-    
-    # Load dungeon config if present
-    if data.get("dungeon_config", None) is not None:
-        zone.dungeon_config = DungeonConfig.from_json(data["dungeon_config"])
-    
-    return zone
+
+    @classmethod
+    def from_json(cls, data: dict) -> 'Zone':
+        from tale.dungeon.dungeon_config import DungeonConfig
+        
+        zone = Zone(data.get("name", "unknown"), data.get("description", "unknown"))
+        zone.level = data.get("level", 1)
+        zone.mood = data.get("mood", 0)
+        zone.items = data.get("items", [])
+        zone.races = data.get("races", [])
+        zone.size = data.get("size", 5)
+        if data.get("center", None) is not None:
+            center = data.get("center")
+            zone.center = Coord(center[0], center[1], center[2])
+        zone.lore = data.get("lore", "")
+        
+        # Load dungeon config if present
+        if data.get("dungeon_config", None) is not None:
+            zone.dungeon_config = DungeonConfig.from_json(data["dungeon_config"])
+        
+        return zone

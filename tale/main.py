@@ -15,6 +15,11 @@ from .story import GameMode
 from .driver import Driver
 
 
+def main() -> None:
+    """Console entry point for the 'tale-run' command."""
+    run_from_cmdline(sys.argv[1:])
+
+
 def run_from_cmdline(cmdline: Sequence[str]) -> None:
     """Run Tale from the commandline."""
     parser = argparse.ArgumentParser(description="""
