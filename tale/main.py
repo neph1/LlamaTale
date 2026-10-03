@@ -36,6 +36,8 @@ def run_from_cmdline(cmdline: Sequence[str]) -> None:
     parser.add_argument('-r', '--restricted', help='restricted mud mode; do not allow new players', action='store_true')
     parser.add_argument('-z', '--wizard', help='force wizard mode on if story character (for debug purposes)', action='store_true')
     parser.add_argument('-c', '--character', help='load a v2 character card as player (skips character builder)')
+    parser.add_argument('--mcp', help='start the in-process MCP server so an agent can build/modify the story', action='store_true')
+    parser.add_argument('--mcp-port', type=int, help='port for the MCP server (default 8765)', default=8765)
     args = parser.parse_args(cmdline)
     try:
         # select the correct driver type, configure it, and start the story.
@@ -48,6 +50,8 @@ def run_from_cmdline(cmdline: Sequence[str]) -> None:
             driver = MudDriver(args.restricted)
         else:
             raise ValueError("invalid game mode")
+        driver.mcp_enabled = args.mcp
+        driver.mcp_port = args.mcp_port
         driver.start(args.game)
     except:
         if args.gui:

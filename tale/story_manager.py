@@ -420,24 +420,40 @@ class StoryManager:
             if os.path.exists(llm_cache_path):
                 llm_cache.load(parse_utils.load_json(llm_cache_path))
 
-    # -- LLM-backed generation (optional; delegates to WorldBuilding) -----------
+    # -- LLM-backed generation (optional; delegates to WorldBuilding, then
+    #    applies the result to the story via the mutation API above) -----------
 
     def generate_world_items(self, count: int = 7) -> list:
-        """Generate world items via the LLM and return them as dicts."""
+        """Generate world items via the LLM, add them to the catalogue, and
+        return them as dicts."""
         if not self._llm_util:
             raise RuntimeError("generate_world_items requires an llm_util")
         response = self._llm_util.generate_world_items(count=count)
-        return list(response.items) if getattr(response, 'valid', False) else []
+        if not getattr(response, 'valid', False):
+            return []
+        items = list(response.items)
+        with self._lock:
+            for item in items:
+                self._story.catalogue.add_item(item)
+        return items
 
     def generate_world_creatures(self, count: int = 5) -> list:
-        """Generate world creatures via the LLM and return them as dicts."""
+        """Generate world creatures via the LLM, add them to the catalogue, and
+        return them as dicts."""
         if not self._llm_util:
             raise RuntimeError("generate_world_creatures requires an llm_util")
         response = self._llm_util.generate_world_creatures(count=count)
-        return list(response.creatures) if getattr(response, 'valid', False) else []
+        if not getattr(response, 'valid', False):
+            return []
+        creatures = list(response.creatures)
+        with self._lock:
+            for creature in creatures:
+                self._story.catalogue.add_creature(creature)
+        return creatures
 
     def generate_start_zone(self, location_desc: str) -> dict:
-        """Generate a starting zone via the LLM and return it as an info dict."""
+        """Generate a starting zone via the LLM, add it to the story, and return
+        it as an info dict (or an empty dict if generation failed)."""
         if not self._llm_util:
             raise RuntimeError("generate_start_zone requires an llm_util")
         story = self._story
@@ -453,17 +469,27 @@ class StoryManager:
             story_context=story.config.context,
             world_info=world_info,
         )
+        if zone is None:
+            return {}
+        with self._lock:
+            self._story.add_zone(zone)
+            for loc in zone.locations.values():
+                self._story.add_location(loc, zone.name)
         return zone.get_info()
 
-    def generate_location(self, location: Location, zone: str, exit_name: str) -> dict:
-        """Generate a location via the LLM and apply it to the story.
+    def generate_location(self, zone: str, name: str, exit_name: str) -> dict:
+        """Generate a location (via the LLM) adjacent to the existing location
+        ``zone.name``, and apply the result to the story.
 
         Returns the serialized source location dict (with its new exits), or an
-        empty dict if generation failed.
+        empty dict if the location was not found or generation failed.
         """
+        if not self._llm_util:
+            raise RuntimeError("generate_location requires an llm_util")
+        location = self._story.get_location(zone, name)
+        if location is None:
+            return {}
         with self._lock:
-            if not self._llm_util:
-                raise RuntimeError("generate_location requires an llm_util")
             zone_obj = self._story.get_zone(zone)
             zone_info = zone_obj.get_info()
             neighbors = self._story.neighbors_for_location(location)

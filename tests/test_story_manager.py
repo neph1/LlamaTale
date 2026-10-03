@@ -311,8 +311,9 @@ class TestLlmGeneration():
         mgr = StoryManager(story, llm_util=self.FakeLlmUtil())
         mgr.add_location({"name": "Start", "descr": "You are at start", "world_location": [0, 0, 0]}, "TestZone")
         loc = story.get_location("TestZone", "Start")
-        result = mgr.generate_location(loc, "TestZone", "north")
-        assert story.build_calls if hasattr(story, "build_calls") else True
+        result = mgr.generate_location("TestZone", "Start", "north")
+        # the result is the serialized source location
+        assert result["name"] == "Start"
         # the fake llm_util recorded a build call
         assert mgr._llm_util.build_calls == 1
         # the generated destination location was added
@@ -325,4 +326,4 @@ class TestLlmGeneration():
     def test_generate_location_without_llm_raises(self):
         mgr = StoryManager(make_story(), llm_util=None)
         with pytest.raises(RuntimeError):
-            mgr.generate_location(Location("Start", "x"), "TestZone", "north")
+            mgr.generate_location("TestZone", "Start", "north")

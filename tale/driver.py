@@ -40,7 +40,7 @@ from .errors import StoryCompleted
 from tale.load_character import CharacterLoader, CharacterV2
 from tale.llm.dynamic_story import DynamicStory
 from tale.llm.llm_utils import LlmUtil
-from tale.story_manager import StoryManager
+from tale.story_manager import StoryManager, register
 from tale.web.web_utils import clear_resources, copy_web_resources
 
 
@@ -218,6 +218,8 @@ class Driver(pubsub.Listener):
         self.user_resources = None  # type: vfs.VirtualFileSystem
         self.story = None       # type: StoryBase
         self.story_manager = None  # type: StoryManager
+        self.mcp_enabled = False   # start the in-process MCP server (set via --mcp)
+        self.mcp_port = 8765       # port for the MCP server (set via --mcp-port)
         self.game_clock = None    # type: util.GameDateTime
         self.game_mode = None     # type: GameMode
         self._stop_mainloop = True
@@ -302,7 +304,7 @@ class Driver(pubsub.Listener):
         # this is done for every dynamic story so the LLM handoff works regardless
         # of whether the MCP endpoint is started.
         self.story_manager = StoryManager(self.story, self.llm_util, self)
-        story_manager.register(self.story_manager)
+        register(self.story_manager)
         if self.story.config.playable_races:
             # story provides playable races. Check that every race is known.
             invalid = self.story.config.playable_races - playable_races
@@ -330,6 +332,16 @@ class Driver(pubsub.Listener):
         self.unbound_exits = []
         sys.excepthook = util.excepthook  # install custom verbose crash reporter
         self.register_periodicals(self)
+        # start the in-process MCP server (if enabled) now that the story is fully loaded.
+        # the import is deferred so the 'mcp' package is only required when --mcp is set.
+        if self.mcp_enabled:
+            try:
+                from tale.mcp import server as mcp_server
+                mcp_server.start_server(port=self.mcp_port)
+            except ImportError as e:
+                print("WARNING: --mcp was set but the 'mcp' package is not installed: %s" % e)
+            except Exception as e:
+                print("WARNING: failed to start the MCP server: %s" % e)
         self.start_main_loop()   # doesn't exit! (unless game is killed)
         self._stop_driver()
 
@@ -972,7 +984,7 @@ class Driver(pubsub.Listener):
         # this is done for every dynamic story so the LLM handoff works regardless
         # of whether the MCP endpoint is started.
         self.story_manager = StoryManager(self.story, self.llm_util, self)
-        story_manager.register(self.story_manager)
+        register(self.story_manager)
         
         # Reset game clock to the story's epoch or current time
         self.game_clock = util.GameDateTime(
