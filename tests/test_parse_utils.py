@@ -375,6 +375,26 @@ class TestParseUtils():
         sanitized = json_util.safe_load(json_string)
         assert sanitized['name'] == 'Whispering Woods'
 
+    def test_sanitize_json_strips_reasoning_tags(self):
+        json_string = '<think>I should provide a forest description first.</think>{"name": "Whispering Woods", "mood": 5}'
+        sanitized = json_util.safe_load(json_string)
+        assert sanitized['name'] == 'Whispering Woods'
+
+    def test_sanitize_json_strips_reasoning_fences(self):
+        json_string = '```thinking\nI will now prepare structured output.\n```\n```json\n{"name": "Whispering Woods", "mood": 5}\n```'
+        sanitized = json_util.safe_load(json_string)
+        assert sanitized['mood'] == 5
+
+    def test_sanitize_json_keeps_tag_like_string_values(self):
+        json_string = '{"name": "Whispering Woods", "note": "<think>this stays in content</think>"}'
+        sanitized = json_util.safe_load(json_string)
+        assert sanitized['note'] == '<think>this stays in content</think>'
+
+    def test_sanitize_json_unwraps_double_encoded_reasoning(self):
+        json_string = '"<analysis>Internal notes</analysis>{\\"name\\": \\"Whispering Woods\\", \\"mood\\": 5}"'
+        sanitized = json_util.safe_load(json_string)
+        assert sanitized['name'] == 'Whispering Woods'
+
     def test_mood_string_from_int(self):
         assert parse_utils.mood_string_from_int(5) == ' uttermost friendly'
         assert parse_utils.mood_string_from_int(0) == ' neutral'
