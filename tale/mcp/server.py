@@ -48,6 +48,8 @@ def create_server(manager, port: int = DEFAULT_MCP_PORT) -> FastMCP:
             "a location is addressed as (zone, name)."
         ),
         host="127.0.0.1",
+        stateless_http=True, 
+        streamable_http_path='/llamatale-mcp',
         port=port,
     )
 
@@ -261,11 +263,16 @@ def start_server(port: int = DEFAULT_MCP_PORT) -> Optional[threading.Thread]:
 
     def _run() -> None:
         try:
-            mcp.run(transport="streamable-http")
+            import asyncio
+            import uvicorn
+            app = mcp.streamable_http_app()
+            config = uvicorn.Config(app, host="127.0.0.1", port=port, log_level="info")
+            server = uvicorn.Server(config)
+            asyncio.run(server.serve())
         except Exception as e:   # pragma: no cover - defensive
             print("MCP server thread crashed: %s" % e)
 
     thread = threading.Thread(target=_run, name="mcp-server", daemon=True)
     thread.start()
-    print("MCP server started on 127.0.0.1:%d (streamable-HTTP)" % port)
+    print("MCP server started on 127.0.0.1:%d/llama-tale-mcp (streamable-HTTP)" % port)
     return thread

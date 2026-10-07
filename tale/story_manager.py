@@ -81,8 +81,46 @@ class StoryManager:
         """The wrapped DynamicStory."""
         return self._story
 
+    # -- case-insensitive lookups ------------------------------------------------
+    # Location names are stored with whatever case they were created with, but
+    # the serialized form (save_locations) capitalizes them. To keep the API
+    # stable across save/load and so an agent can use the names it sees in the
+    # list/get tools, all lookups below are case-insensitive.
+
+    def _zone(self, name: str):
+        """Find a zone by name, case-insensitively."""
+        if name in self._story._zones:
+            return self._story._zones[name]
+        lower = name.lower()
+        for key, zone in self._story._zones.items():
+            if key.lower() == lower:
+                return zone
+        return None
+
+    def _zone_location(self, zone: str, name: str):
+        """Find a location in a zone, case-insensitively. Returns (zone_obj, location)."""
+        zone_obj = self._zone(zone)
+        if not zone_obj:
+            return None, None
+        if name in zone_obj.locations:
+            return zone_obj, zone_obj.locations[name]
+        lower = name.lower()
+        for key, loc in zone_obj.locations.items():
+            if key.lower() == lower:
+                return zone_obj, loc
+        return zone_obj, None
+
+    def _find_location(self, name: str):
+        """Find a location in any zone, case-insensitively."""
+        lower = name.lower()
+        for zone in self._story._zones.values():
+            for key, loc in zone.locations.items():
+                if key.lower() == lower:
+                    return loc
+        return None
+
     def _location_dict(self, zone: str, name: str) -> dict:
-        location = self._story.get_location(zone, name)
+        _zone_obj, location = self._zone_location(zone, name)
         if location is None:
             return {}
         info = parse_utils.save_locations([location])[0]
@@ -152,8 +190,9 @@ class StoryManager:
             return self._story.add_zone(z)
 
     def get_zone(self, name: str) -> dict:
-        """Return the info dict for a zone."""
-        return self._story.get_zone(name).get_info()
+        """Return the info dict for a zone (or an empty dict if not found)."""
+        zone = self._zone(name)
+        return zone.get_info() if zone else {}
 
     def list_zones(self) -> list:
         """Return info dicts for all zones."""
@@ -162,16 +201,17 @@ class StoryManager:
     def remove_zone(self, name: str) -> bool:
         """Remove a zone by name."""
         with self._lock:
-            if name not in self._story._zones:
+            zone = self._zone(name)
+            if zone is None:
                 return False
-            del self._story._zones[name]
+            del self._story._zones[zone.name]
             return True
 
     def link_zones(self, a: str, b: str, direction: str) -> bool:
         """Link zone ``a`` to zone ``b`` in ``direction`` (and back the other way)."""
         with self._lock:
-            za = self._story.get_zone(a)
-            zb = self._story.get_zone(b)
+            za = self._zone(a)
+            zb = self._zone(b)
             if za is None or zb is None:
                 return False
             direction = parse_utils.validate_direction(direction) or direction
@@ -191,6 +231,8 @@ class StoryManager:
             name = location.get('name')
             if not name:
                 return False
+            if zone and self._zone(zone) is None:
+                return False
             loc = Location(name, descr=location.get('descr', ''))
             loc.short_description = location.get('short_descr', loc.short_description)
             world_location = location.get('world_location')
@@ -206,19 +248,21 @@ class StoryManager:
         return self._location_dict(zone, name)
 
     def list_locations(self, zone: str) -> list:
-        """Return serialized dicts for all locations in a zone."""
-        return parse_utils.save_locations(self._story.get_zone(zone).locations.values())
+        """Return serialized dicts for all locations in a zone (or [] if the zone is missing)."""
+        zone_obj = self._zone(zone)
+        if not zone_obj:
+            return []
+        return parse_utils.save_locations(zone_obj.locations.values())
 
     def remove_location(self, zone: str, name: str) -> bool:
         """Remove a location from a zone (and from the live world)."""
         with self._lock:
-            zone_obj = self._story.get_zone(zone)
-            if not zone_obj.remove_location(name):
+            zone_obj, loc = self._zone_location(zone, name)
+            if not zone_obj or loc is None:
                 return False
-            loc = self._story._world._locations.get(name)
-            if loc is not None:
-                self._story._world._locations.pop(name, None)
-                self._story._world._grid.pop(loc.world_location.as_tuple(), None)
+            zone_obj.remove_location(loc.name)
+            self._story._world._locations.pop(loc.name, None)
+            self._story._world._grid.pop(loc.world_location.as_tuple(), None)
             return True
 
     def set_exits(self, zone: str, name: str, exits: list) -> bool:
@@ -227,21 +271,29 @@ class StoryManager:
         Each exit is a dict with ``direction``, ``name`` (target location name)
         and optional ``short_descr``/``long_descr``. If the target location does
         not exist yet, a new (empty) location is created for it so the exit is
-        always fully bound.
+        always fully bound. Exits follow the same convention as the rest of the
+        codebase (see ``parse_generated_exits``): an exit is named after the
+        target location (with the direction as an alias), and the target gets a
+        return exit in the opposite direction. This is also the format that
+        ``save_locations``/``load_locations`` round-trip.
         """
         with self._lock:
-            if zone not in self._story._zones:
+            if self._zone(zone) is None:
                 return False
-            location = self._story.get_location(zone, name)
+            _zone_obj, location = self._zone_location(zone, name)
             if location is None:
                 return False
             new_exits = []
             for exit in exits:
                 direction = parse_utils.validate_direction(exit.get('direction', ''))
-                if not direction or direction in location.exits:
+                if not direction:
                     continue
                 target_name = exit.get('name')
-                target = self._story.find_location(target_name)
+                if not target_name:
+                    continue
+                if target_name.lower() in location.exits or direction in location.exits:
+                    continue
+                target = self._find_location(target_name)
                 if target is None:
                     new_loc = Location(target_name)
                     new_loc.world_location = parse_utils.coordinates_from_direction(
@@ -251,8 +303,13 @@ class StoryManager:
                     target = new_loc
                 short_descr = exit.get('short_descr', f"To the {direction} you see {target_name}.")
                 long_descr = exit.get('long_descr', short_descr)
-                new_exits.append(Exit(directions=direction, target_location=target,
+                new_exits.append(Exit(directions=[target.name, direction], target_location=target,
                                       short_descr=short_descr, long_descr=long_descr))
+                # give the target a return exit in the opposite direction, if it doesn't have one yet
+                opposite = parse_utils.opposite_direction(direction)
+                if opposite and location.name not in target.exits and opposite not in target.exits:
+                    target.add_exits([Exit(directions=[location.name, opposite], target_location=location,
+                                           short_descr=f"To the {opposite} you see {location.name}.")])
             if new_exits:
                 location.add_exits(new_exits)
             return True
@@ -305,7 +362,7 @@ class StoryManager:
             creature = self._story.catalogue.get_creature(creature_name)
             if not creature:
                 return False
-            location = self._story.get_location(zone, location_name)
+            _zone_obj, location = self._zone_location(zone, location_name)
             if location is None:
                 return False
             npcs = parse_utils.load_npcs([creature], world_items=self._story.catalogue.get_items())
@@ -320,7 +377,7 @@ class StoryManager:
             item = self._story.catalogue.get_item(item_name)
             if not item:
                 return False
-            location = self._story.get_location(zone, location_name)
+            _zone_obj, location = self._zone_location(zone, location_name)
             if location is None:
                 return False
             loaded = load_item(item)
@@ -355,9 +412,15 @@ class StoryManager:
                 context.set_current_section(section)
 
     def set_start_location(self, zone: str, name: str) -> None:
-        """Set the player/wizard start location to ``zone.name``."""
+        """Set the player/wizard start location to ``zone.name``.
+
+        Uses the location's stored name (case as created) so the driver's
+        start-location lookup finds it after a save/load round-trip.
+        """
         with self._lock:
-            location = f"{zone}.{name}"
+            _zone_obj, location = self._zone_location(zone, name)
+            location_name = location.name if location else name
+            location = f"{zone}.{location_name}"
             self._story.config.startlocation_player = location
             self._story.config.startlocation_wizard = location
 
@@ -408,9 +471,12 @@ class StoryManager:
                 self._story._world.npcs = parse_utils.load_npcs(
                     worldinfo['npcs'].values(), locations=self._story.locations,
                     world_items=self._story.catalogue.get_items())
-            if worldinfo.get('spawners'):
+            # WorldInfo.to_json() saves mob spawners under 'mob_spawners';
+            # some older files (and JsonStory) use 'spawners'
+            mob_spawners = worldinfo.get('mob_spawners') or worldinfo.get('spawners')
+            if mob_spawners:
                 self._story._world.mob_spawners = parse_utils.load_mob_spawners(
-                    worldinfo['spawners'], self._story.locations,
+                    mob_spawners, self._story.locations,
                     self._story.catalogue.get_creatures(), self._story.catalogue.get_items())
             if worldinfo.get('item_spawners'):
                 self._story._world.item_spawners = parse_utils.load_item_spawners(
@@ -486,11 +552,10 @@ class StoryManager:
         """
         if not self._llm_util:
             raise RuntimeError("generate_location requires an llm_util")
-        location = self._story.get_location(zone, name)
+        zone_obj, location = self._zone_location(zone, name)
         if location is None:
             return {}
         with self._lock:
-            zone_obj = self._story.get_zone(zone)
             zone_info = zone_obj.get_info()
             neighbors = self._story.neighbors_for_location(location)
             response, _spawner = self._llm_util.build_location(
