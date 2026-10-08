@@ -10,7 +10,6 @@ This module lives in the tale/ root (not tale/llm/) because it is about story
 server depends on.
 
 'Tale' mud driver, mudlib and interactive fiction framework
-Copyright by Irmen de Jong (irmen@razorvine.net)
 """
 
 import os

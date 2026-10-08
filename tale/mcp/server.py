@@ -11,7 +11,6 @@ Each tool is a thin wrapper: it calls the corresponding
 with its own lock) and returns the result as JSON.
 
 'Tale' mud driver, mudlib and interactive fiction framework
-Copyright by Irmen de Jong (irmen@razorvine.net)
 """
 import json
 import threading
@@ -72,7 +71,27 @@ def create_server(manager, port: int = DEFAULT_MCP_PORT) -> FastMCP:
 
     @mcp.tool()
     def add_zone(zone: dict) -> bool:
-        """Add a zone (given as a dict) to the story. Returns True if added."""
+        """
+        Add a zone (given as a dict) to the story. Returns True if added.
+        Required fields: name, description. 
+        
+        Optional fields:
+        description = description
+        locations = dict()  # type: dict[str, Location]
+        level = 1 # average level of the zone
+        races = [] # type list[str] # common races to be encountered in the zone
+        items = [] # type list[str] # common items to find in the zone
+        mood = 0 # defines friendliness or hostility of the zone. > 0 is friendly
+        size = 5 # roughly the 'radius' of the zone.
+        size_z = 3 # height of the zone
+        neighbors = dict() # type: dict[str, Zone] # north, east, south or west
+        center = Coord(0,0,0) # The world coordinates of the center of the zone.
+        name = name
+        lore = "" # Any lore or backstory for the zone.
+        dungeon_config = None  # type: DungeonConfig # If this zone is a dungeon, the config for generating it.
+        dungeon = None  # type: Dungeon
+        
+        """
         return manager.add_zone(zone)
 
     @mcp.tool()
@@ -102,7 +121,9 @@ def create_server(manager, port: int = DEFAULT_MCP_PORT) -> FastMCP:
     def add_location(location: dict, zone: str = '') -> bool:
         """Add a location (given as a dict) to a zone. The dict needs at least a
         ``name`` and optionally ``descr``, ``short_descr``, ``world_location``
-        (a 3-tuple) and ``items``. Returns True if added."""
+        (x, y, z coordinates in a 3-tuple) and ``items``. 
+        Template: {"name": "", "description":"", "exits":[], "items":[], "npcs":[], "indoors":"true or false"}
+        Returns True if added."""
         return manager.add_location(location, zone)
 
     @mcp.tool()
@@ -126,6 +147,7 @@ def create_server(manager, port: int = DEFAULT_MCP_PORT) -> FastMCP:
         """Set exits on a location. Each exit is a dict with ``direction``,
         ``name`` (target location name) and optional ``short_descr``/
         ``long_descr``. Missing target locations are created so exits are always
+        Template: [{"direction":"", "name":"name of new location", "short_descr":"exit description"}]
         bound. Returns True on success."""
         return manager.set_exits(zone, name, exits)
 
@@ -133,13 +155,19 @@ def create_server(manager, port: int = DEFAULT_MCP_PORT) -> FastMCP:
 
     @mcp.tool()
     def add_item(item: dict) -> bool:
-        """Add a world item (as a dict) to the catalogue. Returns True if added."""
+        """
+        Add a world item (as a dict) to the catalogue. Returns True if added.
+        Template: {"name":"", "type":"", "short_descr":"", "level":int, "value":int}
+        """
         return manager.add_item(item)
 
     @mcp.tool()
     def add_creature(creature: dict) -> bool:
-        """Add a world creature (as a dict) to the catalogue. Returns True if
-        added."""
+        """
+        Add a world creature (as a dict) to the catalogue. Returns True if
+        added.
+        Template: {"name":"", "body":"", "mass":int(kg), "hp":int, "type":"Npc or Mob", "level":int, "aggressive":bool, "unarmed_attack":One of [FISTS, CLAWS, BITE, TAIL, HOOVES, HORN, TUSKS, BEAK, TALON], "short_descr":""}
+        """
         return manager.add_creature(creature)
 
     @mcp.tool()
