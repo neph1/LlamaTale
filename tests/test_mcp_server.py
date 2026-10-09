@@ -65,6 +65,19 @@ def tool_bool(mcp, name, arguments=None):
     return structured["result"]
 
 
+def tool_result(mcp, name, arguments=None):
+    """Call a tool that returns a {"success": bool, "error": str} dict.
+
+    FastMCP serializes a dict return to a single JSON text content (no
+    structured result), so parse that. Returns the ``(success, error)`` pair."""
+    texts, _ = call_tool(mcp, name, arguments)
+    assert texts, "expected a text content from tool %s" % name
+    result = json.loads(texts[0])
+    assert isinstance(result, dict) and "success" in result and "error" in result, \
+        "expected a {success, error} dict from tool %s, got %r" % (name, result)
+    return result["success"], result["error"]
+
+
 class FakeLlmUtil:
     """A fake llm_util for the LLM-backed generation tools (same shape as the
     real LlmUtil responses)."""
@@ -153,7 +166,9 @@ class TestZoneTools():
     def test_add_zone(self):
         mgr = make_manager()
         mcp = create_server(mgr)
-        assert tool_bool(mcp, "add_zone", {"zone": {"name": "Z2", "description": "d", "level": 2}}) is True
+        success, error = tool_result(mcp, "add_zone", {"zone": {"name": "Z2", "description": "d", "level": 2}})
+        assert success is True
+        assert error == ""
         assert mgr.story.get_zone("Z2") is not None
 
     def test_get_zone(self):
@@ -190,10 +205,12 @@ class TestLocationTools():
     def test_add_location(self):
         mgr = make_manager()
         mcp = create_server(mgr)
-        assert tool_bool(mcp, "add_location", {
+        success, error = tool_result(mcp, "add_location", {
             "location": {"name": "Room", "descr": "A room", "world_location": [0, 0, 0]},
             "zone": "TestZone",
-        }) is True
+        })
+        assert success is True
+        assert error == ""
         assert mgr.story.get_location("TestZone", "Room") is not None
 
     def test_get_location(self):
@@ -318,16 +335,22 @@ class TestWorldStoreTools():
     def test_add_world_npc(self):
         mgr = make_manager()
         mcp = create_server(mgr)
-        assert tool_bool(mcp, "add_world_npc", {
+        success, error = tool_result(mcp, "add_world_npc", {
             "npc": {"name": "Goblin", "type": "Mob", "race": "human", "gender": "m", "level": 1},
-        }) is True
+        })
+        assert success is True
+        assert error == ""
         assert mgr.story.world.get_npc("goblin") is not None
 
     def test_add_world_npc_duplicate(self):
         mgr = make_manager()
         mcp = create_server(mgr)
-        assert tool_bool(mcp, "add_world_npc", {"npc": {"name": "Goblin", "type": "Mob"}}) is True
-        assert tool_bool(mcp, "add_world_npc", {"npc": {"name": "Goblin", "type": "Mob"}}) is False
+        success, error = tool_result(mcp, "add_world_npc", {"npc": {"name": "Goblin", "type": "Mob"}})
+        assert success is True
+        assert error == ""
+        success, error = tool_result(mcp, "add_world_npc", {"npc": {"name": "Goblin", "type": "Mob"}})
+        assert success is False
+        assert "already exists" in error
 
     def test_get_world_npc(self):
         mgr = make_manager()
@@ -344,14 +367,20 @@ class TestWorldStoreTools():
     def test_add_world_item(self):
         mgr = make_manager()
         mcp = create_server(mgr)
-        assert tool_bool(mcp, "add_world_item", {"item": {"name": "Torch", "type": "Other"}}) is True
+        success, error = tool_result(mcp, "add_world_item", {"item": {"name": "Torch", "type": "Other"}})
+        assert success is True
+        assert error == ""
         assert mgr.story.world.get_item("torch") is not None
 
     def test_add_world_item_duplicate(self):
         mgr = make_manager()
         mcp = create_server(mgr)
-        assert tool_bool(mcp, "add_world_item", {"item": {"name": "Torch", "type": "Other"}}) is True
-        assert tool_bool(mcp, "add_world_item", {"item": {"name": "Torch", "type": "Other"}}) is False
+        success, error = tool_result(mcp, "add_world_item", {"item": {"name": "Torch", "type": "Other"}})
+        assert success is True
+        assert error == ""
+        success, error = tool_result(mcp, "add_world_item", {"item": {"name": "Torch", "type": "Other"}})
+        assert success is False
+        assert "already exists" in error
 
     def test_get_world_item(self):
         mgr = make_manager()
@@ -364,6 +393,72 @@ class TestWorldStoreTools():
         mgr = make_manager()
         mcp = create_server(mgr)
         assert tool_json(mcp, "get_world_item", {"name": "Nope"}) == {}
+
+
+# --- validation feedback -------------------------------------------------------
+
+class TestValidationFeedback():
+    """The add_* tools return a *descriptive* error (not a bare failure) when
+    the input is malformed or the object already exists, so the agent can fix
+    its input. Covers zone, location, world NPC and world item."""
+
+    def test_add_zone_missing_name(self):
+        mcp = create_server(make_manager())
+        success, error = tool_result(mcp, "add_zone", {"zone": {"description": "no name"}})
+        assert success is False
+        assert "name" in error
+
+    def test_add_zone_duplicate(self):
+        mcp = create_server(make_manager())
+        success, error = tool_result(mcp, "add_zone", {"zone": {"name": "TestZone", "description": "d"}})
+        assert success is False
+        assert "already exists" in error
+
+    def test_add_zone_not_a_dict(self):
+        # exercised at the manager level (the MCP schema would reject a
+        # non-dict argument before the validation layer sees it)
+        mgr = make_manager()
+        success, error = mgr.add_zone("not a dict")
+        assert success is False
+        assert "dict" in error
+
+    def test_add_location_missing_name(self):
+        mcp = create_server(make_manager())
+        success, error = tool_result(mcp, "add_location", {
+            "location": {"descr": "no name"}, "zone": "TestZone",
+        })
+        assert success is False
+        assert "name" in error
+
+    def test_add_location_unknown_zone(self):
+        mcp = create_server(make_manager())
+        success, error = tool_result(mcp, "add_location", {
+            "location": {"name": "Room", "descr": "a room"}, "zone": "Nope",
+        })
+        assert success is False
+        assert "zone" in error and "not found" in error
+
+    def test_add_location_duplicate(self):
+        mgr = make_manager()
+        mcp = create_server(mgr)
+        mgr.add_location({"name": "Room", "descr": "a room"}, "TestZone")
+        success, error = tool_result(mcp, "add_location", {
+            "location": {"name": "Room", "descr": "a room"}, "zone": "TestZone",
+        })
+        assert success is False
+        assert "already exists" in error
+
+    def test_add_world_npc_missing_name(self):
+        mcp = create_server(make_manager())
+        success, error = tool_result(mcp, "add_world_npc", {"npc": {"type": "Mob"}})
+        assert success is False
+        assert "name" in error
+
+    def test_add_world_item_missing_name(self):
+        mcp = create_server(make_manager())
+        success, error = tool_result(mcp, "add_world_item", {"item": {"type": "Other"}})
+        assert success is False
+        assert "name" in error
 
 
 # --- story progression tools ---------------------------------------------------
@@ -480,7 +575,9 @@ class TestMcpProtocolRoundTrip():
 
                 result = await session.call_tool("add_zone", {"zone": {"name": "Z2", "description": "d"}})
                 assert not result.isError
-                assert result.content[0].text == "true"
+                zone_result = json.loads(result.content[0].text)
+                assert zone_result["success"] is True
+                assert zone_result["error"] == ""
 
                 result = await session.call_tool("list_zones", {})
                 assert not result.isError

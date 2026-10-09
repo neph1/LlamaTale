@@ -24,6 +24,7 @@ from tale.zone import Zone
 
 import tale.parse_utils as parse_utils
 from tale.load_items import load_item, load_items
+from tale.mcp.validation import validate_zone, validate_location, validate_npc, validate_item
 
 __all__ = ["StoryManager", "register", "current", "get"]
 
@@ -193,11 +194,19 @@ class StoryManager:
         )
         return example_zone.get_info()
 
-    def add_zone(self, zone: dict) -> bool:
-        """Add a zone (given as a dict) to the story."""
+    def add_zone(self, zone: dict) -> tuple:
+        """Add a zone (given as a dict) to the story.
+
+        Returns ``(success, error_message)``: ``(True, "")`` on success, or
+        ``(False, "what went wrong")`` on failure.
+        """
         with self._lock:
-            z = Zone.from_json(zone)
-            return self._story.add_zone(z)
+            z, error = validate_zone(zone)
+            if error:
+                return False, error
+            if not self._story.add_zone(z):
+                return False, f"zone '{z.name}' already exists"
+            return True, ""
 
     def get_zone(self, name: str) -> dict:
         """Return the info dict for a zone (or an empty dict if not found)."""
@@ -241,27 +250,24 @@ class StoryManager:
         )
         return parse_utils.save_locations([example_loc])[0]
 
-    def add_location(self, location: dict, zone: str = '') -> bool:
+    def add_location(self, location: dict, zone: str = '') -> tuple:
         """Add a location (given as a dict) to a zone.
 
         The dict needs at least a ``name`` and optionally ``descr``,
         ``short_descr``, ``world_location`` (a 3-tuple) and ``items``.
+
+        Returns ``(success, error_message)``: ``(True, "")`` on success, or
+        ``(False, "what went wrong")`` on failure.
         """
         with self._lock:
-            name = location.get('name')
-            if not name:
-                return False
+            loc, error = validate_location(location)
+            if error:
+                return False, error
             if zone and self._zone(zone) is None:
-                return False
-            loc = Location(name, descr=location.get('descr', ''))
-            loc.short_description = location.get('short_descr', loc.short_description)
-            world_location = location.get('world_location')
-            if world_location:
-                loc.world_location = Coord(world_location[0], world_location[1], world_location[2])
-            loc.built = location.get('built', True)
-            for item in location.get('items', []):
-                loc.insert(load_item(item), None)
-            return self._story.add_location(loc, zone)
+                return False, f"zone '{zone}' not found"
+            if not self._story.add_location(loc, zone):
+                return False, f"location '{loc.name}' already exists"
+            return True, ""
 
     def get_location(self, zone: str, name: str) -> dict:
         """Return the serialized dict for a location."""
@@ -458,36 +464,39 @@ class StoryManager:
     # before it is played rather than mutating a running one. The objects are not
     # inserted into a location (use spawn_npc/spawn_item for that).
 
-    def add_world_npc(self, npc: dict) -> bool:
+    def add_world_npc(self, npc: dict) -> tuple:
         """Add a live NPC (given as a dict) to the world's live-object store.
 
         Creates a real Living object (unlike the catalogue's plain dicts) and
-        adds it to the world store without inserting it into a location. Returns
-        True if added, False if it could not be loaded or already exists.
+        adds it to the world store without inserting it into a location.
+
+        Returns ``(success, error_message)``: ``(True, "")`` on success, or
+        ``(False, "what went wrong")`` on failure.
         """
         with self._lock:
-            try:
-                loaded = parse_utils.load_npcs([npc], world_items=self._story.catalogue.get_items())
-            except Exception:
-                return False
-            if not loaded:
-                return False
-            npc_obj = next(iter(loaded.values()))
-            return self._story.world.add_npc(npc_obj)
+            npc_obj, error = validate_npc(npc, world_items=self._story.catalogue.get_items())
+            if error:
+                return False, error
+            if not self._story.world.add_npc(npc_obj):
+                return False, f"npc '{npc_obj.name}' already exists"
+            return True, ""
 
-    def add_world_item(self, item: dict) -> bool:
+    def add_world_item(self, item: dict) -> tuple:
         """Add a live item (given as a dict) to the world's live-object store.
 
         Creates a real Item object (unlike the catalogue's plain dicts) and adds
-        it to the world store without inserting it into a location. Returns True
-        if added, False if it could not be loaded or already exists.
+        it to the world store without inserting it into a location.
+
+        Returns ``(success, error_message)``: ``(True, "")`` on success, or
+        ``(False, "what went wrong")`` on failure.
         """
         with self._lock:
-            try:
-                item_obj = load_item(item)
-            except Exception:
-                return False
-            return self._story.world.add_item(item_obj)
+            item_obj, error = validate_item(item)
+            if error:
+                return False, error
+            if not self._story.world.add_item(item_obj):
+                return False, f"item '{item_obj.name}' already exists"
+            return True, ""
 
     def get_world_npc(self, name: str) -> dict:
         """Return the serialized dict for a live NPC in the world's store (or an

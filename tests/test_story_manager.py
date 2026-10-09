@@ -76,8 +76,9 @@ class TestZones():
 
     def test_add_and_get_zone(self):
         mgr = StoryManager(make_story())
-        ok = mgr.add_zone({"name": "SecondZone", "description": "second", "level": 3})
+        ok, error = mgr.add_zone({"name": "SecondZone", "description": "second", "level": 3})
         assert ok is True
+        assert error == ""
         info = mgr.get_zone("SecondZone")
         assert info["name"] == "SecondZone"
         assert info["level"] == 3
@@ -106,7 +107,9 @@ class TestLocations():
 
     def test_add_location(self):
         mgr = StoryManager(make_story())
-        assert mgr.add_location({"name": "Room", "descr": "A room", "world_location": [0, 0, 0]}, "TestZone") is True
+        ok, error = mgr.add_location({"name": "Room", "descr": "A room", "world_location": [0, 0, 0]}, "TestZone")
+        assert ok is True
+        assert error == ""
         loc = mgr.story.get_location("TestZone", "Room")
         assert loc is not None
         assert loc.description == "A room"
@@ -114,7 +117,9 @@ class TestLocations():
 
     def test_add_location_requires_name(self):
         mgr = StoryManager(make_story())
-        assert mgr.add_location({"descr": "no name"}, "TestZone") is False
+        ok, error = mgr.add_location({"descr": "no name"}, "TestZone")
+        assert ok is False
+        assert "name" in error
 
     def test_get_location(self):
         mgr = StoryManager(make_story())
@@ -161,6 +166,24 @@ class TestLocations():
     def test_set_exits_unknown_zone(self):
         mgr = StoryManager(make_story())
         assert mgr.set_exits("Nope", "Room", []) is False
+
+    def test_add_location_complex(self):
+        mgr = StoryManager(make_story())
+        ok, error = mgr.add_location({
+          "name": "The Ancient Oak",
+          "description": "A massive oak with gnarled roots that seem to pulse with ancient energy.",
+          "short_descr": "A towering, moss-covered tree at the edge of the Whispering Woods.",
+          "world_location": [1, 2, 3],
+          "items": ["ancient_key"],
+          "npcs": [],
+          "indoors": "false"
+        }, "TestZone")
+        assert ok is True
+        assert error == ""
+        loc = mgr.story.get_location("TestZone", "The Ancient Oak")
+        assert loc is not None
+        assert loc.description == "A massive oak with gnarled roots that seem to pulse with ancient energy."
+        assert loc.world_location.as_tuple() == (1, 2, 3)
 
 
 class TestCatalogue():
@@ -231,8 +254,10 @@ class TestWorldStore():
 
     def test_add_and_get_world_npc(self):
         mgr = StoryManager(make_story())
-        assert mgr.add_world_npc({"name": "Goblin", "type": "Mob", "race": "human",
-                                  "gender": "m", "level": 1, "description": "A goblin"}) is True
+        ok, error = mgr.add_world_npc({"name": "Goblin", "type": "Mob", "race": "human",
+                                       "gender": "m", "level": 1, "description": "A goblin"})
+        assert ok is True
+        assert error == ""
         npc = mgr.get_world_npc("Goblin")
         assert npc["name"] == "Goblin"
         # the NPC is in the world's live store (keyed lowercase)
@@ -240,13 +265,19 @@ class TestWorldStore():
 
     def test_add_world_npc_duplicate(self):
         mgr = StoryManager(make_story())
-        assert mgr.add_world_npc({"name": "Goblin", "type": "Mob"}) is True
-        assert mgr.add_world_npc({"name": "Goblin", "type": "Mob"}) is False  # duplicate
+        ok, error = mgr.add_world_npc({"name": "Goblin", "type": "Mob"})
+        assert ok is True
+        assert error == ""
+        ok, error = mgr.add_world_npc({"name": "Goblin", "type": "Mob"})
+        assert ok is False  # duplicate
+        assert "already exists" in error
 
     def test_add_world_npc_not_loaded(self):
         mgr = StoryManager(make_story())
         # a dict that cannot be loaded into a Living
-        assert mgr.add_world_npc({"type": "Mob"}) is False  # missing name
+        ok, error = mgr.add_world_npc({"type": "Mob"})
+        assert ok is False  # missing name
+        assert "name" in error
 
     def test_get_world_npc_not_found(self):
         mgr = StoryManager(make_story())
@@ -254,7 +285,9 @@ class TestWorldStore():
 
     def test_add_and_get_world_item(self):
         mgr = StoryManager(make_story())
-        assert mgr.add_world_item({"name": "Torch", "type": "Other"}) is True
+        ok, error = mgr.add_world_item({"name": "Torch", "type": "Other"})
+        assert ok is True
+        assert error == ""
         item = mgr.get_world_item("Torch")
         assert item["name"] == "torch"
         # the item is in the world's live store (keyed lowercase)
@@ -262,13 +295,19 @@ class TestWorldStore():
 
     def test_add_world_item_duplicate(self):
         mgr = StoryManager(make_story())
-        assert mgr.add_world_item({"name": "Torch", "type": "Other"}) is True
-        assert mgr.add_world_item({"name": "Torch", "type": "Other"}) is False  # duplicate
+        ok, error = mgr.add_world_item({"name": "Torch", "type": "Other"})
+        assert ok is True
+        assert error == ""
+        ok, error = mgr.add_world_item({"name": "Torch", "type": "Other"})
+        assert ok is False  # duplicate
+        assert "already exists" in error
 
     def test_add_world_item_not_loaded(self):
         mgr = StoryManager(make_story())
         # a dict that cannot be loaded into an Item
-        assert mgr.add_world_item({"type": "Other"}) is False  # missing name
+        ok, error = mgr.add_world_item({"type": "Other"})
+        assert ok is False  # missing name
+        assert "name" in error
 
     def test_get_world_item_not_found(self):
         mgr = StoryManager(make_story())

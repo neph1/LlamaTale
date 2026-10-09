@@ -35,6 +35,13 @@ def _json(value) -> str:
     return json.dumps(value, indent=2, default=str)
 
 
+def _result(success, error) -> dict:
+    """Convert a StoryManager ``(success, error)`` tuple into the JSON-friendly
+    ``{"success": bool, "error": str}`` dict the agent sees. Named fields keep
+    the outcome self-documenting (a positional tuple would be ambiguous)."""
+    return {"success": success, "error": error}
+
+
 def create_server(manager, port: int = DEFAULT_MCP_PORT) -> FastMCP:
     """Create a :class:`FastMCP` server exposing the given ``manager`` as tools."""
     mcp = FastMCP(
@@ -76,9 +83,12 @@ def create_server(manager, port: int = DEFAULT_MCP_PORT) -> FastMCP:
         return manager.zone_example()
 
     @mcp.tool()
-    def add_zone(zone: dict) -> bool:
+    def add_zone(zone: dict) -> dict:
         """
-        Add a zone (given as a dict) to the story. Returns True if added.
+        Add a zone (given as a dict) to the story.
+        Returns {"success": bool, "error": str}: success is True when the zone
+        was added; error describes what went wrong otherwise (e.g. a missing
+        field or a duplicate zone name).
         Required fields: name, description. 
         
         Optional fields:
@@ -98,7 +108,7 @@ def create_server(manager, port: int = DEFAULT_MCP_PORT) -> FastMCP:
         dungeon = None  # type: Dungeon
         
         """
-        return manager.add_zone(zone)
+        return _result(*manager.add_zone(zone))
 
     @mcp.tool()
     def get_zone(name: str) -> dict:
@@ -129,13 +139,15 @@ def create_server(manager, port: int = DEFAULT_MCP_PORT) -> FastMCP:
         return manager.location_example()
     
     @mcp.tool()
-    def add_location(location: dict, zone: str = '') -> bool:
+    def add_location(location: dict, zone: str = '') -> dict:
         """Add a location (given as a dict) to a zone. The dict needs at least a
         ``name`` and optionally ``descr``, ``short_descr``, ``world_location``
         (x, y, z coordinates in a 3-tuple) and ``items``. 
         Template: {"name": "", "description":"", "exits":[], "items":[], "npcs":[], "indoors":"true or false"}
-        Returns True if added."""
-        return manager.add_location(location, zone)
+        Returns {"success": bool, "error": str}: success is True when the
+        location was added; error describes what went wrong otherwise (e.g. a
+        missing field, an unknown zone, or a duplicate location name)."""
+        return _result(*manager.add_location(location, zone))
 
     @mcp.tool()
     def get_location(zone: str, name: str) -> dict:
@@ -234,25 +246,29 @@ def create_server(manager, port: int = DEFAULT_MCP_PORT) -> FastMCP:
     # -- world live-object store (real Living/Item objects, not catalogue dicts) --
 
     @mcp.tool()
-    def add_world_npc(npc: dict) -> bool:
+    def add_world_npc(npc: dict) -> dict:
         """Add a live NPC (given as a dict) to the world's live-object store.
         Creates a real Living object (unlike the catalogue's plain dicts) and
         adds it to the world store without inserting it into a location. This is
         for *preparing* a story before it is played. Template:
         {"name":"", "type":"Npc or Mob", "race":"", "gender":"m or f", "level":int,
         "description":"", "short_descr":""}
-        Returns True if added."""
-        return manager.add_world_npc(npc)
+        Returns {"success": bool, "error": str}: success is True when the NPC
+        was added; error describes what went wrong otherwise (e.g. a missing
+        field or a duplicate NPC name)."""
+        return _result(*manager.add_world_npc(npc))
 
     @mcp.tool()
-    def add_world_item(item: dict) -> bool:
+    def add_world_item(item: dict) -> dict:
         """Add a live item (given as a dict) to the world's live-object store.
         Creates a real Item object (unlike the catalogue's plain dicts) and adds
         it to the world store without inserting it into a location. This is for
         *preparing* a story before it is played. Template:
         {"name":"", "type":"", "description":"", "short_descr":"", "value":int}
-        Returns True if added."""
-        return manager.add_world_item(item)
+        Returns {"success": bool, "error": str}: success is True when the item
+        was added; error describes what went wrong otherwise (e.g. a missing
+        field or a duplicate item name)."""
+        return _result(*manager.add_world_item(item))
 
     @mcp.tool()
     def get_world_npc(name: str) -> dict:
