@@ -145,8 +145,10 @@ class DynamicStory(StoryBase):
     def save(self, save_name: str = '') -> None:
         """ Save the story to disk."""
         story = self.to_json()
-        
-        save_path = os.path.join(os.getcwd(), '../', save_name) if save_name else './'
+        if save_name.startswith('/'):
+            save_path = save_name
+        else:
+            save_path = os.path.join(os.getcwd(), '../', save_name) if save_name else './'
         if not os.path.exists(save_path):
             os.mkdir(save_path)
         with open(os.path.join(save_path, 'world.json'), "w") as fp:
