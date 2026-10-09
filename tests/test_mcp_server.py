@@ -101,10 +101,12 @@ class TestServerCreation():
     # the full set of tools from the plan (stories/worlds scope)
     EXPECTED_TOOLS = {
         "get_config", "set_config",
-        "add_zone", "get_zone", "list_zones", "remove_zone", "link_zones",
-        "add_location", "get_location", "list_locations", "remove_location", "set_exits",
+        "zone_example", "add_zone", "get_zone", "list_zones", "remove_zone", "link_zones",
+        "location_example", "add_location", "get_location", "list_locations", "remove_location",
+        "set_exits", "exit_example",
         "add_item", "add_creature", "list_items", "list_creatures", "remove_item", "remove_creature",
         "spawn_npc", "spawn_item", "list_world_npcs", "list_world_items",
+        "add_world_npc", "add_world_item", "get_world_npc", "get_world_item",
         "set_story_context", "advance_story_section", "set_start_location",
         "save", "load",
         "generate_world_items", "generate_world_creatures", "generate_start_zone", "generate_location",
@@ -305,6 +307,63 @@ class TestWorldContentsTools():
         mgr.add_location({"name": "Cave", "descr": "A cave"}, "TestZone")
         mcp = create_server(mgr)
         assert tool_bool(mcp, "spawn_npc", {"creature_name": "nope", "zone": "TestZone", "location_name": "Cave"}) is False
+
+
+# --- world live-object store tools ---------------------------------------------
+
+class TestWorldStoreTools():
+    """Tests for the world live-object store tools (add/get live NPCs and items,
+    as real Living/Item objects rather than catalogue dicts)."""
+
+    def test_add_world_npc(self):
+        mgr = make_manager()
+        mcp = create_server(mgr)
+        assert tool_bool(mcp, "add_world_npc", {
+            "npc": {"name": "Goblin", "type": "Mob", "race": "human", "gender": "m", "level": 1},
+        }) is True
+        assert mgr.story.world.get_npc("goblin") is not None
+
+    def test_add_world_npc_duplicate(self):
+        mgr = make_manager()
+        mcp = create_server(mgr)
+        assert tool_bool(mcp, "add_world_npc", {"npc": {"name": "Goblin", "type": "Mob"}}) is True
+        assert tool_bool(mcp, "add_world_npc", {"npc": {"name": "Goblin", "type": "Mob"}}) is False
+
+    def test_get_world_npc(self):
+        mgr = make_manager()
+        mgr.add_world_npc({"name": "Goblin", "type": "Mob", "race": "human", "gender": "m", "level": 1})
+        mcp = create_server(mgr)
+        npc = tool_json(mcp, "get_world_npc", {"name": "Goblin"})
+        assert npc["name"] == "Goblin"
+
+    def test_get_world_npc_not_found(self):
+        mgr = make_manager()
+        mcp = create_server(mgr)
+        assert tool_json(mcp, "get_world_npc", {"name": "Nope"}) == {}
+
+    def test_add_world_item(self):
+        mgr = make_manager()
+        mcp = create_server(mgr)
+        assert tool_bool(mcp, "add_world_item", {"item": {"name": "Torch", "type": "Other"}}) is True
+        assert mgr.story.world.get_item("torch") is not None
+
+    def test_add_world_item_duplicate(self):
+        mgr = make_manager()
+        mcp = create_server(mgr)
+        assert tool_bool(mcp, "add_world_item", {"item": {"name": "Torch", "type": "Other"}}) is True
+        assert tool_bool(mcp, "add_world_item", {"item": {"name": "Torch", "type": "Other"}}) is False
+
+    def test_get_world_item(self):
+        mgr = make_manager()
+        mgr.add_world_item({"name": "Torch", "type": "Other"})
+        mcp = create_server(mgr)
+        item = tool_json(mcp, "get_world_item", {"name": "Torch"})
+        assert item["name"] == "torch"
+
+    def test_get_world_item_not_found(self):
+        mgr = make_manager()
+        mcp = create_server(mgr)
+        assert tool_json(mcp, "get_world_item", {"name": "Nope"}) == {}
 
 
 # --- story progression tools ---------------------------------------------------

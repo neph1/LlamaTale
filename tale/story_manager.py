@@ -182,6 +182,17 @@ class StoryManager:
 
     # -- zones ------------------------------------------------------------------
 
+    def zone_example(self) -> dict:
+        """Return an example zone dict with all fields."""
+        example_zone = Zone("Example Zone", descr="This is an example zone.")
+        example_zone.locations["Example Location"] = Location(
+            "Example Location",
+            descr="This is an example location.",
+            short_descr="An example location.",
+            world_location=Coord(0, 0, 0),
+        )
+        return example_zone.get_info()
+
     def add_zone(self, zone: dict) -> bool:
         """Add a zone (given as a dict) to the story."""
         with self._lock:
@@ -219,6 +230,16 @@ class StoryManager:
             return True
 
     # -- locations --------------------------------------------------------------
+
+    def location_example(self) -> dict:
+        """Return an example location dict with all fields."""
+        example_loc = Location(
+            "Example Location",
+            descr="This is an example location.",
+            short_descr="An example location.",
+            world_location=Coord(0, 0, 0),
+        )
+        return parse_utils.save_locations([example_loc])[0]
 
     def add_location(self, location: dict, zone: str = '') -> bool:
         """Add a location (given as a dict) to a zone.
@@ -313,7 +334,41 @@ class StoryManager:
                 location.add_exits(new_exits)
             return True
 
+    def exit_example(self) -> dict:
+        """Return an example exit dict with all fields."""
+        return {
+            "direction": "direction to exit location (e.g. 'north', 'up', 'down')",
+            "name": "Name of location to exit to",
+            "short_descr": "To the north you see Example Location.",
+            "long_descr": "Can include a more detailed description of the exit itself.",
+        }
+
     # -- catalogue (world items & creatures as dicts) ---------------------------
+
+    def item_example(self) -> dict:
+        """Return an example world item dict with all fields."""
+        return {
+            "name": "example item",
+            "type": "Money, Weapon, Armor, Food, Drink, Container, Key, Tool, Other",
+            "description": "This is an example item.",
+            "short_description": "An example item.",
+            "weight": 1.0,
+            "value": 10,
+        }
+
+    def creature_example(self) -> dict:
+        """Return an example world creature dict with all fields."""
+        return {
+            "name": "example creature",
+            "description": "This is an example creature.",
+            "short_description": "An example creature.",
+            "race": "One of the races in the world",
+            "gender": "m, f, n",
+            "level": 1,
+            "health": 100,
+            "attack": 10,
+            "defense": 5,
+        }
 
     def add_item(self, item: dict) -> bool:
         """Add a world item to the catalogue (as a dict)."""
@@ -395,6 +450,64 @@ class StoryManager:
         for location in self._story.world._locations.values():
             items.extend(parse_utils.save_items(location.items))
         return items
+
+    # -- world live-object store (real Living/Item objects, not catalogue dicts) --
+    # The WorldInfo object holds real Living/Item objects (with stats, inventory,
+    # etc.), unlike the Catalogue which holds plain dicts. These methods let an
+    # agent populate that live store directly, which is about *preparing* a story
+    # before it is played rather than mutating a running one. The objects are not
+    # inserted into a location (use spawn_npc/spawn_item for that).
+
+    def add_world_npc(self, npc: dict) -> bool:
+        """Add a live NPC (given as a dict) to the world's live-object store.
+
+        Creates a real Living object (unlike the catalogue's plain dicts) and
+        adds it to the world store without inserting it into a location. Returns
+        True if added, False if it could not be loaded or already exists.
+        """
+        with self._lock:
+            try:
+                loaded = parse_utils.load_npcs([npc], world_items=self._story.catalogue.get_items())
+            except Exception:
+                return False
+            if not loaded:
+                return False
+            npc_obj = next(iter(loaded.values()))
+            return self._story.world.add_npc(npc_obj)
+
+    def add_world_item(self, item: dict) -> bool:
+        """Add a live item (given as a dict) to the world's live-object store.
+
+        Creates a real Item object (unlike the catalogue's plain dicts) and adds
+        it to the world store without inserting it into a location. Returns True
+        if added, False if it could not be loaded or already exists.
+        """
+        with self._lock:
+            try:
+                item_obj = load_item(item)
+            except Exception:
+                return False
+            return self._story.world.add_item(item_obj)
+
+    def get_world_npc(self, name: str) -> dict:
+        """Return the serialized dict for a live NPC in the world's store (or an
+        empty dict if not found)."""
+        try:
+            npc = self._story.world.get_npc(name)
+        except KeyError:
+            return {}
+        npcs = parse_utils.save_npcs([npc])
+        return next(iter(npcs.values()))
+
+    def get_world_item(self, name: str) -> dict:
+        """Return the serialized dict for a live item in the world's store (or an
+        empty dict if not found)."""
+        try:
+            item = self._story.world.get_item(name)
+        except KeyError:
+            return {}
+        items = parse_utils.save_items([item])
+        return items[0]
 
     # -- story progression ------------------------------------------------------
 

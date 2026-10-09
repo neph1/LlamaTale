@@ -225,6 +225,56 @@ class TestWorldContents():
         assert mgr.spawn_npc("goblin", "TestZone", "Nope") is False
 
 
+class TestWorldStore():
+    """Tests for adding/getting live NPCs and items to/from the world's
+    live-object store (real Living/Item objects, not catalogue dicts)."""
+
+    def test_add_and_get_world_npc(self):
+        mgr = StoryManager(make_story())
+        assert mgr.add_world_npc({"name": "Goblin", "type": "Mob", "race": "human",
+                                  "gender": "m", "level": 1, "description": "A goblin"}) is True
+        npc = mgr.get_world_npc("Goblin")
+        assert npc["name"] == "Goblin"
+        # the NPC is in the world's live store (keyed lowercase)
+        assert mgr.story.world.get_npc("goblin") is not None
+
+    def test_add_world_npc_duplicate(self):
+        mgr = StoryManager(make_story())
+        assert mgr.add_world_npc({"name": "Goblin", "type": "Mob"}) is True
+        assert mgr.add_world_npc({"name": "Goblin", "type": "Mob"}) is False  # duplicate
+
+    def test_add_world_npc_not_loaded(self):
+        mgr = StoryManager(make_story())
+        # a dict that cannot be loaded into a Living
+        assert mgr.add_world_npc({"type": "Mob"}) is False  # missing name
+
+    def test_get_world_npc_not_found(self):
+        mgr = StoryManager(make_story())
+        assert mgr.get_world_npc("Nope") == {}
+
+    def test_add_and_get_world_item(self):
+        mgr = StoryManager(make_story())
+        assert mgr.add_world_item({"name": "Torch", "type": "Other"}) is True
+        item = mgr.get_world_item("Torch")
+        assert item["name"] == "torch"
+        # the item is in the world's live store (keyed lowercase)
+        assert mgr.story.world.get_item("torch") is not None
+
+    def test_add_world_item_duplicate(self):
+        mgr = StoryManager(make_story())
+        assert mgr.add_world_item({"name": "Torch", "type": "Other"}) is True
+        assert mgr.add_world_item({"name": "Torch", "type": "Other"}) is False  # duplicate
+
+    def test_add_world_item_not_loaded(self):
+        mgr = StoryManager(make_story())
+        # a dict that cannot be loaded into an Item
+        assert mgr.add_world_item({"type": "Other"}) is False  # missing name
+
+    def test_get_world_item_not_found(self):
+        mgr = StoryManager(make_story())
+        assert mgr.get_world_item("Nope") == {}
+
+
 class TestStoryProgression():
 
     def test_set_story_context(self):

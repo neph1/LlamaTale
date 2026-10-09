@@ -69,6 +69,12 @@ def create_server(manager, port: int = DEFAULT_MCP_PORT) -> FastMCP:
 
     # -- zones -----------------------------------------------------------------
 
+
+    @mcp.tool()
+    def zone_example() -> dict:
+        """Return an example zone dict with all fields."""
+        return manager.zone_example()
+
     @mcp.tool()
     def add_zone(zone: dict) -> bool:
         """
@@ -118,6 +124,11 @@ def create_server(manager, port: int = DEFAULT_MCP_PORT) -> FastMCP:
     # -- locations -------------------------------------------------------------
 
     @mcp.tool()
+    def location_example() -> dict:
+        """Return an example location dict with all fields."""
+        return manager.location_example()
+    
+    @mcp.tool()
     def add_location(location: dict, zone: str = '') -> bool:
         """Add a location (given as a dict) to a zone. The dict needs at least a
         ``name`` and optionally ``descr``, ``short_descr``, ``world_location``
@@ -150,6 +161,11 @@ def create_server(manager, port: int = DEFAULT_MCP_PORT) -> FastMCP:
         Template: [{"direction":"", "name":"name of new location", "short_descr":"exit description"}]
         bound. Returns True on success."""
         return manager.set_exits(zone, name, exits)
+
+    @mcp.tool()
+    def exit_example() -> dict:
+        """Return an example exit dict with all fields."""
+        return manager.exit_example()
 
     # -- catalogue (world items & creatures) -----------------------------------
 
@@ -214,6 +230,41 @@ def create_server(manager, port: int = DEFAULT_MCP_PORT) -> FastMCP:
     def list_world_items() -> str:
         """Return all live items found in world locations as dicts (as a JSON array)."""
         return _json(manager.list_world_items())
+
+    # -- world live-object store (real Living/Item objects, not catalogue dicts) --
+
+    @mcp.tool()
+    def add_world_npc(npc: dict) -> bool:
+        """Add a live NPC (given as a dict) to the world's live-object store.
+        Creates a real Living object (unlike the catalogue's plain dicts) and
+        adds it to the world store without inserting it into a location. This is
+        for *preparing* a story before it is played. Template:
+        {"name":"", "type":"Npc or Mob", "race":"", "gender":"m or f", "level":int,
+        "description":"", "short_descr":""}
+        Returns True if added."""
+        return manager.add_world_npc(npc)
+
+    @mcp.tool()
+    def add_world_item(item: dict) -> bool:
+        """Add a live item (given as a dict) to the world's live-object store.
+        Creates a real Item object (unlike the catalogue's plain dicts) and adds
+        it to the world store without inserting it into a location. This is for
+        *preparing* a story before it is played. Template:
+        {"name":"", "type":"", "description":"", "short_descr":"", "value":int}
+        Returns True if added."""
+        return manager.add_world_item(item)
+
+    @mcp.tool()
+    def get_world_npc(name: str) -> dict:
+        """Return the serialized dict for a live NPC in the world's store (or an
+        empty dict if not found)."""
+        return manager.get_world_npc(name)
+
+    @mcp.tool()
+    def get_world_item(name: str) -> dict:
+        """Return the serialized dict for a live item in the world's store (or an
+        empty dict if not found)."""
+        return manager.get_world_item(name)
 
     # -- story progression -----------------------------------------------------
 

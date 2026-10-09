@@ -262,7 +262,8 @@ class WorldInfo():
         return False
    
     def get_item(self, item: str) -> Item:
-        return self._items[item]
+        # names are always stored lowercase (MudObject lowercases them)
+        return self._items[item.lower()]
     
     @property
     def npcs(self) -> dict:
