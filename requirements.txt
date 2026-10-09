@@ -4,13 +4,13 @@ PyYAML==6.0.1
 Requests==2.31.0
 smartypants>=1.8.6
 serpent>=1.23
-aiohttp>=3.9.0
+aiohttp==3.9.0
 pillow
-packaging>=20.3
+packaging==22.0
 fastapi>=0.136.1
 websockets>=12.0
 uvicorn>=0.24.0
-mcp>=1.28.0,<2.0
+mcp>=1.28.0,<2
 #pillow>=8.3.2
 
 
