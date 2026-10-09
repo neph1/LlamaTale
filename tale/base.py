@@ -294,11 +294,12 @@ class MudObject:
         self.avatar = resources_utils.check_file_exists_in_resources(self.name.strip().replace(" ", "_").lower())
         self.init()
         if util.get_periodicals(self):
-            if mud_context.driver is None:
-                raise TaleError("Attempt to create MudObject while Driver hasn't been properly initialized yet. "
-                                "Possible cause is importing zone or npc module files that create these objects "
-                                "early before the driver itself loads them.")
-            mud_context.driver.register_periodicals(self)
+            # If the driver isn't up yet (e.g. objects created by the StoryManager
+            # before the driver starts, or in tests), skip periodical registration;
+            # the object is still fully usable, it just won't tick until a driver
+            # registers it.
+            if mud_context.driver is not None:
+                mud_context.driver.register_periodicals(self)
 
     def init(self) -> None:
         """

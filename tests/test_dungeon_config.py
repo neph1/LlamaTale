@@ -5,7 +5,7 @@ Tests for DungeonConfig and Zone integration.
 import json
 from tale.coord import Coord
 from tale.dungeon.dungeon_config import DungeonConfig
-from tale.zone import Zone, from_json
+from tale.zone import Zone
 
 
 class TestDungeonConfig:
@@ -121,7 +121,7 @@ class TestDungeonConfig:
         }
         
         # Deserialize from JSON
-        zone = from_json(zone_data)
+        zone = Zone.from_json(zone_data)
         
         # Verify dungeon_config was loaded
         assert zone.dungeon_config is not None
@@ -146,7 +146,7 @@ class TestDungeonConfig:
         }
         
         # Deserialize from JSON
-        zone = from_json(zone_data)
+        zone = Zone.from_json(zone_data)
         
         # Verify dungeon_config is None
         assert zone.dungeon_config is None

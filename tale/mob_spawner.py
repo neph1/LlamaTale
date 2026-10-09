@@ -16,7 +16,8 @@ class MobSpawner():
         self.randomize_gender = True
         self.randomize_stats = True
         self.time = 0
-        mud_context.driver.register_periodicals(self)
+        if mud_context.driver is not None:
+            mud_context.driver.register_periodicals(self)
         self.drop_item_chance = 0.0
         if drop_items:
             self.drop_items = drop_items

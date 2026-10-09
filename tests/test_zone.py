@@ -45,7 +45,8 @@ class TestZone():
         zone.mood = 3
         zone.races = ['human', 'elf', 'dwarf']
         zone.items = ['sword', 'shield', 'armor']
-        assert zone.get_info() == {"description":'test', 
+        assert zone.get_info() == {"name":'test',
+                                   "description":'test', 
                                    "level":2, 
                                    "mood":3, 
                                    "races": ['human', 'elf', 'dwarf'],
@@ -83,6 +84,6 @@ class TestZone():
 
     def test_from_json(self):
         zone_info = '{ "name": "Whispering Woods", "description": "A dense, misty forest teeming with life. The trees whisper secrets to those who listen, and the creatures here are said to possess ancient wisdom. Friendly creatures roam the area, and the air is filled with the sweet scent of enchanted flowers.", "races": [], "items": [], "mood": 5, "level": 1} \n'
-        z = zone.from_json(json.loads(zone_info))
+        z = Zone.from_json(json.loads(zone_info))
         assert z.name == 'Whispering Woods'
         assert z.description.startswith('A dense, misty forest teeming with life. The trees whisper secrets to those who listen, and the creatures here are said to possess ancient wisdom.')

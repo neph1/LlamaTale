@@ -1873,3 +1873,14 @@ def do_pick_lock(player: Player, parsed: base.ParseResult, ctx: util.Context) ->
         door.pick_lock(player)
     
     
+@cmd("start_game")
+def do_start_game(player: Player, parsed: base.ParseResult, ctx: util.Context) -> None:
+    """Start the main game."""
+    story = ctx.driver.story
+    game_path = parsed.args[0] if parsed.args else None
+    if not game_path:
+        raise ParseError("You need to specify the game path to start")
+    if isinstance(story, DynamicStory):
+        story.start_game(game_path)
+    else:
+        raise ActionRefused("Not a dynamic story")

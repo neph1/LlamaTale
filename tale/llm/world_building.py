@@ -227,7 +227,7 @@ class WorldBuilding():
         result = self.io_util.synchronous_request(request_body, prompt=prompt, context=context.to_prompt_string())
         try:
             json_result = json_util.safe_load(result)
-            return zone.from_json(json_result)
+            return Zone.from_json(json_result)
         except json.JSONDecodeError as exc:
             print(f'Error generating zone: {exc}')
             return None

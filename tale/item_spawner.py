@@ -15,7 +15,8 @@ class ItemSpawner():
         self.max_items = max_items
         self.spawn_rate = spawn_rate
         self.time = 0
-        mud_context.driver.register_periodicals(self)
+        if mud_context.driver is not None:
+            mud_context.driver.register_periodicals(self)
 
     @call_periodically(15)
     def spawn(self):

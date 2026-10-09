@@ -18,7 +18,7 @@ def load_locations(json_file: dict) -> Tuple[dict, list]:
     temp_exits = {}
     parsed_exits = []
     zones = {}
-    zone1 = zone.from_json(json_file)
+    zone1 = zone.Zone.from_json(json_file)
     zones[json_file['name']] = zone1
     for loc in json_file['locations']:
         name = loc['name']

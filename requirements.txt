@@ -7,9 +7,10 @@ serpent>=1.23
 aiohttp>=3.9.0
 pillow
 packaging>=20.3
-fastapi>=0.104.0
+fastapi>=0.136.1
 websockets>=12.0
 uvicorn>=0.24.0
+mcp>=1.28.0,<2.0
 #pillow>=8.3.2
 
 

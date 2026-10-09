@@ -1,0 +1,693 @@
+"""
+StoryManager - a single modification layer over a DynamicStory.
+
+Both the MCP server (the agent) and the LLM path (via tale.llm.WorldBuilding)
+route story modifications through this class. It exposes a JSON-friendly
+mutation API: plain dicts in, dicts/bools out.
+
+This module lives in the tale/ root (not tale/llm/) because it is about story
+*state*, not about LLM generation, and it is the stable hook that the MCP
+server depends on.
+
+'Tale' mud driver, mudlib and interactive fiction framework
+"""
+
+import os
+import threading
+from typing import Any, Optional
+
+from tale.base import Location, Exit
+from tale.coord import Coord
+from tale.story import GameMode
+from tale.story_context import StoryContext
+from tale.zone import Zone
+
+import tale.parse_utils as parse_utils
+from tale.load_items import load_item, load_items
+from tale.mcp.validation import validate_zone, validate_location, validate_npc, validate_item
+
+__all__ = ["StoryManager", "register", "current", "get"]
+
+
+# --- module-level registry for in-process access ------------------------------
+
+_current: Optional["StoryManager"] = None
+
+
+def register(manager: "StoryManager") -> None:
+    """Register the live StoryManager so in-process code can obtain it."""
+    global _current
+    _current = manager
+
+
+def current() -> "StoryManager":
+    """Return the live StoryManager (raises if none has been registered)."""
+    if _current is None:
+        raise RuntimeError("no StoryManager is registered; the driver has not created one yet")
+    return _current
+
+
+def get() -> "StoryManager":
+    """Alias for :func:`current`."""
+    return current()
+
+
+class StoryManager:
+    """Modification layer over a :class:`~tale.llm.dynamic_story.DynamicStory`.
+
+    Wraps a DynamicStory and exposes a JSON-friendly mutation API. All state
+    mutations are guarded by a lock so that calls arriving on other threads
+    (for instance the MCP server's threads) are safe.
+    """
+
+    def __init__(self, story, llm_util=None, driver=None) -> None:
+        from tale.llm.dynamic_story import WorldInfo, Catalogue
+        self._story = story
+        self._llm_util = llm_util
+        self._driver = driver
+        self._lock = threading.Lock()
+        # make sure the story has the live-world and catalogue objects it needs
+        # (a bare DynamicStory creates them in __init__, but a reconstructed one
+        # may not have them yet).
+        if not hasattr(story, "_world") or story._world is None:
+            story._world = WorldInfo()
+        if not hasattr(story, "_catalogue") or story._catalogue is None:
+            story._catalogue = Catalogue()
+
+    # -- helpers ----------------------------------------------------------------
+
+    @property
+    def story(self):
+        """The wrapped DynamicStory."""
+        return self._story
+
+    # -- case-insensitive lookups ------------------------------------------------
+    # Location names are stored with whatever case they were created with, but
+    # the serialized form (save_locations) capitalizes them. To keep the API
+    # stable across save/load and so an agent can use the names it sees in the
+    # list/get tools, all lookups below are case-insensitive.
+
+    def _zone(self, name: str):
+        """Find a zone by name, case-insensitively."""
+        if name in self._story._zones:
+            return self._story._zones[name]
+        lower = name.lower()
+        for key, zone in self._story._zones.items():
+            if key.lower() == lower:
+                return zone
+        return None
+
+    def _zone_location(self, zone: str, name: str):
+        """Find a location in a zone, case-insensitively. Returns (zone_obj, location)."""
+        zone_obj = self._zone(zone)
+        if not zone_obj:
+            return None, None
+        if name in zone_obj.locations:
+            return zone_obj, zone_obj.locations[name]
+        lower = name.lower()
+        for key, loc in zone_obj.locations.items():
+            if key.lower() == lower:
+                return zone_obj, loc
+        return zone_obj, None
+
+    def _find_location(self, name: str):
+        """Find a location in any zone, case-insensitively."""
+        lower = name.lower()
+        for zone in self._story._zones.values():
+            for key, loc in zone.locations.items():
+                if key.lower() == lower:
+                    return loc
+        return None
+
+    def _location_dict(self, zone: str, name: str) -> dict:
+        _zone_obj, location = self._zone_location(zone, name)
+        if location is None:
+            return {}
+        info = parse_utils.save_locations([location])[0]
+        # tuples are not JSON-friendly; serialize the coord as a list
+        info['world_location'] = list(info['world_location'])
+        return info
+
+    # -- config -----------------------------------------------------------------
+
+    def get_config(self) -> dict:
+        """Return the story config as a JSON-friendly dict."""
+        config = self._story.config
+        context = config.context
+        return dict(
+            name=config.name,
+            author=config.author,
+            author_address=config.author_address,
+            version=config.version,
+            supported_modes=[m.name for m in config.supported_modes],
+            player_name=config.player_name,
+            player_gender=config.player_gender,
+            player_race=config.player_race,
+            player_money=config.player_money,
+            money_type=config.money_type.name,
+            server_tick_method=config.server_tick_method.name,
+            server_tick_time=config.server_tick_time,
+            gametime_to_realtime=config.gametime_to_realtime,
+            max_wait_hours=config.max_wait_hours,
+            display_gametime=config.display_gametime,
+            startlocation_player=config.startlocation_player,
+            startlocation_wizard=config.startlocation_wizard,
+            savegames_enabled=config.savegames_enabled,
+            show_exits_in_look=config.show_exits_in_look,
+            context=context.to_json() if isinstance(context, StoryContext) else context,
+            type=config.type,
+            world_info=config.world_info,
+            world_mood=config.world_mood,
+            custom_resources=config.custom_resources,
+            day_night=config.day_night,
+            random_events=config.random_events,
+            mud_host=config.mud_host,
+            mud_port=config.mud_port,
+            zones=list(config.zones),
+        )
+
+    def set_config(self, **fields) -> None:
+        """Set the given config fields. ``supported_modes`` accepts a list of
+        mode names; ``context`` accepts a base-story string."""
+        with self._lock:
+            config = self._story.config
+            modes = fields.pop("supported_modes", None)
+            if modes is not None:
+                config.supported_modes = {GameMode(m) if isinstance(m, str) else m for m in modes}
+            context = fields.pop("context", None)
+            if context is not None:
+                config.context = StoryContext(context) if isinstance(context, str) else context
+            for key, value in fields.items():
+                if hasattr(config, key):
+                    setattr(config, key, value)
+
+    # -- zones ------------------------------------------------------------------
+
+    def zone_example(self) -> dict:
+        """Return an example zone dict with all fields."""
+        example_zone = Zone("Example Zone", descr="This is an example zone.")
+        example_zone.locations["Example Location"] = Location(
+            "Example Location",
+            descr="This is an example location.",
+            short_descr="An example location.",
+            world_location=Coord(0, 0, 0),
+        )
+        return example_zone.get_info()
+
+    def add_zone(self, zone: dict) -> tuple:
+        """Add a zone (given as a dict) to the story.
+
+        Returns ``(success, error_message)``: ``(True, "")`` on success, or
+        ``(False, "what went wrong")`` on failure.
+        """
+        with self._lock:
+            z, error = validate_zone(zone)
+            if error:
+                return False, error
+            if not self._story.add_zone(z):
+                return False, f"zone '{z.name}' already exists"
+            return True, ""
+
+    def get_zone(self, name: str) -> dict:
+        """Return the info dict for a zone (or an empty dict if not found)."""
+        zone = self._zone(name)
+        return zone.get_info() if zone else {}
+
+    def list_zones(self) -> list:
+        """Return info dicts for all zones."""
+        return [z.get_info() for z in self._story._zones.values()]
+
+    def remove_zone(self, name: str) -> bool:
+        """Remove a zone by name."""
+        with self._lock:
+            zone = self._zone(name)
+            if zone is None:
+                return False
+            del self._story._zones[zone.name]
+            return True
+
+    def link_zones(self, a: str, b: str, direction: str) -> bool:
+        """Link zone ``a`` to zone ``b`` in ``direction`` (and back the other way)."""
+        with self._lock:
+            za = self._zone(a)
+            zb = self._zone(b)
+            if za is None or zb is None:
+                return False
+            direction = parse_utils.validate_direction(direction) or direction
+            za.neighbors[direction] = zb
+            zb.neighbors[parse_utils.opposite_direction(direction)] = za
+            return True
+
+    # -- locations --------------------------------------------------------------
+
+    def location_example(self) -> dict:
+        """Return an example location dict with all fields."""
+        example_loc = Location(
+            "Example Location",
+            descr="This is an example location.",
+            short_descr="An example location.",
+            world_location=Coord(0, 0, 0),
+        )
+        return parse_utils.save_locations([example_loc])[0]
+
+    def add_location(self, location: dict, zone: str = '') -> tuple:
+        """Add a location (given as a dict) to a zone.
+
+        The dict needs at least a ``name`` and optionally ``descr``,
+        ``short_descr``, ``world_location`` (a 3-tuple) and ``items``.
+
+        Returns ``(success, error_message)``: ``(True, "")`` on success, or
+        ``(False, "what went wrong")`` on failure.
+        """
+        with self._lock:
+            loc, error = validate_location(location)
+            if error:
+                return False, error
+            if zone and self._zone(zone) is None:
+                return False, f"zone '{zone}' not found"
+            if not self._story.add_location(loc, zone):
+                return False, f"location '{loc.name}' already exists"
+            return True, ""
+
+    def get_location(self, zone: str, name: str) -> dict:
+        """Return the serialized dict for a location."""
+        return self._location_dict(zone, name)
+
+    def list_locations(self, zone: str) -> list:
+        """Return serialized dicts for all locations in a zone (or [] if the zone is missing)."""
+        zone_obj = self._zone(zone)
+        if not zone_obj:
+            return []
+        return parse_utils.save_locations(zone_obj.locations.values())
+
+    def remove_location(self, zone: str, name: str) -> bool:
+        """Remove a location from a zone (and from the live world)."""
+        with self._lock:
+            zone_obj, loc = self._zone_location(zone, name)
+            if not zone_obj or loc is None:
+                return False
+            zone_obj.remove_location(loc.name)
+            self._story._world._locations.pop(loc.name, None)
+            self._story._world._grid.pop(loc.world_location.as_tuple(), None)
+            return True
+
+    def set_exits(self, zone: str, name: str, exits: list) -> bool:
+        """Set exits on a location.
+
+        Each exit is a dict with ``direction``, ``name`` (target location name)
+        and optional ``short_descr``/``long_descr``. If the target location does
+        not exist yet, a new (empty) location is created for it so the exit is
+        always fully bound. Exits follow the same convention as the rest of the
+        codebase (see ``parse_generated_exits``): an exit is named after the
+        target location (with the direction as an alias), and the target gets a
+        return exit in the opposite direction. This is also the format that
+        ``save_locations``/``load_locations`` round-trip.
+        """
+        with self._lock:
+            if self._zone(zone) is None:
+                return False
+            _zone_obj, location = self._zone_location(zone, name)
+            if location is None:
+                return False
+            new_exits = []
+            for exit in exits:
+                direction = parse_utils.validate_direction(exit.get('direction', ''))
+                if not direction:
+                    continue
+                target_name = exit.get('name')
+                if not target_name:
+                    continue
+                if target_name.lower() in location.exits or direction in location.exits:
+                    continue
+                target = self._find_location(target_name)
+                if target is None:
+                    new_loc = Location(target_name)
+                    new_loc.world_location = parse_utils.coordinates_from_direction(
+                        location.world_location, direction)
+                    new_loc.built = False
+                    self._story.add_location(new_loc, zone)
+                    target = new_loc
+                short_descr = exit.get('short_descr', f"To the {direction} you see {target_name}.")
+                long_descr = exit.get('long_descr', short_descr)
+                new_exits.append(Exit(directions=[target.name, direction], target_location=target,
+                                      short_descr=short_descr, long_descr=long_descr))
+                # give the target a return exit in the opposite direction, if it doesn't have one yet
+                opposite = parse_utils.opposite_direction(direction)
+                if opposite and location.name not in target.exits and opposite not in target.exits:
+                    target.add_exits([Exit(directions=[location.name, opposite], target_location=location,
+                                           short_descr=f"To the {opposite} you see {location.name}.")])
+            if new_exits:
+                location.add_exits(new_exits)
+            return True
+
+    def exit_example(self) -> dict:
+        """Return an example exit dict with all fields."""
+        return {
+            "direction": "direction to exit location (e.g. 'north', 'up', 'down')",
+            "name": "Name of location to exit to",
+            "short_descr": "To the north you see Example Location.",
+            "long_descr": "Can include a more detailed description of the exit itself.",
+        }
+
+    # -- catalogue (world items & creatures as dicts) ---------------------------
+
+    def item_example(self) -> dict:
+        """Return an example world item dict with all fields."""
+        return {
+            "name": "example item",
+            "type": "Money, Weapon, Armor, Food, Drink, Container, Key, Tool, Other",
+            "description": "This is an example item.",
+            "short_description": "An example item.",
+            "weight": 1.0,
+            "value": 10,
+        }
+
+    def creature_example(self) -> dict:
+        """Return an example world creature dict with all fields."""
+        return {
+            "name": "example creature",
+            "description": "This is an example creature.",
+            "short_description": "An example creature.",
+            "race": "One of the races in the world",
+            "gender": "m, f, n",
+            "level": 1,
+            "health": 100,
+            "attack": 10,
+            "defense": 5,
+        }
+
+    def add_item(self, item: dict) -> bool:
+        """Add a world item to the catalogue (as a dict)."""
+        with self._lock:
+            return self._story.catalogue.add_item(item)
+
+    def add_creature(self, creature: dict) -> bool:
+        """Add a world creature to the catalogue (as a dict)."""
+        with self._lock:
+            return self._story.catalogue.add_creature(creature)
+
+    def list_items(self) -> list:
+        """Return all catalogue items as dicts."""
+        return list(self._story.catalogue.get_items())
+
+    def list_creatures(self) -> list:
+        """Return all catalogue creatures as dicts."""
+        return list(self._story.catalogue.get_creatures())
+
+    def remove_item(self, name: str) -> bool:
+        """Remove an item from the catalogue by name."""
+        with self._lock:
+            items = self._story.catalogue._items
+            for i, item in enumerate(items):
+                if item['name'] == name:
+                    del items[i]
+                    return True
+            return False
+
+    def remove_creature(self, name: str) -> bool:
+        """Remove a creature from the catalogue by name."""
+        with self._lock:
+            creatures = self._story.catalogue._creatures
+            for i, creature in enumerate(creatures):
+                if creature['name'] == name:
+                    del creatures[i]
+                    return True
+            return False
+
+    # -- world contents (live objects) ------------------------------------------
+
+    def spawn_npc(self, creature_name: str, zone: str, location_name: str) -> bool:
+        """Spawn a live NPC (from the catalogue) in a location."""
+        with self._lock:
+            creature = self._story.catalogue.get_creature(creature_name)
+            if not creature:
+                return False
+            _zone_obj, location = self._zone_location(zone, location_name)
+            if location is None:
+                return False
+            npcs = parse_utils.load_npcs([creature], world_items=self._story.catalogue.get_items())
+            npc = next(iter(npcs.values()))
+            location.insert(npc, None)
+            self._story.world.add_npc(npc)
+            return True
+
+    def spawn_item(self, item_name: str, zone: str, location_name: str) -> bool:
+        """Spawn a live item (from the catalogue) in a location."""
+        with self._lock:
+            item = self._story.catalogue.get_item(item_name)
+            if not item:
+                return False
+            _zone_obj, location = self._zone_location(zone, location_name)
+            if location is None:
+                return False
+            loaded = load_item(item)
+            location.insert(loaded, None)
+            self._story.world.add_item(loaded)
+            return True
+
+    def list_world_npcs(self) -> dict:
+        """Return all live NPCs in the world as a dict keyed by name."""
+        npcs = parse_utils.save_npcs(self._story.world.npcs.values())
+        return {info['name']: info for info in npcs.values()}
+
+    def list_world_items(self) -> list:
+        """Return all live items found in world locations as dicts."""
+        items = []
+        for location in self._story.world._locations.values():
+            items.extend(parse_utils.save_items(location.items))
+        return items
+
+    # -- world live-object store (real Living/Item objects, not catalogue dicts) --
+    # The WorldInfo object holds real Living/Item objects (with stats, inventory,
+    # etc.), unlike the Catalogue which holds plain dicts. These methods let an
+    # agent populate that live store directly, which is about *preparing* a story
+    # before it is played rather than mutating a running one. The objects are not
+    # inserted into a location (use spawn_npc/spawn_item for that).
+
+    def add_world_npc(self, npc: dict) -> tuple:
+        """Add a live NPC (given as a dict) to the world's live-object store.
+
+        Creates a real Living object (unlike the catalogue's plain dicts) and
+        adds it to the world store without inserting it into a location.
+
+        Returns ``(success, error_message)``: ``(True, "")`` on success, or
+        ``(False, "what went wrong")`` on failure.
+        """
+        with self._lock:
+            npc_obj, error = validate_npc(npc, world_items=self._story.catalogue.get_items())
+            if error:
+                return False, error
+            if not self._story.world.add_npc(npc_obj):
+                return False, f"npc '{npc_obj.name}' already exists"
+            return True, ""
+
+    def add_world_item(self, item: dict) -> tuple:
+        """Add a live item (given as a dict) to the world's live-object store.
+
+        Creates a real Item object (unlike the catalogue's plain dicts) and adds
+        it to the world store without inserting it into a location.
+
+        Returns ``(success, error_message)``: ``(True, "")`` on success, or
+        ``(False, "what went wrong")`` on failure.
+        """
+        with self._lock:
+            item_obj, error = validate_item(item)
+            if error:
+                return False, error
+            if not self._story.world.add_item(item_obj):
+                return False, f"item '{item_obj.name}' already exists"
+            return True, ""
+
+    def get_world_npc(self, name: str) -> dict:
+        """Return the serialized dict for a live NPC in the world's store (or an
+        empty dict if not found)."""
+        try:
+            npc = self._story.world.get_npc(name)
+        except KeyError:
+            return {}
+        npcs = parse_utils.save_npcs([npc])
+        return next(iter(npcs.values()))
+
+    def get_world_item(self, name: str) -> dict:
+        """Return the serialized dict for a live item in the world's store (or an
+        empty dict if not found)."""
+        try:
+            item = self._story.world.get_item(name)
+        except KeyError:
+            return {}
+        items = parse_utils.save_items([item])
+        return items[0]
+
+    # -- story progression ------------------------------------------------------
+
+    def set_story_context(self, base_story: str) -> None:
+        """Set the base plot of the story context."""
+        with self._lock:
+            self._story.config.context = StoryContext(base_story)
+
+    def advance_story_section(self, section: str) -> None:
+        """Advance the story context to a new section."""
+        with self._lock:
+            context = self._story.config.context
+            if isinstance(context, StoryContext):
+                context.set_current_section(section)
+
+    def set_start_location(self, zone: str, name: str) -> None:
+        """Set the player/wizard start location to ``zone.name``.
+
+        Uses the location's stored name (case as created) so the driver's
+        start-location lookup finds it after a save/load round-trip.
+        """
+        with self._lock:
+            _zone_obj, location = self._zone_location(zone, name)
+            location_name = location.name if location else name
+            location = f"{zone}.{location_name}"
+            self._story.config.startlocation_player = location
+            self._story.config.startlocation_wizard = location
+
+    # -- persistence ------------------------------------------------------------
+
+    def save(self, path: str) -> None:
+        """Save the story to disk (see :meth:`DynamicStory.save`)."""
+        self._story.save(path)
+
+    def load(self, path: str) -> None:
+        """Load a story from a saved directory, replacing the current state.
+
+        Reads ``world.json``, ``story_config.json`` and (if present) ``llm_cache.json``
+        from ``path`` and rebuilds the story's zones, locations, catalogue, live
+        NPCs/items and spawners in place.
+        """
+        with self._lock:
+            from tale.llm.dynamic_story import WorldInfo, Catalogue
+            from tale.parse import parse_locations
+            import tale.llm.llm_cache as llm_cache
+
+            world = parse_utils.load_json(os.path.join(path, 'world.json'))
+            config = parse_utils.load_story_config(parse_utils.load_json(os.path.join(path, 'story_config.json')))
+
+            # reset state and rebuild from the saved files
+            self._story._zones = dict()
+            self._story._world = WorldInfo()
+            self._story._catalogue = Catalogue()
+            self._story.config = config
+
+            for zone_json in world.get('zones', {}).values():
+                zones, _exits = parse_locations.load_locations(zone_json)
+                for zname, z in zones.items():
+                    self._story.add_zone(z)
+                    for loc in z.locations.values():
+                        self._story.add_location(loc, zname)
+
+            catalogue = world.get('catalogue', {})
+            if catalogue.get('creatures'):
+                self._story._catalogue._creatures = catalogue['creatures']
+            if catalogue.get('items'):
+                self._story._catalogue._items = catalogue['items']
+
+            worldinfo = world.get('world', {})
+            if worldinfo.get('items'):
+                self._story._world.items = load_items(worldinfo['items'].values(), self._story.locations)
+            if worldinfo.get('npcs'):
+                self._story._world.npcs = parse_utils.load_npcs(
+                    worldinfo['npcs'].values(), locations=self._story.locations,
+                    world_items=self._story.catalogue.get_items())
+            # WorldInfo.to_json() saves mob spawners under 'mob_spawners';
+            # some older files (and JsonStory) use 'spawners'
+            mob_spawners = worldinfo.get('mob_spawners') or worldinfo.get('spawners')
+            if mob_spawners:
+                self._story._world.mob_spawners = parse_utils.load_mob_spawners(
+                    mob_spawners, self._story.locations,
+                    self._story.catalogue.get_creatures(), self._story.catalogue.get_items())
+            if worldinfo.get('item_spawners'):
+                self._story._world.item_spawners = parse_utils.load_item_spawners(
+                    worldinfo['item_spawners'], self._story._zones, self._story.catalogue.get_items())
+
+            llm_cache_path = os.path.join(path, 'llm_cache.json')
+            if os.path.exists(llm_cache_path):
+                llm_cache.load(parse_utils.load_json(llm_cache_path))
+
+    # -- LLM-backed generation (optional; delegates to WorldBuilding, then
+    #    applies the result to the story via the mutation API above) -----------
+
+    def generate_world_items(self, count: int = 7) -> list:
+        """Generate world items via the LLM, add them to the catalogue, and
+        return them as dicts."""
+        if not self._llm_util:
+            raise RuntimeError("generate_world_items requires an llm_util")
+        response = self._llm_util.generate_world_items(count=count)
+        if not getattr(response, 'valid', False):
+            return []
+        items = list(response.items)
+        with self._lock:
+            for item in items:
+                self._story.catalogue.add_item(item)
+        return items
+
+    def generate_world_creatures(self, count: int = 5) -> list:
+        """Generate world creatures via the LLM, add them to the catalogue, and
+        return them as dicts."""
+        if not self._llm_util:
+            raise RuntimeError("generate_world_creatures requires an llm_util")
+        response = self._llm_util.generate_world_creatures(count=count)
+        if not getattr(response, 'valid', False):
+            return []
+        creatures = list(response.creatures)
+        with self._lock:
+            for creature in creatures:
+                self._story.catalogue.add_creature(creature)
+        return creatures
+
+    def generate_start_zone(self, location_desc: str) -> dict:
+        """Generate a starting zone via the LLM, add it to the story, and return
+        it as an info dict (or an empty dict if generation failed)."""
+        if not self._llm_util:
+            raise RuntimeError("generate_start_zone requires an llm_util")
+        story = self._story
+        world_info = {
+            'world_description': story.config.world_info,
+            'world_mood': story.config.world_mood,
+            'world_items': list(story.catalogue.get_items()),
+            'world_creatures': list(story.catalogue.get_creatures()),
+        }
+        zone = self._llm_util.generate_start_zone(
+            location_desc=location_desc,
+            story_type=story.config.type,
+            story_context=story.config.context,
+            world_info=world_info,
+        )
+        if zone is None:
+            return {}
+        with self._lock:
+            self._story.add_zone(zone)
+            for loc in zone.locations.values():
+                self._story.add_location(loc, zone.name)
+        return zone.get_info()
+
+    def generate_location(self, zone: str, name: str, exit_name: str) -> dict:
+        """Generate a location (via the LLM) adjacent to the existing location
+        ``zone.name``, and apply the result to the story.
+
+        Returns the serialized source location dict (with its new exits), or an
+        empty dict if the location was not found or generation failed.
+        """
+        if not self._llm_util:
+            raise RuntimeError("generate_location requires an llm_util")
+        zone_obj, location = self._zone_location(zone, name)
+        if location is None:
+            return {}
+        with self._lock:
+            zone_info = zone_obj.get_info()
+            neighbors = self._story.neighbors_for_location(location)
+            response, _spawner = self._llm_util.build_location(
+                location, exit_name, zone_info,
+                neighbors=neighbors, zone=zone_obj,
+            )
+            if not getattr(response, 'valid', False):
+                return {}
+            for new_loc in response.new_locations:
+                self._story.add_location(new_loc, zone)
+            location.add_exits(response.exits)
+            for npc in response.npcs:
+                self._story.world.add_npc(npc)
+            return self._location_dict(zone, location.name)
