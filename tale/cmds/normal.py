@@ -1774,18 +1774,6 @@ def do_remove(player: Player, parsed: base.ParseResult, ctx: util.Context) -> No
             raise ActionRefused("You're not wearing that item")
         player.set_wearable(None, wear_location=location)
 
-
-@wizcmd("save_story")
-def do_save(player: Player, parsed: base.ParseResult, ctx: util.Context) -> None:
-    """Save the current story to file."""
-    story = ctx.driver.story
-    if isinstance(story, DynamicStory):
-        try:
-            story.save(save_name=parsed.unparsed)
-        except SecurityViolation as x:
-            raise ActionRefused(str(x))
-    else:
-        raise ActionRefused("Not a dynamic story")
     
 @cmd("eat", "drink")
 def do_consume(player: Player, parsed: base.ParseResult, ctx: util.Context) -> None:
