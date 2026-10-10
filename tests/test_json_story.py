@@ -101,6 +101,39 @@ class TestJsonStory():
         assert not os.path.exists('../test_story2')
         os.chdir(old_dir)
 
+    def test_save_story_absolute_not_allowed(self):
+        import pytest
+        from tale.errors import SecurityViolation
+        with pytest.raises(SecurityViolation):
+            self.story.save('/tmp/llamatale_save_test')
+
+    def test_save_story_absolute_allowed(self):
+        import tempfile
+        old_dir = os.getcwd()
+        os.chdir(os.getcwd() + '/stories/test_story/')
+        target = tempfile.mkdtemp(prefix='llamatale_save_')
+        try:
+            self.story.save(target, allow_absolute=True)
+            assert os.path.exists(os.path.join(target, 'world.json'))
+            assert os.path.exists(os.path.join(target, 'story_config.json'))
+            assert os.path.exists(os.path.join(target, 'story.py'))
+        finally:
+            shutil.rmtree(target, ignore_errors=True)
+            os.chdir(old_dir)
+
+    def test_save_story_forbidden_absolute(self):
+        import pytest
+        from tale.errors import SecurityViolation
+        for path in ('/', '//', '/etc', '/usr/local/saves', '/var/saves'):
+            with pytest.raises(SecurityViolation):
+                self.story.save(path, allow_absolute=True)
+
+    def test_save_story_traversal_not_allowed(self):
+        import pytest
+        from tale.errors import SecurityViolation
+        with pytest.raises(SecurityViolation):
+            self.story.save('../etc')
+
 class TestAnythingStory():
 
     driver = IFDriver(screen_delay=99, gui=False, web=True, wizard_override=True)

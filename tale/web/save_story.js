@@ -16,7 +16,7 @@ function saveStory() {
     var ajax = new XMLHttpRequest();
     ajax.open("POST", "input", true);
     ajax.setRequestHeader("Content-type","application/x-www-form-urlencoded; charset=UTF-8");
-    var encoded_cmd = encodeURIComponent('save_story ' + filename);
+    var encoded_cmd = encodeURIComponent('!save_story ' + filename);
     console.log("Saving story: " + encoded_cmd);
     ajax.send("cmd=" + encoded_cmd);
 }

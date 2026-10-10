@@ -5,6 +5,7 @@ import shutil
 from typing import List
 from tale import parse_utils
 from tale.base import Item, Living, Location
+from tale.errors import SecurityViolation
 from tale.coord import Coord
 from tale.day_cycle.day_cycle import DayCycle
 from tale.day_cycle.llm_day_cycle_listener import LlmDayCycleListener
@@ -18,6 +19,39 @@ from tale.story import GameMode, StoryBase, StoryConfig
 from tale.story_context import StoryContext
 from tale.zone import Zone
 import tale.llm.llm_cache as llm_cache
+
+# System directories that must never be used as a save target, neither
+# directly nor as a parent of one.
+_FORBIDDEN_SAVE_DIRS = (
+    '/bin', '/boot', '/dev', '/etc', '/lib', '/lib64', '/proc',
+    '/run', '/sbin', '/sys', '/usr', '/var',
+)
+
+
+def validate_save_path(save_name: str, allow_absolute: bool = False) -> str:
+    """ Validate a story save path and return the directory to save into.
+
+    Relative names are confined to the parent of the current working
+    directory. Absolute paths are only accepted when ``allow_absolute``
+    is True (the MCP server) and must not target a system directory,
+    neither directly nor through ``..`` or symlinks.
+    """
+    if save_name.startswith('/'):
+        if not allow_absolute:
+            raise SecurityViolation("absolute save paths are not allowed here")
+        # resolve symlinks and '..' so the check below can't be bypassed
+        resolved = os.path.realpath(save_name)
+        if resolved in ('/', '//') or any(resolved == d or resolved.startswith(d + '/')
+                                          for d in _FORBIDDEN_SAVE_DIRS):
+            raise SecurityViolation("save path %s targets a system directory" % save_name)
+        return resolved
+    if save_name:
+        normalized = os.path.normpath(save_name)
+        if normalized == '..' or normalized.startswith('../'):
+            raise SecurityViolation("save name %s must not go above the save directory" % save_name)
+        return os.path.join(os.getcwd(), '../', normalized)
+    return './'
+
 
 class DynamicStory(StoryBase):
     """ This is the base for stories with LLM generated content """
@@ -142,15 +176,18 @@ class DynamicStory(StoryBase):
             neighbors[dir] = self._world._grid.get(coord.as_tuple(), None)
         return neighbors
     
-    def save(self, save_name: str = '') -> None:
-        """ Save the story to disk."""
+    def save(self, save_name: str = '', allow_absolute: bool = False) -> None:
+        """ Save the story to disk.
+
+        Relative ``save_name`` values are stored in the parent of the
+        current working directory. Absolute paths are only accepted when
+        ``allow_absolute`` is True (used by the MCP server) and are
+        validated so they cannot target system directories.
+        """
+        save_path = validate_save_path(save_name, allow_absolute)
         story = self.to_json()
-        if save_name.startswith('/'):
-            save_path = save_name
-        else:
-            save_path = os.path.join(os.getcwd(), '../', save_name) if save_name else './'
         if not os.path.exists(save_path):
-            os.mkdir(save_path)
+            os.makedirs(save_path)
         with open(os.path.join(save_path, 'world.json'), "w") as fp:
             json.dump(story , fp, indent=4)
 
@@ -164,7 +201,9 @@ class DynamicStory(StoryBase):
             resource_path = os.path.join(save_path, 'resources')
             if not os.path.exists(resource_path):
                 os.mkdir(resource_path)
-            shutil.copy(os.path.join(os.getcwd(), 'story.py'), os.path.join(save_path, 'story.py'))
+            story_py = os.path.join(os.getcwd(), 'story.py')
+            if os.path.exists(story_py):
+                shutil.copy(story_py, os.path.join(save_path, 'story.py'))
             if os.path.exists(os.path.join(os.getcwd(), 'resources')):
                 shutil.copytree(os.path.join(os.getcwd(), 'resources'), resource_path, dirs_exist_ok=True)
 
