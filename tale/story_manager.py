@@ -548,8 +548,12 @@ class StoryManager:
     # -- persistence ------------------------------------------------------------
 
     def save(self, path: str) -> None:
-        """Save the story to disk (see :meth:`DynamicStory.save`)."""
-        self._story.save(path)
+        """Save the story to disk (see :meth:`DynamicStory.save`).
+
+        This API is used by the MCP server, so absolute paths are allowed;
+        they are still validated by ``DynamicStory.save``.
+        """
+        self._story.save(path, allow_absolute=True)
 
     def load(self, path: str) -> None:
         """Load a story from a saved directory, replacing the current state.

@@ -1,10 +1,15 @@
 """ Tests for the StoryManager modification layer (tale/story_manager.py). """
 
+import os
+import shutil
+import tempfile
 import types
+
 import pytest
 
 from tale.base import Location
 from tale.coord import Coord
+from tale.errors import SecurityViolation
 from tale.llm.dynamic_story import DynamicStory
 from tale.llm.responses.LocationResponse import LocationResponse
 from tale.story_context import StoryContext
@@ -416,3 +421,24 @@ class TestLlmGeneration():
         mgr = StoryManager(make_story(), llm_util=None)
         with pytest.raises(RuntimeError):
             mgr.generate_location("TestZone", "Start", "north")
+
+
+class TestPersistence():
+
+    def test_save_absolute_path_allowed(self):
+        # the MCP server routes saves through StoryManager, which allows
+        # (validated) absolute paths
+        mgr = StoryManager(make_story())
+        target = tempfile.mkdtemp(prefix='llamatale_mgr_save_')
+        try:
+            mgr.save(target)
+            assert os.path.exists(os.path.join(target, 'world.json'))
+            assert os.path.exists(os.path.join(target, 'story_config.json'))
+        finally:
+            shutil.rmtree(target, ignore_errors=True)
+
+    def test_save_forbidden_absolute_path(self):
+        mgr = StoryManager(make_story())
+        for path in ('/', '/etc', '/usr/local/saves'):
+            with pytest.raises(SecurityViolation):
+                mgr.save(path)

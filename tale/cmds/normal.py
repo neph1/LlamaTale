@@ -14,14 +14,14 @@ from tale.llm.LivingNpc import LivingNpc
 from tale.llm.dynamic_story import DynamicStory
 from tale.skills.skills import SkillType
 
-from . import abbreviations, cmd, disabled_in_gamemode, disable_notify_action, overrides_soul, no_soul_parse
+from . import abbreviations, cmd, disabled_in_gamemode, disable_notify_action, overrides_soul, no_soul_parse, wizcmd
 from .. import base
 from .. import lang
 from .. import races
 from .. import util
 from .. import cmds
 from ..accounts import MudAccounts
-from ..errors import ParseError, ActionRefused, SessionExit, RetrySoulVerb, RetryParse
+from ..errors import ParseError, ActionRefused, SecurityViolation, SessionExit, RetrySoulVerb, RetryParse
 from ..items.basic import GameClock, Money
 from ..player import Player
 from ..story import GameMode
@@ -1775,12 +1775,15 @@ def do_remove(player: Player, parsed: base.ParseResult, ctx: util.Context) -> No
         player.set_wearable(None, wear_location=location)
 
 
-@cmd("save_story")
+@wizcmd("save_story")
 def do_save(player: Player, parsed: base.ParseResult, ctx: util.Context) -> None:
     """Save the current story to file."""
     story = ctx.driver.story
     if isinstance(story, DynamicStory):
-        story.save(save_name=parsed.unparsed)
+        try:
+            story.save(save_name=parsed.unparsed)
+        except SecurityViolation as x:
+            raise ActionRefused(str(x))
     else:
         raise ActionRefused("Not a dynamic story")
     
