@@ -19,12 +19,13 @@ from typing import Generator, Optional
 
 from tale import load_items, parse_utils
 from tale.llm.LivingNpc import LivingNpc
+from tale.llm.dynamic_story import DynamicStory
 from tale.llm.responses.WorldCreaturesResponse import WorldCreaturesResponse
 from tale.llm.responses.WorldItemsResponse import WorldItemsResponse
 
 from . import wizcmd, disabled_in_gamemode
 from .. import base, lang, util, pubsub, races, __version__
-from ..errors import ParseError, ActionRefused, NonSoulVerb, TaleError, TaleFlowControlException
+from ..errors import ParseError, ActionRefused, NonSoulVerb, SecurityViolation, TaleError, TaleFlowControlException
 from ..player import Player
 from ..story import *
 
@@ -977,3 +978,16 @@ def do_reset_story(player: Player, parsed: base.ParseResult, ctx: util.Context) 
     except Exception as x:
         player.tell("Error resetting story: %s" % str(x))
         traceback.print_exc()
+
+
+@wizcmd("save_story")
+def do_save(player: Player, parsed: base.ParseResult, ctx: util.Context) -> None:
+    """Save the current story to file."""
+    story = ctx.driver.story
+    if isinstance(story, DynamicStory):
+        try:
+            story.save(save_name=parsed.unparsed)
+        except SecurityViolation as x:
+            raise ActionRefused(str(x))
+    else:
+        raise ActionRefused("Not a dynamic story")
