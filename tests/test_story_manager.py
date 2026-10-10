@@ -7,7 +7,7 @@ import types
 
 import pytest
 
-from tale.base import Location
+from tale.base import Location, Living
 from tale.coord import Coord
 from tale.errors import SecurityViolation
 from tale.llm.dynamic_story import DynamicStory
@@ -442,3 +442,150 @@ class TestPersistence():
         for path in ('/', '/etc', '/usr/local/saves'):
             with pytest.raises(SecurityViolation):
                 mgr.save(path)
+
+
+class TestLiveState():
+    """Tests for the Stage 1 read-only live-state reads (players, NPCs,
+    locations, story progress, and the world map)."""
+
+    class StubDriver:
+        """A tiny driver stub exposing ``all_players`` (name -> connection with
+        a ``.player``), as the real driver does."""
+        def __init__(self, players):
+            self.all_players = {p.name: types.SimpleNamespace(player=p) for p in players}
+
+    def _seed(self, mgr):
+        """A location with a live NPC and a live item."""
+        mgr.add_location({"name": "Cave", "descr": "A cave", "short_descr": "A cave",
+                          "world_location": [0, 0, 0]}, "TestZone")
+        # for a Mob, the long description comes from 'descr' (description -> short)
+        mgr.add_creature({"name": "goblin", "type": "Mob", "gender": "m", "race": "human",
+                          "level": 2, "descr": "A goblin"})
+        assert mgr.spawn_npc("goblin", "TestZone", "Cave") is True
+        mgr.add_item({"name": "torch", "type": "Other"})
+        assert mgr.spawn_item("torch", "TestZone", "Cave") is True
+        return mgr.story.get_location("TestZone", "Cave")
+
+    def test_list_players_no_driver(self):
+        mgr = StoryManager(make_story())
+        assert mgr.list_players() == []
+
+    def test_list_players(self):
+        mgr = StoryManager(make_story())
+        cave = self._seed(mgr)
+        hero = Living("Hero", "m")
+        hero.location = cave
+        hero.idle_time = 1.5
+        mgr._driver = self.StubDriver([hero])
+        players = mgr.list_players()
+        assert len(players) == 1
+        p = players[0]
+        assert p["name"] == "hero"
+        assert p["location"] == {"zone": "TestZone", "name": "Cave"}
+        assert p["alive"] is True
+        assert p["hp"] == hero.stats.hp
+        assert p["idle_time"] == 1.5
+
+    def test_get_player(self):
+        mgr = StoryManager(make_story())
+        cave = self._seed(mgr)
+        hero = Living("Hero", "m")
+        hero.location = cave
+        mgr._driver = self.StubDriver([hero])
+        info = mgr.get_player("HERO")   # case-insensitive
+        assert info["name"] == "hero"
+        assert info["title"] == "Hero"
+        assert info["location"] == {"zone": "TestZone", "name": "Cave"}
+        assert info["alive"] is True
+        assert info["hp"] == hero.stats.hp
+        assert "level" in info["stats"]
+        assert info["inventory"] == []
+
+    def test_get_player_not_found(self):
+        mgr = StoryManager(make_story())
+        hero = Living("Hero", "m")
+        mgr._driver = self.StubDriver([hero])
+        assert mgr.get_player("Nope") == {}   # driver present, no such player
+        # no driver at all -> {}
+        assert StoryManager(make_story()).get_player("Hero") == {}
+
+    def test_get_npc(self):
+        mgr = StoryManager(make_story())
+        cave = self._seed(mgr)
+        info = mgr.get_npc("Goblin")
+        assert info["name"] == "goblin"
+        assert info["description"] == "A goblin"
+        assert info["alive"] is True
+        assert info["level"] == 2
+        assert "hp" in info["stats"]
+        # a plain Living has no goal/action_history -> defaults
+        assert info["goal"] is None
+        assert info["action_history"] == []
+
+    def test_get_npc_not_found(self):
+        mgr = StoryManager(make_story())
+        assert mgr.get_npc("Nope") == {}
+
+    def test_get_location_live(self):
+        mgr = StoryManager(make_story())
+        cave = self._seed(mgr)
+        hero = Living("Hero", "m")
+        cave.insert(hero, None)   # adds to cave.livings and sets hero.location
+        mgr._driver = self.StubDriver([hero])
+        info = mgr.get_location_live("TestZone", "Cave")
+        assert info["name"] == "Cave"
+        assert info["description"] == "A cave"
+        assert info["short_descr"] == "A cave"
+        assert info["indoors"] is False
+        assert info["world_location"] == [0, 0, 0]
+        # one player (Hero) and one NPC (goblin)
+        living_names = {l["name"]: l for l in info["livings"]}
+        assert set(living_names) == {"hero", "goblin"}
+        assert living_names["hero"]["is_player"] is True
+        assert living_names["goblin"]["is_player"] is False
+        assert living_names["goblin"]["alive"] is True
+        # the spawned item is present
+        assert any(i["name"] == "torch" for i in info["items"])
+
+    def test_get_location_live_not_found(self):
+        mgr = StoryManager(make_story())
+        assert mgr.get_location_live("TestZone", "Nope") == {}
+        assert mgr.get_location_live("Nope", "Cave") == {}
+
+    def test_get_story_state(self):
+        mgr = StoryManager(make_story())
+        story = mgr.story
+        story.config.type = "A fantasy adventure"
+        story.config.world_info = "A world of magic"
+        story.config.world_mood = 3
+        story.config.context = StoryContext("Base plot")
+        story.config.context.set_current_section("The beginning")
+        state = mgr.get_story_state()
+        assert state["name"] == "Test Story"
+        assert state["type"] == "A fantasy adventure"
+        assert state["world_info"] == "A world of magic"
+        assert state["world_mood"] == 3
+        assert state["current_section"] == "The beginning"
+        assert state["progress"] == 0.0
+        assert "Base plot" in state["story"]
+
+    def test_get_world_map(self):
+        mgr = StoryManager(make_story())
+        self._seed(mgr)
+        world_map = mgr.get_world_map()
+        assert "TestZone" in world_map
+        cave = world_map["TestZone"]["Cave"]
+        assert cave["indoors"] is False
+        assert cave["npc_count"] == 1
+        assert cave["item_count"] == 1
+        assert cave["exits"] == []
+
+    def test_world_map_multiple_locations(self):
+        mgr = StoryManager(make_story())
+        mgr.add_location({"name": "Room", "descr": "A room", "world_location": [0, 0, 0]}, "TestZone")
+        mgr.add_location({"name": "Hall", "descr": "A hall", "world_location": [1, 0, 0]}, "TestZone")
+        mgr.set_exits("TestZone", "Room", [{"direction": "north", "name": "Hall"}])
+        world_map = mgr.get_world_map()
+        # an exit is keyed by the direction *and* the target name (an alias),
+        # and the map sorts the keys
+        assert world_map["TestZone"]["Room"]["exits"] == ["hall", "north"]

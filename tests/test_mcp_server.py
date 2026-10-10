@@ -120,6 +120,8 @@ class TestServerCreation():
         "add_item", "add_creature", "list_items", "list_creatures", "remove_item", "remove_creature",
         "spawn_npc", "spawn_item", "list_world_npcs", "list_world_items",
         "add_world_npc", "add_world_item", "get_world_npc", "get_world_item",
+        "list_players", "get_player", "get_npc", "get_location_live",
+        "get_story_state", "get_world_map",
         "set_story_context", "advance_story_section", "set_start_location",
         "save", "load",
         "generate_world_items", "generate_world_creatures", "generate_start_zone", "generate_location",

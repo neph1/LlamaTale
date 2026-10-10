@@ -49,9 +49,10 @@ def create_server(manager, port: int = DEFAULT_MCP_PORT) -> FastMCP:
         instructions=(
             "Tools for building and modifying a LlamaTale story/world. "
             "Cover story config, zones, locations, catalogue items/creatures, "
-            "live world contents, story progression, persistence, and "
-            "LLM-backed generation. Locations and zones are identified by name; "
-            "a location is addressed as (zone, name)."
+            "live world contents, read-only live state (players, NPCs, "
+            "locations, story progress, world map), story progression, "
+            "persistence, and LLM-backed generation. Locations and zones are "
+            "identified by name; a location is addressed as (zone, name)."
         ),
         host="127.0.0.1",
         stateless_http=True, 
@@ -281,6 +282,52 @@ def create_server(manager, port: int = DEFAULT_MCP_PORT) -> FastMCP:
         """Return the serialized dict for a live item in the world's store (or an
         empty dict if not found)."""
         return manager.get_world_item(name)
+
+    # -- live state (read-only views of the running world) ---------------------
+
+    @mcp.tool()
+    def list_players() -> str:
+        """Return the connected players as a JSON array of
+        {name, location:{zone,name}|None, hp, alive, idle_time}. Empty array if
+        there is no driver."""
+        return _json(manager.list_players())
+
+    @mcp.tool()
+    def get_player(name: str) -> dict:
+        """Return the full state of a connected player by (case-insensitive)
+        name: name, title, location, inventory, stats, hp, alive, idle_time.
+        Empty dict if not found or there is no driver."""
+        return manager.get_player(name)
+
+    @mcp.tool()
+    def get_npc(name: str) -> dict:
+        """Return the full state of a live NPC in the world by (case-insensitive)
+        name: name, title, short_description, description, location, alive,
+        visible, hidden, goal, level, stats, action_history, planned_actions.
+        Empty dict if not found."""
+        return manager.get_npc(name)
+
+    @mcp.tool()
+    def get_location_live(zone: str, name: str) -> dict:
+        """Return the structured live state of a location (zone, name): name,
+        description, short_descr, indoors, world_location, exits, livings and
+        items. Mirrors the state the LLM reasons over. Empty dict if not
+        found."""
+        return manager.get_location_live(zone, name)
+
+    @mcp.tool()
+    def get_story_state() -> dict:
+        """Return the story's narrative state: story (context string with past
+        sections), current_section, past_sections, progress, length, name, type,
+        world_info, world_mood."""
+        return manager.get_story_state()
+
+    @mcp.tool()
+    def get_world_map() -> dict:
+        """Return a compact map of the whole world:
+        {zone_name: {location_name: {indoors, npc_count, item_count,
+        exits:[directions]}}}."""
+        return manager.get_world_map()
 
     # -- story progression -----------------------------------------------------
 

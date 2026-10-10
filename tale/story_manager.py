@@ -518,6 +518,201 @@ class StoryManager:
         items = parse_utils.save_items([item])
         return items[0]
 
+    # -- live state reads (Stage 1) --------------------------------------------
+    # Read-only views of the *live* world (players, NPCs, locations, story
+    # progress, and a world map). These follow the existing read convention:
+    # no lock, JSON-friendly dicts/lists out. They mirror the structured state
+    # the LLM reasons over (see tale.llm.contexts.ActionContext) so an agent's
+    # decisions stay coherent with the narrative.
+
+    def _location_zone_name(self, location) -> dict:
+        """Map a live Location to ``{"zone": zone_name, "name": location_name}``
+        (or an empty dict for a None location)."""
+        if location is None:
+            return {}
+        zone = self._story.find_zone(location.name)
+        return {"zone": zone.name, "name": location.name} if zone else {"zone": None, "name": location.name}
+
+    def _stats_dict(self, stats) -> dict:
+        """JSON-friendly dict of the numeric attributes of a :class:`Stats`."""
+        return {
+            "level": stats.level,
+            "hp": stats.hp,
+            "max_hp": stats.max_hp,
+            "xp": stats.xp,
+            "ac": stats.ac,
+            "wc": stats.wc,
+            "race": stats.race,
+            "gender": stats.gender,
+            "strength": stats.strength,
+            "dexterity": stats.dexterity,
+            "perception": stats.perception,
+            "intelligence": stats.intelligence,
+        }
+
+    def _player_names(self) -> set:
+        """The set of player names connected via the driver (empty if no driver)."""
+        driver = self._driver
+        if not driver:
+            return set()
+        return {conn.player.name for conn in driver.all_players.values()}
+
+    def list_players(self) -> list:
+        """[{name, location:{zone,name}|None, hp:int, alive:bool, idle_time:float}]
+
+        One entry per connected player. Returns an empty list when there is no
+        driver. Note: combat is transient (a single round via ``start_attack``),
+        so there is no persistent ``in_combat`` flag to expose.
+        """
+        players = []
+        driver = self._driver
+        if not driver:
+            return players
+        for conn in driver.all_players.values():
+            player = conn.player
+            players.append({
+                "name": player.name,
+                "location": self._location_zone_name(player.location),
+                "hp": player.stats.hp,
+                "alive": player.alive,
+                "idle_time": getattr(player, "idle_time", 0.0),
+            })
+        return players
+
+    def get_player(self, name: str) -> dict:
+        """Full player state (case-insensitive name lookup): name, title,
+        location, inventory, stats, hp, alive, idle_time. Returns an empty dict
+        if the player is not found or there is no driver."""
+        driver = self._driver
+        if not driver:
+            return {}
+        lower = name.lower()
+        for conn in driver.all_players.values():
+            player = conn.player
+            if player.name.lower() == lower:
+                return {
+                    "name": player.name,
+                    "title": player.title,
+                    "location": self._location_zone_name(player.location),
+                    "inventory": sorted(item.name for item in player.inventory),
+                    "stats": self._stats_dict(player.stats),
+                    "hp": player.stats.hp,
+                    "alive": player.alive,
+                    "idle_time": getattr(player, "idle_time", 0.0),
+                }
+        return {}
+
+    def get_npc(self, name: str) -> dict:
+        """Full state of a live NPC in the world's store (or an empty dict if
+        not found): name, title, short_description, description,
+        location:{zone,name}, alive, visible, hidden, goal, level, stats,
+        action_history, planned_actions."""
+        try:
+            npc = self._story.world.get_npc(name)
+        except KeyError:
+            return {}
+        return {
+            "name": npc.name,
+            "title": npc.title,
+            "short_description": npc.short_description,
+            "description": npc.description,
+            "location": self._location_zone_name(npc.location),
+            "alive": npc.alive,
+            "visible": npc.visible,
+            "hidden": npc.hidden,
+            "goal": getattr(npc, "goal", None),
+            "level": npc.stats.level,
+            "stats": self._stats_dict(npc.stats),
+            "action_history": getattr(npc, "action_history", []),
+            "planned_actions": getattr(npc, "planned_actions", []),
+        }
+
+    def get_location_live(self, zone: str, name: str) -> dict:
+        """The structured live state of a location (mirrors ActionContext):
+        name, description, short_descr, indoors, world_location:[x,y,z],
+        exits:{direction: target_name},
+        livings:[{name, short_descr, alive, visible, is_player}],
+        items:[{name, look_description, visible}]. Returns an empty dict if the
+        location is not found."""
+        _zone_obj, location = self._zone_location(zone, name)
+        if location is None:
+            return {}
+        player_names = self._player_names()
+        livings = []
+        for living in location.livings:
+            livings.append({
+                "name": living.name,
+                "short_descr": living.short_description,
+                "alive": living.alive,
+                "visible": living.visible,
+                "is_player": living.name in player_names,
+            })
+        items = []
+        for item in location.items:
+            items.append({
+                "name": item.name,
+                "look_description": item.look_description,
+                "visible": item.visible,
+            })
+        world_location = location.world_location
+        return {
+            "name": location.name,
+            "description": location.description,
+            "short_descr": location.short_description,
+            "indoors": location.indoors,
+            "world_location": list(world_location.as_tuple()) if world_location else [0, 0, 0],
+            "exits": {direction: exit.target.name for direction, exit in location.exits.items()},
+            "livings": livings,
+            "items": items,
+        }
+
+    def get_story_state(self) -> dict:
+        """The story's narrative state: story (the context string with past
+        sections), current_section, past_sections, progress, length, name,
+        type, world_info, world_mood."""
+        config = self._story.config
+        context = config.context
+        if isinstance(context, StoryContext):
+            return {
+                "story": context.to_context_with_past(),
+                "current_section": context.current_section,
+                "past_sections": list(context.past_sections),
+                "progress": context.progress,
+                "length": context.length,
+                "name": config.name,
+                "type": config.type,
+                "world_info": config.world_info,
+                "world_mood": config.world_mood,
+            }
+        # the context may be a bare base-story string (not yet a StoryContext)
+        return {
+            "story": context if isinstance(context, str) else str(context),
+            "current_section": "",
+            "past_sections": [],
+            "progress": 0.0,
+            "length": 0.0,
+            "name": config.name,
+            "type": config.type,
+            "world_info": config.world_info,
+            "world_mood": config.world_mood,
+        }
+
+    def get_world_map(self) -> dict:
+        """{zone_name: {location_name: {indoors, npc_count, item_count,
+        exits:[directions]}}} - a compact map of the whole world."""
+        result = {}
+        for zone_name, zone in self._story._zones.items():
+            locations = {}
+            for loc_name, location in zone.locations.items():
+                locations[loc_name] = {
+                    "indoors": location.indoors,
+                    "npc_count": len(location.livings),
+                    "item_count": len(location.items),
+                    "exits": sorted(location.exits.keys()),
+                }
+            result[zone_name] = locations
+        return result
+
     # -- story progression ------------------------------------------------------
 
     def set_story_context(self, base_story: str) -> None:
