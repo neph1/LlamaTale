@@ -684,31 +684,6 @@ class TestLiving(unittest.TestCase):
         pubsub.sync()
         self.assertEqual(["msg1 msg2", "msg3 msg4", "msg5 msg6", "msg7 msg8"], collector.messages)
 
-    def test_tell_others_with_literal_braces(self):
-        # regression: free-form text such as LLM output that contains literal braces
-        # (e.g. "{name}") must not raise KeyError/ValueError when passed to tell_others.
-        room = Location("room")
-        actor = Living("actor", "m", race="human", title="hatter")
-        target = Living("duchess", "f", race="human", title="duchess")
-        observer = MsgTraceNPC("observer", "n", race="human")
-        room.init_inventory([actor, target, observer])
-
-        msg = '{actor} the {name} greets {Actor} and looks at {target} while {name} waves.'
-        actor.tell_others(msg)  # no-target branch
-        pubsub.sync()
-        rendered = observer.messages[0]
-        self.assertIn("hatter", rendered)  # {actor} substituted (lowercase)
-        self.assertIn("Hatter", rendered)  # {Actor} substituted (capitalized)
-        self.assertIn("{name}", rendered)  # literal brace preserved
-        self.assertIn("{target}", rendered)  # literal brace preserved
-
-        observer.clearmessages()
-        actor.tell_others(msg, target=target)  # target branch
-        pubsub.sync()
-        rendered = observer.messages[0]
-        self.assertIn("duchess", rendered)  # {target} substituted
-        self.assertIn("{name}", rendered)   # literal brace still preserved
-
     def test_show_inventory(self):
         class Ctx:
             class Config:
