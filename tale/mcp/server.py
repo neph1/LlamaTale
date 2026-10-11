@@ -376,6 +376,66 @@ def create_server(manager, port: int = DEFAULT_MCP_PORT) -> FastMCP:
         state."""
         manager.load(path)
 
+    # -- live mutations (affect the story as it happens) -----------------------
+
+    @mcp.tool()
+    def set_location_description(zone: str, name: str, description: str, short_descr: str = '') -> dict:
+        """Set the description (and optionally short description) of a live
+        location (zone, name). Returns {"success": bool, "error": str}."""
+        return _result(*manager.set_location_description(zone, name, description, short_descr))
+
+    @mcp.tool()
+    def add_exit(zone: str, name: str, direction: str, target: str, short_descr: str = '') -> dict:
+        """Add a single exit from location (zone, name) in ``direction`` to
+        ``target``. Missing target locations are created (with a return exit in
+        the opposite direction). Returns {"success": bool, "error": str}."""
+        return _result(*manager.add_exit(zone, name, direction, target, short_descr))
+
+    @mcp.tool()
+    def remove_exit(zone: str, name: str, direction: str) -> dict:
+        """Remove an exit (and its target-name alias) from location (zone, name)
+        in ``direction``. Returns {"success": bool, "error": str}."""
+        return _result(*manager.remove_exit(zone, name, direction))
+
+    @mcp.tool()
+    def set_exit_state(zone: str, name: str, direction: str, open: bool) -> dict:
+        """Open or close an exit from location (zone, name) in ``direction``.
+        For a door this sets its opened state; for a plain exit, open=False
+        removes it. Returns {"success": bool, "error": str}."""
+        return _result(*manager.set_exit_state(zone, name, direction, open))
+
+    @mcp.tool()
+    def move_npc(name: str, zone: str, location_name: str) -> dict:
+        """Move a live NPC (by name) to location (zone, location_name).
+        Returns {"success": bool, "error": str}."""
+        return _result(*manager.move_npc(name, zone, location_name))
+
+    @mcp.tool()
+    def npc_say(name: str, text: str, target: str = '') -> dict:
+        """Make a live NPC say ``text`` to the room, or to a specific living in
+        the same location if ``target`` is given. Returns
+        {"success": bool, "error": str}."""
+        return _result(*manager.npc_say(name, text, target))
+
+    @mcp.tool()
+    def npc_attack(name: str, target_name: str) -> dict:
+        """Make a live NPC attack another living (one combat round).
+        Returns {"success": bool, "error": str}."""
+        return _result(*manager.npc_attack(name, target_name))
+
+    @mcp.tool()
+    def npc_do(name: str, action: dict) -> dict:
+        """Force a live NPC to perform a specific action (say/move/take/give/
+        attack/wear/hide/search). ``action`` may contain goal, thoughts, text,
+        action, target and item. Returns {"success": bool, "error": str}."""
+        return _result(*manager.npc_do(name, action))
+
+    @mcp.tool()
+    def set_npc_goal(name: str, goal: str) -> dict:
+        """Set the free-form goal of a live NPC (by name).
+        Returns {"success": bool, "error": str}."""
+        return _result(*manager.set_npc_goal(name, goal))
+
     # -- LLM-backed generation -------------------------------------------------
 
     @mcp.tool()

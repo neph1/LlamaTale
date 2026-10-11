@@ -24,7 +24,6 @@ from typing import Sequence, Union, Tuple, Any, Dict, Callable, Iterable, Genera
 
 import appdirs
 from tale.dungeon import DungeonEntrance
-from tale.items.basic import Note
 
 from tale.llm import llm_config
 from tale.llm.LivingNpc import LivingNpc
@@ -1086,44 +1085,9 @@ class Driver(pubsub.Listener):
                                                         world_items=dynamic_story.catalogue._items,
                                                         neighbors=neighbor_locations,
                                                         zone=zone)
-        new_locations = result.new_locations
-        exits = result.exits
-        npcs = result.npcs
-        items = result.items
-        if not new_locations:
-            return False
-        for location in new_locations:
-            # try to add location, and if it fails, remove exit to it
-            result = dynamic_story.add_location(location, zone=zone.name)
-            if not result:
-                for exit in exits:
-                    if exit.name == location.name:
-                        exits.remove(exit)
-        for exit in exits:
-            try:
-                targetLocation.add_exits([exit])
-            except errors.LocationIntegrityError:
-                # fail silently
-                pass
-        for npc in npcs:
-            #dynamic_story.world.add_npc(npc)
-            if isinstance(npc, StationaryNpc) and random.random() < 0.2:
-                new_quest = dynamic_story.generate_quest(npc)
-                new_quest.giver = npc
-                npc.quest = new_quest
-        for item in items:
-            if isinstance(item, Note):
-                if random.random() < 0.5:
-                    new_quest = self.llm_util.generate_note_quest(zone_info=zone.get_info())
-                    new_quest.giver = item
-                    item.text = new_quest.reason
-                else:
-                    text = self.llm_util.generate_note_lore(zone_info=zone.get_info())
-                    item.text = text
-            #dynamic_story.world.add_item(item)
-        if spawner:
-            dynamic_story.world.add_mob_spawner(spawner)
-        return True
+        # the story-level application of the LLM output is routed through the
+        # story modification layer, so the LLM path and MCP share one surface.
+        return self.story_manager.apply_location_response(result, zone, targetLocation, spawner=spawner)
     
     def do_on_player_death(self, player: player.Player) -> None:
         pass

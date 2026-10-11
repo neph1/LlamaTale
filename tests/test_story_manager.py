@@ -7,15 +7,17 @@ import types
 
 import pytest
 
-from tale import pubsub
-from tale.base import Location, Living
+from tale import pubsub, mud_context
+from tale.base import Location, Living, Door
 from tale.coord import Coord
 from tale.errors import SecurityViolation
 from tale.llm.dynamic_story import DynamicStory
 from tale.llm.responses.LocationResponse import LocationResponse
+from tale.story import StoryConfig
 from tale.story_context import StoryContext
 from tale.story_manager import StoryManager, register, current, get
 from tale.zone import Zone
+from tests.supportstuff import FakeDriver
 
 
 def make_story():
@@ -763,3 +765,226 @@ class TestEventPolling():
         self._flush()
         # the MCP wrapper serializes the list to a single JSON string
         json.dumps(mgr.poll_events(0), indent=2, default=str)
+
+
+class TestLiveMutations():
+    """Tests for the Stage 3 live-world mutations (descriptions, exits, NPC
+    movement/actions and goals)."""
+
+    def setup_method(self):
+        # Stage 3 NPC movement/actions need a mud_context with a config (for
+        # look/show_exits_in_look) and a driver (for combat prompts).
+        saved = (mud_context.config, mud_context.driver)
+        mud_context.config = StoryConfig()
+        mud_context.driver = FakeDriver()
+        self._saved = saved
+
+    def teardown_method(self):
+        mud_context.config, mud_context.driver = self._saved
+
+    def _seed(self, story=None):
+        """A story with Cave<->Hall (plain exits), a locked Door to NorthRoom,
+        a goblin NPC in Cave, an orc NPC in Hall and a torch item in Cave."""
+        if story is None:
+            story = make_story()
+        story.config.name = "Test Story"
+        mgr = StoryManager(story)
+        mgr.add_location({"name": "Cave", "descr": "A cave", "short_descr": "A cave",
+                          "world_location": [0, 0, 0]}, "TestZone")
+        mgr.add_location({"name": "Hall", "descr": "A hall", "short_descr": "A hall",
+                          "world_location": [1, 0, 0]}, "TestZone")
+        mgr.set_exits("TestZone", "Cave", [{"direction": "east", "name": "Hall"}])
+        # a locked door from Cave to NorthRoom
+        mgr.add_location({"name": "NorthRoom", "descr": "A room to the north",
+                          "short_descr": "North room", "world_location": [0, 1, 0]}, "TestZone")
+        door = Door("north", mgr.story.get_location("TestZone", "NorthRoom"),
+                    "a door", "A door to the north", locked=True, opened=False)
+        cave = mgr.story.get_location("TestZone", "Cave")
+        cave.add_exits([door])
+        # live NPCs and an item
+        mgr.add_creature({"name": "goblin", "type": "Mob", "gender": "m", "race": "human",
+                          "level": 2, "descr": "A goblin"})
+        assert mgr.spawn_npc("goblin", "TestZone", "Cave") is True
+        mgr.add_creature({"name": "orc", "type": "Mob", "gender": "m", "race": "human",
+                          "level": 2, "descr": "An orc"})
+        assert mgr.spawn_npc("orc", "TestZone", "Hall") is True
+        mgr.add_item({"name": "torch", "type": "Other"})
+        assert mgr.spawn_item("torch", "TestZone", "Cave") is True
+        return mgr
+
+    def test_find_living(self):
+        mgr = self._seed()
+        assert mgr._find_living("goblin").name == "goblin"
+        assert mgr._find_living("Goblin").name == "goblin"   # case-insensitive
+        assert mgr._find_living("orc").name == "orc"
+        assert mgr._find_living("nonexistent") is None
+
+    def test_set_location_description(self):
+        mgr = self._seed()
+        ok, err = mgr.set_location_description("TestZone", "Cave", "A dark, dank cave.",
+                                                short_descr="A dark cave.")
+        assert ok is True and err == ""
+        cave = mgr.story.get_location("TestZone", "Cave")
+        assert cave.description == "A dark, dank cave."
+        assert cave.short_description == "A dark cave."
+
+    def test_set_location_description_short_descr_optional(self):
+        mgr = self._seed()
+        ok, err = mgr.set_location_description("TestZone", "Cave", "A dark, dank cave.")
+        assert ok is True and err == ""
+        # short description is left untouched when not provided
+        cave = mgr.story.get_location("TestZone", "Cave")
+        assert cave.description == "A dark, dank cave."
+        assert cave.short_description == "A cave"
+
+    def test_set_location_description_unknown_zone(self):
+        mgr = self._seed()
+        ok, err = mgr.set_location_description("Nope", "Cave", "desc")
+        assert ok is False and "zone 'Nope'" in err
+
+    def test_set_location_description_unknown_location(self):
+        mgr = self._seed()
+        ok, err = mgr.set_location_description("TestZone", "Nope", "desc")
+        assert ok is False and "location 'Nope'" in err
+
+    def test_add_exit_creates_location_and_return_exit(self):
+        mgr = self._seed()
+        ok, err = mgr.add_exit("TestZone", "Cave", "down", "Forest")
+        assert ok is True and err == ""
+        forest = mgr.story.get_location("TestZone", "Forest")
+        # the exit in the new location points back to Cave
+        assert "cave" in forest.exits
+        cave = mgr.story.get_location("TestZone", "Cave")
+        assert "forest" in cave.exits and "north" in cave.exits
+
+    def test_add_exit_existing_target_in_direction(self):
+        mgr = self._seed()
+        ok, err = mgr.add_exit("TestZone", "Cave", "east", "Hall")
+        assert ok is False and "already exists" in err
+
+    def test_add_exit_missing_target_name(self):
+        mgr = self._seed()
+        ok, err = mgr.add_exit("TestZone", "Cave", "east", "")
+        assert ok is False and "target" in err
+
+    def test_remove_exit(self):
+        mgr = self._seed()
+        ok, err = mgr.remove_exit("TestZone", "Cave", "east")
+        assert ok is True and err == ""
+        assert "east" not in mgr.story.get_location("TestZone", "Cave").exits
+
+    def test_remove_exit_unknown(self):
+        mgr = self._seed()
+        ok, err = mgr.remove_exit("TestZone", "Cave", "northeast")
+        assert ok is False and "no exit" in err
+
+    def test_set_exit_state_door(self):
+        mgr = self._seed()
+        door = mgr.story.get_location("TestZone", "Cave").exits["north"]
+        assert door.opened is False
+        ok, err = mgr.set_exit_state("TestZone", "Cave", "north", True)
+        assert ok is True and err == ""
+        assert door.opened is True
+        ok, err = mgr.set_exit_state("TestZone", "Cave", "north", False)
+        assert ok is True and err == ""
+        assert door.opened is False
+
+    def test_set_exit_state_plain_exit_closes(self):
+        mgr = self._seed()
+        ok, err = mgr.set_exit_state("TestZone", "Cave", "east", False)
+        assert ok is True and err == ""
+        # closing a plain exit removes it
+        assert "east" not in mgr.story.get_location("TestZone", "Cave").exits
+
+    def test_set_exit_state_plain_exit_reopen_missing(self):
+        mgr = self._seed()
+        # first close, then trying to reopen a removed plain exit fails
+        mgr.set_exit_state("TestZone", "Cave", "east", False)
+        ok, err = mgr.set_exit_state("TestZone", "Cave", "east", True)
+        assert ok is False and "no exit" in err
+
+    def test_move_npc(self):
+        mgr = self._seed()
+        goblin = mgr.story.world.get_npc("goblin")
+        assert goblin.location.name == "Cave"
+        ok, err = mgr.move_npc("goblin", "TestZone", "Hall")
+        assert ok is True and err == ""
+        assert goblin.location.name == "Hall"
+
+    def test_move_npc_unknown_living(self):
+        mgr = self._seed()
+        ok, err = mgr.move_npc("noone", "TestZone", "Hall")
+        assert ok is False and "not found" in err
+
+    def test_move_npc_unknown_location(self):
+        mgr = self._seed()
+        ok, err = mgr.move_npc("goblin", "TestZone", "Nope")
+        assert ok is False and "not found" in err
+
+    def test_npc_say(self):
+        mgr = self._seed()
+        ok, err = mgr.npc_say("goblin", "Halt, traveller!")
+        assert ok is True and err == ""
+
+    def test_npc_say_missing_text(self):
+        mgr = self._seed()
+        ok, err = mgr.npc_say("goblin", "")
+        assert ok is False and "text is required" in err
+
+    def test_npc_say_unknown_target(self):
+        mgr = self._seed()
+        ok, err = mgr.npc_say("goblin", "hi", target="noone")
+        assert ok is False and "not found" in err
+
+    def test_npc_attack(self):
+        mgr = self._seed()
+        ok, err = mgr.npc_attack("goblin", "orc")
+        assert ok is True and err == ""
+
+    def test_npc_attack_unknown_target(self):
+        mgr = self._seed()
+        ok, err = mgr.npc_attack("goblin", "noone")
+        assert ok is False and "not found" in err
+
+    def test_npc_attack_missing_target(self):
+        mgr = self._seed()
+        ok, err = mgr.npc_attack("goblin", "")
+        assert ok is False and "target_name" in err
+
+    def test_set_npc_goal(self):
+        mgr = self._seed()
+        goblin = mgr.story.world.get_npc("goblin")
+        ok, err = mgr.set_npc_goal("goblin", "Guard the cave.")
+        assert ok is True and err == ""
+        assert goblin.goal == "Guard the cave."
+
+    def test_set_npc_goal_unknown_living(self):
+        mgr = self._seed()
+        ok, err = mgr.set_npc_goal("noone", "some goal")
+        assert ok is False and "not found" in err
+
+    def test_npc_do_move(self):
+        mgr = self._seed()
+        goblin = mgr.story.world.get_npc("goblin")
+        assert goblin.location.name == "Cave"
+        ok, err = mgr.npc_do("goblin", {"action": "move", "target": "hall"})
+        assert ok is True and err == ""
+        assert goblin.location.name == "Hall"
+
+    def test_npc_do_take(self):
+        mgr = self._seed()
+        ok, err = mgr.npc_do("goblin", {"action": "take", "item": "torch"})
+        assert ok is True and err == ""
+        # the item is now in the npc's location
+        torch = mgr.story.world.get_item("torch")
+        assert torch.location.name == "Cave"
+
+    def test_npc_do_unknown_living(self):
+        mgr = self._seed()
+        ok, err = mgr.npc_do("noone", {"action": "move", "target": "Hall"})
+        assert ok is False and "not found" in err
+
+    def test_npc_do_missing_action(self):
+        mgr = self._seed()
+        ok, err = mgr.npc_do("goblin", {})
+        assert ok is False and "action" in err

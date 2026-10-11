@@ -17,11 +17,13 @@ import types
 
 import pytest
 
-from tale import pubsub
+from tale import pubsub, mud_context
 from tale.llm.dynamic_story import DynamicStory
 from tale.llm.responses.LocationResponse import LocationResponse
+from tale.story import StoryConfig
 from tale.story_manager import StoryManager
 from tale.zone import Zone
+from tests.supportstuff import FakeDriver
 
 from tale.mcp.server import create_server, start_server, DEFAULT_MCP_PORT
 
@@ -126,6 +128,8 @@ class TestServerCreation():
         "poll_events", "reset_events",
         "set_story_context", "advance_story_section", "set_start_location",
         "save", "load",
+        "set_location_description", "add_exit", "remove_exit", "set_exit_state",
+        "move_npc", "npc_say", "npc_attack", "npc_do", "set_npc_goal",
         "generate_world_items", "generate_world_creatures", "generate_start_zone", "generate_location",
     }
 
@@ -397,6 +401,202 @@ class TestWorldStoreTools():
         mgr = make_manager()
         mcp = create_server(mgr)
         assert tool_json(mcp, "get_world_item", {"name": "Nope"}) == {}
+
+
+# --- live mutation tools -------------------------------------------------------
+# Stage 3 tools that affect the running story: descriptions, exits, NPC
+# movement/actions and goals. NPC movement and combat need a mud_context with a
+# config (look/show_exits_in_look) and a driver (combat prompts), so set it up.
+
+
+class TestLiveMutationTools():
+
+    def setup_method(self):
+        self._saved = (mud_context.config, mud_context.driver)
+        mud_context.config = StoryConfig()
+        mud_context.driver = FakeDriver()
+
+    def teardown_method(self):
+        mud_context.config, mud_context.driver = self._saved
+
+    def _seed(self, mgr):
+        mgr.add_location({"name": "Cave", "descr": "A cave", "short_descr": "A cave",
+                          "world_location": [0, 0, 0]}, "TestZone")
+        mgr.add_location({"name": "Hall", "descr": "A hall", "short_descr": "A hall",
+                          "world_location": [1, 0, 0]}, "TestZone")
+        mgr.set_exits("TestZone", "Cave", [{"direction": "east", "name": "Hall"}])
+        mgr.add_location({"name": "NorthRoom", "descr": "A room to the north",
+                          "short_descr": "North room", "world_location": [0, 1, 0]}, "TestZone")
+        from tale.base import Door
+        door = Door("north", mgr.story.get_location("TestZone", "NorthRoom"),
+                    "a door", "A door to the north", locked=True, opened=False)
+        mgr.story.get_location("TestZone", "Cave").add_exits([door])
+        mgr.add_creature({"name": "goblin", "type": "Mob", "gender": "m", "race": "human",
+                          "level": 2, "description": "A goblin"})
+        assert mgr.spawn_npc("goblin", "TestZone", "Cave") is True
+        mgr.add_creature({"name": "orc", "type": "Mob", "gender": "m", "race": "human",
+                          "level": 2, "description": "An orc"})
+        assert mgr.spawn_npc("orc", "TestZone", "Hall") is True
+        mgr.add_item({"name": "torch", "type": "Other"})
+        assert mgr.spawn_item("torch", "TestZone", "Cave") is True
+
+    def test_set_location_description(self):
+        mgr = make_manager()
+        self._seed(mgr)
+        mcp = create_server(mgr)
+        success, error = tool_result(mcp, "set_location_description",
+                                     {"zone": "TestZone", "name": "Cave",
+                                      "description": "A dark, dank cave."})
+        assert success is True and error == ""
+        assert mgr.story.get_location("TestZone", "Cave").description == "A dark, dank cave."
+
+    def test_set_location_description_short(self):
+        mgr = make_manager()
+        self._seed(mgr)
+        mcp = create_server(mgr)
+        success, error = tool_result(mcp, "set_location_description",
+                                     {"zone": "TestZone", "name": "Cave",
+                                      "description": "A dark, dank cave.", "short_descr": "A dark cave."})
+        assert success is True and error == ""
+        assert mgr.story.get_location("TestZone", "Cave").short_description == "A dark cave."
+
+    def test_set_location_description_unknown(self):
+        mgr = make_manager()
+        self._seed(mgr)
+        mcp = create_server(mgr)
+        success, error = tool_result(mcp, "set_location_description",
+                                     {"zone": "TestZone", "name": "Nope", "description": "x"})
+        assert success is False and "location 'Nope'" in error
+
+    def test_add_exit(self):
+        mgr = make_manager()
+        self._seed(mgr)
+        mcp = create_server(mgr)
+        success, error = tool_result(mcp, "add_exit",
+                                     {"zone": "TestZone", "name": "Cave", "direction": "down", "target": "Forest"})
+        assert success is True and error == ""
+        forest = mgr.story.get_location("TestZone", "Forest")
+        assert "cave" in forest.exits
+
+    def test_add_exit_existing(self):
+        mgr = make_manager()
+        self._seed(mgr)
+        mcp = create_server(mgr)
+        success, error = tool_result(mcp, "add_exit",
+                                     {"zone": "TestZone", "name": "Cave", "direction": "east", "target": "Hall"})
+        assert success is False and "already exists" in error
+
+    def test_remove_exit(self):
+        mgr = make_manager()
+        self._seed(mgr)
+        mcp = create_server(mgr)
+        success, error = tool_result(mcp, "remove_exit",
+                                     {"zone": "TestZone", "name": "Cave", "direction": "east"})
+        assert success is True and error == ""
+        assert "east" not in mgr.story.get_location("TestZone", "Cave").exits
+
+    def test_set_exit_state_door(self):
+        mgr = make_manager()
+        self._seed(mgr)
+        mcp = create_server(mgr)
+        door = mgr.story.get_location("TestZone", "Cave").exits["north"]
+        assert door.opened is False
+        success, error = tool_result(mcp, "set_exit_state",
+                                     {"zone": "TestZone", "name": "Cave", "direction": "north", "open": True})
+        assert success is True and error == ""
+        assert door.opened is True
+
+    def test_set_exit_state_plain_exit(self):
+        mgr = make_manager()
+        self._seed(mgr)
+        mcp = create_server(mgr)
+        success, error = tool_result(mcp, "set_exit_state",
+                                     {"zone": "TestZone", "name": "Cave", "direction": "east", "open": False})
+        assert success is True and error == ""
+        assert "east" not in mgr.story.get_location("TestZone", "Cave").exits
+
+    def test_move_npc(self):
+        mgr = make_manager()
+        self._seed(mgr)
+        mcp = create_server(mgr)
+        success, error = tool_result(mcp, "move_npc",
+                                     {"name": "goblin", "zone": "TestZone", "location_name": "Hall"})
+        assert success is True and error == ""
+        assert mgr.story.world.get_npc("goblin").location.name == "Hall"
+
+    def test_move_npc_unknown(self):
+        mgr = make_manager()
+        self._seed(mgr)
+        mcp = create_server(mgr)
+        success, error = tool_result(mcp, "move_npc",
+                                     {"name": "noone", "zone": "TestZone", "location_name": "Hall"})
+        assert success is False and "not found" in error
+
+    def test_npc_say(self):
+        mgr = make_manager()
+        self._seed(mgr)
+        mcp = create_server(mgr)
+        success, error = tool_result(mcp, "npc_say", {"name": "goblin", "text": "Halt!"})
+        assert success is True and error == ""
+
+    def test_npc_say_unknown(self):
+        mgr = make_manager()
+        self._seed(mgr)
+        mcp = create_server(mgr)
+        success, error = tool_result(mcp, "npc_say", {"name": "noone", "text": "Halt!"})
+        assert success is False and "not found" in error
+
+    def test_npc_attack(self):
+        mgr = make_manager()
+        self._seed(mgr)
+        mcp = create_server(mgr)
+        success, error = tool_result(mcp, "npc_attack", {"name": "goblin", "target_name": "orc"})
+        assert success is True and error == ""
+
+    def test_npc_attack_unknown(self):
+        mgr = make_manager()
+        self._seed(mgr)
+        mcp = create_server(mgr)
+        success, error = tool_result(mcp, "npc_attack", {"name": "goblin", "target_name": "noone"})
+        assert success is False and "not found" in error
+
+    def test_set_npc_goal(self):
+        mgr = make_manager()
+        self._seed(mgr)
+        mcp = create_server(mgr)
+        success, error = tool_result(mcp, "set_npc_goal", {"name": "goblin", "goal": "Guard the cave."})
+        assert success is True and error == ""
+        assert mgr.story.world.get_npc("goblin").goal == "Guard the cave."
+
+    def test_set_npc_goal_unknown(self):
+        mgr = make_manager()
+        self._seed(mgr)
+        mcp = create_server(mgr)
+        success, error = tool_result(mcp, "set_npc_goal", {"name": "noone", "goal": "x"})
+        assert success is False and "not found" in error
+
+    def test_npc_do_move(self):
+        mgr = make_manager()
+        self._seed(mgr)
+        mcp = create_server(mgr)
+        success, error = tool_result(mcp, "npc_do", {"name": "goblin", "action": {"action": "move", "target": "hall"}})
+        assert success is True and error == ""
+        assert mgr.story.world.get_npc("goblin").location.name == "Hall"
+
+    def test_npc_do_take(self):
+        mgr = make_manager()
+        self._seed(mgr)
+        mcp = create_server(mgr)
+        success, error = tool_result(mcp, "npc_do", {"name": "goblin", "action": {"action": "take", "item": "torch"}})
+        assert success is True and error == ""
+        assert mgr.story.world.get_item("torch").location.name == "Cave"
+
+    def test_npc_do_missing_action(self):
+        mgr = make_manager()
+        self._seed(mgr)
+        mcp = create_server(mgr)
+        success, error = tool_result(mcp, "npc_do", {"name": "goblin", "action": {}})
+        assert success is False and "action" in error
 
 
 # --- validation feedback -------------------------------------------------------

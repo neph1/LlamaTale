@@ -119,13 +119,23 @@ class WorldBuilding():
                         zone = self.validate_zone(json_result, 
                                                   current_location.world_location.add(
                                                       direction.multiply(json_result.get('size', current_zone.size_z if direction.z != 0 else current_zone.size))))
-                        if zone and story.add_zone(zone):
-                            zone.level = (zone.level + 1) if random.random() < 0.5 else zone.level
-                            if random.random() < 0.25:
-                                dungeon_config = self._generate_dungeon_config(zone, world_generation_context)
-                                if dungeon_config:
-                                    zone.dungeon_config = dungeon_config
-                            return zone
+                        if zone:
+                            # route the zone addition through the story
+                            # modification layer so the LLM path shares one
+                            # surface with MCP (fall back to the story if no
+                            # manager is registered, e.g. in tests)
+                            from tale import story_manager
+                            try:
+                                added = story_manager.current().add_zone_object(zone)
+                            except RuntimeError:
+                                added = story.add_zone(zone)
+                            if added:
+                                zone.level = (zone.level + 1) if random.random() < 0.5 else zone.level
+                                if random.random() < 0.25:
+                                    dungeon_config = self._generate_dungeon_config(zone, world_generation_context)
+                                    if dungeon_config:
+                                        zone.dungeon_config = dungeon_config
+                                return zone
         return current_zone
 
         
