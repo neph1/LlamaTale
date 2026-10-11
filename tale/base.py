@@ -1238,16 +1238,39 @@ class Living(MudObject):
         There are a few formatting strings for easy shorthands:
         {actor}/{Actor} = the acting living's title / acting living's title capitalized (subject in the sentence)
         {target}/{Target} = the target's title / target's title capitalized (object in the sentence)
+        Only these four placeholders are substituted, using plain string replacement
+        rather than str.format. This means free-form text (such as LLM output) that
+        happens to contain literal curly braces (e.g. "{name}") will not raise a
+        KeyError/ValueError.
         If you need even more tweaks with telling stuff, use living.location.tell directly.
         """
+        actor_cap = lang.capital(self.title)
         if target is None:
-            room_msg = message.format(actor=self.title, Actor=lang.capital(self.title))
+            room_msg = self._format_room_message(message, self.title, actor_cap, None, None)
             self.location.tell(room_msg, exclude_living=self, evoke=evoke, short_len=short_len)
         else:
-            room_msg = message.format(actor=self.title, Actor=lang.capital(self.title),
-                                      target=target.title, Target=lang.capital(target.title))
-            spec_msg = message.format(actor=self.title, Actor=lang.capital(self.title), target="you", Target="You")
+            target_cap = lang.capital(target.title)
+            room_msg = self._format_room_message(message, self.title, actor_cap, target.title, target_cap)
+            spec_msg = self._format_room_message(message, self.title, actor_cap, "you", "You")
             self.location.tell(room_msg, exclude_living=self, specific_targets={target}, specific_target_msg=spec_msg, evoke=evoke, short_len=short_len, alt_prompt=alt_prompt, extra_context=extra_context)
+
+    @staticmethod
+    def _format_room_message(message: str, actor: str, actor_cap: str, target: Optional[str], target_cap: Optional[str]) -> str:
+        """Substitute only the {actor}/{Actor}/{target}/{Target} shorthand placeholders.
+
+        Uses plain str.replace instead of str.format, so any other literal braces in the
+        message (e.g. LLM output containing "{name}") are left untouched instead of
+        raising a KeyError. The {target}/{Target} placeholders are only substituted when
+        a target is actually given; otherwise they are left untouched as well.
+        """
+        message = (message
+                   .replace("{actor}", actor)
+                   .replace("{Actor}", actor_cap))
+        if target is not None:
+            message = (message
+                       .replace("{target}", target)
+                       .replace("{Target}", target_cap))
+        return message
 
     def parse(self, commandline: str, external_verbs: Set[str]=set()) -> ParseResult:
         """Parse the commandline into something that can be processed by the soul (ParseResult)"""
