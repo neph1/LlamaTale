@@ -17,6 +17,7 @@ import types
 
 import pytest
 
+from tale import pubsub
 from tale.llm.dynamic_story import DynamicStory
 from tale.llm.responses.LocationResponse import LocationResponse
 from tale.story_manager import StoryManager
@@ -122,6 +123,7 @@ class TestServerCreation():
         "add_world_npc", "add_world_item", "get_world_npc", "get_world_item",
         "list_players", "get_player", "get_npc", "get_location_live",
         "get_story_state", "get_world_map",
+        "poll_events", "reset_events",
         "set_story_context", "advance_story_section", "set_start_location",
         "save", "load",
         "generate_world_items", "generate_world_creatures", "generate_start_zone", "generate_location",
@@ -486,6 +488,59 @@ class TestProgressionTools():
         call_tool(mcp, "set_start_location", {"zone": "TestZone", "name": "Cave"})
         assert mgr.story.config.startlocation_player == "TestZone.Cave"
         assert mgr.story.config.startlocation_wizard == "TestZone.Cave"
+
+
+# --- event polling tools -------------------------------------------------------
+
+class TestEventPollingTools():
+    """The Stage 2 event-polling tools: ``poll_events`` returns a JSON array of
+    wiretap events; ``reset_events`` clears the buffer."""
+
+    def test_poll_events_empty(self):
+        mcp = create_server(make_manager())
+        events = tool_json(mcp, "poll_events")
+        assert events == []
+
+    def test_poll_events_returns_json_array(self):
+        mgr = make_manager()
+        mgr.add_location({"name": "Cave", "descr": "A cave", "world_location": [0, 0, 0]}, "TestZone")
+        location = mgr.story.get_location("TestZone", "Cave")
+        location.tell("A door creaks open.")
+        pubsub.sync()
+        mcp = create_server(mgr)
+        events = tool_json(mcp, "poll_events")
+        assert isinstance(events, list)
+        assert len(events) == 1
+        e = events[0]
+        assert e["kind"] == "wiretap-location"
+        assert e["source"] == "Cave"
+        assert e["text"] == "A door creaks open."
+        assert e["index"] == 1
+
+    def test_poll_events_since(self):
+        mgr = make_manager()
+        mgr.add_location({"name": "Cave", "descr": "A cave", "world_location": [0, 0, 0]}, "TestZone")
+        location = mgr.story.get_location("TestZone", "Cave")
+        location.tell("first")
+        location.tell("second")
+        pubsub.sync()
+        mcp = create_server(mgr)
+        events = tool_json(mcp, "poll_events", {"since": 1})
+        assert [e["text"] for e in events] == ["second"]
+
+    def test_reset_events(self):
+        mgr = make_manager()
+        mgr.add_location({"name": "Cave", "descr": "A cave", "world_location": [0, 0, 0]}, "TestZone")
+        location = mgr.story.get_location("TestZone", "Cave")
+        location.tell("one")
+        pubsub.sync()
+        mcp = create_server(mgr)
+        call_tool(mcp, "reset_events")
+        assert tool_json(mcp, "poll_events") == []
+        # the manager is still subscribed after the reset
+        location.tell("two")
+        pubsub.sync()
+        assert [e["text"] for e in tool_json(mcp, "poll_events")] == ["two"]
 
 
 # --- persistence tools ---------------------------------------------------------

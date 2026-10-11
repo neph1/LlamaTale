@@ -25,6 +25,7 @@ from tale.zone import Zone
 import tale.parse_utils as parse_utils
 from tale.load_items import load_item, load_items
 from tale.mcp.validation import validate_zone, validate_location, validate_npc, validate_item
+from tale.mcp.events import StoryEvents
 
 __all__ = ["StoryManager", "register", "current", "get"]
 
@@ -73,6 +74,10 @@ class StoryManager:
             story._world = WorldInfo()
         if not hasattr(story, "_catalogue") or story._catalogue is None:
             story._catalogue = Catalogue()
+        # Stage 2: a manager-owned ring buffer of wiretap events, subscribed to
+        # the live world's wiretap topics so an agent can poll what is happening.
+        self._events = StoryEvents(maxlen=500)
+        self._subscribe_events()
 
     # -- helpers ----------------------------------------------------------------
 
@@ -80,6 +85,45 @@ class StoryManager:
     def story(self):
         """The wrapped DynamicStory."""
         return self._story
+
+    # -- event polling (Stage 2) ------------------------------------------------
+    # A manager-owned :class:`StoryEvents` listener is subscribed to the wiretap
+    # pubsub topic of every known location, live NPC and connected player. It
+    # buffers the structured messages the LLM reasons over (see
+    # Location.tell / Living.tell), so an agent can poll what is happening in
+    # the live world without touching base.py.
+
+    def _subscribe_events(self) -> None:
+        """(Re)subscribe the event listener to every known wiretap topic.
+
+        Subscribes to the wiretap of every location in the live world, every
+        live NPC in the world store, and (if a driver is present) every
+        connected player. Re-subscribing is idempotent (a topic keeps a single
+        weakref to the listener), so this is safe to call whenever new
+        locations/NPCs appear.
+        """
+        for location in self._story._world._locations.values():
+            location.get_wiretap().subscribe(self._events)
+        for npc in self._story.world.npcs.values():
+            npc.get_wiretap().subscribe(self._events)
+        driver = self._driver
+        if driver:
+            for conn in driver.all_players.values():
+                conn.player.get_wiretap().subscribe(self._events)
+
+    def poll_events(self, since: int = 0) -> list:
+        """Wiretap events with ``index > since`` (newest last).
+
+        Each event is ``{"index", "time", "kind", "source", "text"}`` where
+        ``kind`` is ``"wiretap-location"`` or ``"wiretap-living"``. Poll with
+        the highest ``index`` you have seen to avoid re-reading old events.
+        """
+        return self._events.since(since)
+
+    def reset_events(self) -> None:
+        """Drop the buffered events and reset the cursor (fresh start)."""
+        self._events = StoryEvents(maxlen=500)
+        self._subscribe_events()
 
     # -- case-insensitive lookups ------------------------------------------------
     # Location names are stored with whatever case they were created with, but
@@ -267,6 +311,7 @@ class StoryManager:
                 return False, f"zone '{zone}' not found"
             if not self._story.add_location(loc, zone):
                 return False, f"location '{loc.name}' already exists"
+            self._subscribe_events()   # subscribe to the new location's wiretap
             return True, ""
 
     def get_location(self, zone: str, name: str) -> dict:
@@ -338,6 +383,7 @@ class StoryManager:
                                            short_descr=f"To the {opposite} you see {location.name}.")])
             if new_exits:
                 location.add_exits(new_exits)
+                self._subscribe_events()   # new target locations were created above
             return True
 
     def exit_example(self) -> dict:
@@ -429,6 +475,7 @@ class StoryManager:
             npc = next(iter(npcs.values()))
             location.insert(npc, None)
             self._story.world.add_npc(npc)
+            self._subscribe_events()   # subscribe to the new NPC's wiretap
             return True
 
     def spawn_item(self, item_name: str, zone: str, location_name: str) -> bool:
@@ -479,6 +526,7 @@ class StoryManager:
                 return False, error
             if not self._story.world.add_npc(npc_obj):
                 return False, f"npc '{npc_obj.name}' already exists"
+            self._subscribe_events()   # subscribe to the new NPC's wiretap
             return True, ""
 
     def add_world_item(self, item: dict) -> tuple:
@@ -805,6 +853,7 @@ class StoryManager:
             llm_cache_path = os.path.join(path, 'llm_cache.json')
             if os.path.exists(llm_cache_path):
                 llm_cache.load(parse_utils.load_json(llm_cache_path))
+            self._subscribe_events()   # the world was rebuilt; subscribe to its wiretaps
 
     # -- LLM-backed generation (optional; delegates to WorldBuilding, then
     #    applies the result to the story via the mutation API above) -----------

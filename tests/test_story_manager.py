@@ -7,6 +7,7 @@ import types
 
 import pytest
 
+from tale import pubsub
 from tale.base import Location, Living
 from tale.coord import Coord
 from tale.errors import SecurityViolation
@@ -589,3 +590,176 @@ class TestLiveState():
         # an exit is keyed by the direction *and* the target name (an alias),
         # and the map sorts the keys
         assert world_map["TestZone"]["Room"]["exits"] == ["hall", "north"]
+
+
+class TestEventPolling():
+    """Tests for the Stage 2 event ring buffer (``StoryEvents``) and the
+    ``StoryManager`` polling/subscription wiring."""
+
+    class StubDriver:
+        """A tiny driver stub exposing ``all_players`` (name -> connection with
+        a ``.player``), as the real driver does."""
+        def __init__(self, players):
+            self.all_players = {p.name: types.SimpleNamespace(player=p) for p in players}
+
+    @staticmethod
+    def _flush():
+        """Deliver pending pubsub events to subscribers.
+
+        ``Location.tell``/``Living.tell`` send their wiretap event with
+        ``synchronous=False``; the driver delivers it to subscribers (our
+        ``StoryEvents`` listener) during ``pubsub.sync()`` each tick. In the
+        test there is no driver, so we call ``sync()`` after each ``tell``.
+        """
+        pubsub.sync()
+
+    # --- StoryEvents unit tests ----------------------------------------------
+
+    def test_storyevents_only_captures_wiretap(self):
+        from tale.mcp.events import StoryEvents
+        ev = StoryEvents()
+        ev.pubsub_event(("wiretap-location", "Cave#1"), ("Cave", "A door creaks."))
+        ev.pubsub_event(("wiretap-living", "goblin#2"), ("goblin", "I'm hungry."))
+        # non-wiretap topics are ignored
+        ev.pubsub_event("driver-pending-tells", ("hero", "go north"))
+        ev.pubsub_event(("wiretap-location", "Cave#1"), ("Cave", None))   # still wiretap
+        events = ev.since(0)
+        assert len(events) == 3
+        assert events[0]["kind"] == "wiretap-location"
+        assert events[0]["source"] == "Cave"
+        assert events[0]["text"] == "A door creaks."
+        assert events[1]["kind"] == "wiretap-living"
+        assert events[1]["source"] == "goblin"
+        assert events[1]["text"] == "I'm hungry."
+        # indexes are monotonically increasing
+        assert [e["index"] for e in events] == [1, 2, 3]
+
+    def test_storyevents_since_filters(self):
+        from tale.mcp.events import StoryEvents
+        ev = StoryEvents()
+        for i in range(1, 5):
+            ev.pubsub_event(("wiretap-location", "Cave#1"), ("Cave", "msg %d" % i))
+        # only newer records
+        since_2 = ev.since(2)
+        assert [e["text"] for e in since_2] == ["msg 3", "msg 4"]
+        assert since_2[0]["index"] == 3
+        # cursor is the latest index
+        assert ev.cursor == 4
+        # since the latest -> empty
+        assert ev.since(4) == []
+
+    def test_storyevents_maxlen_ring(self):
+        from tale.mcp.events import StoryEvents
+        ev = StoryEvents(maxlen=2)
+        for i in range(1, 6):
+            ev.pubsub_event(("wiretap-location", "Cave#1"), ("Cave", "msg %d" % i))
+        # only the two most recent survive; indexes keep increasing
+        events = ev.since(0)
+        assert [e["text"] for e in events] == ["msg 4", "msg 5"]
+        assert [e["index"] for e in events] == [4, 5]
+        # the cursor still reflects the total count (used to avoid re-reading)
+        assert ev.cursor == 5
+
+    # --- StoryManager polling / subscription wiring ---------------------------
+
+    def test_poll_empty_when_no_events(self):
+        mgr = StoryManager(make_story())
+        assert mgr.poll_events() == []
+        assert mgr._events.cursor == 0
+
+    def test_poll_captures_location_tell(self):
+        mgr = StoryManager(make_story())
+        mgr.add_location({"name": "Cave", "descr": "A cave", "world_location": [0, 0, 0]}, "TestZone")
+        location = mgr.story.get_location("TestZone", "Cave")
+        # the manager subscribed to the location's wiretap on creation
+        location.tell("A door creaks open.")
+        self._flush()
+        events = mgr.poll_events(0)
+        assert len(events) == 1
+        e = events[0]
+        assert e["kind"] == "wiretap-location"
+        assert e["source"] == "Cave"
+        assert e["text"] == "A door creaks open."
+        assert e["index"] == 1
+        assert e["time"] > 0
+
+    def test_poll_since_returns_only_newer(self):
+        mgr = StoryManager(make_story())
+        mgr.add_location({"name": "Cave", "descr": "A cave", "world_location": [0, 0, 0]}, "TestZone")
+        location = mgr.story.get_location("TestZone", "Cave")
+        location.tell("first")
+        location.tell("second")
+        self._flush()
+        # cursor at 1 -> only the second event
+        events = mgr.poll_events(1)
+        assert [e["text"] for e in events] == ["second"]
+        assert events[0]["index"] == 2
+        # the full history is still available from 0
+        assert [e["text"] for e in mgr.poll_events(0)] == ["first", "second"]
+
+    def test_poll_new_location_subscribed(self):
+        mgr = StoryManager(make_story())
+        # create the manager, then add a location *after* construction
+        mgr.add_location({"name": "Room", "descr": "A room", "world_location": [0, 0, 0]}, "TestZone")
+        location = mgr.story.get_location("TestZone", "Room")
+        location.tell("A gust of wind.")
+        self._flush()
+        events = mgr.poll_events(0)
+        assert len(events) == 1
+        assert events[0]["source"] == "Room"
+
+    def test_poll_captures_npc_tell(self):
+        mgr = StoryManager(make_story())
+        mgr.add_location({"name": "Cave", "descr": "A cave", "world_location": [0, 0, 0]}, "TestZone")
+        mgr.add_creature({"name": "goblin", "type": "Mob", "gender": "m", "race": "human",
+                          "level": 1, "description": "A goblin"})
+        assert mgr.spawn_npc("goblin", "TestZone", "Cave") is True
+        npc = mgr.story.world.get_npc("goblin")
+        npc.tell("I'm hungry.")
+        self._flush()
+        events = mgr.poll_events(0)
+        assert any(e["kind"] == "wiretap-living" and e["source"] == "goblin"
+                   and e["text"] == "I'm hungry." for e in events)
+
+    def test_poll_captures_player_tell(self):
+        mgr = StoryManager(make_story())
+        mgr.add_location({"name": "Cave", "descr": "A cave", "world_location": [0, 0, 0]}, "TestZone")
+        cave = mgr.story.get_location("TestZone", "Cave")
+        hero = Living("Hero", "m")
+        hero.location = cave
+        mgr._driver = self.StubDriver([hero])
+        # re-subscribe to pick up the player's wiretap
+        mgr._subscribe_events()
+        hero.tell("I look around.")
+        self._flush()
+        events = mgr.poll_events(0)
+        assert any(e["kind"] == "wiretap-living" and e["source"] == "hero"
+                   and e["text"] == "I look around." for e in events)
+
+    def test_reset_events_clears(self):
+        mgr = StoryManager(make_story())
+        mgr.add_location({"name": "Cave", "descr": "A cave", "world_location": [0, 0, 0]}, "TestZone")
+        location = mgr.story.get_location("TestZone", "Cave")
+        location.tell("one")
+        location.tell("two")
+        self._flush()
+        assert len(mgr.poll_events(0)) == 2
+        mgr.reset_events()
+        assert mgr.poll_events(0) == []
+        assert mgr._events.cursor == 0
+        # after reset the manager is still subscribed (new events are captured)
+        location.tell("three")
+        self._flush()
+        events = mgr.poll_events(0)
+        assert [e["text"] for e in events] == ["three"]
+        assert events[0]["index"] == 1
+
+    def test_events_are_json_serializable(self):
+        import json
+        mgr = StoryManager(make_story())
+        mgr.add_location({"name": "Cave", "descr": "A cave", "world_location": [0, 0, 0]}, "TestZone")
+        location = mgr.story.get_location("TestZone", "Cave")
+        location.tell("A door creaks.")
+        self._flush()
+        # the MCP wrapper serializes the list to a single JSON string
+        json.dumps(mgr.poll_events(0), indent=2, default=str)

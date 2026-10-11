@@ -50,9 +50,10 @@ def create_server(manager, port: int = DEFAULT_MCP_PORT) -> FastMCP:
             "Tools for building and modifying a LlamaTale story/world. "
             "Cover story config, zones, locations, catalogue items/creatures, "
             "live world contents, read-only live state (players, NPCs, "
-            "locations, story progress, world map), story progression, "
-            "persistence, and LLM-backed generation. Locations and zones are "
-            "identified by name; a location is addressed as (zone, name)."
+            "locations, story progress, world map), event polling (observe "
+            "the live world as it happens), story progression, persistence, "
+            "and LLM-backed generation. Locations and zones are identified by "
+            "name; a location is addressed as (zone, name)."
         ),
         host="127.0.0.1",
         stateless_http=True, 
@@ -328,6 +329,22 @@ def create_server(manager, port: int = DEFAULT_MCP_PORT) -> FastMCP:
         {zone_name: {location_name: {indoors, npc_count, item_count,
         exits:[directions]}}}."""
         return manager.get_world_map()
+
+    # -- event polling (observe the live world as it happens) ------------------
+
+    @mcp.tool()
+    def poll_events(since: int = 0) -> str:
+        """Return wiretap events from the live world with ``index > since``
+        (newest last) as a JSON array. Each event is {index, time, kind,
+        source, text} where kind is "wiretap-location" or "wiretap-living".
+        Poll with the highest index you have seen to avoid re-reading old
+        events. This lets you *observe* the story as it happens."""
+        return _json(manager.poll_events(since))
+
+    @mcp.tool()
+    def reset_events() -> None:
+        """Drop the buffered events and reset the cursor (fresh start)."""
+        manager.reset_events()
 
     # -- story progression -----------------------------------------------------
 
