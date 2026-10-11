@@ -382,9 +382,12 @@ class Driver(pubsub.Listener):
                     sys.stderr.write(msg + "\n\n")
                     self._stop_driver()
                     raise errors.TaleError(msg)
-                print("ERROR IN DRIVER MAINLOOP:\n", "".join(util.format_traceback()), file=sys.stderr)
-                for conn in self.all_players.values():
-                    conn.critical_error()
+                print("ERROR IN DRIVER MAINLOOP", file=sys.stderr)
+                if self.all_players:
+                    for conn in self.all_players.values():
+                        conn.critical_error()
+                else:
+                    util.log_crash()   # no player to report to; still record the crash
 
     def main_loop(self, conn: Optional[player.PlayerConnection]):
         raise NotImplementedError
@@ -535,8 +538,8 @@ class Driver(pubsub.Listener):
             except StoryCompleted:
                 raise    # handled elsewhere (IF)
             except Exception:
-                print("\n* Exception while executing deferred action {0}:".format(deferred), file=sys.stderr)
-                print("".join(util.format_traceback()), file=sys.stderr)
+                print("* Exception while executing deferred action {0}:".format(deferred), file=sys.stderr)
+                util.log_crash()   # write the full traceback to the crash log file
                 print("(Please report this problem)", file=sys.stderr)
         del due_deferreds
 

@@ -8,12 +8,14 @@ Copyright by Irmen de Jong (irmen@razorvine.net)
 import datetime
 import functools
 import inspect
+import logging
+import os
 import random
 import sys
 import traceback
 from decimal import Decimal
 from types import MemberDescriptorType
-from typing import List, Tuple, Dict, Union, Sequence, Any, Callable, Iterable, Type, Set
+from typing import List, Tuple, Dict, Union, Sequence, Any, Callable, Iterable, Type, Set, Optional
 
 from . import lang, mud_context
 from .errors import ParseError, ActionRefused, TaleError
@@ -501,10 +503,55 @@ def format_traceback(ex_type: Type=None, ex_value: Any=None, ex_tb: Any=None, de
         return result
 
 
+# Where crash/exception tracebacks are appended, instead of being dumped into the
+# game window or console.
+CRASH_LOG_FILENAME = "tale_crash.log"
+
+_crash_logger: Optional[logging.Logger] = None
+
+
+def _get_crash_logger() -> logging.Logger:
+    """Return a module-level logger that appends crash tracebacks to a file."""
+    global _crash_logger
+    if _crash_logger is None:
+        logger = logging.getLogger("tale.crash")
+        if not len(logger.handlers):
+            logger.setLevel(logging.INFO)
+            try:
+                handler = logging.FileHandler(os.path.join(os.getcwd(), CRASH_LOG_FILENAME), encoding="utf-8")
+            except OSError:
+                handler = logging.NullHandler()   # if we can't write a file, don't crash the reporter
+            handler.setFormatter(logging.Formatter("%(asctime)s\n%(message)s"))
+            logger.addHandler(handler)
+            logger.propagate = False
+        _crash_logger = logger
+    return _crash_logger
+
+
+def log_crash() -> str:
+    """Append the traceback of the currently handled exception to the crash log file.
+
+    Returns the formatted traceback string, so callers can refer to it (or show a
+    short message) without re-formatting. Call this from within an ``except`` block.
+    """
+    ex_type, ex_value, ex_tb = sys.exc_info()
+    text = "".join(format_traceback(ex_type, ex_value, ex_tb, detailed=True, with_self=False))
+    name = ex_type.__name__ if ex_type is not None else "Unknown exception"
+    _get_crash_logger().error("CRASH: %s: %s\n%s", name, ex_value, text)
+    return text
+
+
+def crash_report_message() -> str:
+    """Short, player-facing message to show when a crash has been written to the log."""
+    return "<rev><it>The details have been written to '%s'. Please report this problem.</>" % CRASH_LOG_FILENAME
+
+
 def excepthook(ex_type, ex_value, ex_tb):
-    """An exception hook you can use for ``sys.excepthook``, to automatically print detailed tracebacks"""
-    traceback = "".join(format_traceback(ex_type, ex_value, ex_tb, detailed=True, with_self=False))
-    sys.stderr.write(traceback)
+    """An exception hook you can use for ``sys.excepthook``, to write detailed tracebacks to the crash log"""
+    name = ex_type.__name__ if ex_type is not None else "Unknown exception"
+    _get_crash_logger().error("UNCAUGHT EXCEPTION: %s: %s\n%s",
+                              name, ex_value, "".join(format_traceback(ex_type, ex_value, ex_tb, detailed=True, with_self=False)))
+    sys.stderr.write("\n* Uncaught %s: %s. See %s for details.\n" % (name, ex_value, CRASH_LOG_FILENAME))
 
 
 def call_periodically(period: float, max_period: float=None):

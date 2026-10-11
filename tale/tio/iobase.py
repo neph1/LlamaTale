@@ -4,11 +4,10 @@ Basic Input/Output stuff not tied to a specific I/O implementation.
 'Tale' mud driver, mudlib and interactive fiction framework
 Copyright by Irmen de Jong (irmen@razorvine.net)
 """
-import sys
 from typing import Union, Sequence, Any, Tuple, Optional, List
 import smartypants
 from .. import verbdefs
-from ..util import format_traceback
+from .. import util
 
 
 smartypants.process_escapes = lambda txt: txt  # disable the html escape processing
@@ -60,10 +59,9 @@ class IoAdapterBase:
 
     def critical_error(self, message: str="A critical error occurred! See below and/or in the error log.") -> None:
         """called when the driver encountered a critical error and the session needs to shut down"""
-        tb = "".join(format_traceback())
+        util.log_crash()   # write the full traceback to the crash log file
         self.output("\n<bright><rev>" + message + "</>")
-        print(tb, file=sys.stderr)
-        self.output("<rev><it>Please report this problem.</>\n")
+        self.output(util.crash_report_message() + "\n")
 
     def abort_all_input(self, player) -> None:
         """abort any blocking input, if at all possible"""

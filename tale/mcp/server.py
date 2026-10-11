@@ -501,7 +501,7 @@ def start_server(port: int = DEFAULT_MCP_PORT) -> Optional[threading.Thread]:
             import asyncio
             import uvicorn
             app = mcp.streamable_http_app()
-            config = uvicorn.Config(app, host="127.0.0.1", port=port, log_level="info")
+            config = uvicorn.Config(app, host="127.0.0.1", port=port, log_level="error")
             server = uvicorn.Server(config)
             asyncio.run(server.serve())
         except Exception as e:   # pragma: no cover - defensive
