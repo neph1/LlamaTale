@@ -76,6 +76,14 @@ class TestLlmUtils():
         actions = self.llm_util.perform_idle_action(character_name='Norhardt', location = location, character_card= '{}', sentiments= {}, last_action= '')
         assert(actions == 'Walk to the left')
 
+    def test_perform_idle_action_with_reasoning(self):
+        # mostly testing that prompt works
+        self.llm_util.set_story(self.story)
+        self.llm_util._character.io_util.response = '<think>Where should I go? I will go right. Wait! It might be a trap. I should go left.</think>Walk to the left'
+        location = Location(name='Test Location')
+        actions = self.llm_util.perform_idle_action(character_name='Norhardt', location = location, character_card= '{}', sentiments= {}, last_action= '')
+        assert(actions == 'Walk to the left')
+
     def test_perform_travel_action(self):
         # mostly testing that prompt works
         self.llm_util._character.io_util.response = 'West'
