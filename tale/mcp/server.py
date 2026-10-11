@@ -436,6 +436,22 @@ def create_server(manager, port: int = DEFAULT_MCP_PORT) -> FastMCP:
         Returns {"success": bool, "error": str}."""
         return _result(*manager.set_npc_goal(name, goal))
 
+    # -- LLM-driven / narrative (Stage 4) --------------------------------------
+
+    @mcp.tool()
+    def npc_act(name: str) -> dict:
+        """Have a live LLM NPC (a LivingNpc) plan and perform an idle action:
+        the LLM chooses what the NPC does from the location's context. Returns
+        a dict with the performed ``action``, or an empty dict if nothing was
+        performed (unknown NPC, not an LLM NPC, or no action planned)."""
+        return manager.npc_act(name)
+
+    @mcp.tool()
+    def trigger_narrative_event(zone: str, name: str) -> str:
+        """Have the LLM narrate a short event in the location (zone, name) and
+        return the narrated text. Empty string if the location is not found."""
+        return manager.trigger_narrative_event(zone, name)
+
     # -- LLM-backed generation -------------------------------------------------
 
     @mcp.tool()

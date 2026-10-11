@@ -1172,6 +1172,49 @@ class StoryManager:
             npc.goal = goal
             return True, ""
 
+    # -- LLM-driven / narrative (Stage 4) --------------------------------------
+    # These delegate to the LLM path rather than driving the world directly:
+    # one nudges a live NPC to plan and perform an idle action (the LLM chooses
+    # from the location's ActionContext), the other has the LLM narrate a short
+    # event into a room. Both require an ``llm_util`` on the manager and return
+    # plain values (a dict / a string) instead of (success, error) tuples.
+
+    def npc_act(self, name: str) -> dict:
+        """Have a live LLM NPC (a :class:`LivingNpc`) plan and perform an idle
+        action.
+
+        Delegates to :meth:`LivingNpc.idle_action`, which asks the LLM (from the
+        location's ActionContext) what the NPC does while idle. Requires an
+        ``llm_util`` to have been supplied to the manager. Returns a dict with
+        the performed ``action`` (or an empty dict if there is no NPC, the NPC
+        is not a LivingNpc, no llm_util is available, or the LLM planned no
+        action).
+        """
+        npc = self._find_living(name)
+        if npc is None or not isinstance(npc, LivingNpc):
+            return {}
+        if not self._llm_util:
+            return {}
+        action = npc.idle_action()
+        if not action:
+            return {}
+        return {"action": action}
+
+    def trigger_narrative_event(self, zone: str, name: str) -> str:
+        """Have the LLM narrate an event in the location (zone, name).
+
+        Delegates to ``llm_util.generate_narrative_event(location)``, which asks
+        the LLM for a short narration and tells it to the room. Requires an
+        ``llm_util``. Returns the narrated text, or "" if the location was not
+        found or no llm_util is available.
+        """
+        if not self._llm_util:
+            return ""
+        _zone_obj, location = self._zone_location(zone, name)
+        if location is None:
+            return ""
+        return self._llm_util.generate_narrative_event(location)
+
     # -- LLM handoff (Phase 3) -------------------------------------------------
     # The LLM path (WorldBuilding) is a *generator*: it produces a
     # LocationResponse (and an optional MobSpawner). The story-level

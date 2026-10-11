@@ -68,6 +68,13 @@ def tool_bool(mcp, name, arguments=None):
     return structured["result"]
 
 
+def tool_text(mcp, name, arguments=None):
+    """Call a tool whose result is free text (not JSON) and return the text."""
+    texts, _ = call_tool(mcp, name, arguments or {})
+    assert texts, "expected a text content from tool %s" % name
+    return texts[0]
+
+
 def tool_result(mcp, name, arguments=None):
     """Call a tool that returns a {"success": bool, "error": str} dict.
 
@@ -109,6 +116,12 @@ class FakeLlmUtil:
         response = LocationResponse(json_result, location, location.name)
         return response, None
 
+    def perform_idle_action(self, **kwargs):
+        return ["The goblin scratches itself idly."]
+
+    def generate_narrative_event(self, location):
+        return "A shadow stirs in the corner."
+
 
 # --- server creation -----------------------------------------------------------
 
@@ -130,6 +143,7 @@ class TestServerCreation():
         "save", "load",
         "set_location_description", "add_exit", "remove_exit", "set_exit_state",
         "move_npc", "npc_say", "npc_attack", "npc_do", "set_npc_goal",
+        "npc_act", "trigger_narrative_event",
         "generate_world_items", "generate_world_creatures", "generate_start_zone", "generate_location",
     }
 
@@ -805,6 +819,81 @@ class TestLlmGenerationTools():
         # the generated destination location was added and the exit bound
         assert mgr.story.find_location("Generated Room") is not None
         assert "north" in mgr.story.get_location("TestZone", "Start").exits
+
+
+class TestNarrativeStage4Tools():
+
+    def setup_method(self):
+        self._saved = (mud_context.config, mud_context.driver)
+        mud_context.config = StoryConfig()
+        mud_context.config.server_tick_method = 'TIMER'
+        mud_context.driver = FakeDriver()
+
+    def teardown_method(self):
+        mud_context.config, mud_context.driver = self._saved
+
+    def _seed(self, mgr):
+        mgr.add_location({"name": "Cave", "descr": "A cave", "short_descr": "A cave",
+                          "world_location": [0, 0, 0]}, "TestZone")
+        mgr.add_creature({"name": "goblin", "type": "Mob", "gender": "m", "race": "human",
+                          "level": 1, "description": "A goblin"})
+        assert mgr.spawn_npc("goblin", "TestZone", "Cave") is True
+
+    def test_npc_act(self):
+        fake = FakeLlmUtil()
+        mgr = make_manager(llm_util=fake)
+        self._seed(mgr)
+        # idle_action() reads the LLM from mud_context.driver.llm_util
+        mud_context.driver.llm_util = fake
+        mcp = create_server(mgr)
+        result = tool_json(mcp, "npc_act", {"name": "goblin"})
+        assert result == {"action": "The goblin scratches itself idly."}
+
+    def test_npc_act_case_insensitive(self):
+        fake = FakeLlmUtil()
+        mgr = make_manager(llm_util=fake)
+        self._seed(mgr)
+        mud_context.driver.llm_util = fake
+        mcp = create_server(mgr)
+        assert tool_json(mcp, "npc_act", {"name": "GOBLIN"}) == \
+            {"action": "The goblin scratches itself idly."}
+
+    def test_npc_act_unknown(self):
+        fake = FakeLlmUtil()
+        mgr = make_manager(llm_util=fake)
+        self._seed(mgr)
+        mud_context.driver.llm_util = fake
+        mcp = create_server(mgr)
+        assert tool_json(mcp, "npc_act", {"name": "noone"}) == {}
+
+    def test_npc_act_requires_llm(self):
+        mgr = make_manager(llm_util=None)
+        self._seed(mgr)
+        mcp = create_server(mgr)
+        assert tool_json(mcp, "npc_act", {"name": "goblin"}) == {}
+
+    def test_trigger_narrative_event(self):
+        fake = FakeLlmUtil()
+        mgr = make_manager(llm_util=fake)
+        self._seed(mgr)
+        mcp = create_server(mgr)
+        text = tool_text(mcp, "trigger_narrative_event",
+                         {"zone": "TestZone", "name": "Cave"})
+        assert text == "A shadow stirs in the corner."
+
+    def test_trigger_narrative_event_unknown(self):
+        mgr = make_manager(llm_util=FakeLlmUtil())
+        self._seed(mgr)
+        mcp = create_server(mgr)
+        assert tool_text(mcp, "trigger_narrative_event",
+                         {"zone": "TestZone", "name": "nope"}) == ""
+
+    def test_trigger_narrative_event_requires_llm(self):
+        mgr = make_manager(llm_util=None)
+        self._seed(mgr)
+        mcp = create_server(mgr)
+        assert tool_text(mcp, "trigger_narrative_event",
+                         {"zone": "TestZone", "name": "Cave"}) == ""
 
 
 # --- full MCP protocol round-trip ----------------------------------------------

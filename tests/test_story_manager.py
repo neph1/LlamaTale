@@ -12,6 +12,7 @@ from tale.base import Location, Living, Door
 from tale.coord import Coord
 from tale.errors import SecurityViolation
 from tale.llm.dynamic_story import DynamicStory
+from tale.llm.LivingNpc import LivingNpc
 from tale.llm.responses.LocationResponse import LocationResponse
 from tale.story import StoryConfig
 from tale.story_context import StoryContext
@@ -424,6 +425,102 @@ class TestLlmGeneration():
         mgr = StoryManager(make_story(), llm_util=None)
         with pytest.raises(RuntimeError):
             mgr.generate_location("TestZone", "Start", "north")
+
+
+class TestNarrativeStage4():
+    """Tests for the Stage 4 LLM-driven narrative methods (npc_act,
+    trigger_narrative_event), using a fake llm_util.
+
+    ``npc_act`` delegates to ``LivingNpc.idle_action``, which pulls the LLM
+    from ``mud_context.driver.llm_util`` (mirroring how the real driver wires
+    the same object into both the StoryManager and the mud context).
+    """
+
+    class FakeLlmUtil:
+        def __init__(self):
+            self.perform_idle_action_calls = 0
+            self.narrative_event_calls = 0
+            self.narrative_text = "A shadow stirs in the corner."
+            self.last_location = None
+
+        def perform_idle_action(self, **kwargs):
+            self.perform_idle_action_calls += 1
+            return ["The goblin scratches itself idly."]
+
+        def generate_narrative_event(self, location):
+            self.narrative_event_calls += 1
+            self.last_location = location
+            return self.narrative_text
+
+    def setup_method(self):
+        self._saved = (mud_context.config, mud_context.driver)
+        mud_context.config = StoryConfig()
+        mud_context.config.server_tick_method = 'TIMER'
+        mud_context.driver = FakeDriver()
+
+    def teardown_method(self):
+        mud_context.config, mud_context.driver = self._saved
+
+    def _seed_location(self, mgr):
+        mgr.add_location({"name": "Cave", "descr": "A cave",
+                          "short_descr": "A cave", "world_location": [0, 0, 0]}, "TestZone")
+
+    def _spawn_npc(self, mgr, name="Goblin", location="Cave"):
+        npc = LivingNpc(name=name, gender="m", age=30, personality="")
+        mgr.story.get_location("TestZone", location).insert(npc, None)
+        mgr.story.world.add_npc(npc)
+        return npc
+
+    def test_npc_act(self):
+        fake = self.FakeLlmUtil()
+        mud_context.driver.llm_util = fake
+        mgr = StoryManager(make_story(), llm_util=fake)
+        self._seed_location(mgr)
+        npc = self._spawn_npc(mgr)
+        result = mgr.npc_act("Goblin")
+        assert result == {"action": "The goblin scratches itself idly."}
+        # idle_action() was invoked and recorded the performed action
+        assert fake.perform_idle_action_calls == 1
+        assert npc.action_history == ["The goblin scratches itself idly."]
+
+    def test_npc_act_case_insensitive(self):
+        fake = self.FakeLlmUtil()
+        mud_context.driver.llm_util = fake
+        mgr = StoryManager(make_story(), llm_util=fake)
+        self._seed_location(mgr)
+        self._spawn_npc(mgr, name="goblin")
+        assert mgr.npc_act("GOBLIN") == {"action": "The goblin scratches itself idly."}
+
+    def test_npc_act_unknown(self):
+        fake = self.FakeLlmUtil()
+        mud_context.driver.llm_util = fake
+        mgr = StoryManager(make_story(), llm_util=fake)
+        assert mgr.npc_act("Nobody") == {}
+
+    def test_npc_act_requires_llm(self):
+        mgr = StoryManager(make_story(), llm_util=None)
+        self._seed_location(mgr)
+        self._spawn_npc(mgr)
+        assert mgr.npc_act("Goblin") == {}
+
+    def test_trigger_narrative_event(self):
+        fake = self.FakeLlmUtil()
+        mgr = StoryManager(make_story(), llm_util=fake)
+        self._seed_location(mgr)
+        text = mgr.trigger_narrative_event("TestZone", "Cave")
+        assert text == "A shadow stirs in the corner."
+        assert fake.narrative_event_calls == 1
+        # the fake received the live location object
+        assert fake.last_location.name == "Cave"
+
+    def test_trigger_narrative_event_unknown(self):
+        mgr = StoryManager(make_story(), llm_util=self.FakeLlmUtil())
+        assert mgr.trigger_narrative_event("TestZone", "Nope") == ""
+
+    def test_trigger_narrative_event_requires_llm(self):
+        mgr = StoryManager(make_story(), llm_util=None)
+        self._seed_location(mgr)
+        assert mgr.trigger_narrative_event("TestZone", "Cave") == ""
 
 
 class TestPersistence():
