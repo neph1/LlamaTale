@@ -111,6 +111,11 @@ class TestZones():
         assert mgr.story.get_zone("SecondZone").neighbors["south"] is mgr.story.get_zone("TestZone")
         assert mgr.story.get_zone("TestZone").neighbors["north"] is mgr.story.get_zone("SecondZone")
 
+    def test_add_zone_wild(self):
+        mgr = StoryManager(make_story())
+        ok, error = mgr.add_zone({"name": "The Abandoned Mansion", "description": "An old, abandoned mansion shrouded in mystery and fear.", "locations": {}, "level": 1, "races": [], "items": [], "mood": 3, "size": 5, "size_z": 3, "neighbors": {}, "center": {"x": 0, "y": 0, "z": 0}, "lore": "", "dungeon_config": None, "dungeon": None})
+        assert ok is True
+        assert error == ""
 
 class TestLocations():
 
