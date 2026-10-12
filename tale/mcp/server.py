@@ -18,7 +18,8 @@ from typing import Optional
 
 from mcp.server.fastmcp import FastMCP
 
-import tale.story_manager as story_manager
+from tale import story_manager
+from tale.story_manager import StoryManager
 
 __all__ = ["create_server", "start_server", "DEFAULT_MCP_PORT"]
 
@@ -42,7 +43,7 @@ def _result(success, error) -> dict:
     return {"success": success, "error": error}
 
 
-def create_server(manager, port: int = DEFAULT_MCP_PORT) -> FastMCP:
+def create_server(manager: StoryManager, port: int = DEFAULT_MCP_PORT) -> FastMCP:
     """Create a :class:`FastMCP` server exposing the given ``manager`` as tools."""
     mcp = FastMCP(
         "LlamaTale StoryManager",
@@ -355,7 +356,10 @@ def create_server(manager, port: int = DEFAULT_MCP_PORT) -> FastMCP:
 
     @mcp.tool()
     def advance_story_section(section: str) -> None:
-        """Advance the story context to a new section."""
+        """
+        Sets the current section or focus for the story.
+        Functions as a "grounding" for generated content.
+        """
         manager.advance_story_section(section)
 
     @mcp.tool()
