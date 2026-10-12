@@ -180,6 +180,28 @@ class TestConfigTools():
         config = tool_json(mcp, "get_config")
         assert config["name"] == "New Name"
 
+    def test_set_config_wild(self):
+        mgr = make_manager()
+        mcp = create_server(mgr)
+        call_tool(mcp, "set_config", {
+            "fields": {
+                "type": "adventure",
+                "world_mood": 3,
+                "name": "The Abandoned Mansion",
+                "author": "Mystery Author",
+                "context": "In the heart of the woods, shrouded by eerie mist, lies an old abandoned mansion. Rumors speak of its dark history and the unsolved mysteries that dwell within its crumbling walls. The air is thick with tension as you approach the grand entrance, your heart pounding with anticipation and fear."
+                    }
+                }
+            )
+        assert mgr.story.config.name == "The Abandoned Mansion"
+        assert mgr.story.config.world_mood == 3
+
+    def test_set_config_returns_bool(self):
+        # tools must return a value (a bool), not None: a None result has no
+        # content/structured data and some MCP clients report it as "tool not found".
+        mgr = make_manager()
+        mcp = create_server(mgr)
+        assert tool_bool(mcp, "set_config", {"fields": {"world_mood": 2}}) is True
 
 # --- zone tools ----------------------------------------------------------------
 
@@ -686,20 +708,20 @@ class TestProgressionTools():
     def test_set_story_context(self):
         mgr = make_manager()
         mcp = create_server(mgr)
-        call_tool(mcp, "set_story_context", {"base_story": "A grand adventure"})
+        assert tool_bool(mcp, "set_story_context", {"base_story": "A grand adventure"}) is True
         assert mgr.story.config.context.base_story == "A grand adventure"
 
     def test_advance_story_section(self):
         mgr = make_manager()
         mcp = create_server(mgr)
         mgr.set_story_context("Base plot")
-        call_tool(mcp, "advance_story_section", {"section": "The beginning"})
+        assert tool_bool(mcp, "advance_story_section", {"section": "The beginning"}) is True
         assert mgr.story.config.context.current_section == "The beginning"
 
     def test_set_start_location(self):
         mgr = make_manager()
         mcp = create_server(mgr)
-        call_tool(mcp, "set_start_location", {"zone": "TestZone", "name": "Cave"})
+        assert tool_bool(mcp, "set_start_location", {"zone": "TestZone", "name": "Cave"}) is True
         assert mgr.story.config.startlocation_player == "TestZone.Cave"
         assert mgr.story.config.startlocation_wizard == "TestZone.Cave"
 
@@ -749,7 +771,7 @@ class TestEventPollingTools():
         location.tell("one")
         pubsub.sync()
         mcp = create_server(mgr)
-        call_tool(mcp, "reset_events")
+        assert tool_bool(mcp, "reset_events") is True
         assert tool_json(mcp, "poll_events") == []
         # the manager is still subscribed after the reset
         location.tell("two")
@@ -768,7 +790,7 @@ class TestPersistenceTools():
         mgr = make_manager()
         mgr.add_location({"name": "Room", "descr": "A room"}, "TestZone")
         mcp = create_server(mgr)
-        call_tool(mcp, "save", {"path": str(tmp_path / "saved")})
+        assert tool_bool(mcp, "save", {"path": str(tmp_path / "saved")}) is True
         saved = tmp_path / "saved"
         assert (saved / "world.json").exists()
         assert (saved / "story_config.json").exists()
@@ -778,7 +800,7 @@ class TestPersistenceTools():
     def test_load(self):
         mgr = make_manager()
         mcp = create_server(mgr)
-        call_tool(mcp, "load", {"path": "tests/files/world_story/"})
+        assert tool_bool(mcp, "load", {"path": "tests/files/world_story/"}) is True
         assert mgr.story.get_zone("Cave") is not None
         assert mgr.story.get_location("Cave", "Cave entrance") is not None
         assert len(mgr.story.catalogue.get_creatures()) >= 1

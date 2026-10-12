@@ -70,12 +70,14 @@ def create_server(manager: StoryManager, port: int = DEFAULT_MCP_PORT) -> FastMC
         return manager.get_config()
 
     @mcp.tool()
-    def set_config(fields: dict) -> None:
+    def set_config(fields: dict) -> bool:
         """Set story config fields. Pass a dict of fields to change, e.g.
         ``{"name": "...", "world_mood": 3, "type": "..."}``. Supported fields
         include name, author, type, world_info, world_mood, context,
-        startlocation_player, startlocation_wizard, and more."""
+        startlocation_player, startlocation_wizard, and more. Returns True on
+        success."""
         manager.set_config(**fields)
+        return True
 
     # -- zones -----------------------------------------------------------------
 
@@ -343,42 +345,51 @@ def create_server(manager: StoryManager, port: int = DEFAULT_MCP_PORT) -> FastMC
         return _json(manager.poll_events(since))
 
     @mcp.tool()
-    def reset_events() -> None:
-        """Drop the buffered events and reset the cursor (fresh start)."""
+    def reset_events() -> bool:
+        """Drop the buffered events and reset the cursor (fresh start). Returns
+        True on success."""
         manager.reset_events()
+        return True
 
     # -- story progression -----------------------------------------------------
 
     @mcp.tool()
-    def set_story_context(base_story: str) -> None:
-        """Set the base plot of the story context."""
+    def set_story_context(base_story: str) -> bool:
+        """Set the base plot of the story context. Returns True on success."""
         manager.set_story_context(base_story)
+        return True
 
     @mcp.tool()
-    def advance_story_section(section: str) -> None:
+    def advance_story_section(section: str) -> bool:
         """
         Sets the current section or focus for the story.
-        Functions as a "grounding" for generated content.
+        Functions as a "grounding" for generated content. Returns True on
+        success.
         """
         manager.advance_story_section(section)
+        return True
 
     @mcp.tool()
-    def set_start_location(zone: str, name: str) -> None:
-        """Set the player/wizard start location to ``zone.name``."""
+    def set_start_location(zone: str, name: str) -> bool:
+        """Set the player/wizard start location to ``zone.name``. Returns True
+        on success."""
         manager.set_start_location(zone, name)
+        return True
 
     # -- persistence -----------------------------------------------------------
 
     @mcp.tool()
-    def save(path: str) -> None:
-        """Save the story to disk at ``path``."""
+    def save(path: str) -> bool:
+        """Save the story to disk at ``path``. Returns True on success."""
         manager.save(path)
+        return True
 
     @mcp.tool()
-    def load(path: str) -> None:
+    def load(path: str) -> bool:
         """Load a story from a saved directory at ``path``, replacing the current
-        state."""
+        state. Returns True on success."""
         manager.load(path)
+        return True
 
     # -- live mutations (affect the story as it happens) -----------------------
 
