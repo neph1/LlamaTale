@@ -1,0 +1,45 @@
+{
+    "story": {
+        "name": "Empty Story"
+    },
+    "zones": {
+        "Transit Zone": {
+            "description": "Transit Zone",
+            "level": 1,
+            "mood": 3,
+            "races": [],
+            "items": [],
+            "size": 5,
+            "center": [
+                0,
+                0,
+                0
+            ],
+            "name": "Mad Hatters House",
+            "locations": [
+                {
+                    "name": "Magic phone booth",
+                    "descr": "A magic phone booth that can transport you to different locations.",
+                    "short_descr": "",
+                    "exits": [],
+                    "world_location": [
+                        "0",
+                        "0",
+                        "0"
+                    ],
+                    "built": true
+                }
+            ]
+        }
+    },
+    "world": {
+        "npcs": {
+        },
+        "items": {}
+    },
+    "catalogue": {
+        "items": [
+        ],
+        "creatures": []
+    }
+}
