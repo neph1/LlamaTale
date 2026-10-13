@@ -83,7 +83,13 @@ class TestZone():
         assert zone.on_edge(distance_long, Coord(-1, 0, 0)) == True
 
     def test_from_json(self):
-        zone_info = '{ "name": "Whispering Woods", "description": "A dense, misty forest teeming with life. The trees whisper secrets to those who listen, and the creatures here are said to possess ancient wisdom. Friendly creatures roam the area, and the air is filled with the sweet scent of enchanted flowers.", "races": [], "items": [], "mood": 5, "level": 1} \n'
+        zone_info = '{ "name": "Whispering Woods", "description": "A dense, misty forest teeming with life. The trees whisper secrets to those who listen, and the creatures here are said to possess ancient wisdom. Friendly creatures roam the area, and the air is filled with the sweet scent of enchanted flowers.", "races": [], "items": [], "mood": 5, "level": 1, "center": [0, 0, 0]} \n'
         z = Zone.from_json(json.loads(zone_info))
         assert z.name == 'Whispering Woods'
         assert z.description.startswith('A dense, misty forest teeming with life. The trees whisper secrets to those who listen, and the creatures here are said to possess ancient wisdom.')
+
+    def test_from_json_center_as_dict(self):
+        zone_info = '{ "name": "Whispering Woods", "description": "A dense, misty forest teeming with life.", "races": [], "items": [], "mood": 5, "center": {"x": 0, "y": 0, "z": 0}, "level": 1} \n'
+        z = Zone.from_json(json.loads(zone_info))
+        assert z.name == 'Whispering Woods'
+        assert z.description.startswith('A dense, misty forest teeming with life.')
