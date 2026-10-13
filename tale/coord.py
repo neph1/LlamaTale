@@ -22,6 +22,25 @@ class Coord():
     def from_coord(self, coord: 'Coord'):
         return Coord(coord.x, coord.y, coord.z)
 
+    @classmethod
+    def from_input(cls, value) -> 'Coord':
+        """Build a Coord from whatever a config or agent might send.
+
+        Accepts an existing Coord, a {"x", "y", "z"} dict (each key optional,
+        defaulting to 0), or a [x, y, z] list/tuple. Anything else raises
+        ValueError. Centralising this lets code that expects a plain
+        coordinate also accept the dict form agents sometimes send.
+        """
+        if isinstance(value, Coord):
+            return Coord(value.x, value.y, value.z)
+        if isinstance(value, dict):
+            return cls(value.get("x", 0), value.get("y", 0), value.get("z", 0))
+        if isinstance(value, (list, tuple)) and len(value) == 3:
+            return cls(value[0], value[1], value[2])
+        raise ValueError(
+            "invalid coordinate %r: expected a Coord, a {'x', 'y', 'z'} dict "
+            "or a [x, y, z] list/tuple" % (value,)
+        )
 
     def distance(self, other) -> float:
         """ Returns the manhattan distance between this and another coordinate."""

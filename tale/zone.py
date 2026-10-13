@@ -99,13 +99,7 @@ class Zone():
         zone.races = data.get("races", [])
         zone.size = data.get("size", 5)
         if data.get("center", None) is not None:
-            center = data.get("center")
-            if isinstance(center, dict):
-                zone.center = Coord(center.get("x", 0), center.get("y", 0), center.get("z", 0))
-            elif isinstance(center, list) and len(center) == 3:
-                zone.center = Coord(center[0], center[1], center[2])
-            else:
-                raise ValueError("Invalid center format in zone JSON data")
+            zone.center = Coord.from_input(data.get("center"))
         zone.lore = data.get("lore", "")
         
         # Load dungeon config if present

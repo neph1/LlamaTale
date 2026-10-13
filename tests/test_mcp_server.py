@@ -18,6 +18,7 @@ import types
 import pytest
 
 from tale import pubsub, mud_context
+from tale.coord import Coord
 from tale.llm.dynamic_story import DynamicStory
 from tale.llm.responses.LocationResponse import LocationResponse
 from tale.story import StoryConfig
@@ -256,6 +257,20 @@ class TestLocationTools():
         assert success is True
         assert error == ""
         assert mgr.story.get_location("TestZone", "Room") is not None
+
+    def test_add_location_world_location_dict(self):
+        # agents may send world_location as a dict rather than a plain list
+        mgr = make_manager()
+        mcp = create_server(mgr)
+        success, error = tool_result(mcp, "add_location", {
+            "location": {"name": "Room", "descr": "A room",
+                         "world_location": {"x": 1, "y": 2, "z": 3}},
+            "zone": "TestZone",
+        })
+        assert success is True
+        assert error == ""
+        loc = mgr.story.get_location("TestZone", "Room")
+        assert loc.world_location == Coord(1, 2, 3)
 
     def test_get_location(self):
         mgr = make_manager()

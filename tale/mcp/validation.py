@@ -68,7 +68,7 @@ def validate_location(location: dict) -> Tuple[Optional[Location], Optional[str]
             loc.description = description
         world_location = location.get("world_location")
         if world_location:
-            loc.world_location = Coord(world_location[0], world_location[1], world_location[2])
+            loc.world_location = Coord.from_input(world_location)
         loc.built = location.get("built", True)
         for item in location.get("items", []):
             item = validate_item(item)

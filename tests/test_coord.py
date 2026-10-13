@@ -1,5 +1,7 @@
 
 
+import pytest
+
 from tale.coord import Coord
 
 
@@ -43,3 +45,29 @@ class TestCoord():
     def test_as_tuple(self):
         coord = Coord(1,2,3)
         assert(coord.as_tuple() == (1, 2, 3))
+
+
+class TestCoordFromInput():
+
+    def test_from_input_list(self):
+        assert Coord.from_input([1, 2, 3]) == Coord(1, 2, 3)
+
+    def test_from_input_tuple(self):
+        assert Coord.from_input((4, 5, 6)) == Coord(4, 5, 6)
+
+    def test_from_input_dict(self):
+        assert Coord.from_input({"x": 1, "y": 2, "z": 3}) == Coord(1, 2, 3)
+
+    def test_from_input_dict_partial_defaults_to_zero(self):
+        assert Coord.from_input({"z": 7}) == Coord(0, 0, 7)
+
+    def test_from_input_existing_coord(self):
+        assert Coord.from_input(Coord(2, 3, 4)) == Coord(2, 3, 4)
+
+    def test_from_input_rejects_bad_length(self):
+        with pytest.raises(ValueError):
+            Coord.from_input([1, 2])
+
+    def test_from_input_rejects_bad_type(self):
+        with pytest.raises(ValueError):
+            Coord.from_input("not a coord")

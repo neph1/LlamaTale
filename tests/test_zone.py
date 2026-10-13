@@ -1,6 +1,9 @@
 """ Tests zone.py """
 
 import json
+
+import pytest
+
 from tale import zone
 from tale.base import Location
 from tale.coord import Coord
@@ -87,9 +90,16 @@ class TestZone():
         z = Zone.from_json(json.loads(zone_info))
         assert z.name == 'Whispering Woods'
         assert z.description.startswith('A dense, misty forest teeming with life. The trees whisper secrets to those who listen, and the creatures here are said to possess ancient wisdom.')
+        assert z.center == Coord(0, 0, 0)
 
     def test_from_json_center_as_dict(self):
-        zone_info = '{ "name": "Whispering Woods", "description": "A dense, misty forest teeming with life.", "races": [], "items": [], "mood": 5, "center": {"x": 0, "y": 0, "z": 0}, "level": 1} \n'
+        zone_info = '{ "name": "Whispering Woods", "description": "A dense, misty forest teeming with life.", "races": [], "items": [], "mood": 5, "center": {"x": 1, "y": 2, "z": 3}, "level": 1} \n'
         z = Zone.from_json(json.loads(zone_info))
         assert z.name == 'Whispering Woods'
         assert z.description.startswith('A dense, misty forest teeming with life.')
+        assert z.center == Coord(1, 2, 3)
+
+    def test_from_json_center_as_bad_type_raises(self):
+        zone_info = '{ "name": "Whispering Woods", "mood": 5, "center": [1, 2]} \n'
+        with pytest.raises(ValueError):
+            Zone.from_json(json.loads(zone_info))
