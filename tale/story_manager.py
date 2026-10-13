@@ -226,7 +226,12 @@ class StoryManager:
                 config.supported_modes = {GameMode(m) if isinstance(m, str) else m for m in modes}
             context = fields.pop("context", None)
             if context is not None:
-                config.context = StoryContext(context) if isinstance(context, str) else context
+                if isinstance(context, str):
+                    config.context = StoryContext(context)
+                elif isinstance(context, dict):
+                    config.context = StoryContext().from_json(context)
+                else:
+                    raise ValueError("context must be a string or a dict")
             for key, value in fields.items():
                 if hasattr(config, key):
                     setattr(config, key, value)
@@ -235,7 +240,7 @@ class StoryManager:
 
     def zone_example(self) -> dict:
         """Return an example zone dict with all fields."""
-        example_zone = Zone("Example Zone", descr="This is an example zone.")
+        example_zone = Zone("Example Zone", description="This is an example zone.")
         example_zone.locations["Example Location"] = Location(
             "Example Location",
             descr="This is an example location.",

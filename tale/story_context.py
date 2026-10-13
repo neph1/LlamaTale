@@ -16,7 +16,6 @@ class StoryContext:
     @call_periodically(10, 20)
     def increase_progress(self, ctx: Context) -> bool:
         """ increase the progress by the given amount, return True if the progress has changed past the integer value """
-        print("Increasing progress")
         start_progress = math.floor(self.progress)
         self.progress += self.speed
         if self.progress >= self.length:

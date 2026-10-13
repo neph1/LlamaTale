@@ -38,7 +38,7 @@ class JsonStory(DynamicStory):
             if world['catalogue'].get('wearables', None):
                 wearable.add_story_wearables(world['catalogue']['wearables'])
         if world.get('world', None):
-            if  world['world']['items']:
+            if  world['world'].get('items', None):
                 # Keep this so that saved items in worlds will transfer to locations. But don't save them.
                 self._world.items = load_items.load_items(world['world']['items'].values(), self.locations)
             if world['world']['npcs']:

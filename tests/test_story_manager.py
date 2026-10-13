@@ -80,6 +80,12 @@ class TestConfig():
         modes = mgr.story.config.supported_modes
         assert {"IF", "MUD"} == {m.name for m in modes}
 
+    def test_set_config_wild(self):
+        mgr = StoryManager(make_story())
+        mgr.set_config(world_mood=1, context={"base_story": "Deep within a suffocating forest of twisted trees lies a mansion that doesn't just sit on the land\\u2014it seems to breathe with it. The local villagers speak of 'The Weeping House,' where the architecture shifts like melting wax and the shadows possess a weight of their own. It is a place where time curdles and the boundary between the living and the restless is paper-thin.", "current_section": "The protagonist stands in the foyer, the heavy door having slammed shut behind them with a finality that suggests the house has claimed its guest. Every floorboard groan sounds like a suppressed sob. A staircase spirals upward into an impossible darkness, while a hallway to the left leads toward a kitchen where the air feels noticeably colder, smelling of copper and wet earth.", "past_sections": ["The arrival at the threshold of decay."], "progress": 15.0, "length": 15.0, "speed": 1.0})
+
+        assert mgr.story.config.world_mood == 1
+        assert mgr.story.config.context.base_story.startswith("Deep within a suffocating forest")
 
 class TestZones():
 
