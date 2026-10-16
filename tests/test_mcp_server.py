@@ -130,9 +130,9 @@ class TestServerCreation():
     # the full set of tools from the plan (stories/worlds scope)
     EXPECTED_TOOLS = {
         "get_config", "set_config",
-        "zone_example", "add_zone", "get_zone", "list_zones", "remove_zone", "link_zones",
-        "location_example", "add_location", "get_location", "list_locations", "remove_location",
-        "set_exits", "exit_example",
+        "add_zone", "get_zone", "list_zones", "remove_zone", "link_zones",
+        "add_location", "get_location", "list_locations", "remove_location",
+        "set_exits",
         "add_item", "add_creature", "list_items", "list_creatures", "remove_item", "remove_creature",
         "spawn_npc", "spawn_item", "list_world_npcs", "list_world_items",
         "add_world_npc", "add_world_item", "get_world_npc", "get_world_item",
