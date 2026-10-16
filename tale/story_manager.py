@@ -15,13 +15,13 @@ server depends on.
 import os
 import random
 import threading
-from typing import Any, Optional
+from typing import Optional
 
 from tale.base import Location, Exit, Door
-from tale.coord import Coord
 from tale.errors import LocationIntegrityError
 from tale.items.basic import Note
 from tale.llm.LivingNpc import LivingNpc
+from tale.llm.dynamic_story import DynamicStory
 from tale.llm.responses.ActionResponse import ActionResponse
 from tale.npc_defs import StationaryNpc
 from tale.story import GameMode
@@ -59,6 +59,26 @@ def get() -> "StoryManager":
     return current()
 
 
+# --- prompt templates ---------------------------------------------------------
+
+_TEMPLATES_DIR = os.path.join(os.path.dirname(__file__), "llm", "prompt_templates")
+
+
+def _read_template(filename: str) -> str:
+    """Return the raw contents of a prompt template file.
+
+    Templates live in ``tale/llm/prompt_templates``. Returns an empty string
+    when the file is missing rather than raising, so a removed template degrades
+    gracefully instead of crashing the tool.
+    """
+    path = os.path.join(_TEMPLATES_DIR, filename)
+    try:
+        with open(path, "r") as f:
+            return f.read()
+    except FileNotFoundError:
+        return ""
+
+
 class StoryManager:
     """Modification layer over a :class:`~tale.llm.dynamic_story.DynamicStory`.
 
@@ -67,7 +87,7 @@ class StoryManager:
     (for instance the MCP server's threads) are safe.
     """
 
-    def __init__(self, story, llm_util=None, driver=None) -> None:
+    def __init__(self, story: DynamicStory, llm_util=None, driver=None) -> None:
         from tale.llm.dynamic_story import WorldInfo, Catalogue
         self._story = story
         self._llm_util = llm_util
@@ -204,7 +224,7 @@ class StoryManager:
             startlocation_wizard=config.startlocation_wizard,
             savegames_enabled=config.savegames_enabled,
             show_exits_in_look=config.show_exits_in_look,
-            context=context.to_json() if isinstance(context, StoryContext) else context,
+            context=context.to_json(),
             type=config.type,
             world_info=config.world_info,
             world_mood=config.world_mood,
@@ -237,17 +257,6 @@ class StoryManager:
                     setattr(config, key, value)
 
     # -- zones ------------------------------------------------------------------
-
-    def zone_example(self) -> dict:
-        """Return an example zone dict with all fields."""
-        example_zone = Zone("Example Zone", description="This is an example zone.")
-        example_zone.locations["Example Location"] = Location(
-            "Example Location",
-            descr="This is an example location.",
-            short_descr="An example location.",
-            world_location=Coord(0, 0, 0),
-        )
-        return example_zone.get_info()
 
     def add_zone(self, zone: dict) -> tuple:
         """Add a zone (given as a dict) to the story.
@@ -295,21 +304,15 @@ class StoryManager:
 
     # -- locations --------------------------------------------------------------
 
-    def location_example(self) -> dict:
-        """Return an example location dict with all fields."""
-        example_loc = Location(
-            "Example Location",
-            descr="This is an example location.",
-            short_descr="An example location.",
-            world_location=Coord(0, 0, 0),
-        )
-        return parse_utils.save_locations([example_loc])[0]
-
     def add_location(self, location: dict, zone: str = '') -> tuple:
         """Add a location (given as a dict) to a zone.
 
         The dict needs at least a ``name`` and optionally ``descr``,
         ``short_descr``, ``world_location`` (a 3-tuple) and ``items``.
+
+        By setting ``built`` to ``False`` in the dict, the location is 'open ended' and LlamaTale
+        can generate new content and exits for it as a player enters. Consider doing this for
+        'leaf' locations where you plan on the story to extend but haven't decided on yet.
 
         Returns ``(success, error_message)``: ``(True, "")`` on success, or
         ``(False, "what went wrong")`` on failure.
@@ -397,41 +400,27 @@ class StoryManager:
                 self._subscribe_events()   # new target locations were created above
             return True
 
-    def exit_example(self) -> dict:
-        """Return an example exit dict with all fields."""
-        return {
-            "direction": "direction to exit location (e.g. 'north', 'up', 'down')",
-            "name": "Name of location to exit to",
-            "short_descr": "To the north you see Example Location.",
-            "long_descr": "Can include a more detailed description of the exit itself.",
-        }
+    # -- prompt templates (raw file contents from tale/llm/prompt_templates) ----
 
-    # -- catalogue (world items & creatures as dicts) ---------------------------
+    def npc_template(self) -> str:
+        """Return the NPC template from prompt_templates/NPC_TEMPLATE.txt."""
+        return _read_template("NPC_TEMPLATE.txt")
 
-    def item_example(self) -> dict:
-        """Return an example world item dict with all fields."""
-        return {
-            "name": "example item",
-            "type": "Money, Weapon, Armor, Food, Drink, Container, Key, Tool, Other",
-            "description": "This is an example item.",
-            "short_description": "An example item.",
-            "weight": 1.0,
-            "value": 10,
-        }
+    def item_template(self) -> str:
+        """Return the item template from prompt_templates/ITEM_TEMPLATE.txt."""
+        return _read_template("ITEM_TEMPLATE.txt")
 
-    def creature_example(self) -> dict:
-        """Return an example world creature dict with all fields."""
-        return {
-            "name": "example creature",
-            "description": "This is an example creature.",
-            "short_description": "An example creature.",
-            "race": "One of the races in the world",
-            "gender": "m, f, n",
-            "level": 1,
-            "health": 100,
-            "attack": 10,
-            "defense": 5,
-        }
+    def creature_template(self) -> str:
+        """Return the creature template from prompt_templates/CREATURE_TEMPLATE.txt."""
+        return _read_template("CREATURE_TEMPLATE.txt")
+
+    def zone_template(self) -> str:
+        """Return the zone template from prompt_templates/ZONE_TEMPLATE.txt."""
+        return _read_template("ZONE_TEMPLATE.txt")
+
+    def location_template(self) -> str:
+        """Return the location template from prompt_templates/LOCATION_TEMPLATE.txt."""
+        return _read_template("LOCATION_TEMPLATE.txt")
 
     def add_item(self, item: dict) -> bool:
         """Add a world item to the catalogue (as a dict)."""
@@ -714,6 +703,7 @@ class StoryManager:
                 "visible": item.visible,
             })
         world_location = location.world_location
+        neighbors = self._story.neighbors_for_location(location)
         return {
             "name": location.name,
             "description": location.description,
@@ -723,6 +713,7 @@ class StoryManager:
             "exits": {direction: exit.target.name for direction, exit in location.exits.items()},
             "livings": livings,
             "items": items,
+            "neighbors": {direction: {"zone": zone.name, "name": loc.name} for direction, loc in neighbors.items()},
         }
 
     def get_story_state(self) -> dict:
