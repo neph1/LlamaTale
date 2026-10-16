@@ -79,12 +79,6 @@ def create_server(manager: StoryManager, port: int = DEFAULT_MCP_PORT) -> FastMC
 
     # -- zones -----------------------------------------------------------------
 
-
-    @mcp.tool()
-    def zone_example() -> dict:
-        """Return an example zone dict with all fields."""
-        return manager.zone_example()
-
     @mcp.tool()
     def add_zone(zone: dict) -> dict:
         """
@@ -137,11 +131,6 @@ def create_server(manager: StoryManager, port: int = DEFAULT_MCP_PORT) -> FastMC
     # -- locations -------------------------------------------------------------
 
     @mcp.tool()
-    def location_example() -> dict:
-        """Return an example location dict with all fields."""
-        return manager.location_example()
-    
-    @mcp.tool()
     def add_location(location: dict, zone: str = '') -> dict:
         """Add a location (given as a dict) to a zone. The dict needs at least a
         ``name`` and optionally ``descr``, ``short_descr``, ``world_location``
@@ -176,11 +165,6 @@ def create_server(manager: StoryManager, port: int = DEFAULT_MCP_PORT) -> FastMC
         Template: [{"direction":"", "name":"name of new location", "short_descr":"exit description"}]
         bound. Returns True on success."""
         return manager.set_exits(zone, name, exits)
-
-    @mcp.tool()
-    def exit_example() -> dict:
-        """Return an example exit dict with all fields."""
-        return manager.exit_example()
 
     # -- catalogue (world items & creatures) -----------------------------------
 
@@ -482,6 +466,33 @@ def create_server(manager: StoryManager, port: int = DEFAULT_MCP_PORT) -> FastMC
         ``zone.name``, apply it to the story, and return the serialized source
         location dict (with its new exits)."""
         return manager.generate_location(zone, name, exit_name)
+
+    # -- prompt templates ------------------------------------------------------
+
+    @mcp.tool()
+    def npc_template() -> str:
+        """Return the NPC template (prompt_templates/NPC_TEMPLATE.txt)."""
+        return manager.npc_template()
+
+    @mcp.tool()
+    def item_template() -> str:
+        """Return the item template (prompt_templates/ITEM_TEMPLATE.txt)."""
+        return manager.item_template()
+
+    @mcp.tool()
+    def creature_template() -> str:
+        """Return the creature template (prompt_templates/CREATURE_TEMPLATE.txt)."""
+        return manager.creature_template()
+
+    @mcp.tool()
+    def zone_template() -> str:
+        """Return the zone template (prompt_templates/ZONE_TEMPLATE.txt)."""
+        return manager.zone_template()
+
+    @mcp.tool()
+    def location_template() -> str:
+        """Return the location template (prompt_templates/LOCATION_TEMPLATE.txt)."""
+        return manager.location_template()
 
     return mcp
 

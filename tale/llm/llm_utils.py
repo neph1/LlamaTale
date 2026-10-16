@@ -165,8 +165,8 @@ class LlmUtil():
                                                             story_type=self.__story_type,
                                                             world_info=self.__world_info,
                                                             world_mood=self.__story.config.world_mood)
-        location_result, spawner = self._world_building.build_location(location, 
-                                                    exit_location_name, 
+        location_result, spawner = self._world_building.build_location(location,
+                                                    exit_location_name,
                                                     zone_info,
                                                     context=world_generation_context,
                                                     world_creatures=world_creatures if world_creatures else self.__story.catalogue._creatures,
@@ -270,8 +270,7 @@ class LlmUtil():
                                             character_name=character_name, 
                                             character_card=character_card, 
                                             location=location,
-                                            zone_info=zone_info, 
-                                            event_history=event_history)
+                                            zone_info=zone_info)
     
     def generate_note_quest(self, zone_info: dict) -> Quest:
         return self._quest_building.generate_note_quest(context=self._get_world_context(), 
