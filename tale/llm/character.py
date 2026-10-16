@@ -56,8 +56,7 @@ class CharacterBuilding():
                 sentiment=sentiment)
         request_body = deepcopy(self.default_body)
         request_body['grammar'] = self.json_grammar
-        print(prompt)
-        print(context.to_prompt_string())
+        
         response = self.io_util.synchronous_request(request_body, prompt=prompt, context=context.to_prompt_string())
         try:
             json_result = json_util.safe_load(response)
@@ -120,7 +119,11 @@ class CharacterBuilding():
             request_body['banned_tokens'] = ['You']
 
         text = self.io_util.synchronous_request(request_body, prompt=prompt)
-        return (parse_utils.trim_response(text)) if text else None
+        if not text:
+            return None
+        text = parse_utils.trim_response(text)
+        text = json_util.strip_reasoning_sections(text)
+        return text
     
     def perform_travel_action(self, character_name: str, location: Location, locations: list, directions: list, character_card: CharacterCard):
         if location.name in locations:
@@ -135,6 +138,8 @@ class CharacterBuilding():
             character_name=character_name)
         request_body = deepcopy(self.default_body)
         text = self.io_util.synchronous_request(request_body, prompt=prompt)
+        text = parse_utils.trim_response(text)
+        text = json_util.strip_reasoning_sections(text)
         return text
     
     def perform_reaction(self, action: str, character_name: str, acting_character_name: str, location: Location, story_context: str, character_card: CharacterCard, sentiment: str = '', event_history: str = ''):
@@ -150,7 +155,9 @@ class CharacterBuilding():
             sentiment=sentiment)
         request_body = deepcopy(self.default_body)
         text = self.io_util.synchronous_request(request_body, prompt=prompt)
-        return parse_utils.trim_response(text) + "\n"
+        text = parse_utils.trim_response(text)
+        text = json_util.strip_reasoning_sections(text)
+        return text + "\n"
     
     def free_form_action(self, action_context: ActionContext) -> list:
         prompt = self.pre_prompt

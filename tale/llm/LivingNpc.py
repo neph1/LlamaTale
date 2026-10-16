@@ -354,6 +354,7 @@ class LivingNpc(Living):
 
     def tell_action_deferred(self, verb: str):
         actions = '\n'.join(self.deferred_actions) + '\n\n'
+        actions = unpad_text(actions)
         actions = actions.replace('\n\n\n', '\n\n')
         deferred_action = ParseResult(verb=verb, unparsed=actions, who_info=None)
         self.tell_others(actions)

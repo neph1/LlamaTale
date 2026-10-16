@@ -13,11 +13,17 @@ server depends on.
 """
 
 import os
+import random
 import threading
 from typing import Any, Optional
 
-from tale.base import Location, Exit
+from tale.base import Location, Exit, Door
 from tale.coord import Coord
+from tale.errors import LocationIntegrityError
+from tale.items.basic import Note
+from tale.llm.LivingNpc import LivingNpc
+from tale.llm.responses.ActionResponse import ActionResponse
+from tale.npc_defs import StationaryNpc
 from tale.story import GameMode
 from tale.story_context import StoryContext
 from tale.zone import Zone
@@ -25,6 +31,7 @@ from tale.zone import Zone
 import tale.parse_utils as parse_utils
 from tale.load_items import load_item, load_items
 from tale.mcp.validation import validate_zone, validate_location, validate_npc, validate_item
+from tale.mcp.events import StoryEvents
 
 __all__ = ["StoryManager", "register", "current", "get"]
 
@@ -73,6 +80,10 @@ class StoryManager:
             story._world = WorldInfo()
         if not hasattr(story, "_catalogue") or story._catalogue is None:
             story._catalogue = Catalogue()
+        # Stage 2: a manager-owned ring buffer of wiretap events, subscribed to
+        # the live world's wiretap topics so an agent can poll what is happening.
+        self._events = StoryEvents(maxlen=500)
+        self._subscribe_events()
 
     # -- helpers ----------------------------------------------------------------
 
@@ -80,6 +91,45 @@ class StoryManager:
     def story(self):
         """The wrapped DynamicStory."""
         return self._story
+
+    # -- event polling (Stage 2) ------------------------------------------------
+    # A manager-owned :class:`StoryEvents` listener is subscribed to the wiretap
+    # pubsub topic of every known location, live NPC and connected player. It
+    # buffers the structured messages the LLM reasons over (see
+    # Location.tell / Living.tell), so an agent can poll what is happening in
+    # the live world without touching base.py.
+
+    def _subscribe_events(self) -> None:
+        """(Re)subscribe the event listener to every known wiretap topic.
+
+        Subscribes to the wiretap of every location in the live world, every
+        live NPC in the world store, and (if a driver is present) every
+        connected player. Re-subscribing is idempotent (a topic keeps a single
+        weakref to the listener), so this is safe to call whenever new
+        locations/NPCs appear.
+        """
+        for location in self._story._world._locations.values():
+            location.get_wiretap().subscribe(self._events)
+        for npc in self._story.world.npcs.values():
+            npc.get_wiretap().subscribe(self._events)
+        driver = self._driver
+        if driver:
+            for conn in driver.all_players.values():
+                conn.player.get_wiretap().subscribe(self._events)
+
+    def poll_events(self, since: int = 0) -> list:
+        """Wiretap events with ``index > since`` (newest last).
+
+        Each event is ``{"index", "time", "kind", "source", "text"}`` where
+        ``kind`` is ``"wiretap-location"`` or ``"wiretap-living"``. Poll with
+        the highest ``index`` you have seen to avoid re-reading old events.
+        """
+        return self._events.since(since)
+
+    def reset_events(self) -> None:
+        """Drop the buffered events and reset the cursor (fresh start)."""
+        self._events = StoryEvents(maxlen=500)
+        self._subscribe_events()
 
     # -- case-insensitive lookups ------------------------------------------------
     # Location names are stored with whatever case they were created with, but
@@ -267,6 +317,7 @@ class StoryManager:
                 return False, f"zone '{zone}' not found"
             if not self._story.add_location(loc, zone):
                 return False, f"location '{loc.name}' already exists"
+            self._subscribe_events()   # subscribe to the new location's wiretap
             return True, ""
 
     def get_location(self, zone: str, name: str) -> dict:
@@ -338,6 +389,7 @@ class StoryManager:
                                            short_descr=f"To the {opposite} you see {location.name}.")])
             if new_exits:
                 location.add_exits(new_exits)
+                self._subscribe_events()   # new target locations were created above
             return True
 
     def exit_example(self) -> dict:
@@ -429,6 +481,7 @@ class StoryManager:
             npc = next(iter(npcs.values()))
             location.insert(npc, None)
             self._story.world.add_npc(npc)
+            self._subscribe_events()   # subscribe to the new NPC's wiretap
             return True
 
     def spawn_item(self, item_name: str, zone: str, location_name: str) -> bool:
@@ -479,6 +532,7 @@ class StoryManager:
                 return False, error
             if not self._story.world.add_npc(npc_obj):
                 return False, f"npc '{npc_obj.name}' already exists"
+            self._subscribe_events()   # subscribe to the new NPC's wiretap
             return True, ""
 
     def add_world_item(self, item: dict) -> tuple:
@@ -517,6 +571,201 @@ class StoryManager:
             return {}
         items = parse_utils.save_items([item])
         return items[0]
+
+    # -- live state reads (Stage 1) --------------------------------------------
+    # Read-only views of the *live* world (players, NPCs, locations, story
+    # progress, and a world map). These follow the existing read convention:
+    # no lock, JSON-friendly dicts/lists out. They mirror the structured state
+    # the LLM reasons over (see tale.llm.contexts.ActionContext) so an agent's
+    # decisions stay coherent with the narrative.
+
+    def _location_zone_name(self, location) -> dict:
+        """Map a live Location to ``{"zone": zone_name, "name": location_name}``
+        (or an empty dict for a None location)."""
+        if location is None:
+            return {}
+        zone = self._story.find_zone(location.name)
+        return {"zone": zone.name, "name": location.name} if zone else {"zone": None, "name": location.name}
+
+    def _stats_dict(self, stats) -> dict:
+        """JSON-friendly dict of the numeric attributes of a :class:`Stats`."""
+        return {
+            "level": stats.level,
+            "hp": stats.hp,
+            "max_hp": stats.max_hp,
+            "xp": stats.xp,
+            "ac": stats.ac,
+            "wc": stats.wc,
+            "race": stats.race,
+            "gender": stats.gender,
+            "strength": stats.strength,
+            "dexterity": stats.dexterity,
+            "perception": stats.perception,
+            "intelligence": stats.intelligence,
+        }
+
+    def _player_names(self) -> set:
+        """The set of player names connected via the driver (empty if no driver)."""
+        driver = self._driver
+        if not driver:
+            return set()
+        return {conn.player.name for conn in driver.all_players.values()}
+
+    def list_players(self) -> list:
+        """[{name, location:{zone,name}|None, hp:int, alive:bool, idle_time:float}]
+
+        One entry per connected player. Returns an empty list when there is no
+        driver. Note: combat is transient (a single round via ``start_attack``),
+        so there is no persistent ``in_combat`` flag to expose.
+        """
+        players = []
+        driver = self._driver
+        if not driver:
+            return players
+        for conn in driver.all_players.values():
+            player = conn.player
+            players.append({
+                "name": player.name,
+                "location": self._location_zone_name(player.location),
+                "hp": player.stats.hp,
+                "alive": player.alive,
+                "idle_time": getattr(player, "idle_time", 0.0),
+            })
+        return players
+
+    def get_player(self, name: str) -> dict:
+        """Full player state (case-insensitive name lookup): name, title,
+        location, inventory, stats, hp, alive, idle_time. Returns an empty dict
+        if the player is not found or there is no driver."""
+        driver = self._driver
+        if not driver:
+            return {}
+        lower = name.lower()
+        for conn in driver.all_players.values():
+            player = conn.player
+            if player.name.lower() == lower:
+                return {
+                    "name": player.name,
+                    "title": player.title,
+                    "location": self._location_zone_name(player.location),
+                    "inventory": sorted(item.name for item in player.inventory),
+                    "stats": self._stats_dict(player.stats),
+                    "hp": player.stats.hp,
+                    "alive": player.alive,
+                    "idle_time": getattr(player, "idle_time", 0.0),
+                }
+        return {}
+
+    def get_npc(self, name: str) -> dict:
+        """Full state of a live NPC in the world's store (or an empty dict if
+        not found): name, title, short_description, description,
+        location:{zone,name}, alive, visible, hidden, goal, level, stats,
+        action_history, planned_actions."""
+        try:
+            npc = self._story.world.get_npc(name)
+        except KeyError:
+            return {}
+        return {
+            "name": npc.name,
+            "title": npc.title,
+            "short_description": npc.short_description,
+            "description": npc.description,
+            "location": self._location_zone_name(npc.location),
+            "alive": npc.alive,
+            "visible": npc.visible,
+            "hidden": npc.hidden,
+            "goal": getattr(npc, "goal", None),
+            "level": npc.stats.level,
+            "stats": self._stats_dict(npc.stats),
+            "action_history": getattr(npc, "action_history", []),
+            "planned_actions": getattr(npc, "planned_actions", []),
+        }
+
+    def get_location_live(self, zone: str, name: str) -> dict:
+        """The structured live state of a location (mirrors ActionContext):
+        name, description, short_descr, indoors, world_location:[x,y,z],
+        exits:{direction: target_name},
+        livings:[{name, short_descr, alive, visible, is_player}],
+        items:[{name, look_description, visible}]. Returns an empty dict if the
+        location is not found."""
+        _zone_obj, location = self._zone_location(zone, name)
+        if location is None:
+            return {}
+        player_names = self._player_names()
+        livings = []
+        for living in location.livings:
+            livings.append({
+                "name": living.name,
+                "short_descr": living.short_description,
+                "alive": living.alive,
+                "visible": living.visible,
+                "is_player": living.name in player_names,
+            })
+        items = []
+        for item in location.items:
+            items.append({
+                "name": item.name,
+                "look_description": item.look_description,
+                "visible": item.visible,
+            })
+        world_location = location.world_location
+        return {
+            "name": location.name,
+            "description": location.description,
+            "short_descr": location.short_description,
+            "indoors": location.indoors,
+            "world_location": list(world_location.as_tuple()) if world_location else [0, 0, 0],
+            "exits": {direction: exit.target.name for direction, exit in location.exits.items()},
+            "livings": livings,
+            "items": items,
+        }
+
+    def get_story_state(self) -> dict:
+        """The story's narrative state: story (the context string with past
+        sections), current_section, past_sections, progress, length, name,
+        type, world_info, world_mood."""
+        config = self._story.config
+        context = config.context
+        if isinstance(context, StoryContext):
+            return {
+                "story": context.to_context_with_past(),
+                "current_section": context.current_section,
+                "past_sections": list(context.past_sections),
+                "progress": context.progress,
+                "length": context.length,
+                "name": config.name,
+                "type": config.type,
+                "world_info": config.world_info,
+                "world_mood": config.world_mood,
+            }
+        # the context may be a bare base-story string (not yet a StoryContext)
+        return {
+            "story": context if isinstance(context, str) else str(context),
+            "current_section": "",
+            "past_sections": [],
+            "progress": 0.0,
+            "length": 0.0,
+            "name": config.name,
+            "type": config.type,
+            "world_info": config.world_info,
+            "world_mood": config.world_mood,
+        }
+
+    def get_world_map(self) -> dict:
+        """{zone_name: {location_name: {indoors, npc_count, item_count,
+        exits:[directions]}}} - a compact map of the whole world."""
+        result = {}
+        for zone_name, zone in self._story._zones.items():
+            locations = {}
+            for loc_name, location in zone.locations.items():
+                locations[loc_name] = {
+                    "indoors": location.indoors,
+                    "npc_count": len(location.livings),
+                    "item_count": len(location.items),
+                    "exits": sorted(location.exits.keys()),
+                }
+            result[zone_name] = locations
+        return result
 
     # -- story progression ------------------------------------------------------
 
@@ -610,6 +859,7 @@ class StoryManager:
             llm_cache_path = os.path.join(path, 'llm_cache.json')
             if os.path.exists(llm_cache_path):
                 llm_cache.load(parse_utils.load_json(llm_cache_path))
+            self._subscribe_events()   # the world was rebuilt; subscribe to its wiretaps
 
     # -- LLM-backed generation (optional; delegates to WorldBuilding, then
     #    applies the result to the story via the mutation API above) -----------
@@ -695,3 +945,380 @@ class StoryManager:
             for npc in response.npcs:
                 self._story.world.add_npc(npc)
             return self._location_dict(zone, location.name)
+
+    # -- live mutations (Stage 3) -----------------------------------------------
+    # These mutate the *running* story (descriptions, exits, NPC movement and
+    # actions). All are guarded by the manager lock, reuse the case-insensitive
+    # lookups above, and re-subscribe the event listener when new wiretap
+    # topics (locations/NPCs) appear. The MCP wrappers convert any
+    # (success, error) tuple into the JSON {"success", "error"} dict.
+
+    def _find_living(self, name: str):
+        """Find a live living (NPC or player) by name, case-insensitively.
+
+        Checks the world NPC store first, then (if a driver is present) the
+        connected players. Returns the Living object or None.
+        """
+        try:
+            return self._story.world.get_npc(name)
+        except KeyError:
+            pass
+        lower = name.lower()
+        driver = self._driver
+        if driver:
+            for conn in driver.all_players.values():
+                if conn.player.name.lower() == lower:
+                    return conn.player
+        return None
+
+    def _location_exit(self, location, direction: str):
+        """Find an exit on ``location`` by direction (case-insensitive),
+        checking the direction and all of its aliases."""
+        if direction in location.exits:
+            return location.exits[direction]
+        lower = direction.lower()
+        for name, exit in location.exits.items():
+            if name.lower() == lower or any(alias.lower() == lower for alias in exit.aliases):
+                return exit
+        return None
+
+    def set_location_description(self, zone: str, name: str, description: str,
+                                 short_descr: str = '') -> tuple:
+        """Set the description (and optionally short description) of a live
+        location. Returns ``(success, error_message)``."""
+        with self._lock:
+            if self._zone(zone) is None:
+                return False, f"zone '{zone}' not found"
+            _zone_obj, location = self._zone_location(zone, name)
+            if location is None:
+                return False, f"location '{name}' not found in zone '{zone}'"
+            location.description = description
+            if short_descr:
+                location.short_description = short_descr
+            return True, ""
+
+    def add_exit(self, zone: str, name: str, direction: str, target: str,
+                 short_descr: str = '') -> tuple:
+        """Add a single exit from ``zone.name`` in ``direction`` to ``target``.
+
+        If the target location does not exist yet, a new (empty) location is
+        created for it (following the ``set_exits`` convention): the exit is
+        named after the target (with the direction as an alias), and the target
+        gets a return exit in the opposite direction. Returns
+        ``(success, error_message)``.
+        """
+        with self._lock:
+            if self._zone(zone) is None:
+                return False, f"zone '{zone}' not found"
+            _zone_obj, location = self._zone_location(zone, name)
+            if location is None:
+                return False, f"location '{name}' not found in zone '{zone}'"
+            direction = parse_utils.validate_direction(direction) or direction
+            if not target:
+                return False, "target location name is required"
+            if target.lower() in location.exits or direction in location.exits:
+                return False, f"exit to '{target}' already exists in direction '{direction}'"
+            target_loc = self._find_location(target)
+            created = False
+            if target_loc is None:
+                target_loc = Location(target)
+                target_loc.world_location = parse_utils.coordinates_from_direction(
+                    location.world_location, direction)
+                target_loc.built = False
+                if not self._story.add_location(target_loc, zone):
+                    return False, f"location '{target}' already exists"
+                created = True
+            short = short_descr or f"To the {direction} you see {target}."
+            location.add_exits([Exit(directions=[target_loc.name, direction], target_location=target_loc,
+                                     short_descr=short, long_descr=short)])
+            opposite = parse_utils.opposite_direction(direction)
+            if opposite and location.name not in target_loc.exits and opposite not in target_loc.exits:
+                target_loc.add_exits([Exit(directions=[location.name, opposite], target_location=location,
+                                           short_descr=f"To the {opposite} you see {location.name}.")])
+            if created:
+                self._subscribe_events()   # subscribe to the new location's wiretap
+            return True, ""
+
+    def remove_exit(self, zone: str, name: str, direction: str) -> tuple:
+        """Remove an exit (and its target-name alias) from ``zone.name``.
+        Returns ``(success, error_message)``."""
+        with self._lock:
+            if self._zone(zone) is None:
+                return False, f"zone '{zone}' not found"
+            _zone_obj, location = self._zone_location(zone, name)
+            if location is None:
+                return False, f"location '{name}' not found in zone '{zone}'"
+            exit = self._location_exit(location, direction)
+            if exit is None:
+                return False, f"no exit in direction '{direction}' from '{name}'"
+            for key in list(exit.names):
+                if location.exits.get(key) is exit:
+                    del location.exits[key]
+            return True, ""
+
+    def set_exit_state(self, zone: str, name: str, direction: str, open: bool) -> tuple:
+        """Open or close an exit from ``zone.name`` in ``direction``.
+
+        For a :class:`Door` this sets ``door.opened`` (and the linked door's
+        ``opened``). For a plain :class:`Exit` (which is always open),
+        ``open=False`` removes the exit and ``open=True`` re-adds it to the same
+        target. Returns ``(success, error_message)``.
+        """
+        with self._lock:
+            if self._zone(zone) is None:
+                return False, f"zone '{zone}' not found"
+            _zone_obj, location = self._zone_location(zone, name)
+            if location is None:
+                return False, f"location '{name}' not found in zone '{zone}'"
+            exit = self._location_exit(location, direction)
+            if exit is None:
+                return False, f"no exit in direction '{direction}' from '{name}'"
+            if isinstance(exit, Door):
+                exit.opened = open
+                if exit.linked_door:
+                    exit.linked_door.opened = open
+                return True, ""
+            # plain Exit: it is always open, so 'close' = remove it
+            if open:
+                return True, ""   # nothing to do; it is already open
+            target = exit.target
+            for key in list(exit.names):
+                if location.exits.get(key) is exit:
+                    del location.exits[key]
+            return True, ""
+
+    def move_npc(self, name: str, zone: str, location_name: str) -> tuple:
+        """Move a live NPC to ``zone.location_name``.
+
+        The NPC is moved directly (transactionally) into the target location.
+        Returns ``(success, error_message)``.
+        """
+        with self._lock:
+            npc = self._find_living(name)
+            if npc is None:
+                return False, f"npc '{name}' not found"
+            if self._zone(zone) is None:
+                return False, f"zone '{zone}' not found"
+            _zone_obj, target = self._zone_location(zone, location_name)
+            if target is None:
+                return False, f"location '{location_name}' not found in zone '{zone}'"
+            npc.move(target, actor=npc)
+            return True, ""
+
+    def npc_say(self, name: str, text: str, target: str = '') -> tuple:
+        """Make a live NPC say ``text`` to the room, or to a specific living
+        if ``target`` is given (a living in the same location).
+        Returns ``(success, error_message)``.
+        """
+        with self._lock:
+            npc = self._find_living(name)
+            if npc is None:
+                return False, f"npc '{name}' not found"
+            if not text:
+                return False, "text is required"
+            if target:
+                living = self._find_living(target)
+                if living is None:
+                    return False, f"target '{target}' not found"
+                npc.tell_others(text, target=living, evoke=False)
+            else:
+                npc.tell_others(text, evoke=False)
+            return True, ""
+
+    def npc_attack(self, name: str, target_name: str) -> tuple:
+        """Make a live NPC attack another living (one combat round).
+        Returns ``(success, error_message)``.
+        """
+        with self._lock:
+            npc = self._find_living(name)
+            if npc is None:
+                return False, f"npc '{name}' not found"
+            if not target_name:
+                return False, "target_name is required"
+            target = self._find_living(target_name)
+            if target is None:
+                return False, f"target '{target_name}' not found"
+            npc.start_attack(target)
+            return True, ""
+
+    def npc_do(self, name: str, action: dict) -> tuple:
+        """Force a live NPC to perform a specific action (say/move/take/give/
+        attack/wear/hide/search) by building an :class:`ActionResponse` from
+        ``action`` and running it through :meth:`LivingNpc._parse_action`.
+
+        ``action`` may contain ``goal``, ``thoughts``, ``text``, ``action``,
+        ``target`` and ``item``. Returns ``(success, error_message)``.
+        """
+        with self._lock:
+            npc = self._find_living(name)
+            if npc is None:
+                return False, f"npc '{name}' not found"
+            if not isinstance(npc, LivingNpc):
+                return False, f"npc '{name}' is not an LLM NPC (LivingNpc)"
+            response = ActionResponse(action or {})
+            if not response.action:
+                return False, "action dict needs an 'action' field"
+            npc._parse_action(response)
+            return True, ""
+
+    def set_npc_goal(self, name: str, goal: str) -> tuple:
+        """Set the free-form goal of a live NPC.
+        Returns ``(success, error_message)``.
+        """
+        with self._lock:
+            npc = self._find_living(name)
+            if npc is None:
+                return False, f"npc '{name}' not found"
+            npc.goal = goal
+            return True, ""
+
+    # -- LLM-driven / narrative (Stage 4) --------------------------------------
+    # These delegate to the LLM path rather than driving the world directly:
+    # one nudges a live NPC to plan and perform an idle action (the LLM chooses
+    # from the location's ActionContext), the other has the LLM narrate a short
+    # event into a room. Both require an ``llm_util`` on the manager and return
+    # plain values (a dict / a string) instead of (success, error) tuples.
+
+    def npc_act(self, name: str) -> dict:
+        """Have a live LLM NPC (a :class:`LivingNpc`) plan and perform an idle
+        action.
+
+        Delegates to :meth:`LivingNpc.idle_action`, which asks the LLM (from the
+        location's ActionContext) what the NPC does while idle. Requires an
+        ``llm_util`` to have been supplied to the manager. Returns a dict with
+        the performed ``action`` (or an empty dict if there is no NPC, the NPC
+        is not a LivingNpc, no llm_util is available, or the LLM planned no
+        action).
+        """
+        npc = self._find_living(name)
+        if npc is None or not isinstance(npc, LivingNpc):
+            return {}
+        if not self._llm_util:
+            return {}
+        action = npc.idle_action()
+        if not action:
+            return {}
+        return {"action": action}
+
+    def trigger_narrative_event(self, zone: str, name: str) -> str:
+        """Have the LLM narrate an event in the location (zone, name).
+
+        Delegates to ``llm_util.generate_narrative_event(location)``, which asks
+        the LLM for a short narration and tells it to the room. Requires an
+        ``llm_util``. Returns the narrated text, or "" if the location was not
+        found or no llm_util is available.
+        """
+        if not self._llm_util:
+            return ""
+        _zone_obj, location = self._zone_location(zone, name)
+        if location is None:
+            return ""
+        return self._llm_util.generate_narrative_event(location)
+
+    # -- LLM handoff (Phase 3) -------------------------------------------------
+    # The LLM path (WorldBuilding) is a *generator*: it produces a
+    # LocationResponse (and an optional MobSpawner). The story-level
+    # *application* of that output is routed through the manager here, so the
+    # LLM path modifies the story through the same layer as MCP. The methods
+    # below take real objects (Zone / Location / LocationResponse) rather than
+    # plain dicts, because they apply already-constructed LLM output; they are
+    # not exposed as MCP tools (the agent-facing API stays dict-based).
+
+    def apply_location_response(self, response, zone, source_location, spawner=None) -> bool:
+        """Apply a :class:`LocationResponse` (from ``WorldBuilding.build_location``)
+        to the story.
+
+        Adds the response's new locations to the zone, adds its exits to the
+        ``source_location``, generates quests for stationary NPCs and note
+        text for Note items, and registers the mob ``spawner`` (if any) with
+        the world.
+
+        ``zone`` is the :class:`Zone` the locations belong to. Returns True if
+        new locations were added, False otherwise (mirroring
+        ``Driver.build_location``).
+        """
+        with self._lock:
+            new_locations = response.new_locations
+            exits = response.exits
+            npcs = response.npcs
+            items = response.items
+            if not new_locations:
+                return False
+            for location in new_locations:
+                # try to add location, and if it fails, remove exit to it
+                result = self._story.add_location(location, zone=zone.name)
+                if not result:
+                    for exit in exits:
+                        if exit.name == location.name:
+                            exits.remove(exit)
+            for exit in exits:
+                try:
+                    source_location.add_exits([exit])
+                except LocationIntegrityError:
+                    # fail silently
+                    pass
+            for npc in npcs:
+                if isinstance(npc, StationaryNpc) and random.random() < 0.2:
+                    new_quest = self._story.generate_quest(npc)
+                    new_quest.giver = npc
+                    npc.quest = new_quest
+            for item in items:
+                if isinstance(item, Note) and self._llm_util:
+                    if random.random() < 0.5:
+                        new_quest = self._llm_util.generate_note_quest(zone_info=zone.get_info())
+                        new_quest.giver = item
+                        item.text = new_quest.reason
+                    else:
+                        text = self._llm_util.generate_note_lore(zone_info=zone.get_info())
+                        item.text = text
+            if spawner:
+                self._story.world.add_mob_spawner(spawner)
+            return True
+
+    def add_zone_object(self, zone: Zone) -> bool:
+        """Add a :class:`Zone` object directly to the story (LLM handoff).
+
+        Unlike :meth:`add_zone` (which takes a dict and constructs a new
+        Zone), this adds the given Zone object as-is, so the caller keeps a
+        reference to the same object (and can keep mutating it). Returns True
+        if it was added, False if a zone with the same name already exists.
+        """
+        with self._lock:
+            return self._story.add_zone(zone)
+
+    def add_location_object(self, location: Location, zone: str = '') -> bool:
+        """Add a :class:`Location` object directly to the story (LLM handoff).
+
+        Unlike :meth:`add_location` (which takes a dict and constructs a new
+        Location), this adds the given Location object as-is (to the world and
+        to the named zone). Returns True if it was added, False if a location
+        with the same name already exists in the zone.
+        """
+        with self._lock:
+            result = self._story.add_location(location, zone=zone)
+            if result:
+                self._subscribe_events()
+            return result
+
+    def add_world_npc_object(self, npc) -> bool:
+        """Add a live NPC object directly to the world's store (LLM handoff).
+
+        Unlike :meth:`add_world_npc` (which takes a dict and constructs a new
+        Living), this adds the given Living object as-is. Returns True if it
+        was added, False if an NPC with the same name already exists.
+        """
+        with self._lock:
+            result = self._story.world.add_npc(npc)
+            if result:
+                self._subscribe_events()
+            return result
+
+    def add_world_item_object(self, item) -> bool:
+        """Add a live item object directly to the world's store (LLM handoff).
+
+        Unlike :meth:`add_world_item` (which takes a dict and constructs a new
+        Item), this adds the given Item object as-is. Returns True if it was
+        added, False if an item with the same name already exists.
+        """
+        with self._lock:
+            return self._story.world.add_item(item)

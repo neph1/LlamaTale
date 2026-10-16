@@ -222,6 +222,14 @@ class TestLivingNpcActions():
         assert(llm_cache.get_events(self.npc2._observed_events) == 'test : sits down on a chair\n\n')
         assert ["test : sits down on a chair\n\n"] == self.msg_trace_npc.messages
 
+    def test_tell_action_deferred_unpads_avatar_tag(self):
+        # regression: the avatar '<:>' splitter tag must be converted to a plain colon when
+        # deferred NPC narration is displayed, so it never leaks literally to output or logs.
+        self.npc.deferred_actions.add("test <:> The March Hare is brave")
+        self.npc.tell_action_deferred("idle-action")
+        assert "<:>" not in self.msg_trace_npc.messages[0]
+        assert self.msg_trace_npc.messages[0] == "test : The March Hare is brave\n\n"
+
     @responses.activate
     def test_do_react(self):
         mud_context.config.server_tick_method = 'TIMER'

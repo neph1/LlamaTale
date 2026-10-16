@@ -29,7 +29,6 @@ class StoryContext:
     def set_current_section(self, section: str) -> None:
         if self.current_section:
             self.past_sections.append(self.current_section)
-            print(f"Past sections: {self.past_sections}")
         self.current_section = section
 
     def to_context(self) -> str:

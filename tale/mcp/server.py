@@ -18,7 +18,8 @@ from typing import Optional
 
 from mcp.server.fastmcp import FastMCP
 
-import tale.story_manager as story_manager
+from tale import story_manager
+from tale.story_manager import StoryManager
 
 __all__ = ["create_server", "start_server", "DEFAULT_MCP_PORT"]
 
@@ -42,16 +43,18 @@ def _result(success, error) -> dict:
     return {"success": success, "error": error}
 
 
-def create_server(manager, port: int = DEFAULT_MCP_PORT) -> FastMCP:
+def create_server(manager: StoryManager, port: int = DEFAULT_MCP_PORT) -> FastMCP:
     """Create a :class:`FastMCP` server exposing the given ``manager`` as tools."""
     mcp = FastMCP(
         "LlamaTale StoryManager",
         instructions=(
             "Tools for building and modifying a LlamaTale story/world. "
             "Cover story config, zones, locations, catalogue items/creatures, "
-            "live world contents, story progression, persistence, and "
-            "LLM-backed generation. Locations and zones are identified by name; "
-            "a location is addressed as (zone, name)."
+            "live world contents, read-only live state (players, NPCs, "
+            "locations, story progress, world map), event polling (observe "
+            "the live world as it happens), story progression, persistence, "
+            "and LLM-backed generation. Locations and zones are identified by "
+            "name; a location is addressed as (zone, name)."
         ),
         host="127.0.0.1",
         stateless_http=True, 
@@ -282,6 +285,68 @@ def create_server(manager, port: int = DEFAULT_MCP_PORT) -> FastMCP:
         empty dict if not found)."""
         return manager.get_world_item(name)
 
+    # -- live state (read-only views of the running world) ---------------------
+
+    @mcp.tool()
+    def list_players() -> str:
+        """Return the connected players as a JSON array of
+        {name, location:{zone,name}|None, hp, alive, idle_time}. Empty array if
+        there is no driver."""
+        return _json(manager.list_players())
+
+    @mcp.tool()
+    def get_player(name: str) -> dict:
+        """Return the full state of a connected player by (case-insensitive)
+        name: name, title, location, inventory, stats, hp, alive, idle_time.
+        Empty dict if not found or there is no driver."""
+        return manager.get_player(name)
+
+    @mcp.tool()
+    def get_npc(name: str) -> dict:
+        """Return the full state of a live NPC in the world by (case-insensitive)
+        name: name, title, short_description, description, location, alive,
+        visible, hidden, goal, level, stats, action_history, planned_actions.
+        Empty dict if not found."""
+        return manager.get_npc(name)
+
+    @mcp.tool()
+    def get_location_live(zone: str, name: str) -> dict:
+        """Return the structured live state of a location (zone, name): name,
+        description, short_descr, indoors, world_location, exits, livings and
+        items. Mirrors the state the LLM reasons over. Empty dict if not
+        found."""
+        return manager.get_location_live(zone, name)
+
+    @mcp.tool()
+    def get_story_state() -> dict:
+        """Return the story's narrative state: story (context string with past
+        sections), current_section, past_sections, progress, length, name, type,
+        world_info, world_mood."""
+        return manager.get_story_state()
+
+    @mcp.tool()
+    def get_world_map() -> dict:
+        """Return a compact map of the whole world:
+        {zone_name: {location_name: {indoors, npc_count, item_count,
+        exits:[directions]}}}."""
+        return manager.get_world_map()
+
+    # -- event polling (observe the live world as it happens) ------------------
+
+    @mcp.tool()
+    def poll_events(since: int = 0) -> str:
+        """Return wiretap events from the live world with ``index > since``
+        (newest last) as a JSON array. Each event is {index, time, kind,
+        source, text} where kind is "wiretap-location" or "wiretap-living".
+        Poll with the highest index you have seen to avoid re-reading old
+        events. This lets you *observe* the story as it happens."""
+        return _json(manager.poll_events(since))
+
+    @mcp.tool()
+    def reset_events() -> None:
+        """Drop the buffered events and reset the cursor (fresh start)."""
+        manager.reset_events()
+
     # -- story progression -----------------------------------------------------
 
     @mcp.tool()
@@ -291,7 +356,10 @@ def create_server(manager, port: int = DEFAULT_MCP_PORT) -> FastMCP:
 
     @mcp.tool()
     def advance_story_section(section: str) -> None:
-        """Advance the story context to a new section."""
+        """
+        Sets the current section or focus for the story.
+        Functions as a "grounding" for generated content.
+        """
         manager.advance_story_section(section)
 
     @mcp.tool()
@@ -311,6 +379,82 @@ def create_server(manager, port: int = DEFAULT_MCP_PORT) -> FastMCP:
         """Load a story from a saved directory at ``path``, replacing the current
         state."""
         manager.load(path)
+
+    # -- live mutations (affect the story as it happens) -----------------------
+
+    @mcp.tool()
+    def set_location_description(zone: str, name: str, description: str, short_descr: str = '') -> dict:
+        """Set the description (and optionally short description) of a live
+        location (zone, name). Returns {"success": bool, "error": str}."""
+        return _result(*manager.set_location_description(zone, name, description, short_descr))
+
+    @mcp.tool()
+    def add_exit(zone: str, name: str, direction: str, target: str, short_descr: str = '') -> dict:
+        """Add a single exit from location (zone, name) in ``direction`` to
+        ``target``. Missing target locations are created (with a return exit in
+        the opposite direction). Returns {"success": bool, "error": str}."""
+        return _result(*manager.add_exit(zone, name, direction, target, short_descr))
+
+    @mcp.tool()
+    def remove_exit(zone: str, name: str, direction: str) -> dict:
+        """Remove an exit (and its target-name alias) from location (zone, name)
+        in ``direction``. Returns {"success": bool, "error": str}."""
+        return _result(*manager.remove_exit(zone, name, direction))
+
+    @mcp.tool()
+    def set_exit_state(zone: str, name: str, direction: str, open: bool) -> dict:
+        """Open or close an exit from location (zone, name) in ``direction``.
+        For a door this sets its opened state; for a plain exit, open=False
+        removes it. Returns {"success": bool, "error": str}."""
+        return _result(*manager.set_exit_state(zone, name, direction, open))
+
+    @mcp.tool()
+    def move_npc(name: str, zone: str, location_name: str) -> dict:
+        """Move a live NPC (by name) to location (zone, location_name).
+        Returns {"success": bool, "error": str}."""
+        return _result(*manager.move_npc(name, zone, location_name))
+
+    @mcp.tool()
+    def npc_say(name: str, text: str, target: str = '') -> dict:
+        """Make a live NPC say ``text`` to the room, or to a specific living in
+        the same location if ``target`` is given. Returns
+        {"success": bool, "error": str}."""
+        return _result(*manager.npc_say(name, text, target))
+
+    @mcp.tool()
+    def npc_attack(name: str, target_name: str) -> dict:
+        """Make a live NPC attack another living (one combat round).
+        Returns {"success": bool, "error": str}."""
+        return _result(*manager.npc_attack(name, target_name))
+
+    @mcp.tool()
+    def npc_do(name: str, action: dict) -> dict:
+        """Force a live NPC to perform a specific action (say/move/take/give/
+        attack/wear/hide/search). ``action`` may contain goal, thoughts, text,
+        action, target and item. Returns {"success": bool, "error": str}."""
+        return _result(*manager.npc_do(name, action))
+
+    @mcp.tool()
+    def set_npc_goal(name: str, goal: str) -> dict:
+        """Set the free-form goal of a live NPC (by name).
+        Returns {"success": bool, "error": str}."""
+        return _result(*manager.set_npc_goal(name, goal))
+
+    # -- LLM-driven / narrative (Stage 4) --------------------------------------
+
+    @mcp.tool()
+    def npc_act(name: str) -> dict:
+        """Have a live LLM NPC (a LivingNpc) plan and perform an idle action:
+        the LLM chooses what the NPC does from the location's context. Returns
+        a dict with the performed ``action``, or an empty dict if nothing was
+        performed (unknown NPC, not an LLM NPC, or no action planned)."""
+        return manager.npc_act(name)
+
+    @mcp.tool()
+    def trigger_narrative_event(zone: str, name: str) -> str:
+        """Have the LLM narrate a short event in the location (zone, name) and
+        return the narrated text. Empty string if the location is not found."""
+        return manager.trigger_narrative_event(zone, name)
 
     # -- LLM-backed generation -------------------------------------------------
 
@@ -361,7 +505,7 @@ def start_server(port: int = DEFAULT_MCP_PORT) -> Optional[threading.Thread]:
             import asyncio
             import uvicorn
             app = mcp.streamable_http_app()
-            config = uvicorn.Config(app, host="127.0.0.1", port=port, log_level="info")
+            config = uvicorn.Config(app, host="127.0.0.1", port=port, log_level="error")
             server = uvicorn.Server(config)
             asyncio.run(server.serve())
         except Exception as e:   # pragma: no cover - defensive

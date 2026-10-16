@@ -301,14 +301,12 @@ class IFDriver(driver.Driver):
                     story_completed()
                     break
                 except Exception:
-                    txt = "\n<bright><rev>* internal error (please report this):</>\n" + "".join(util.format_traceback())
+                    util.log_crash()   # write the full traceback to the crash log file
                     if conn.player:
-                        conn.player.tell(txt, format=False)
-                        conn.player.tell("<rev><it>Please report this problem.</>")
+                        conn.player.tell("\n<bright><rev>* internal error (please report this):</>\n", format=False)
+                        conn.player.tell(util.crash_report_message())
                     else:
                         print("ERROR IN SINGLE PLAYER DRIVER LOOP:", file=sys.stderr)
-                        print(txt, file=sys.stderr)
-                    del txt
             try:
                 # sync pubsub pending tells
                 pubsub.sync("driver-pending-tells")

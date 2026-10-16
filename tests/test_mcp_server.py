@@ -17,10 +17,13 @@ import types
 
 import pytest
 
+from tale import pubsub, mud_context
 from tale.llm.dynamic_story import DynamicStory
 from tale.llm.responses.LocationResponse import LocationResponse
+from tale.story import StoryConfig
 from tale.story_manager import StoryManager
 from tale.zone import Zone
+from tests.supportstuff import FakeDriver
 
 from tale.mcp.server import create_server, start_server, DEFAULT_MCP_PORT
 
@@ -65,6 +68,13 @@ def tool_bool(mcp, name, arguments=None):
     return structured["result"]
 
 
+def tool_text(mcp, name, arguments=None):
+    """Call a tool whose result is free text (not JSON) and return the text."""
+    texts, _ = call_tool(mcp, name, arguments or {})
+    assert texts, "expected a text content from tool %s" % name
+    return texts[0]
+
+
 def tool_result(mcp, name, arguments=None):
     """Call a tool that returns a {"success": bool, "error": str} dict.
 
@@ -106,6 +116,12 @@ class FakeLlmUtil:
         response = LocationResponse(json_result, location, location.name)
         return response, None
 
+    def perform_idle_action(self, **kwargs):
+        return ["The goblin scratches itself idly."]
+
+    def generate_narrative_event(self, location):
+        return "A shadow stirs in the corner."
+
 
 # --- server creation -----------------------------------------------------------
 
@@ -120,8 +136,14 @@ class TestServerCreation():
         "add_item", "add_creature", "list_items", "list_creatures", "remove_item", "remove_creature",
         "spawn_npc", "spawn_item", "list_world_npcs", "list_world_items",
         "add_world_npc", "add_world_item", "get_world_npc", "get_world_item",
+        "list_players", "get_player", "get_npc", "get_location_live",
+        "get_story_state", "get_world_map",
+        "poll_events", "reset_events",
         "set_story_context", "advance_story_section", "set_start_location",
         "save", "load",
+        "set_location_description", "add_exit", "remove_exit", "set_exit_state",
+        "move_npc", "npc_say", "npc_attack", "npc_do", "set_npc_goal",
+        "npc_act", "trigger_narrative_event",
         "generate_world_items", "generate_world_creatures", "generate_start_zone", "generate_location",
     }
 
@@ -395,6 +417,202 @@ class TestWorldStoreTools():
         assert tool_json(mcp, "get_world_item", {"name": "Nope"}) == {}
 
 
+# --- live mutation tools -------------------------------------------------------
+# Stage 3 tools that affect the running story: descriptions, exits, NPC
+# movement/actions and goals. NPC movement and combat need a mud_context with a
+# config (look/show_exits_in_look) and a driver (combat prompts), so set it up.
+
+
+class TestLiveMutationTools():
+
+    def setup_method(self):
+        self._saved = (mud_context.config, mud_context.driver)
+        mud_context.config = StoryConfig()
+        mud_context.driver = FakeDriver()
+
+    def teardown_method(self):
+        mud_context.config, mud_context.driver = self._saved
+
+    def _seed(self, mgr):
+        mgr.add_location({"name": "Cave", "descr": "A cave", "short_descr": "A cave",
+                          "world_location": [0, 0, 0]}, "TestZone")
+        mgr.add_location({"name": "Hall", "descr": "A hall", "short_descr": "A hall",
+                          "world_location": [1, 0, 0]}, "TestZone")
+        mgr.set_exits("TestZone", "Cave", [{"direction": "east", "name": "Hall"}])
+        mgr.add_location({"name": "NorthRoom", "descr": "A room to the north",
+                          "short_descr": "North room", "world_location": [0, 1, 0]}, "TestZone")
+        from tale.base import Door
+        door = Door("north", mgr.story.get_location("TestZone", "NorthRoom"),
+                    "a door", "A door to the north", locked=True, opened=False)
+        mgr.story.get_location("TestZone", "Cave").add_exits([door])
+        mgr.add_creature({"name": "goblin", "type": "Mob", "gender": "m", "race": "human",
+                          "level": 2, "description": "A goblin"})
+        assert mgr.spawn_npc("goblin", "TestZone", "Cave") is True
+        mgr.add_creature({"name": "orc", "type": "Mob", "gender": "m", "race": "human",
+                          "level": 2, "description": "An orc"})
+        assert mgr.spawn_npc("orc", "TestZone", "Hall") is True
+        mgr.add_item({"name": "torch", "type": "Other"})
+        assert mgr.spawn_item("torch", "TestZone", "Cave") is True
+
+    def test_set_location_description(self):
+        mgr = make_manager()
+        self._seed(mgr)
+        mcp = create_server(mgr)
+        success, error = tool_result(mcp, "set_location_description",
+                                     {"zone": "TestZone", "name": "Cave",
+                                      "description": "A dark, dank cave."})
+        assert success is True and error == ""
+        assert mgr.story.get_location("TestZone", "Cave").description == "A dark, dank cave."
+
+    def test_set_location_description_short(self):
+        mgr = make_manager()
+        self._seed(mgr)
+        mcp = create_server(mgr)
+        success, error = tool_result(mcp, "set_location_description",
+                                     {"zone": "TestZone", "name": "Cave",
+                                      "description": "A dark, dank cave.", "short_descr": "A dark cave."})
+        assert success is True and error == ""
+        assert mgr.story.get_location("TestZone", "Cave").short_description == "A dark cave."
+
+    def test_set_location_description_unknown(self):
+        mgr = make_manager()
+        self._seed(mgr)
+        mcp = create_server(mgr)
+        success, error = tool_result(mcp, "set_location_description",
+                                     {"zone": "TestZone", "name": "Nope", "description": "x"})
+        assert success is False and "location 'Nope'" in error
+
+    def test_add_exit(self):
+        mgr = make_manager()
+        self._seed(mgr)
+        mcp = create_server(mgr)
+        success, error = tool_result(mcp, "add_exit",
+                                     {"zone": "TestZone", "name": "Cave", "direction": "down", "target": "Forest"})
+        assert success is True and error == ""
+        forest = mgr.story.get_location("TestZone", "Forest")
+        assert "cave" in forest.exits
+
+    def test_add_exit_existing(self):
+        mgr = make_manager()
+        self._seed(mgr)
+        mcp = create_server(mgr)
+        success, error = tool_result(mcp, "add_exit",
+                                     {"zone": "TestZone", "name": "Cave", "direction": "east", "target": "Hall"})
+        assert success is False and "already exists" in error
+
+    def test_remove_exit(self):
+        mgr = make_manager()
+        self._seed(mgr)
+        mcp = create_server(mgr)
+        success, error = tool_result(mcp, "remove_exit",
+                                     {"zone": "TestZone", "name": "Cave", "direction": "east"})
+        assert success is True and error == ""
+        assert "east" not in mgr.story.get_location("TestZone", "Cave").exits
+
+    def test_set_exit_state_door(self):
+        mgr = make_manager()
+        self._seed(mgr)
+        mcp = create_server(mgr)
+        door = mgr.story.get_location("TestZone", "Cave").exits["north"]
+        assert door.opened is False
+        success, error = tool_result(mcp, "set_exit_state",
+                                     {"zone": "TestZone", "name": "Cave", "direction": "north", "open": True})
+        assert success is True and error == ""
+        assert door.opened is True
+
+    def test_set_exit_state_plain_exit(self):
+        mgr = make_manager()
+        self._seed(mgr)
+        mcp = create_server(mgr)
+        success, error = tool_result(mcp, "set_exit_state",
+                                     {"zone": "TestZone", "name": "Cave", "direction": "east", "open": False})
+        assert success is True and error == ""
+        assert "east" not in mgr.story.get_location("TestZone", "Cave").exits
+
+    def test_move_npc(self):
+        mgr = make_manager()
+        self._seed(mgr)
+        mcp = create_server(mgr)
+        success, error = tool_result(mcp, "move_npc",
+                                     {"name": "goblin", "zone": "TestZone", "location_name": "Hall"})
+        assert success is True and error == ""
+        assert mgr.story.world.get_npc("goblin").location.name == "Hall"
+
+    def test_move_npc_unknown(self):
+        mgr = make_manager()
+        self._seed(mgr)
+        mcp = create_server(mgr)
+        success, error = tool_result(mcp, "move_npc",
+                                     {"name": "noone", "zone": "TestZone", "location_name": "Hall"})
+        assert success is False and "not found" in error
+
+    def test_npc_say(self):
+        mgr = make_manager()
+        self._seed(mgr)
+        mcp = create_server(mgr)
+        success, error = tool_result(mcp, "npc_say", {"name": "goblin", "text": "Halt!"})
+        assert success is True and error == ""
+
+    def test_npc_say_unknown(self):
+        mgr = make_manager()
+        self._seed(mgr)
+        mcp = create_server(mgr)
+        success, error = tool_result(mcp, "npc_say", {"name": "noone", "text": "Halt!"})
+        assert success is False and "not found" in error
+
+    def test_npc_attack(self):
+        mgr = make_manager()
+        self._seed(mgr)
+        mcp = create_server(mgr)
+        success, error = tool_result(mcp, "npc_attack", {"name": "goblin", "target_name": "orc"})
+        assert success is True and error == ""
+
+    def test_npc_attack_unknown(self):
+        mgr = make_manager()
+        self._seed(mgr)
+        mcp = create_server(mgr)
+        success, error = tool_result(mcp, "npc_attack", {"name": "goblin", "target_name": "noone"})
+        assert success is False and "not found" in error
+
+    def test_set_npc_goal(self):
+        mgr = make_manager()
+        self._seed(mgr)
+        mcp = create_server(mgr)
+        success, error = tool_result(mcp, "set_npc_goal", {"name": "goblin", "goal": "Guard the cave."})
+        assert success is True and error == ""
+        assert mgr.story.world.get_npc("goblin").goal == "Guard the cave."
+
+    def test_set_npc_goal_unknown(self):
+        mgr = make_manager()
+        self._seed(mgr)
+        mcp = create_server(mgr)
+        success, error = tool_result(mcp, "set_npc_goal", {"name": "noone", "goal": "x"})
+        assert success is False and "not found" in error
+
+    def test_npc_do_move(self):
+        mgr = make_manager()
+        self._seed(mgr)
+        mcp = create_server(mgr)
+        success, error = tool_result(mcp, "npc_do", {"name": "goblin", "action": {"action": "move", "target": "hall"}})
+        assert success is True and error == ""
+        assert mgr.story.world.get_npc("goblin").location.name == "Hall"
+
+    def test_npc_do_take(self):
+        mgr = make_manager()
+        self._seed(mgr)
+        mcp = create_server(mgr)
+        success, error = tool_result(mcp, "npc_do", {"name": "goblin", "action": {"action": "take", "item": "torch"}})
+        assert success is True and error == ""
+        assert mgr.story.world.get_item("torch").location.name == "Cave"
+
+    def test_npc_do_missing_action(self):
+        mgr = make_manager()
+        self._seed(mgr)
+        mcp = create_server(mgr)
+        success, error = tool_result(mcp, "npc_do", {"name": "goblin", "action": {}})
+        assert success is False and "action" in error
+
+
 # --- validation feedback -------------------------------------------------------
 
 class TestValidationFeedback():
@@ -486,6 +704,59 @@ class TestProgressionTools():
         assert mgr.story.config.startlocation_wizard == "TestZone.Cave"
 
 
+# --- event polling tools -------------------------------------------------------
+
+class TestEventPollingTools():
+    """The Stage 2 event-polling tools: ``poll_events`` returns a JSON array of
+    wiretap events; ``reset_events`` clears the buffer."""
+
+    def test_poll_events_empty(self):
+        mcp = create_server(make_manager())
+        events = tool_json(mcp, "poll_events")
+        assert events == []
+
+    def test_poll_events_returns_json_array(self):
+        mgr = make_manager()
+        mgr.add_location({"name": "Cave", "descr": "A cave", "world_location": [0, 0, 0]}, "TestZone")
+        location = mgr.story.get_location("TestZone", "Cave")
+        location.tell("A door creaks open.")
+        pubsub.sync()
+        mcp = create_server(mgr)
+        events = tool_json(mcp, "poll_events")
+        assert isinstance(events, list)
+        assert len(events) == 1
+        e = events[0]
+        assert e["kind"] == "wiretap-location"
+        assert e["source"] == "Cave"
+        assert e["text"] == "A door creaks open."
+        assert e["index"] == 1
+
+    def test_poll_events_since(self):
+        mgr = make_manager()
+        mgr.add_location({"name": "Cave", "descr": "A cave", "world_location": [0, 0, 0]}, "TestZone")
+        location = mgr.story.get_location("TestZone", "Cave")
+        location.tell("first")
+        location.tell("second")
+        pubsub.sync()
+        mcp = create_server(mgr)
+        events = tool_json(mcp, "poll_events", {"since": 1})
+        assert [e["text"] for e in events] == ["second"]
+
+    def test_reset_events(self):
+        mgr = make_manager()
+        mgr.add_location({"name": "Cave", "descr": "A cave", "world_location": [0, 0, 0]}, "TestZone")
+        location = mgr.story.get_location("TestZone", "Cave")
+        location.tell("one")
+        pubsub.sync()
+        mcp = create_server(mgr)
+        call_tool(mcp, "reset_events")
+        assert tool_json(mcp, "poll_events") == []
+        # the manager is still subscribed after the reset
+        location.tell("two")
+        pubsub.sync()
+        assert [e["text"] for e in tool_json(mcp, "poll_events")] == ["two"]
+
+
 # --- persistence tools ---------------------------------------------------------
 
 class TestPersistenceTools():
@@ -548,6 +819,81 @@ class TestLlmGenerationTools():
         # the generated destination location was added and the exit bound
         assert mgr.story.find_location("Generated Room") is not None
         assert "north" in mgr.story.get_location("TestZone", "Start").exits
+
+
+class TestNarrativeStage4Tools():
+
+    def setup_method(self):
+        self._saved = (mud_context.config, mud_context.driver)
+        mud_context.config = StoryConfig()
+        mud_context.config.server_tick_method = 'TIMER'
+        mud_context.driver = FakeDriver()
+
+    def teardown_method(self):
+        mud_context.config, mud_context.driver = self._saved
+
+    def _seed(self, mgr):
+        mgr.add_location({"name": "Cave", "descr": "A cave", "short_descr": "A cave",
+                          "world_location": [0, 0, 0]}, "TestZone")
+        mgr.add_creature({"name": "goblin", "type": "Mob", "gender": "m", "race": "human",
+                          "level": 1, "description": "A goblin"})
+        assert mgr.spawn_npc("goblin", "TestZone", "Cave") is True
+
+    def test_npc_act(self):
+        fake = FakeLlmUtil()
+        mgr = make_manager(llm_util=fake)
+        self._seed(mgr)
+        # idle_action() reads the LLM from mud_context.driver.llm_util
+        mud_context.driver.llm_util = fake
+        mcp = create_server(mgr)
+        result = tool_json(mcp, "npc_act", {"name": "goblin"})
+        assert result == {"action": "The goblin scratches itself idly."}
+
+    def test_npc_act_case_insensitive(self):
+        fake = FakeLlmUtil()
+        mgr = make_manager(llm_util=fake)
+        self._seed(mgr)
+        mud_context.driver.llm_util = fake
+        mcp = create_server(mgr)
+        assert tool_json(mcp, "npc_act", {"name": "GOBLIN"}) == \
+            {"action": "The goblin scratches itself idly."}
+
+    def test_npc_act_unknown(self):
+        fake = FakeLlmUtil()
+        mgr = make_manager(llm_util=fake)
+        self._seed(mgr)
+        mud_context.driver.llm_util = fake
+        mcp = create_server(mgr)
+        assert tool_json(mcp, "npc_act", {"name": "noone"}) == {}
+
+    def test_npc_act_requires_llm(self):
+        mgr = make_manager(llm_util=None)
+        self._seed(mgr)
+        mcp = create_server(mgr)
+        assert tool_json(mcp, "npc_act", {"name": "goblin"}) == {}
+
+    def test_trigger_narrative_event(self):
+        fake = FakeLlmUtil()
+        mgr = make_manager(llm_util=fake)
+        self._seed(mgr)
+        mcp = create_server(mgr)
+        text = tool_text(mcp, "trigger_narrative_event",
+                         {"zone": "TestZone", "name": "Cave"})
+        assert text == "A shadow stirs in the corner."
+
+    def test_trigger_narrative_event_unknown(self):
+        mgr = make_manager(llm_util=FakeLlmUtil())
+        self._seed(mgr)
+        mcp = create_server(mgr)
+        assert tool_text(mcp, "trigger_narrative_event",
+                         {"zone": "TestZone", "name": "nope"}) == ""
+
+    def test_trigger_narrative_event_requires_llm(self):
+        mgr = make_manager(llm_util=None)
+        self._seed(mgr)
+        mcp = create_server(mgr)
+        assert tool_text(mcp, "trigger_narrative_event",
+                         {"zone": "TestZone", "name": "Cave"}) == ""
 
 
 # --- full MCP protocol round-trip ----------------------------------------------

@@ -372,10 +372,9 @@ class MudDriver(driver.Driver):
                         self.story.goodbye(conn.player)
                         driver.topic_pending_tells.send(lambda conn=conn: self.disconnect_player(conn))
                     except Exception:
-                        tb = "".join(util.format_traceback())
-                        txt = "\n<bright><rev>* internal error (please report this):</>\n" + tb
-                        conn.player.tell(txt, format=False)
-                        conn.player.tell("<rev><it>Please report this problem.</>")
+                        util.log_crash()   # write the full traceback to the crash log file
+                        conn.player.tell("\n<bright><rev>* internal error (please report this):</>\n", format=False)
+                        conn.player.tell(util.crash_report_message())
             try:
                 pubsub.sync("driver-pending-tells")
                 # server TICK

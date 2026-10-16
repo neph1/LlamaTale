@@ -12,6 +12,7 @@ from tale.llm.dynamic_story import DynamicStory
 from tale.llm.llm_utils import LlmUtil
 from tale.player import Player
 from tale.story import StoryConfig
+from tale.story_manager import StoryManager
 from tale.wearable import WearLocation
 from tests.supportstuff import FakeDriver, FakeIoUtil
 
@@ -160,6 +161,7 @@ class TestEnrichCommand():
     context.driver = FakeDriver()
     context.driver.llm_util = llm_util
     context.driver.story = story
+    context.driver.story_manager = StoryManager(context.driver.story)
 
     def test_enrich_no_variable(self):
         parse_result = ParseResult(verb='enrich', unparsed='')

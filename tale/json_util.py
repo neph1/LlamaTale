@@ -173,7 +173,6 @@ def sanitize_json(s: str) -> str:
     s = strip_reasoning_sections(s)
     s = strip_markdown_fences(s)
     s = unwrap_double_encoded(s)
-    s = strip_reasoning_sections(s)
     s = extract_json_block(s)
     s = fix_trailing_commas(s)
     s = normalize_literals(s)
