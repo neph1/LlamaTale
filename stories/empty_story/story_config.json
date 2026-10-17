@@ -1,0 +1,30 @@
+{
+    "name": "Empty story",
+    "author": "test author",
+    "author_address": "",
+    "version": "1.0",
+    "supported_modes": [
+        "IF"
+    ],
+    "player_name": "player",
+    "player_gender": "f",
+    "player_race": "human",
+    "player_money": 0.0,
+    "money_type": "FANTASY",
+    "server_tick_method": "TIMER",
+    "server_tick_time": 5.0,
+    "gametime_to_realtime": 1,
+    "display_gametime": false,
+    "startlocation_player": "Transit.Magic phonebooth",
+    "startlocation_wizard": "Transit.Magic phonebooth",
+    "zones": [
+        "Transit"
+    ],
+    "server_mode": "IF",
+    "npcs": "",
+    "items": "",
+    "context": "",
+    "type": "",
+    "world_info": "",
+    "world_mood": 0
+}

@@ -1,0 +1,47 @@
+{
+    "story": {
+        "name": "Empty Story"
+    },
+    "zones": {
+        "Transit": {
+            "description": "",
+            "level": 1,
+            "mood": 3,
+            "races": [],
+            "items": [],
+            "size": 5,
+            "center": [
+                0,
+                0,
+                0
+            ],
+            "name": "Transit",
+            "locations": [
+                {
+                    "name": "Magic phonebooth",
+                    "descr": "This magic phone booth has the ability to transport you anywhere.",
+                    "short_descr": "",
+                    "exits": [],
+                    "world_location": [
+                        "0",
+                        "0",
+                        "0"
+                    ],
+                    "built": false
+                }
+            ]
+        }
+    },
+    "world": {
+        "npcs": {
+        },
+        "items": {
+        },
+        "spawners": [
+        ]
+    },
+    "catalogue": {
+        "items": [],
+        "creatures": []
+    }
+}
