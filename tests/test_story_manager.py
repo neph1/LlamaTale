@@ -355,6 +355,24 @@ class TestPersistence():
         # the catalogue was loaded from the fixture
         assert len(mgr.story.catalogue.get_creatures()) >= 1
 
+    def test_save_absolute_path_allowed(self):
+        # the MCP server routes saves through StoryManager, which allows
+        # (validated) absolute paths
+        mgr = StoryManager(make_story())
+        target = tempfile.mkdtemp(prefix='llamatale_mgr_save_')
+        try:
+            mgr.save(target)
+            assert os.path.exists(os.path.join(target, 'world.json'))
+            assert os.path.exists(os.path.join(target, 'story_config.json'))
+        finally:
+            shutil.rmtree(target, ignore_errors=True)
+
+    def test_save_forbidden_absolute_path(self):
+        mgr = StoryManager(make_story())
+        for path in ('/', '/etc', '/usr/local/saves'):
+            with pytest.raises(SecurityViolation):
+                mgr.save(path)
+
 
 class TestLlmGeneration():
     """Tests for the optional LLM-backed generation methods, using a fake llm_util."""
@@ -521,28 +539,6 @@ class TestNarrativeStage4():
         mgr = StoryManager(make_story(), llm_util=None)
         self._seed_location(mgr)
         assert mgr.trigger_narrative_event("TestZone", "Cave") == ""
-
-
-class TestPersistence():
-
-    def test_save_absolute_path_allowed(self):
-        # the MCP server routes saves through StoryManager, which allows
-        # (validated) absolute paths
-        mgr = StoryManager(make_story())
-        target = tempfile.mkdtemp(prefix='llamatale_mgr_save_')
-        try:
-            mgr.save(target)
-            assert os.path.exists(os.path.join(target, 'world.json'))
-            assert os.path.exists(os.path.join(target, 'story_config.json'))
-        finally:
-            shutil.rmtree(target, ignore_errors=True)
-
-    def test_save_forbidden_absolute_path(self):
-        mgr = StoryManager(make_story())
-        for path in ('/', '/etc', '/usr/local/saves'):
-            with pytest.raises(SecurityViolation):
-                mgr.save(path)
-
 
 class TestLiveState():
     """Tests for the Stage 1 read-only live-state reads (players, NPCs,

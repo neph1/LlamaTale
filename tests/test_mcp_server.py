@@ -130,9 +130,9 @@ class TestServerCreation():
     # the full set of tools from the plan (stories/worlds scope)
     EXPECTED_TOOLS = {
         "get_config", "set_config",
-        "zone_example", "add_zone", "get_zone", "list_zones", "remove_zone", "link_zones",
-        "location_example", "add_location", "get_location", "list_locations", "remove_location",
-        "set_exits", "exit_example",
+        "add_zone", "get_zone", "list_zones", "remove_zone", "link_zones",
+        "add_location", "get_location", "list_locations", "remove_location",
+        "set_exits",
         "add_item", "add_creature", "list_items", "list_creatures", "remove_item", "remove_creature",
         "spawn_npc", "spawn_item", "list_world_npcs", "list_world_items",
         "add_world_npc", "add_world_item", "get_world_npc", "get_world_item",
@@ -145,6 +145,7 @@ class TestServerCreation():
         "move_npc", "npc_say", "npc_attack", "npc_do", "set_npc_goal",
         "npc_act", "trigger_narrative_event",
         "generate_world_items", "generate_world_creatures", "generate_start_zone", "generate_location",
+        "npc_template", "item_template", "creature_template", "zone_template", "location_template",
     }
 
     def test_create_server_returns_fastmcp(self):
@@ -179,6 +180,43 @@ class TestConfigTools():
         assert mgr.story.config.world_mood == 4
         config = tool_json(mcp, "get_config")
         assert config["name"] == "New Name"
+
+
+
+# --- prompt template tools -----------------------------------------------------
+
+class TestTemplateTools():
+
+    TEMPLATES = {
+        "npc_template": "NPC_TEMPLATE.txt",
+        "item_template": "ITEM_TEMPLATE.txt",
+        "creature_template": "CREATURE_TEMPLATE.txt",
+        "zone_template": "ZONE_TEMPLATE.txt",
+        "location_template": "LOCATION_TEMPLATE.txt",
+    }
+
+    @staticmethod
+    def _template_path(filename):
+        import os
+        root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        return os.path.join(root, "tale", "llm", "prompt_templates", filename)
+
+    @pytest.mark.parametrize("tool,filename", list(TEMPLATES.items()))
+    def test_template_tools_return_file_contents(self, tool, filename):
+        mcp = create_server(make_manager())
+        texts, _ = call_tool(mcp, tool)
+        assert texts, "expected text content from %s" % tool
+        with open(self._template_path(filename)) as f:
+            expected = f.read().strip()
+        assert texts[0].strip() == expected
+
+    def test_template_tools_return_string_value(self):
+        # a string return surfaces both a text content block and a structured
+        # {"result": <string>} payload for clients that read structured output
+        mcp = create_server(make_manager())
+        texts, structured = call_tool(mcp, "npc_template")
+        assert texts
+        assert structured == {"result": texts[0]}
 
 
 # --- zone tools ----------------------------------------------------------------
