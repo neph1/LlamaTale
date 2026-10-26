@@ -27,7 +27,7 @@ from tale.driver_if import IFDriver
 
 class TestLlmUtils():
 
-    driver = IFDriver(screen_delay=99, gui=False, web=True, wizard_override=True)
+    driver = IFDriver(screen_delay=99, web=True, wizard_override=True)
     driver.game_clock = util.GameDateTime(datetime.datetime(year=2023, month=1, day=1), 1)
     
     llm_util = LlmUtil(FakeIoUtil()) # type: LlmUtil
@@ -199,7 +199,7 @@ class TestWorldBuilding():
         self.story = JsonStory('tests/files/world_story/', parse_utils.load_story_config(parse_utils.load_json('tests/files/test_story_config_empty.json')))
         self.story.config.world_mood = 0
         self.story.config.world_info = "A test world"
-        self.driver = IFDriver(screen_delay=99, gui=False, web=True, wizard_override=True)
+        self.driver = IFDriver(screen_delay=99, web=True, wizard_override=True)
         self.driver.game_clock = util.GameDateTime(datetime.datetime(year=2023, month=1, day=1), 1)
         self.driver.moneyfmt = util.MoneyFormatter.create_for(MoneyType.MODERN)
         self.llm_util = LlmUtil(FakeIoUtil()) # type: LlmUtil
@@ -737,7 +737,7 @@ class TestQuestBuilding():
 
 class TestStoryBuilding():
 
-    driver = IFDriver(screen_delay=99, gui=False, web=True, wizard_override=True)
+    driver = IFDriver(screen_delay=99, web=True, wizard_override=True)
     driver.game_clock = util.GameDateTime(datetime.datetime(year=2023, month=1, day=1), 1)
     
     llm_util = LlmUtil(FakeIoUtil()) # type: LlmUtil

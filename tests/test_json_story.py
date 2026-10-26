@@ -13,7 +13,7 @@ from tale.mob_spawner import MobSpawner
 
 class TestJsonStory():
     wearable.wearbles_story = []
-    driver = IFDriver(screen_delay=99, gui=False, web=True, wizard_override=True)
+    driver = IFDriver(screen_delay=99, web=True, wizard_override=True)
     driver.game_clock = util.GameDateTime(datetime.datetime(year=2023, month=1, day=1), 1)
     story = JsonStory('tests/files/world_story/', parse_utils.load_story_config(parse_utils.load_json('tests/files/world_story/story_config.json')))
     story.init(driver)
@@ -136,7 +136,7 @@ class TestJsonStory():
 
 class TestAnythingStory():
 
-    driver = IFDriver(screen_delay=99, gui=False, web=True, wizard_override=True)
+    driver = IFDriver(screen_delay=99, web=True, wizard_override=True)
     driver.game_clock = util.GameDateTime(datetime.datetime(year=2023, month=1, day=1), 1)
 
     def test_load_anything_story(self):
@@ -195,7 +195,7 @@ class TestAnythingStory():
 
 class TestWorldInfo():
 
-    driver = IFDriver(screen_delay=99, gui=False, web=True, wizard_override=True)
+    driver = IFDriver(screen_delay=99, web=True, wizard_override=True)
     driver.game_clock = util.GameDateTime(datetime.datetime(year=2023, month=1, day=1), 1)
     story = JsonStory('tests/files/anything_story/', parse_utils.load_story_config(parse_utils.load_json('tests/files/anything_story/story_config.json')))
     story.init(driver)

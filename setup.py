@@ -40,7 +40,6 @@ The source code repository is on Github: https://github.com/irmen/Tale
     packages=['tale', 'tale.cmds', 'tale.items', 'tale.tio', 'tale.demo', 'tale.demo.zones', 'tale.web'],
     package_data={
         'tale': ['soul_adverbs.txt'],
-        'tale.tio': ['quill_pen_paper.ico', 'quill_pen_paper.gif'],
         'tale.web': ['*']
     },
     include_package_data=True,
