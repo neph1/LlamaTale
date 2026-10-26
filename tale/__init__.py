@@ -10,7 +10,7 @@ from typing import Any
 from packaging.version import Version
 
 
-__version__ = "4.7"
+__version__ = "0.51.0"
 
 
 class _MudContext:
