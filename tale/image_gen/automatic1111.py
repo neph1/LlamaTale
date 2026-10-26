@@ -12,7 +12,7 @@ class Automatic1111(ImageGeneratorBase):
 
     def __init__(self, address: str = '127.0.0.1', port: int = 7860) -> None:
         super().__init__("/sdapi/v1/txt2img", address, port)
-        with open(os.path.realpath(os.path.join(os.path.dirname(__file__), "../../automatic1111_config.yaml")), "r") as stream:
+        with open(os.path.realpath(os.path.join(os.path.dirname(__file__), "automatic1111_config.yaml")), "r") as stream:
             try:
                 self.config = yaml.safe_load(stream)
                 self.generate_in_background = self.config['GENERATE_IN_BACKGROUND']

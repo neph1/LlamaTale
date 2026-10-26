@@ -6,11 +6,11 @@ from tale.wearable import WearLocation, body_parts_for_bodytype, load_wearables_
 class TestLoadWearablesFromJson:
 
     def test_load_wearables_from_json(self):
-        wearables = load_wearables_from_json('../items/wearables_fantasy.json')
+        wearables = load_wearables_from_json('items/wearables_fantasy.json')
         assert wearables
 
     def test_load_wearables_from_json_modern(self):
-        wearables = load_wearables_from_json('../items/wearables_modern.json')
+        wearables = load_wearables_from_json('items/wearables_modern.json')
         assert wearables
 class TestBodyPartsForBodyType:
 

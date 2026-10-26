@@ -19,7 +19,7 @@ class TestLlmIo():
         return llm_config.load_config()
 
     def _load_backend_config(self, backend) -> dict:
-        with open(os.path.realpath(os.path.join(os.path.dirname(__file__), f"../backend_{backend}.yaml")), "r") as stream:
+        with open(os.path.realpath(os.path.join(os.path.dirname(__file__), f"../tale/llm/backend_{backend}.yaml")), "r") as stream:
             try:
                 return yaml.safe_load(stream)
             except yaml.YAMLError as exc:
@@ -161,7 +161,7 @@ class TestLlmIo():
     @responses.activate
     def test_stream_kobold_cpp(self):
         config = {'BACKEND':'kobold_cpp', 'USER_START':'', 'USER_END':''}
-        with open(os.path.realpath(os.path.join(os.path.dirname(__file__), f"../backend_kobold_cpp.yaml")), "r") as stream:
+        with open(os.path.realpath(os.path.join(os.path.dirname(__file__), f"../tale/llm/backend_kobold_cpp.yaml")), "r") as stream:
             try:
                 backend_config = yaml.safe_load(stream)
             except yaml.YAMLError as exc:
@@ -182,7 +182,7 @@ class TestLlmIo():
 
     def test_stream_llama_cpp(self):
         config = {'BACKEND':'llama_cpp', 'USER_START':'', 'USER_END':''}
-        with open(os.path.realpath(os.path.join(os.path.dirname(__file__), f"../backend_llama_cpp.yaml")), "r") as stream:
+        with open(os.path.realpath(os.path.join(os.path.dirname(__file__), f"../tale/llm/backend_llama_cpp.yaml")), "r") as stream:
             try:
                 backend_config = yaml.safe_load(stream)
             except yaml.YAMLError as exc:
