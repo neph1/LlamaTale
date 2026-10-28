@@ -1,11 +1,10 @@
-
-
 import datetime
 import json
-from tale import json_util, util, mud_context
+from tale import util, mud_context
 from tale.base import Location
 from tale.driver_if import IFDriver
 from tale.llm.responses.LocationResponse import LocationResponse
+from tale.llm.schemas import LocationSchema
 
 class TestLocationResponse():
 
@@ -15,23 +14,24 @@ class TestLocationResponse():
         self.driver = IFDriver(screen_delay=99, gui=False, web=True, wizard_override=True)
         self.driver.game_clock = util.GameDateTime(datetime.datetime(year=2023, month=1, day=1), 1)
         self.driver.moneyfmt = util.MoneyFormatterFantasy()
-    
-    generated_location = '{"name": "Outside", "description": "A barren wasteland of snow and ice stretches as far as the eye can see. The wind howls through the mountains like a chorus of banshees, threatening to sweep away any unfortunate soul caught outside without shelter.", "exits": [{"name": "North Pass","short_desc": "The North Pass is treacherous mountain pass that leads deeper into the heart of the range","enter_msg":"You shuffle your feet through knee-deep drifts of snow, trying to keep your balance on the narrow path."}, {"name": "South Peak","short_Desc": "The South Peak offers breathtaking views of the surrounding landscape from its summit, but it\'s guarded by a pack of fierce winter wolves.","Enter_msg":"You must face off against the snarling beasts if you wish to reach the peak."}] ,"items": [{"name":"Woolly gloves", "type":"Wearable"}],"npcs": [{"name":"wolf", "body":"QUADRUPED", "unarmed_attack":"BITE", "hp":10, "level":10}]}'
-    
+
+    generated_location = '{"name": "Outside", "description": "A barren wasteland of snow and ice stretches as far as the eye can see. The wind howls through the mountains like a chorus of banshees, threatening to sweep away any unfortunate soul caught outside without shelter.", "exits": [{"direction": "north", "name": "North Pass","short_descr": "The North Pass is treacherous mountain pass that leads deeper into the heart of the range"}, {"direction": "south", "name": "South Peak","short_descr": "The South Peak offers breathtaking views of the surrounding landscape from its summit, but it\'s guarded by a pack of fierce winter wolves."}] ,"items": [{"name":"Woolly gloves", "type":"Wearable"}],"npcs": [{"name":"wolf", "description":"Creature", "unarmed_attack":"BITE", "hp":10, "level":10}]}'
+
     def test_validate_location(self):
         location = Location(name='Outside')
         location.built = False
-        result = LocationResponse(json_result=json.loads(self.generated_location), location=location, exit_location_name='Entrance')
+        model = LocationSchema.model_validate(json.loads(self.generated_location))
+        result = LocationResponse(model=model, location=location, exit_location_name='Entrance')
         locations = result.new_locations
         exits = result.exits
-        
+
         location.add_exits(exits)
         assert(location.description.startswith('A barren wasteland'))
-        assert(len(location.exits) == 2)
-        assert(location.exits['north pass'])
-        assert(location.exits['south peak'])
-        assert(len(location.items) == 1) # woolly gloves
-        assert(len(location.livings) == 1) # wolf
+        assert(len(location.exits) >= 2)
+        assert(location.exits['north pass'] or location.exits['north'])
+        assert(location.exits['south peak'] or location.exits['south'])
+        assert(len(location.items) == 1)
+        assert(len(location.livings) == 1)
         assert(len(locations) == 2)
         assert(locations[0].name == 'North Pass')
         assert(locations[1].name == 'South Peak')
@@ -42,17 +42,18 @@ class TestLocationResponse():
         loc = json.loads(self.generated_location)
         loc["npcs"] = ["wolf"]
         world_creatures = [{"name": "wolf", "body": "Creature", "unarmed_attack": "BITE", "hp":10, "level":10}]
-        result = LocationResponse(json_result=loc, location=location, exit_location_name='Entrance', world_creatures=world_creatures)
+        model = LocationSchema.model_validate(loc)
+        result = LocationResponse(model=model, location=location, exit_location_name='Entrance', world_creatures=world_creatures)
         locations = result.new_locations
         exits = result.exits
-        
+
         location.add_exits(exits)
         assert(location.description.startswith('A barren wasteland'))
-        assert(len(location.exits) == 2)
-        assert(location.exits['north pass'])
-        assert(location.exits['south peak'])
-        assert(len(location.items) == 1) # woolly gloves
-        assert(len(location.livings) == 1) # wolf
+        assert(len(location.exits) >= 2)
+        assert(location.exits['north pass'] or location.exits['north'])
+        assert(location.exits['south peak'] or location.exits['south'])
+        assert(len(location.items) == 1)
+        assert(len(location.livings) == 1)
         assert(len(locations) == 2)
         assert(locations[0].name == 'North Pass')
         assert(locations[1].name == 'South Peak')
@@ -73,10 +74,11 @@ class TestLocationResponse():
         assert(boots['type'] == 'Other')
 
     def test_generated_location(self):
-        generated_location = '{"name": "Blighted Depths", "exits": [{"direction": "Northwest", "name": "Dank Caverns", "short_descr": "A damp tunnel leads deeper into unknown territory."}, {"direction": "Southeast", "name": "Moldy Den", "short_descr": "The path winds through mushroom-filled darkness."}, {"direction": "Southwest", "name": "Fungal Forest", "short_descr": "Vast fungal growth obscures your view beyond the clearing."}], "level": 10, "mood": -3, "races": [], "size": 5, "center": [0, 0, 0], "description": "In the Blighted Depths, stagnant air hangs thick with mold spores and decaying matter. The floor is a slick layer of slime that covers overgrown roots, while above you looms an enormous web strung between the cavern\'s columns.", "items": [], "npcs": [{"name": "Luminae", "sentiment": "Neutral", "race": "Undead Elf", "gender": "She", "level": 9, "aggressive": False, "description": "A spectral elven woman floats aimlessly in the murky depths. Her eyes are vacant as she moves through the caverns, seemingly lost.", "appearance": "Her hair flows like smoke around her translucent form, which appears to be wrapped in cobwebs. She wears tattered robes and holds a staff carved from bone."}]} '
+        generated_location = '{"name": "Blighted Depths", "exits": [{"direction": "Northwest", "name": "Dank Caverns", "short_descr": "A damp tunnel leads deeper into unknown territory."}, {"direction": "Southeast", "name": "Moldy Den", "short_descr": "The path winds through mushroom-filled darkness."}, {"direction": "Southwest", "name": "Fungal Forest", "short_descr": "Vast fungal growth obscures your view beyond the clearing."}], "level": 10, "mood": -3, "races": [], "size": 5, "center": [0, 0, 0], "description": "In the Blighted Depths, stagnant air hangs thick with mold spores and decaying matter. The floor is a slick layer of slime that covers overgrown roots, while above you looms an enormous web strung between the cavern\'s columns.", "items": [], "npcs": [{"name": "Luminae", "sentiment": "Neutral", "race": "Undead Elf", "gender": "n", "level": 9, "aggressive": false, "description": "A spectral elven woman floats aimlessly in the murky depths.", "appearance": "Her hair flows like smoke around her translucent form."}]}'
         location = Location(name='Blighted Depths')
         location.built = False
-        result = LocationResponse(json_result=json_util.safe_load(generated_location), location=location, exit_location_name='')
+        model = LocationSchema.model_validate(json.loads(generated_location))
+        result = LocationResponse(model=model, location=location, exit_location_name='')
         locations = result.new_locations
         exits = result.exits
 

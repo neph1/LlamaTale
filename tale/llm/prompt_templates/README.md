@@ -25,7 +25,6 @@ The prompts are organized into several categories:
 
 ### System Prompts
 - `PRE_PROMPT.txt` - Base system prompt for the LLM
-- `PRE_JSON_PROMPT.txt` - System prompt for JSON-formatted responses
 - `BASE_PROMPT.txt` - Base prompt template for general tasks
 
 ### Character & NPC Prompts
@@ -86,7 +85,14 @@ These files define the JSON structure that the LLM should follow:
 - `ITEMS_PROMPT.txt` - Prompt fragment for adding items
 - `SPAWN_PROMPT.txt` - Prompt fragment for spawning NPCs/mobs
 - `RANDOM_SPAWN_PROMPT.txt` - Prompt for random spawns
-- `JSON_GRAMMAR.txt` - JSON grammar definition for constrained generation
+
+## Structured Output
+
+Structured LLM responses use JSON Schema via `response_format` (see
+`tale/llm/schemas.py` and `IoUtil.structured_request`). The Pydantic models
+in `schemas.py` define the expected shape; the backend constrains generation
+to schema-valid JSON. JSON template files (`*_TEMPLATE.txt`) are kept as
+prompt hints but are no longer required for parsing.
 
 ## Notes
 

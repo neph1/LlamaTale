@@ -72,10 +72,14 @@ class FakeIoUtil(IoUtil):
 
     def synchronous_request(self, request_body: dict, prompt: str = None, context: str = '') -> str:
         return self.response.pop(0) if isinstance(self.response, list) > 0 and len(self.response) > 0 else self.response
-    
+
+    def structured_request(self, request_body: dict, prompt: str = None, model=None, context: str = ''):
+        text = self.synchronous_request(request_body, prompt, context)
+        return model.model_validate_json(text)
+
     def asynchronous_request(self, request_body: dict, prompt: str = None, context: str = ''):
         return self.synchronous_request(request_body, prompt)
-    
+
     def set_response(self, response: any):
         self.response = response
 

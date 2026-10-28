@@ -1,7 +1,11 @@
 import requests
 import json
+from typing import Type, TypeVar
+from pydantic import BaseModel, ValidationError
 from tale.errors import LlmResponseException
 from tale.llm.io_adapters import KoboldCppAdapter, LlamaCppAdapter
+
+T = TypeVar('T', bound=BaseModel)
 
 class IoUtil():
     """ Handles connection and data retrieval from backend """
@@ -17,7 +21,6 @@ class IoUtil():
         if self.backend != 'kobold_cpp':
             headers = json.loads(backend_config['OPENAI_HEADERS'])
             headers['Authorization'] = f"Bearer {backend_config['OPENAI_API_KEY']}"
-            self.openai_json_format = json.loads(backend_config['OPENAI_JSON_FORMAT'])
             self.headers = headers
             self.io_adapter = LlamaCppAdapter(self.url, backend_config['STREAM_ENDPOINT'], config.get('USER_START', ''), config.get('USER_END', ''), config.get('SYSTEM_START', ''), config.get('PROMPT_END', ''))
         else:
@@ -31,15 +34,34 @@ class IoUtil():
 
     def synchronous_request(self, request_body: dict, prompt: str, context: str = '') -> str:
         """ Send request to backend and return the result """
-        if request_body.get('grammar_string', None) and 'openai' in self.url:
-            # TODO: temp fix for openai
-            request_body.pop('grammar_string')
-            request_body['response_format'] = self.openai_json_format
         request_body = self.io_adapter.set_prompt(request_body, prompt, context)
         response = requests.post(self.url + self.endpoint, headers=self.headers, data=json.dumps(request_body))
         if response.status_code == 200:
             return self.io_adapter.parse_result(response.text)
         return ''
+
+    def structured_request(self, request_body: dict, prompt: str, model: Type[T], context: str = '') -> T:
+        """ Send request with JSON Schema structured output and return a validated model.
+
+        The model's JSON Schema is sent via response_format so the backend constrains
+        generation to schema-valid JSON. The response is then validated by Pydantic.
+        """
+        schema = model.model_json_schema()
+        request_body['response_format'] = {
+            'type': 'json_schema',
+            'json_schema': {
+                'name': model.__name__,
+                'strict': True,
+                'schema': schema,
+            },
+        }
+        text = self.synchronous_request(request_body, prompt=prompt, context=context)
+        if not text:
+            raise LlmResponseException(f"Empty response from backend for structured request ({model.__name__})")
+        try:
+            return model.model_validate_json(text)
+        except ValidationError as exc:
+            raise LlmResponseException(f"Failed to validate {model.__name__}: {exc}")
     
     def asynchronous_request(self, request_body: dict, prompt: str, context: str = '') -> str:
         if self.backend != 'kobold_cpp':
@@ -52,4 +74,3 @@ class IoUtil():
             return self.io_adapter.stream_request(self.headers, request_body, io, wait)
         # fall back if no io adapter
         return self.synchronous_request(request_body=request_body, prompt=prompt, context=context)
-

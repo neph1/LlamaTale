@@ -1,9 +1,5 @@
-
-
 from copy import deepcopy
-from json import JSONDecodeError
 import json
-import random
 
 from tale import json_util, parse_utils
 from tale.base import Location
@@ -16,12 +12,13 @@ from tale.llm.llm_io import IoUtil
 from tale.llm.contexts.DialogueContext import DialogueContext
 from tale.llm.responses.ActionResponse import ActionResponse
 from tale.llm.responses.FollowResponse import FollowResponse
+from tale.llm.schemas import ActionListSchema, CharacterSchema, DialogueSchema, FollowSchema
 from tale.load_character import CharacterV2
 
 
 class CharacterBuilding():
 
-    def __init__(self, backend: str, io_util: IoUtil, default_body: dict, json_grammar_key: str = ''):
+    def __init__(self, backend: str, io_util: IoUtil, default_body: dict):
         self.pre_prompt = llm_config.params['PRE_PROMPT']
         self.dialogue_prompt = llm_config.params['DIALOGUE_PROMPT']
         self.character_prompt = llm_config.params['CREATE_CHARACTER_PROMPT']
@@ -32,8 +29,6 @@ class CharacterBuilding():
         self.reaction_prompt = llm_config.params['REACTION_PROMPT']
         self.idle_action_prompt = llm_config.params['IDLE_ACTION_PROMPT']
         self.free_form_action_prompt = llm_config.params['ACTION_PROMPT']
-        self.json_grammar = llm_config.params['JSON_GRAMMAR']
-        self.json_grammar_key = json_grammar_key
         self.dialogue_template = llm_config.params['DIALOGUE_TEMPLATE']
         self.action_template = llm_config.params['ACTION_TEMPLATE']
         self.character_template = llm_config.params['CHARACTER_TEMPLATE']
@@ -42,11 +37,10 @@ class CharacterBuilding():
 
     def generate_dialogue(self,
                           context: DialogueContext,
-                          sentiment = '', 
+                          sentiment = '',
                           short_len : bool=False):
         prompt = self.pre_prompt
 
-        #formatted_conversation = llm_config.params['USER_START']
         prompt += self.dialogue_prompt.format(
                 context = '{context}',
                 previous_conversation=context.conversation,
@@ -55,25 +49,18 @@ class CharacterBuilding():
                 dialogue_template=self.dialogue_template,
                 sentiment=sentiment)
         request_body = deepcopy(self.default_body)
-        request_body['grammar'] = self.json_grammar
-        
-        response = self.io_util.synchronous_request(request_body, prompt=prompt, context=context.to_prompt_string())
+
         try:
-            json_result = json_util.safe_load(response)
-            text = json_result["response"]
-            if isinstance(text, list):
-                text = text[0]
-            new_sentiment = json_result.get("sentiment", None)
-            item = json_result.get("give", None)
-            if not isinstance(item, str):
-                item = None
+            model = self.io_util.structured_request(request_body, prompt=prompt, model=DialogueSchema, context=context.to_prompt_string())
+            text = model.response
+            new_sentiment = model.sentiment if model.sentiment else None
+            item = model.give if isinstance(model.give, str) else None
         except Exception as exc:
             print(f'Failed to parse dialogue {exc}')
-            print(response)
             return None, None, None
-        
+
         return text, item, new_sentiment
-    
+
     def generate_character(self, character_context: CharacterContext) -> CharacterV2:
         """ Generate a character card based on the current story context"""
         prompt = self.character_prompt.format(
@@ -81,20 +68,13 @@ class CharacterBuilding():
             character_template=self.character_template,
             keywords=', '.join(character_context.key_words))
         request_body = deepcopy(self.default_body)
-        if self.json_grammar_key:
-            request_body[self.json_grammar_key] = self.json_grammar
-        result = self.io_util.synchronous_request(request_body, prompt=prompt, context=character_context.to_prompt_string())
         try:
-            json_result = json_util.safe_load(result)
-        except JSONDecodeError as exc:
-            print(exc)
+            model = self.io_util.structured_request(request_body, prompt=prompt, model=CharacterSchema, context=character_context.to_prompt_string())
+            return CharacterV2().from_json(model.model_dump())
+        except Exception as exc:
+            print(f'Exception while generating character: {exc}')
             return None
-        try:
-            return CharacterV2().from_json(json_result)
-        except:
-            print(f'Exception while parsing character {json_result}')
-            return None
-    
+
     def perform_idle_action(self, character_name: str, location: Location, story_context: str, character_card: CharacterCard, sentiments: dict = {}, last_action: str = '', event_history: str = '') -> list:
         characters = {}
         for living in location.livings:
@@ -121,10 +101,9 @@ class CharacterBuilding():
         text = self.io_util.synchronous_request(request_body, prompt=prompt)
         if not text:
             return None
-        text = parse_utils.trim_response(text)
         text = json_util.strip_reasoning_sections(text)
-        return text
-    
+        return parse_utils.trim_response(text)
+
     def perform_travel_action(self, character_name: str, location: Location, locations: list, directions: list, character_card: CharacterCard):
         if location.name in locations:
             locations.remove(location.name)
@@ -138,10 +117,9 @@ class CharacterBuilding():
             character_name=character_name)
         request_body = deepcopy(self.default_body)
         text = self.io_util.synchronous_request(request_body, prompt=prompt)
-        text = parse_utils.trim_response(text)
         text = json_util.strip_reasoning_sections(text)
-        return text
-    
+        return parse_utils.trim_response(text)
+
     def perform_reaction(self, action: str, character_name: str, acting_character_name: str, location: Location, story_context: str, character_card: CharacterCard, sentiment: str = '', event_history: str = ''):
         prompt = self.pre_prompt
         prompt += self.reaction_prompt.format(
@@ -155,10 +133,9 @@ class CharacterBuilding():
             sentiment=sentiment)
         request_body = deepcopy(self.default_body)
         text = self.io_util.synchronous_request(request_body, prompt=prompt)
-        text = parse_utils.trim_response(text)
         text = json_util.strip_reasoning_sections(text)
-        return text + "\n"
-    
+        return parse_utils.trim_response(text) + "\n"
+
     def free_form_action(self, action_context: ActionContext) -> list:
         prompt = self.pre_prompt
         prompt += self.free_form_action_prompt.format(
@@ -167,38 +144,25 @@ class CharacterBuilding():
             previous_events=action_context.event_history.replace('<break>', '\n'),
             action_template=self.action_template)
         request_body = deepcopy(self.default_body)
-        if self.json_grammar_key:
-            request_body[self.json_grammar_key] = self.json_grammar
-        text = ''
-        try :
-            text = self.io_util.synchronous_request(request_body, prompt=prompt, context=action_context.to_prompt_string())
-            if not text:
-                return None
-            response = json_util.safe_load(text)
-            if isinstance(response, dict):
-                return [ActionResponse(response)]
-            actions = []
-            for action in response:
-                actions.append(ActionResponse(action))
-            return actions
+        try:
+            model = self.io_util.structured_request(request_body, prompt=prompt, model=ActionListSchema, context=action_context.to_prompt_string())
+            return [ActionResponse(action) for action in model.actions]
         except Exception as exc:
             print('Failed to parse action ' + str(exc))
-            print(text)
             return None
-        
+
     def request_follow(self, follow_context: FollowContext) -> FollowResponse:
         prompt = self.pre_prompt
         prompt += self.request_follow_prompt.format(
             context=follow_context.to_prompt_string(),
-            character_name=follow_context.character_name, 
-                                                    target=follow_context.asker_name, 
+            character_name=follow_context.character_name,
+                                                    target=follow_context.asker_name,
                                                     follow_template=self.follow_template,
                                                     target_reason=follow_context.asker_reason)
         request_body = deepcopy(self.default_body)
-        if self.json_grammar_key:
-            request_body[self.json_grammar_key] = self.json_grammar
-        text = self.io_util.synchronous_request(request_body, prompt=prompt)
-        if not text:
+        try:
+            model = self.io_util.structured_request(request_body, prompt=prompt, model=FollowSchema)
+            return FollowResponse(model)
+        except Exception as exc:
+            print(f'Failed to parse follow response: {exc}')
             return None
-        return FollowResponse(json_util.safe_load(text))
-        

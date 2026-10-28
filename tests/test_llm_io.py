@@ -1,13 +1,13 @@
-
-
 import json
 import os
 from aioresponses import aioresponses
 import responses
 
 import yaml
+from tale.errors import LlmResponseException
 from tale.llm import llm_config
 from tale.llm.llm_io import IoUtil
+from tale.llm.schemas import FollowSchema
 from tale.player import Player, PlayerConnection
 from tale.tio.iobase import IoAdapterBase
 
@@ -15,7 +15,6 @@ from tale.tio.iobase import IoAdapterBase
 class TestLlmIo():
 
     def _load_config(self) -> dict:
-        # Use the llm_config module which loads from YAML and prompt templates
         return llm_config.load_config()
 
     def _load_backend_config(self, backend) -> dict:
@@ -24,7 +23,6 @@ class TestLlmIo():
                 return yaml.safe_load(stream)
             except yaml.YAMLError as exc:
                 print(exc)
-        
 
     def test_set_prompt_kobold_cpp(self):
         config_file = self._load_config()
@@ -58,7 +56,7 @@ class TestLlmIo():
         result = io_util.io_adapter.set_prompt(request_body=request_body, prompt=prompt, context='')
 
     def test_set_prompt_llama_cpp(self):
-        
+
         config_file = self._load_config()
         config_file['BACKEND'] = 'llama_cpp'
         backend_config = self._load_backend_config('llama_cpp')
@@ -103,60 +101,64 @@ class TestLlmIo():
         assert(response == '')
 
     @responses.activate
-    def test_openai_grammar(self):
-        config_file = self._load_config()
-        config_file['BACKEND'] = 'openai'
-        backend_config = self._load_backend_config('openai')
-        responses.add(responses.POST, backend_config['URL'] + backend_config['ENDPOINT'],
-                    json={'results':['']}, status=500)
-        io_util = IoUtil(config=config_file, backend_config=backend_config)
-        request_body = request_body = json.loads(backend_config['DEFAULT_BODY'])
-        request_body['grammar_string'] = 'test grammar'
-        response = io_util.synchronous_request(request_body=request_body, prompt='test evoke', context='')
-        assert not request_body.get('grammar_string', None)
-        assert request_body['response_format']
-
-    @responses.activate
-    def test_openai_local_grammar(self):
-        config_file = self._load_config()
-        config_file['BACKEND'] = 'openai'
-        backend_config = self._load_backend_config('openai')
-        backend_config['URL'] = 'http://localhost:5001'
-        responses.add(responses.POST, backend_config['URL'] + backend_config['ENDPOINT'],
-                    json={'results':['']}, status=500)
-        io_util = IoUtil(config=config_file, backend_config=backend_config)
-        request_body = request_body = json.loads(backend_config['DEFAULT_BODY'])
-        request_body['grammar_string'] = 'test grammar'
-        response = io_util.synchronous_request(request_body=request_body, prompt='test evoke', context='')
-        assert request_body['grammar_string']
-        assert not request_body.get('response_format', None)
-
-
-    @responses.activate
-    def test_llamacpp_grammar(self):
-        backend_config = self._load_backend_config('llama_cpp')
-        responses.add(responses.POST, backend_config['URL'] + backend_config['ENDPOINT'],
-                    json={'results':['']}, status=500)
+    def test_structured_request_sets_response_format(self):
         config_file = self._load_config()
         config_file['BACKEND'] = 'llama_cpp'
+        backend_config = self._load_backend_config('llama_cpp')
+        responses.add(responses.POST, backend_config['URL'] + backend_config['ENDPOINT'],
+                    json={'choices': [{'message': {'content': '{"response": "yes", "reason": "because"}'}}]}, status=200)
         io_util = IoUtil(config=config_file, backend_config=backend_config)
-        request_body = request_body = json.loads(backend_config['DEFAULT_BODY'])
-        request_body['grammar'] = 'test grammar'
-        response = io_util.synchronous_request(request_body=request_body, prompt='test evoke', context='')
-        assert request_body['grammar'] == 'test grammar'
+        request_body = json.loads(backend_config['DEFAULT_BODY'])
+        model = io_util.structured_request(request_body=request_body, prompt='test', model=FollowSchema, context='')
+        assert model.response == 'yes'
+        assert model.reason == 'because'
+        assert 'response_format' in request_body
+        assert request_body['response_format']['type'] == 'json_schema'
+        assert request_body['response_format']['json_schema']['name'] == 'FollowSchema'
 
     @responses.activate
-    def test_koboldcpp_grammar(self):
+    def test_structured_request_koboldcpp(self):
         config_file = self._load_config()
         config_file['BACKEND'] = 'kobold_cpp'
         backend_config = self._load_backend_config('kobold_cpp')
         responses.add(responses.POST, backend_config['URL'] + backend_config['ENDPOINT'],
-                    json={'results':['']}, status=500)
+                    json={'results': [{'text': '{"response": "no", "reason": "not interested"}'}]}, status=200)
         io_util = IoUtil(config=config_file, backend_config=backend_config)
-        request_body = request_body = json.loads(backend_config['DEFAULT_BODY'])
-        request_body['grammar'] = 'test grammar'
-        response = io_util.synchronous_request(request_body=request_body, prompt='test evoke', context='')
-        assert request_body['grammar'] == 'test grammar'
+        request_body = json.loads(backend_config['DEFAULT_BODY'])
+        model = io_util.structured_request(request_body=request_body, prompt='test', model=FollowSchema, context='')
+        assert model.response == 'no'
+        assert model.reason == 'not interested'
+        assert 'response_format' in request_body
+
+    @responses.activate
+    def test_structured_request_validation_error(self):
+        config_file = self._load_config()
+        config_file['BACKEND'] = 'llama_cpp'
+        backend_config = self._load_backend_config('llama_cpp')
+        responses.add(responses.POST, backend_config['URL'] + backend_config['ENDPOINT'],
+                    json={'choices': [{'message': {'content': 'not valid json'}}]}, status=200)
+        io_util = IoUtil(config=config_file, backend_config=backend_config)
+        request_body = json.loads(backend_config['DEFAULT_BODY'])
+        try:
+            io_util.structured_request(request_body=request_body, prompt='test', model=FollowSchema, context='')
+            assert False, "Expected LlmResponseException"
+        except LlmResponseException:
+            pass
+
+    @responses.activate
+    def test_structured_request_empty_response(self):
+        config_file = self._load_config()
+        config_file['BACKEND'] = 'llama_cpp'
+        backend_config = self._load_backend_config('llama_cpp')
+        responses.add(responses.POST, backend_config['URL'] + backend_config['ENDPOINT'],
+                    json={'choices': [{'message': {'content': ''}}]}, status=200)
+        io_util = IoUtil(config=config_file, backend_config=backend_config)
+        request_body = json.loads(backend_config['DEFAULT_BODY'])
+        try:
+            io_util.structured_request(request_body=request_body, prompt='test', model=FollowSchema, context='')
+            assert False, "Expected LlmResponseException"
+        except LlmResponseException:
+            pass
 
     @responses.activate
     def test_stream_kobold_cpp(self):
@@ -166,15 +168,14 @@ class TestLlmIo():
                 backend_config = yaml.safe_load(stream)
             except yaml.YAMLError as exc:
                 print(exc)
-        io_util = IoUtil(config=config, backend_config=backend_config) # type: IoUtil
+        io_util = IoUtil(config=config, backend_config=backend_config)
         io_util.stream = True
         conn = PlayerConnection(Player('test', 'm'))
-        
+
         responses.add(responses.POST, backend_config['URL'] + backend_config['DATA_ENDPOINT'],
                     json={'results':[{'text':'stream test'}]}, status=200)
         with aioresponses() as mocked_responses:
-            # Mock the response for the specified URL
-            mocked_responses.post(backend_config['URL'] + backend_config['STREAM_ENDPOINT'], 
+            mocked_responses.post(backend_config['URL'] + backend_config['STREAM_ENDPOINT'],
                                  status=200,
                                  body="{'results':[{'text':'stream test'}]}")
             result = io_util.stream_request(request_body=json.loads(backend_config['DEFAULT_BODY']), prompt='test evoke', context='', io = IoAdapterBase(conn))
@@ -187,13 +188,12 @@ class TestLlmIo():
                 backend_config = yaml.safe_load(stream)
             except yaml.YAMLError as exc:
                 print(exc)
-        io_util = IoUtil(config=config, backend_config=backend_config) # type: IoUtil
+        io_util = IoUtil(config=config, backend_config=backend_config)
         io_util.stream = True
         conn = PlayerConnection(Player('test', 'm'))
-        
+
         with aioresponses() as mocked_responses:
-            # Mock the response for the specified URL
-            mocked_responses.post(backend_config['URL'] + backend_config['STREAM_ENDPOINT'], 
+            mocked_responses.post(backend_config['URL'] + backend_config['STREAM_ENDPOINT'],
                                  status=200,
                                  body='data: {"choices":[{"delta":{"content":"stream test"}}]}')
             result = io_util.stream_request(request_body=json.loads(backend_config['DEFAULT_BODY']), prompt='test evoke', context='', io = IoAdapterBase(conn))
