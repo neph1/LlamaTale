@@ -24,7 +24,7 @@ class TestDungeon:
 
     def setup_method(self):
         """Set up test fixtures."""
-        driver = IFDriver(screen_delay=99, gui=False, web=True, wizard_override=True)
+        driver = IFDriver(screen_delay=99, web=True, wizard_override=True)
         driver.game_clock = util.GameDateTime(datetime.datetime(year=2023, month=1, day=1), 1)
         
         self.llm_util = LlmUtil(FakeIoUtil(response=['''{

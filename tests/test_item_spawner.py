@@ -13,7 +13,7 @@ from tale.zone import Zone
 class TestItemSpawner():
 
     def setup_method(self):
-        driver = IFDriver(screen_delay=99, gui=False, web=True, wizard_override=True)
+        driver = IFDriver(screen_delay=99, web=True, wizard_override=True)
         driver.game_clock = util.GameDateTime(datetime.datetime(year=2023, month=1, day=1), 1)
 
         self.items = {'item1': {'name':'item1'}, 'item2':{'name':'item2'}, 'item3': {'name':'item3'}}

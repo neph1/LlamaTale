@@ -11,7 +11,7 @@ class TestLocationResponse():
     item_types = ["Weapon", "Wearable", "Health", "Money", "Trash", "Food", "Drink", "Key"]
 
     def setup_method(self):
-        self.driver = IFDriver(screen_delay=99, gui=False, web=True, wizard_override=True)
+        self.driver = IFDriver(screen_delay=99, web=True, wizard_override=True)
         self.driver.game_clock = util.GameDateTime(datetime.datetime(year=2023, month=1, day=1), 1)
         self.driver.moneyfmt = util.MoneyFormatterFantasy()
 

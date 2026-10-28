@@ -266,7 +266,7 @@ class TestParseUtils():
         assert(loaded_stats.weapon_skills.get(WeaponType.UNARMED) == 10)
         
     def test_load_mob_spawners(self):
-        driver = IFDriver(screen_delay=99, gui=False, web=True, wizard_override=True)
+        driver = IFDriver(screen_delay=99, web=True, wizard_override=True)
         driver.game_clock = util.GameDateTime(datetime.datetime(year=2023, month=1, day=1), 1)
 
         json_spawners = [
@@ -322,7 +322,7 @@ class TestParseUtils():
         assert spawners[1].drop_items == None
 
     def test_load_item_spawners(self):
-        driver = IFDriver(screen_delay=99, gui=False, web=True, wizard_override=True)
+        driver = IFDriver(screen_delay=99, web=True, wizard_override=True)
         driver.game_clock = util.GameDateTime(datetime.datetime(year=2023, month=1, day=1), 1)
         driver.moneyfmt = util.MoneyFormatter.create_for(MoneyType.FANTASY)
 
@@ -379,7 +379,7 @@ class TestParseUtils():
 class TestLoadNpcs:
 
     def setup_method(self):
-        self.driver = IFDriver(screen_delay=99, gui=False, web=True, wizard_override=True)
+        self.driver = IFDriver(screen_delay=99, web=True, wizard_override=True)
         self.driver.game_clock = util.GameDateTime(datetime.datetime(year=2023, month=1, day=1), 1)
         self.driver.moneyfmt = util.MoneyFormatter.create_for(MoneyType.MODERN)
 

@@ -30,15 +30,13 @@ class IFDriver(driver.Driver):
     The Single user 'driver'.
     Used to control interactive fiction where there's only one 'player'.
     """
-    def __init__(self, *, screen_delay: int=DEFAULT_SCREEN_DELAY, gui: bool=False, web: bool=False, wizard_override: bool=False, character_to_load: str='') -> None:
+    def __init__(self, *, screen_delay: int=DEFAULT_SCREEN_DELAY, web: bool=False, wizard_override: bool=False, character_to_load: str='') -> None:
         super().__init__()
         self.game_mode = GameMode.IF
         if screen_delay < 0 or screen_delay > 100:
             raise ValueError("invalid delay, valid range is 0-100")
         self.screen_delay = screen_delay
         self.io_type = "console"
-        if gui:
-            self.io_type = "gui"
         if web:
             self.io_type = "web"
         self.wizard_override = wizard_override
@@ -68,7 +66,7 @@ class IFDriver(driver.Driver):
             connection.player.privileges.add("wizard")
         # create the login dialog
         driver.topic_async_dialogs.send((connection, self._login_dialog_if(connection)))
-        # the driver mainloop runs in a background thread, the io-loop/gui-event-loop runs in the main thread
+        # the driver mainloop runs in a background thread, the io-loop/event-loop runs in the main thread
         driver_thread = threading.Thread(name="driver", target=self._main_loop_wrapper, args=(connection,))
         driver_thread.daemon = True
         driver_thread.start()
@@ -110,10 +108,7 @@ class IFDriver(driver.Driver):
         connection = PlayerConnection()
         connect_name = "<connecting_%d>" % id(connection)  # unique temporary name
         new_player = Player(connect_name, "n", race="elemental", descr="This player is still connecting to the game.")
-        if player_io_type == "gui":
-            from .tio.tkinter_io import TkinterIo
-            io = TkinterIo(self.story.config, connection)  # type: iobase.IoAdapterBase
-        elif player_io_type == "web":
+        if player_io_type == "web":
             # Use FastAPI with WebSocket support
             from .tio.if_browser_io import FASTAPI_AVAILABLE
             if not FASTAPI_AVAILABLE:
@@ -129,7 +124,7 @@ class IFDriver(driver.Driver):
             io = ConsoleIo(connection)
             io.install_tab_completion(self)
         else:
-            raise ValueError("invalid io type, must be one of: gui web console")
+            raise ValueError("invalid io type, must be one of: web console")
         connection.player = new_player
         connection.io = io
         self.all_players[new_player.name] = connection

@@ -109,7 +109,7 @@ class TestParseUtilsNoneDirection:
         from tale.base import Exit
         
         # Set up minimal driver context
-        driver = IFDriver(screen_delay=99, gui=False, web=True, wizard_override=True)
+        driver = IFDriver(screen_delay=99, web=True, wizard_override=True)
         mud_context.driver = driver
         
         config = StoryConfig()

@@ -14,7 +14,7 @@ class TestEquipNPC:
     
 
     def test_equip_soldier(self):
-        driver = IFDriver(screen_delay=99, gui=False, web=True, wizard_override=True)
+        driver = IFDriver(screen_delay=99, web=True, wizard_override=True)
         driver.moneyfmt = util.MoneyFormatterFantasy()
         items = generic.generic_items.get('fantasy')
 
@@ -40,7 +40,7 @@ class TestEquipNPC:
         assert npc.wielding.name not in ['sword', 'spear']
 
     def test_equip_centaur(self):
-        driver = IFDriver(screen_delay=99, gui=False, web=True, wizard_override=True)
+        driver = IFDriver(screen_delay=99, web=True, wizard_override=True)
         driver.moneyfmt = util.MoneyFormatterFantasy()
         items = generic.generic_items.get('fantasy')
 
