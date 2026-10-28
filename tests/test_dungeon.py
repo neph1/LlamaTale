@@ -28,21 +28,23 @@ class TestDungeon:
         driver.game_clock = util.GameDateTime(datetime.datetime(year=2023, month=1, day=1), 1)
         
         self.llm_util = LlmUtil(FakeIoUtil(response=['''{
-        "0": {
+        "locations": [
+        {
         "index": 0,
         "name": "Entrance to dungeon",
         "description": "A dark entrance."
         },
-        "1": {
+        {
         "index": 1,
         "name": "Hallway",
         "description": "A long hallway."
         },
-        "2": {
+        {
         "index": 2,
         "name": "Room",
         "description": "A small room."
         }
+        ]
         }''']))
         
         driver.llm_util = self.llm_util

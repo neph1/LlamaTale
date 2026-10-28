@@ -106,14 +106,15 @@ class FakeLlmUtil:
 
     def build_location(self, location, exit_location_name, zone_info, neighbors=None, zone=None):
         self.build_calls += 1
-        json_result = {
+        from tale.llm.schemas import LocationSchema
+        model = LocationSchema.model_validate({
             "name": location.name,
             "description": location.description,
-            "exits": [{"direction": "north", "name": "Generated Room", "description": "A generated room"}],
+            "exits": [{"direction": "north", "name": "Generated Room", "short_descr": "A generated room"}],
             "npcs": [{"name": "Wise Old Man", "type": "Npc", "gender": "m", "race": "human",
                       "level": 3, "description": "A wise old man"}],
-        }
-        response = LocationResponse(json_result, location, location.name)
+        })
+        response = LocationResponse(model, location, location.name)
         return response, None
 
     def perform_idle_action(self, **kwargs):

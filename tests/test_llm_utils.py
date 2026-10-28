@@ -78,6 +78,7 @@ class TestLlmUtils():
 
     def test_perform_idle_action_with_reasoning(self):
         # mostly testing that prompt works
+        from tale import json_util
         self.llm_util.set_story(self.story)
         self.llm_util._character.io_util.response = '<think>Where should I go? I will go right. Wait! It might be a trap. I should go left.</think>Walk to the left'
         location = Location(name='Test Location')
@@ -120,45 +121,24 @@ class TestLlmUtils():
         assert(sentiment == None)
 
     def test_free_form_action(self):
-        self.llm_util._character.io_util.response = '{"action":"test_action", "text":"test response", "target":"test target", "item":"test item"}'
+        self.llm_util._character.io_util.response = '{"actions":[{"action":"test_action", "text":"test response", "target":"test target", "goal":"", "thoughts":""}]}'
         location = Location(name='Test Location')
         self.llm_util.set_story(self.story)
-        result = self.llm_util.free_form_action(location=location, character_name='', character_card='', event_history='')[0] # type: list
+        result = self.llm_util.free_form_action(location=location, character_name='', character_card='', event_history='')[0]
         assert(result)
         assert(result.action == 'test_action')
         assert(result.text == 'test response')
-        assert(result.target == 'test target')
-        assert(result.item == 'test item')
-
-    def test_free_form_action_lists(self):
-        self.llm_util._character.io_util.response = '{"action":["test_action"], "text":["test response"], "target":["test target"], "item":["test item"]}'
-        location = Location(name='Test Location')
-        self.llm_util.set_story(self.story)
-        result = self.llm_util.free_form_action(location=location, character_name='', character_card='', event_history='')[0] # type: ActionResponse
-        assert(result)
-        assert(result.action == 'test_action')
-        assert(result.text == 'test response')
-        assert(result.target == 'test target')
-        assert(result.item == 'test item')
-
-    def test_free_form_action_dict(self):
-        self.llm_util._character.io_util.response = '{"action":{"action":"test_action"}, "target":{"name":"test target"}}'
-        location = Location(name='Test Location')
-        self.llm_util.set_story(self.story)
-        result = self.llm_util.free_form_action(location=location, character_name='', character_card='', event_history='')[0] # type: ActionResponse
-        assert(result.action == 'test_action')
         assert(result.target == 'test target')
 
     def test_free_form_action_multi(self):
-        self.llm_util._character.io_util.response = '[{"action":"test_action", "text":"test response", "target":"test target", "item":"test item"},{"action":"test_action2"},{"action":"test_action3"}]'
+        self.llm_util._character.io_util.response = '{"actions":[{"action":"test_action", "text":"test response", "target":"test target", "goal":"", "thoughts":""},{"action":"test_action2","goal":"","thoughts":""},{"action":"test_action3","goal":"","thoughts":""}]}'
         location = Location(name='Test Location')
         self.llm_util.set_story(self.story)
-        result = self.llm_util.free_form_action(location=location, character_name='', character_card='', event_history='') # type: list
+        result = self.llm_util.free_form_action(location=location, character_name='', character_card='', event_history='')
         assert(len(result) == 3)
         assert(result[0].action == 'test_action')
         assert(result[0].text == 'test response')
         assert(result[0].target == 'test target')
-        assert(result[0].item == 'test item')
         assert(result[1].action == 'test_action2')
         assert(result[2].action == 'test_action3')
 
@@ -188,9 +168,7 @@ class TestLlmUtils():
 
 class TestWorldBuilding():
 
-    generated_location = '{"name": "Outside", "description": "A barren wasteland of snow and ice stretches as far as the eye can see. The wind howls through the mountains like a chorus of banshees, threatening to sweep away any unfortunate soul caught outside without shelter.", "exits": [{"name": "North Pass","short_desc": "The North Pass is treacherous mountain pass that leads deeper into the heart of the range","enter_msg":"You shuffle your feet through knee-deep drifts of snow, trying to keep your balance on the narrow path."}, {"name": "South Peak","short_Desc": "The South Peak offers breathtaking views of the surrounding landscape from its summit, but it\'s guarded by a pack of fierce winter wolves.","Enter_msg":"You must face off against the snarling beasts if you wish to reach the peak."}] ,"items": [{"name":"Woolly gloves", "type":"Wearable"}],"npcs": [{"name":"wolf", "body":"Creature", "unarmed_attack":"BITE", "hp":10, "level":10}]}'
-    
-    generated_location_extra = '{"Outside": { "description": "A barren wasteland of snow and ice stretches", "exits": [{"name": "North Pass","short_desc": "The North Pass is treacherous mountain pass that leads deeper into the heart of the range","enter_msg":"You shuffle your feet through knee-deep drifts of snow, trying to keep your balance on the narrow path."}, {"name": "South Peak","short_Desc": "The South Peak offers breathtaking views of the surrounding landscape from its summit, but it\'s guarded by a pack of fierce winter wolves.","Enter_msg":"You must face off against the snarling beasts if you wish to reach the peak."}] ,"items": [{"name":"Woolly gloves", "type":"Wearable"}],"npcs": []}}'
+    generated_location = '{"name": "Outside", "description": "A barren wasteland of snow and ice stretches as far as the eye can see. The wind howls through the mountains like a chorus of banshees, threatening to sweep away any unfortunate soul caught outside without shelter.", "exits": [{"direction": "north", "name": "North Pass","short_descr": "The North Pass is treacherous mountain pass that leads deeper into the heart of the range"}, {"direction": "south", "name": "South Peak","short_descr": "The South Peak offers breathtaking views of the surrounding landscape from its summit, but it\'s guarded by a pack of fierce winter wolves."}] ,"items": [{"name":"Woolly gloves", "type":"Wearable"}],"npcs": [{"name":"wolf", "description":"Creature", "unarmed_attack":"BITE", "hp":10, "level":10}]}'
     
     generated_zone = '{"name":"Test Zone", "description":"A test zone", "level":10, "mood":-2, "races":["human", "elf", "dwarf"], "items":["sword", "shield"]}'
     
@@ -389,15 +367,6 @@ class TestWorldBuilding():
         assert spawner
         assert spawner.mob_type.name == 'wolf'
 
-    def test_build_location_extra_json(self):
-        location = Location(name='Outside')
-        exit_location_name = 'Cave entrance'
-        self.llm_util._world_building.io_util.response = self.generated_location_extra
-        self.llm_util.set_story(self.story)
-        result, _ = self.llm_util.build_location(location, exit_location_name, zone_info={})
-
-        assert(len(result.new_locations) == 2)
-
     def test_build_location_no_description(self):
         location = Location(name='The Red Rock Saloon')
         exit_location_name = 'Cactus Cove'
@@ -409,8 +378,9 @@ class TestWorldBuilding():
         assert(len(result.new_locations) == 3)
 
     def test_validate_zone(self):
+        from tale.llm.schemas import ZoneSchema
         center = Coord(5, 0, 0)
-        zone = self.llm_util._world_building.validate_zone(json.loads(self.generated_zone), center=center)
+        zone = self.llm_util._world_building.validate_zone(ZoneSchema.model_validate(json.loads(self.generated_zone)), center=center)
         assert(zone)
         assert(zone.name == 'Test Zone')
         assert(zone.description == 'A test zone')
@@ -449,9 +419,42 @@ class TestWorldBuilding():
             '{"creature":{"name": "Coralite", "body": "Coral-like sea creature", "mass": 20, "hp": 75, "level": 4, "unarmed_attack": "TENTACLES", "short_descr": "A graceful creature that dwells in underwater caves, adorned with vibrant coral-like formations."}}',
             '{"creature":{"name": "Whiskerbeast", "body": "Feline creature", "mass": 15, "hp": 60, "level": 3, "unarmed_attack": "CLAWS", "short_descr": "A playful and agile creature with long, fluffy whiskers and a shimmering fur coat."}}'
         ]
-        zone_desc = '{   "name": "Cozy Meadows",   "description": "A tranquil expanse of lush green meadows, dotted with colorful wildflowers and tall, swaying grass. The air is filled with the sweet fragrance of nature, inviting weary wanderers to rest and enjoy the serene surroundings. Sunlight filters through the canopy of trees, casting golden rays upon the meadows and creating a picturesque setting for picnics and leisurely strolls. Squirrels chase each other playfully, and birds sing melodious tunes from the branches above. It\'s a perfect place to unwind and find respite from the troubles of the world.",   "races": ["whisperwing", "glowbug", "fluffpuff", "coralite", "whiskerbeast"],   "items": {     "enchanted rose": "flower",     "tea set": "utensils",     "winged boots": "footwear",     "pixie\'s elixir": "potion",     "jester\'s hat": "headgear"   },   "mood": "friendly",   "level": 1 }'
-        location_desc = '{   "description": "A gentle transition between the lush meadows and the enchanting forests, Meadow\'s Edge is a place where tranquility meets adventure. Tall grass sways in the breeze, beckoning explorers to venture further. The air carries the sweet scent of wildflowers, creating a blissful harmony with nature\'s orchestra.",   "exits": [     {"direction": "North", "name": "Whispering Grove", "short_descr": "A mystical grove filled with ancient whispering trees."},     {"direction": "East", "name": "Butterfly Meadow", "short_descr": "A haven for delicate butterflies, fluttering amidst colorful blooms."},     {"direction": "West", "name": "Sunlit Glade", "short_descr": "A sun-dappled glade where rays of light dance upon the moss-covered ground."}   ],   "items": [     {"name": "Songbird Feather", "type": "treasure"},     {"name": "Dewdrop Pendant", "type": "accessory"},     {"name": "Meadowlark Whistle", "type": "instrument"}   ],   "npcs": [     {"name": "Flora", "sentiment": "friendly", "race": "whisperwing", "gender": "f", "level": 2, "description": "A graceful whisperwing with iridescent wings, known for her soothing melodies."},     {"name": "Bramble", "sentiment": "neutral", "race": "fluffpuff", "gender": "m", "level": 3, "description": "A mischievous fluffpuff with a twinkle in his eye, able to shape-shift into various plants."},     {"name": "Corvus", "sentiment": "hostile", "race": "whiskerbeast", "gender": "m", "level": 5, "description": "A fierce whiskerbeast with sleek black fur, his piercing gaze holds a hint of danger."}   ] }'
-        location_desc_2 = '{     "description": "A gentle slope leads to Meadow\'s Edge, where wildflowers stretch out as far as the eye can see. Butterflies dance between the blades of grass, creating a kaleidoscope of colors. A babbling brook runs alongside, inviting visitors to dip their toes in its crystal-clear water.",     "exits": [         {"direction": "North", "name": "Whispering Woods", "short_descr": "A mysterious forest filled with ancient trees that whisper secrets to those who dare to listen."},         {"direction": "East", "name": "Glowing Glade", "short_descr": "An enchanted clearing bathed in a soft, ethereal glow, where fireflies dance in mesmerizing patterns."},         {"direction": "South", "name": "Fluffy Fields", "short_descr": "Rolling hills covered in plush tufts of grass, where fluffy sheep graze peacefully under the watchful eye of their shepherd."}     ],     "items": [],     "npcs": [] }'
+        zone_desc = json.dumps({
+            'name': 'Cozy Meadows',
+            'description': 'A tranquil expanse of lush green meadows.',
+            'races': ['whisperwing', 'glowbug', 'fluffpuff', 'coralite', 'whiskerbeast'],
+            'items': ['enchanted rose', 'tea set', 'winged boots', 'pixie elixir', 'jester hat'],
+            'mood': 2,
+            'level': 1
+        })
+        location_desc = json.dumps({
+            'description': "A gentle transition between the lush meadows and the enchanting forests.",
+            'exits': [
+                {'direction': 'north', 'name': 'Whispering Grove', 'short_descr': 'A mystical grove filled with ancient whispering trees.'},
+                {'direction': 'east', 'name': 'Butterfly Meadow', 'short_descr': 'A haven for delicate butterflies.'},
+                {'direction': 'west', 'name': 'Sunlit Glade', 'short_descr': 'A sun-dappled glade.'}
+            ],
+            'items': [
+                {'name': 'Songbird Feather', 'type': 'Other'},
+                {'name': 'Dewdrop Pendant', 'type': 'Other'},
+                {'name': 'Meadowlark Whistle', 'type': 'Other'}
+            ],
+            'npcs': [
+                {'name': 'Flora', 'sentiment': 'friendly', 'race': 'whisperwing', 'gender': 'f', 'level': 2, 'description': 'A graceful whisperwing.'},
+                {'name': 'Bramble', 'sentiment': 'neutral', 'race': 'fluffpuff', 'gender': 'm', 'level': 3, 'description': 'A mischievous fluffpuff.'},
+                {'name': 'Corvus', 'sentiment': 'hostile', 'race': 'whiskerbeast', 'gender': 'm', 'level': 5, 'description': 'A fierce whiskerbeast.'}
+            ]
+        })
+        location_desc_2 = json.dumps({
+            'description': "A gentle slope leads to Meadow's Edge, where wildflowers stretch out.",
+            'exits': [
+                {'direction': 'north', 'name': 'Whispering Woods', 'short_descr': 'A mysterious forest.'},
+                {'direction': 'east', 'name': 'Glowing Glade', 'short_descr': 'An enchanted clearing.'},
+                {'direction': 'south', 'name': 'Fluffy Fields', 'short_descr': 'Rolling hills.'}
+            ],
+            'items': [],
+            'npcs': []
+        })
         location = Location(name='Meadow\'s Edge')
         exit_location_name = 'Sunflower Way'
         self.llm_util.set_story(self.story)
@@ -588,19 +591,35 @@ class TestWorldBuilding():
         assert(lore.startswith('A long lost tale'))
 
     def test_generate_dungeon_locations(self):
-        self.llm_util._world_building.io_util.response =' {   "rooms": [   {   "index": 0,   "name": "Entrance to dungeon",   "description": "A dark and ominous entrance to the dungeon, with a sense of foreboding."   },   {   "index": 1,   "name": "Hallway",   "description": "A long and winding hallway, with doors leading off to either side."   },   {   "index": 2,   "name": "Hallway",   "description": "Another long and winding hallway, with doors leading off to either side."   },   {   "index": 3,   "name": "Hallway",   "description": "A narrow and dimly lit hallway, with a sense of claustrophobia."   },   {   "index": 4,   "name": "Hallway",   "description": "A wide and well-lit hallway, with a sense of grandeur."   },   {   "index": 5,   "name": "Hallway",   "description": "A twisting and turning hallway, with a sense of confusion."   },   {   "index": 6,   "name": "Hallway",   "description": "A long and straight hallway, with a sense of monotony."   },   {   "index": 7,   "name": "Hallway",   "description": "A dark and foreboding hallway, with a sense of danger."   },   {   "index": 8,   "name": "Hallway",   "description": "A narrow and winding hallway, with a sense of unease."   },   {   "index": 9,   "name": "Hallway",   "description": "A long and straight hallway, with a sense of tedium."   },   {   "index": 10,   "name": "Hallway",   "description": "A well-lit and grand hallway, with a sense of pride."   },   {   "index": 11,   "name": "Hallway",   "description": "A twisting and turning hallway, with a sense of mystery."   },   {   "index": 12,   "name": "Hallway",   "description": "A dark and foreboding hallway, with a sense of danger."   },   {   "index": 13,   "name": "Hallway",   "description": "A narrow and winding hallway, with a sense of unease."   },   {   "index": 14,   "name": "Room with staircase leading down",   "description": "A dimly lit room with a staircase leading down into the depths of the dungeon, with a sense of danger and uncertainty."   },   {   "index": 15,   "name": "",   "description": ""   },   {   "index": 16,   "name": "Hallway",   "description": "A long and winding hallway, with doors leading off to either side."   },   {   "index": 17,   "name": "Hallway",   "description": "Another long and winding hallway, with doors leading off to either side."   },   {   "index": 18,   "name": "Room with staircase leading up",   "description": "A well-lit room with a staircase leading up to the surface, with a sense of hope and escape."   }]\n\n}'
+        dungeon_locations_json = json.dumps({
+            'locations': [
+                {'index': i, 'name': name, 'description': desc}
+                for i, (name, desc) in enumerate([
+                    ('Entrance to dungeon', 'A dark and ominous entrance to the dungeon, with a sense of foreboding.'),
+                    ('Hallway', 'A long and winding hallway, with doors leading off to either side.'),
+                    ('Hallway', 'Another long and winding hallway, with doors leading off to either side.'),
+                    ('Hallway', 'A narrow and dimly lit hallway, with a sense of claustrophobia.'),
+                    ('Hallway', 'A wide and well-lit hallway, with a sense of grandeur.'),
+                    ('Hallway', 'A twisting and turning hallway, with a sense of confusion.'),
+                    ('Hallway', 'A long and straight hallway, with a sense of monotony.'),
+                    ('Hallway', 'A dark and foreboding hallway, with a sense of danger.'),
+                    ('Hallway', 'A narrow and winding hallway, with a sense of unease.'),
+                    ('Hallway', 'A long and straight hallway, with a sense of tedium.'),
+                    ('Hallway', 'A well-lit and grand hallway, with a sense of pride.'),
+                    ('Hallway', 'A twisting and turning hallway, with a sense of mystery.'),
+                    ('Hallway', 'A dark and foreboding hallway, with a sense of danger.'),
+                    ('Hallway', 'A narrow and winding hallway, with a sense of unease.'),
+                    ('Room with staircase leading down', 'A dimly lit room with a staircase leading down into the depths of the dungeon, with a sense of danger and uncertainty.'),
+                    ('', ''),
+                    ('Hallway', 'A long and winding hallway, with doors leading off to either side.'),
+                    ('Hallway', 'Another long and winding hallway, with doors leading off to either side.'),
+                    ('Room with staircase leading up', 'A well-lit room with a staircase leading up to the surface, with a sense of hope and escape.'),
+                ])
+            ]
+        })
+        self.llm_util._world_building.io_util.response = dungeon_locations_json
         self.llm_util.set_story(self.story)
-        result = self.llm_util.generate_dungeon_locations(zone_info="", locations= [], depth= 1, max_depth=2) # type LocationDescriptionResponse
-        assert len(result.location_descriptions) == 19
-
-        self.llm_util._world_building.io_util.response =' {   "locations": [   {   "index": 0,   "name": "Entrance to dungeon",   "description": "A dark and ominous entrance to the dungeon, with a sense of foreboding."   },   {   "index": 1,   "name": "Hallway",   "description": "A long and winding hallway, with doors leading off to either side."   },   {   "index": 2,   "name": "Hallway",   "description": "Another long and winding hallway, with doors leading off to either side."   },   {   "index": 3,   "name": "Hallway",   "description": "A narrow and dimly lit hallway, with a sense of claustrophobia."   },   {   "index": 4,   "name": "Hallway",   "description": "A wide and well-lit hallway, with a sense of grandeur."   },   {   "index": 5,   "name": "Hallway",   "description": "A twisting and turning hallway, with a sense of confusion."   },   {   "index": 6,   "name": "Hallway",   "description": "A long and straight hallway, with a sense of monotony."   },   {   "index": 7,   "name": "Hallway",   "description": "A dark and foreboding hallway, with a sense of danger."   },   {   "index": 8,   "name": "Hallway",   "description": "A narrow and winding hallway, with a sense of unease."   },   {   "index": 9,   "name": "Hallway",   "description": "A long and straight hallway, with a sense of tedium."   },   {   "index": 10,   "name": "Hallway",   "description": "A well-lit and grand hallway, with a sense of pride."   },   {   "index": 11,   "name": "Hallway",   "description": "A twisting and turning hallway, with a sense of mystery."   },   {   "index": 12,   "name": "Hallway",   "description": "A dark and foreboding hallway, with a sense of danger."   },   {   "index": 13,   "name": "Hallway",   "description": "A narrow and winding hallway, with a sense of unease."   },   {   "index": 14,   "name": "Room with staircase leading down",   "description": "A dimly lit room with a staircase leading down into the depths of the dungeon, with a sense of danger and uncertainty."   },   {   "index": 15,   "name": "",   "description": ""   },   {   "index": 16,   "name": "Hallway",   "description": "A long and winding hallway, with doors leading off to either side."   },   {   "index": 17,   "name": "Hallway",   "description": "Another long and winding hallway, with doors leading off to either side."   },   {   "index": 18,   "name": "Room with staircase leading up",   "description": "A well-lit room with a staircase leading up to the surface, with a sense of hope and escape."   }]\n\n}'
-
-        result = self.llm_util.generate_dungeon_locations(zone_info="", locations= [], depth= 1, max_depth=2) # type LocationDescriptionResponse
-        assert len(result.location_descriptions) == 19
-
-        self.llm_util._world_building.io_util.response ='[   {   "index": 0,   "name": "Entrance to dungeon",   "description": "A dark and ominous entrance to the dungeon, with a sense of foreboding."   },   {   "index": 1,   "name": "Hallway",   "description": "A long and winding hallway, with doors leading off to either side."   },   {   "index": 2,   "name": "Hallway",   "description": "Another long and winding hallway, with doors leading off to either side."   },   {   "index": 3,   "name": "Hallway",   "description": "A narrow and dimly lit hallway, with a sense of claustrophobia."   },   {   "index": 4,   "name": "Hallway",   "description": "A wide and well-lit hallway, with a sense of grandeur."   },   {   "index": 5,   "name": "Hallway",   "description": "A twisting and turning hallway, with a sense of confusion."   },   {   "index": 6,   "name": "Hallway",   "description": "A long and straight hallway, with a sense of monotony."   },   {   "index": 7,   "name": "Hallway",   "description": "A dark and foreboding hallway, with a sense of danger."   },   {   "index": 8,   "name": "Hallway",   "description": "A narrow and winding hallway, with a sense of unease."   },   {   "index": 9,   "name": "Hallway",   "description": "A long and straight hallway, with a sense of tedium."   },   {   "index": 10,   "name": "Hallway",   "description": "A well-lit and grand hallway, with a sense of pride."   },   {   "index": 11,   "name": "Hallway",   "description": "A twisting and turning hallway, with a sense of mystery."   },   {   "index": 12,   "name": "Hallway",   "description": "A dark and foreboding hallway, with a sense of danger."   },   {   "index": 13,   "name": "Hallway",   "description": "A narrow and winding hallway, with a sense of unease."   },   {   "index": 14,   "name": "Room with staircase leading down",   "description": "A dimly lit room with a staircase leading down into the depths of the dungeon, with a sense of danger and uncertainty."   },   {   "index": 15,   "name": "",   "description": ""   },   {   "index": 16,   "name": "Hallway",   "description": "A long and winding hallway, with doors leading off to either side."   },   {   "index": 17,   "name": "Hallway",   "description": "Another long and winding hallway, with doors leading off to either side."   },   {   "index": 18,   "name": "Room with staircase leading up",   "description": "A well-lit room with a staircase leading up to the surface, with a sense of hope and escape."   }]'
-
-        result = self.llm_util.generate_dungeon_locations(zone_info="", locations= [], depth= 1, max_depth=2) # type LocationDescriptionResponse
+        result = self.llm_util.generate_dungeon_locations(zone_info='', locations=[], depth=1, max_depth=2)
         assert len(result.location_descriptions) == 19
 
     def test_generate_dungeon_entrance(self):

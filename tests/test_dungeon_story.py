@@ -23,31 +23,33 @@ class TestDungeonStory():
         driver = IFDriver(screen_delay=99, gui=False, web=True, wizard_override=True)
         driver.game_clock = util.GameDateTime(datetime.datetime(year=2023, month=1, day=1), 1)
         self.llm_util = LlmUtil(FakeIoUtil(response=['''{
-        "0": {
+        "locations": [
+        {
         "index": 0,
         "name": "Entrance to dungeon",
         "description": "A dark and ominous entrance to the dungeon, guarded by a fearsome dragon."
         },
-        "1": {
+        {
         "index": 1,
         "name": "Hallway",
         "description": "A long and winding hallway, lined with ancient tapestries and mysterious artifacts."
         },
-        "2": {
+        {
         "index": 2,
         "name": "Small room",
         "description": "A small and dimly lit room, filled with strange and exotic plants."
         },
-        "3": {
+        {
         "index": 3,
         "name": "Hallway",
         "description": "A narrow and winding hallway, with flickering torches casting eerie shadows on the walls."
         },
-        "4": {
+        {
         "index": 4,
         "name": "Green house",
         "description": "A small and dimly lit room, filled with strange and exotic plants."
-        }                                          
+        }
+        ]
         }'''])) # type: LlmUtil
         
         driver.llm_util = self.llm_util

@@ -23,6 +23,7 @@ from tale.items.basic import Note
 from tale.llm.LivingNpc import LivingNpc
 from tale.llm.dynamic_story import DynamicStory
 from tale.llm.responses.ActionResponse import ActionResponse
+from tale.llm.schemas import ActionSchema
 from tale.npc_defs import StationaryNpc
 from tale.story import GameMode
 from tale.story_context import StoryContext
@@ -1146,7 +1147,10 @@ class StoryManager:
                 return False, f"npc '{name}' not found"
             if not isinstance(npc, LivingNpc):
                 return False, f"npc '{name}' is not an LLM NPC (LivingNpc)"
-            response = ActionResponse(action or {})
+            try:
+                response = ActionResponse(ActionSchema.model_validate(action or {}))
+            except Exception:
+                return False, "action dict needs an 'action' field"
             if not response.action:
                 return False, "action dict needs an 'action' field"
             npc._parse_action(response)

@@ -59,25 +59,19 @@ class LlmUtil():
         self.__story_context = ''
         self.__story_type = ''
         self.__world_info = ''
-        #self.action_list = llm_config.params['ACTION_LIST']
-        json_grammar_key = backend_config['JSON_GRAMMAR_KEY']
-        
         #self._look_hashes = dict() # type: dict[int, str] # location hashes for look command. currently never cleared.
         self._world_building = WorldBuilding(default_body=self.default_body,
                                              io_util=self.io_util,
-                                             backend=self.backend,
-                                             json_grammar_key=json_grammar_key)
+                                             backend=self.backend)
         self._character = CharacterBuilding(backend=self.backend,
                                     io_util=self.io_util,
-                                    default_body=self.default_body,
-                                             json_grammar_key=json_grammar_key)
+                                    default_body=self.default_body)
         self._story_building = StoryBuilding(default_body=self.default_body,
                                              io_util=self.io_util,
                                              backend=self.backend)
         self._quest_building = QuestBuilding(default_body=self.default_body,
                                              io_util=self.io_util,
-                                             backend=self.backend,
-                                             json_grammar_key=json_grammar_key)
+                                             backend=self.backend)
 
     def evoke(self, message: str, short_len: bool=False, rolling_prompt: str = '', alt_prompt: str = '', extra_context: str = '', skip_history: bool = True):
         """Evoke a response from LLM. Async if stream is True, otherwise synchronous.
