@@ -278,12 +278,15 @@ if FASTAPI_AVAILABLE:
                 """Serve static files"""
                 try:
                     resource = vfs.internal_resources["web/" + file_path]
+                    # no-cache so browsers always revalidate CSS/JS/images during development
+                    headers = {"Cache-Control": "no-cache"}
                     if resource.is_text:
-                        return HTMLResponse(content=resource.text)
+                        from fastapi.responses import Response
+                        return Response(content=resource.text, media_type=resource.mimetype, headers=headers)
                     else:
                         # For binary files, we need to return appropriate response
                         from fastapi.responses import Response
-                        return Response(content=resource.data, media_type=resource.mimetype)
+                        return Response(content=resource.data, media_type=resource.mimetype, headers=headers)
                 except FileNotFoundError:
                     from fastapi import HTTPException
                     raise HTTPException(status_code=404, detail="File not found")

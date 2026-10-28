@@ -151,18 +151,21 @@ p, pre {
 }
 
 .location-image {
-    flex: 0 0 512px;
+    width: 100%;
+    max-width: 512px;
     height: auto;
+    display: block;
     border-radius: 10px;
-    margin-right: 10px;
     z-index: 1;
 }
 
 .location-container {
+    display: flex;
+    flex-direction: column;
+    flex-shrink: 0;
     width: 512px;
     margin-top: 20px;
     margin-left: auto;
-    flex-direction: column;
     position: relative;
 }
 
@@ -212,25 +215,26 @@ p, pre {
 
 #storyFrame {
     display: flex;
-    padding: auto;
     max-width: 100%;
     box-sizing: border-box;
 }
 
 #text-container {
     flex: 1;
+    min-width: 0;
     overflow: auto;
     margin-right: 10px;
 }
 
 #npc-images {
     display: flex;
-    position: absolute;
-    bottom: 266px;
+    flex-wrap: wrap;
+    margin-top: 10px;
 }
 
 .npc-image {
     width: 96px;
+    min-width: 0;
     height: auto;
     transition: opacity 1s ease;
     margin: 10px;
@@ -243,6 +247,10 @@ p, pre {
 
 .npc-image.invisible {
     opacity: 0;
+}
+
+.npc-image.hidden {
+    display: none;
 }
 
 .attack-button {

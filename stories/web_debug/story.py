@@ -1,0 +1,35 @@
+import pathlib
+import sys
+
+from tale import parse_utils
+from tale.base import Location
+from tale.driver import Driver
+from tale.json_story import JsonStory
+from tale.main import run_from_cmdline
+from tale.story import *
+
+
+class Story(JsonStory):
+
+    driver = None
+
+    def __init__(self) -> None:
+        super(Story, self).__init__('', parse_utils.load_story_config(parse_utils.load_json('story_config.json')))
+
+    def init(self, driver: Driver) -> None:
+        super(Story, self).init(driver)
+        # The web frontend expects location.avatar to include the file extension.
+        # check_file_exists_in_resources returns just the base name, so append .jpg here.
+        for loc in self.locations.values():
+            if loc.avatar and not loc.avatar.endswith('.jpg'):
+                loc.avatar = loc.avatar + '.jpg'
+
+
+if __name__ == "__main__":
+    # story is invoked as a script, start it in the Tale Driver.
+    gamedir = pathlib.Path(__file__).parent
+    if gamedir.is_dir() or gamedir.is_file():
+        cmdline_args = sys.argv[1:]
+        cmdline_args.insert(0, "--game")
+        cmdline_args.insert(1, str(gamedir))
+        run_from_cmdline(cmdline_args)
