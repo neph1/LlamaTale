@@ -1,4 +1,5 @@
 import random
+import re
 from tale.llm.character_card import CharacterCard
 from tale.llm.item_handling_result import ItemHandlingResult
 import tale.llm.llm_cache as llm_cache
@@ -88,10 +89,12 @@ class LivingNpc(Living):
             return  # avoid reacting to ourselves, or reacting to verbs we already have a handler for
         greet = False
         targeted = False
+        # case insensitive, but ignore message placeholders like {Actor}
+        unparsed = re.sub(r"\{\w+\}", "", parsed.unparsed).lower()
         for alias in self.aliases:
-            if alias in parsed.unparsed:
+            if alias.lower() in unparsed:
                 targeted = True
-        if self.name in parsed.unparsed or self in parsed.who_info or self.title in parsed.unparsed:
+        if self.name.lower() in unparsed or self in parsed.who_info or self.title.lower() in unparsed:
             targeted = True
         if parsed.verb in ("hi", "hello") or parsed.verb == "greet":
             greet = True

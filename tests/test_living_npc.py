@@ -230,6 +230,13 @@ class TestLivingNpcActions():
         assert "<:>" not in self.msg_trace_npc.messages[0]
         assert self.msg_trace_npc.messages[0] == "test : The March Hare is brave\n\n"
 
+    def test_say_targeted_ignores_case(self):
+        said = []
+        self.npc.aliases = {'testy'}
+        self.npc.do_say = lambda what_happened, actor: said.append(what_happened)
+        self.npc.notify_action(ParseResult(verb='say', unparsed='Testy, how are you?'), self.npc2)
+        assert said == ['Testy, how are you?']
+
     @responses.activate
     def test_do_react(self):
         mud_context.config.server_tick_method = 'TIMER'
