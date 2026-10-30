@@ -142,9 +142,18 @@ class LlamaCppAdapter(AbstractIoAdapter):
     def parse_result(self, result: str) -> str:
         """ Parse the result from the stream endpoint """
         try:
-            return json.loads(result)['choices'][0]['message']['content']
+            content = json.loads(result)['choices'][0]['message']['content']
         except:
             raise LlmResponseException("Error parsing result from backend")
+        # Reasoning models (DeepSeek, QwQ, etc.) may return content as a list of
+        # typed parts: [{"type": "thinking", ...}, {"type": "text", "text": "..."}]
+        # Concatenate only the text parts; skip reasoning/thinking parts.
+        if isinstance(content, list):
+            return ''.join(
+                part.get('text', '') for part in content
+                if isinstance(part, dict) and part.get('type') == 'text'
+            )
+        return content
    
     def set_prompt(self, request_body: dict, prompt: str, context: str = '') -> dict:
         if self.system_start_prompt:
