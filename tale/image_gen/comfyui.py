@@ -16,7 +16,7 @@ class ComfyUi(ImageGeneratorBase):
     
     def __init__(self, address: str = '127.0.0.1', port: int = 8188) -> None:
         super().__init__("/prompt", address, port)
-        with open(os.path.realpath(os.path.join(os.path.dirname(__file__), "../../comfy_ui.yaml")), "r") as stream:
+        with open(os.path.realpath(os.path.join(os.path.dirname(__file__), "comfy_ui.yaml")), "r") as stream:
             try:
                 self.config = yaml.safe_load(stream)
                 self.generate_in_background = self.config['GENERATE_IN_BACKGROUND']

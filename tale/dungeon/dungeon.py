@@ -8,8 +8,8 @@ levels with rooms, corridors, mobs, and loot.
 import random
 from typing import TYPE_CHECKING
 
-from stories.anything.npcs.npc_defs import RoamingMob
 from tale import lang, parse_utils
+from tale.npc_defs import RoamingMob
 from tale.base import Door, Exit, Location
 from tale.coord import Coord
 from tale.dungeon.dungeon_generator import ItemPopulator, Layout, LayoutGenerator, MobPopulator

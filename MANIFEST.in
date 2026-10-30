@@ -1,5 +1,8 @@
 include LICENSE.txt
 include MANIFEST.in
+include README.md
+include requirements.txt
+include requirements_dev.txt
 include tale/soul_adverbs.txt
 recursive-include tale/web *
 recursive-include tests *
