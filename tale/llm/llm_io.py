@@ -38,6 +38,9 @@ class IoUtil():
         response = requests.post(self.url + self.endpoint, headers=self.headers, data=json.dumps(request_body))
         if response.status_code == 200:
             return self.io_adapter.parse_result(response.text)
+        # Surface the error body so the caller can diagnose why the backend
+        # rejected the request (e.g. model doesn't support response_format).
+        print(f"Backend returned HTTP {response.status_code}: {response.text[:500]}")
         return ''
 
     def structured_request(self, request_body: dict, prompt: str, model: Type[T], context: str = '') -> T:
@@ -56,8 +59,6 @@ class IoUtil():
             },
         }
         text = self.synchronous_request(request_body, prompt=prompt, context=context)
-        if not text:
-            raise LlmResponseException(f"Empty response from backend for structured request ({model.__name__})")
         # Some backends return content as a list of typed parts (reasoning models);
         # normalize to a plain string before JSON validation.
         if isinstance(text, list):
@@ -65,10 +66,14 @@ class IoUtil():
                 part.get('text', '') for part in text
                 if isinstance(part, dict) and part.get('type') == 'text'
             )
-        if not text:
-            raise LlmResponseException(f"Empty response from backend for structured request ({model.__name__})")
+        if not text or not str(text).strip():
+            raise LlmResponseException(
+                f"Empty response from backend for structured request ({model.__name__}). "
+                f"The model may not support response_format json_schema, or output was "
+                f"truncated (check max_tokens). See backend logs for HTTP errors."
+            )
         try:
-            return model.model_validate_json(text)
+            return model.model_validate_json(str(text))
         except ValidationError as exc:
             raise LlmResponseException(f"Failed to validate {model.__name__}: {exc}")
     

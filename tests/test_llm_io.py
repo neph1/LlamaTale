@@ -162,6 +162,41 @@ class TestLlmIo():
         assert adapter.parse_result(result) == 'Hello world'
 
     @responses.activate
+    def test_structured_request_empty_content_with_http_error(self):
+        """Non-200 from backend should print error and structured_request should raise."""
+        config_file = self._load_config()
+        config_file['BACKEND'] = 'llama_cpp'
+        backend_config = self._load_backend_config('llama_cpp')
+        responses.add(responses.POST, backend_config['URL'] + backend_config['ENDPOINT'],
+                    json={'error': {'message': 'response_format json_schema not supported by this model'}}, status=400)
+        io_util = IoUtil(config=config_file, backend_config=backend_config)
+        request_body = json.loads(backend_config['DEFAULT_BODY'])
+        try:
+            io_util.structured_request(request_body=request_body, prompt='test', model=FollowSchema, context='')
+            assert False, "Expected LlmResponseException"
+        except LlmResponseException as exc:
+            assert 'Empty response' in str(exc)
+            assert 'response_format' in str(exc)
+
+    @responses.activate
+    def test_parse_result_null_content(self):
+        """Reasoning models may return content: null when truncated."""
+        from tale.llm.io_adapters import LlamaCppAdapter
+        adapter = LlamaCppAdapter('http://localhost:8080', '/v1/chat/completions', '', '', '', '')
+        result = json.dumps({'choices': [{'message': {'content': None, 'reasoning_content': 'long thinking...'}}]})
+        assert adapter.parse_result(result) == ''
+
+    @responses.activate
+    def test_parse_result_only_thinking_parts(self):
+        """Multi-part content with only thinking parts returns empty string."""
+        from tale.llm.io_adapters import LlamaCppAdapter
+        adapter = LlamaCppAdapter('http://localhost:8080', '/v1/chat/completions', '', '', '', '')
+        result = json.dumps({'choices': [{'message': {'content': [
+            {'type': 'thinking', 'thinking': 'only reasoning, no text output'}
+        ]}}]})
+        assert adapter.parse_result(result) == ''
+
+    @responses.activate
     def test_parse_result_string_content(self):
         """LlamaCppAdapter.parse_result should pass through plain string content."""
         from tale.llm.io_adapters import LlamaCppAdapter
