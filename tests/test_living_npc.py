@@ -353,6 +353,35 @@ class TestLivingNpcActions():
         assert ['test reveals themselves'] == self.msg_trace_npc.messages
         assert not self.npc.hidden
         
+    def test_autonomous_idle_action_executes_planned_actions(self):
+        # regression: queued ActionResponse objects must be executed through the
+        # ActionExecutor, never stringified into the game output
+        from tale.llm.npc_agent import NpcAgent
+        from tale.llm.schemas import ActionSchema
+        from tale.llm.responses.ActionResponse import ActionResponse
+
+        class StubLlm:
+            def free_form_action(self, **kwargs):
+                return [
+                    ActionResponse(ActionSchema(action='take', item='test item')),
+                    ActionResponse(ActionSchema(action='say', text='got it')),
+                ]
+
+        item = Item(name="test item", short_descr="test item", descr="A test item.")
+        self.location.insert(item)
+        self.npc.autonomous = True
+        self.npc.agent = NpcAgent(StubLlm())
+
+        first = self.npc.idle_action()
+        assert first == 'test takes test item'
+        assert self.npc.search_item('test item', include_location=False) == item
+        second = self.npc.idle_action()
+        assert second == '"got it"'
+        assert self.npc.planned_actions == []
+        for m in self.msg_trace_npc.messages:
+            assert 'ActionResponse' not in m
+        assert self.msg_trace_npc.messages == ['test : test takes test item\n\n', 'test : "got it"\n\n']
+
     @responses.activate
     def test_search(self):
         self.npc.stats.skills.set(SkillType.SEARCH, 100)

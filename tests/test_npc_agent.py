@@ -42,6 +42,7 @@ class TestEventMemory():
         memory.plan([])
         assert memory.next_planned() == 'single'
         assert memory.next_planned() == 'a'
+        assert memory.next_planned() == 'b'  # remainder of a queued list is not dropped
         assert memory.next_planned() is None
 
     def test_sentiments(self):

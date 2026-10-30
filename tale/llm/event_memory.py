@@ -53,11 +53,14 @@ class EventMemory:
         self.planned_actions.append(actions)
 
     def next_planned(self):
-        """Pop the next planned action. A queued list is unwrapped to its first element."""
+        """Pop the next planned action. A queued list is unwrapped one element
+        at a time; the remainder stays queued for later calls."""
         if not self.planned_actions:
             return None
         action = self.planned_actions.pop(0)
         if isinstance(action, list):
+            if len(action) > 1:
+                self.planned_actions.insert(0, action[1:])
             action = action[0] if len(action) > 0 else None
         return action
 

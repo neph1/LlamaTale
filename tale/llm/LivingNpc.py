@@ -295,9 +295,13 @@ class LivingNpc(Living):
         if not self.planned_actions:
             previous_actions = self.memory.recent_actions(5)
             if self.autonomous:
-                actions = [self.autonomous_action()]
-            else:
-                actions = self.agent.perform_idle_action(character_card=self.character_card,
+                # plans a batch and performs the first action right away
+                narration = self.autonomous_action()
+                if narration:
+                    self.memory.add_action(narration)
+                    self._defer_result(narration)
+                return narration
+            actions = self.agent.perform_idle_action(character_card=self.character_card,
                                                     character_name=self.title,
                                                     location=self.location,
                                                     last_action=previous_actions,
@@ -306,6 +310,10 @@ class LivingNpc(Living):
             if actions:
                 self.memory.plan(actions)
         action = self.memory.next_planned()
+        if isinstance(action, ActionResponse):
+            # a queued structured action: execute it through the ActionExecutor
+            narration = self._parse_action(action)
+            action = '\n'.join(narration) if narration else None
         if action:
             self.memory.add_action(action)
             self._defer_result(action)
@@ -320,10 +328,12 @@ class LivingNpc(Living):
         if not actions:
             return None
 
-        self.planned_actions.append(actions)
+        self.memory.plan(actions) # queue the whole batch
+        first = self.memory.next_planned() # pops one ActionResponse, keeps the rest queued
+        if not isinstance(first, ActionResponse):
+            return None
 
-        defered_actions = []
-        defered_actions.extend(self._parse_action(actions.pop(0)))
+        defered_actions = self._parse_action(first)
 
         return '\n'.join(defered_actions)
     
