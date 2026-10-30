@@ -1,4 +1,5 @@
 import random
+from tale.llm.action_executor import ActionExecutor
 from tale.llm.character_card import CharacterCard
 from tale.llm.event_memory import EventMemory
 from tale.llm.item_handling_result import ItemHandlingResult
@@ -30,10 +31,11 @@ class LivingNpc(Living):
 
     def __init__(self, name: str, gender: str, *,
                  title: str="", descr: str="", short_descr: str="", age: int = -1, personality: str="", occupation: str="", race: str="", parse_occupation: bool = False,
-                 memory: EventMemory = None, agent: NpcAgent = None):
+                 memory: EventMemory = None, agent: NpcAgent = None, executor: ActionExecutor = None):
         super(LivingNpc, self).__init__(name=name, gender=gender, title=title, descr=descr, short_descr=short_descr, race=race)
         self.memory = memory or EventMemory()
         self.agent = agent or NpcAgent()
+        self.action_executor = executor or ActionExecutor(self)
         self.age = age
         self.personality = personality
         self.occupation = occupation
@@ -325,61 +327,9 @@ class LivingNpc(Living):
 
         return '\n'.join(defered_actions)
     
-    def _parse_action(self, action: ActionResponse):
-        defered_actions = []
-        if action.goal:
-            self.goal = action.goal
-        if self.output_thoughts and action.thoughts:
-            self.tell_others(f'\n{self.title} thinks: *<it><rev> ' + action.thoughts + '</> *', evoke=False)
-        if action.text:
-            text = action.text
-            self.memory.observe('{actor.title} says: "{response}"'.format(actor=self, response=unpad_text(text)))
-            if action.target:
-                target = self.location.search_living(action.target)
-                if target:
-                    target.tell(text, evoke=False)
-                    target.notify_action(ParseResult(verb='say', unparsed=text, who_list=[target]), actor=self)
-                else:
-                    defered_actions.append(f'"{text}"')
-            else:
-                defered_actions.append(f'"{text}"')
-        if not action.action:
-            return defered_actions
-        if action.action == 'move':
-            try:
-                exit = self.location.exits[action.target]
-            except KeyError:
-                exit = None
-            if exit:
-                self.move(target=exit.target, actor=self, direction_names=exit.names)
-        elif action.action == 'give' and action.item and action.target:
-            result = ItemHandlingResult(item=action.item, to=action.target, from_=self.title)
-            self.handle_item_result(result, actor=self)
-        elif action.action == 'take' and (action.item or action.target):
-            item = self.search_item(action.item or action.target, include_location=True, include_inventory=False) # Type: Item
-            if item:
-                item.move(target=self, actor=self)
-                defered_actions.append(f"{self.title} takes {item.title}")
-        elif action.action == 'attack' and action.target:
-            target = self.location.search_living(action.target)
-            if target:
-                self.start_attack(target)
-                defered_actions.append(f"{self.title} attacks {target.title}")
-        elif action.action == 'wear' and (action.item or action.target):
-            item = self.search_item(action.item or action.target, include_location=True, include_inventory=False)
-            if item:
-                self.set_wearable(item)
-                defered_actions.append(f"{self.title} wears {item.title}")
-        elif action.action == 'hide':
-            self.hide()
-            #defered_actions.append(f"{self.title} hides.")
-        elif action.action == 'unhide':
-            self.hide(False)
-            #defered_actions.append(f"{self.title} reveals themselves.")
-        elif action.action == 'search':
-            self.search_hidden()
-            #defered_actions.append(f"{self.title} searches for something.")
-        return defered_actions
+    def _parse_action(self, action: ActionResponse) -> list:
+        """Execute a structured LLM action. Delegates to the ActionExecutor."""
+        return self.action_executor.execute(action)
 
     def _defer_result(self, action: str, verb: str="idle-action"):
         """ Defer an action to be performed at the next tick, 
