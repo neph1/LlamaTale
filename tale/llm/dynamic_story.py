@@ -25,6 +25,8 @@ import tale.llm.llm_cache as llm_cache
 _FORBIDDEN_SAVE_DIRS = (
     '/bin', '/boot', '/dev', '/etc', '/lib', '/lib64', '/proc',
     '/run', '/sbin', '/sys', '/usr', '/var',
+    # macOS: /etc and /var are symlinks into /private
+    '/private/etc', '/private/var', '/System',
 )
 
 
@@ -39,11 +41,13 @@ def validate_save_path(save_name: str, allow_absolute: bool = False) -> str:
     if save_name.startswith('/'):
         if not allow_absolute:
             raise SecurityViolation("absolute save paths are not allowed here")
-        # resolve symlinks and '..' so the check below can't be bypassed
+        # check the path both as given and with symlinks and '..' resolved,
+        # so neither spelling can bypass the check
         resolved = os.path.realpath(save_name)
-        if resolved in ('/', '//') or any(resolved == d or resolved.startswith(d + '/')
-                                          for d in _FORBIDDEN_SAVE_DIRS):
-            raise SecurityViolation("save path %s targets a system directory" % save_name)
+        for candidate in (os.path.normpath(save_name), resolved):
+            if candidate in ('/', '//') or any(candidate == d or candidate.startswith(d + '/')
+                                               for d in _FORBIDDEN_SAVE_DIRS):
+                raise SecurityViolation("save path %s targets a system directory" % save_name)
         return resolved
     if save_name:
         normalized = os.path.normpath(save_name)

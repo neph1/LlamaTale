@@ -122,11 +122,6 @@ Tale API
 .. automodule:: tale.tio.console_io
     :members:
 
-:mod:`tale.tio.tkinter_io` --- Tkinter GUI I/O
-----------------------------------------------
-.. automodule:: tale.tio.tkinter_io
-    :members:
-
 :mod:`tale.tio.if_browser_io` --- Web browser GUI I/O (single-player)
 ---------------------------------------------------------------------
 .. automodule:: tale.tio.if_browser_io

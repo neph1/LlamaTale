@@ -42,7 +42,7 @@ class TestDriverCreation(unittest.TestCase):
         self.assertIsNone(d.user_resources)
 
     def testIF(self):
-        d = tale.driver_if.IFDriver(screen_delay=99, gui=False, web=True, wizard_override=True)
+        d = tale.driver_if.IFDriver(screen_delay=99, web=True, wizard_override=True)
         self.assertEqual(GameMode.IF, d.game_mode)
         self.assertEqual(99, d.screen_delay)
         self.assertTrue(d.wizard_override)

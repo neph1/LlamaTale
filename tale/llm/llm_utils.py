@@ -45,6 +45,21 @@ class LlmUtil():
                 backend_config = yaml.safe_load(stream)
             except yaml.YAMLError as exc:
                 print(exc)
+        # Allow API key/password to be set via environment variable instead of hardcoded in the YAML.
+        # Env var naming: {BACKEND}_API_KEY (e.g. MISTRAL_API_KEY, OPENAI_API_KEY),
+        # or {BACKEND}_API_PASSWORD for kobold_cpp (KOBOLD_CPP_API_PASSWORD).
+        if self.backend == 'kobold_cpp':
+            env_var = f"{self.backend.upper()}_API_PASSWORD"
+            config_key = 'API_PASSWORD'
+        else:
+            env_var = f"{self.backend.upper()}_API_KEY"
+            config_key = 'OPENAI_API_KEY'
+        env_val = os.environ.get(env_var)
+        if env_val:
+            backend_config[config_key] = env_val
+        elif backend_config.get(config_key):
+            print(f"Warning: {config_key} is set in backend_{self.backend}.yaml. "
+                  f"For better security, use the {env_var} environment variable instead.")
         self.default_body = json.loads(backend_config['DEFAULT_BODY'])
         self.memory_size = llm_config.params['MEMORY_SIZE']
         self.pre_prompt = llm_config.params['PRE_PROMPT'] # type: str
@@ -59,25 +74,19 @@ class LlmUtil():
         self.__story_context = ''
         self.__story_type = ''
         self.__world_info = ''
-        #self.action_list = llm_config.params['ACTION_LIST']
-        json_grammar_key = backend_config['JSON_GRAMMAR_KEY']
-        
         #self._look_hashes = dict() # type: dict[int, str] # location hashes for look command. currently never cleared.
         self._world_building = WorldBuilding(default_body=self.default_body,
                                              io_util=self.io_util,
-                                             backend=self.backend,
-                                             json_grammar_key=json_grammar_key)
+                                             backend=self.backend)
         self._character = CharacterBuilding(backend=self.backend,
                                     io_util=self.io_util,
-                                    default_body=self.default_body,
-                                             json_grammar_key=json_grammar_key)
+                                    default_body=self.default_body)
         self._story_building = StoryBuilding(default_body=self.default_body,
                                              io_util=self.io_util,
                                              backend=self.backend)
         self._quest_building = QuestBuilding(default_body=self.default_body,
                                              io_util=self.io_util,
-                                             backend=self.backend,
-                                             json_grammar_key=json_grammar_key)
+                                             backend=self.backend)
 
     def evoke(self, message: str, short_len: bool=False, rolling_prompt: str = '', alt_prompt: str = '', extra_context: str = '', skip_history: bool = True):
         """Evoke a response from LLM. Async if stream is True, otherwise synchronous.

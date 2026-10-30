@@ -192,9 +192,12 @@ class TestLivingNpcActions():
     story = DynamicStory()
     driver.story = story
     mud_context.config = story.config
-    #mud_context.driver = driver
 
     def setup_method(self):
+        # pin the globals to this class's mocked driver/config for each test,
+        # so other test modules cannot leak their own mud_context state in
+        mud_context.driver = self.driver
+        mud_context.config = self.story.config
         self.location = Location("test_room")
         self.npc = LivingNpc(name='test', gender='f', age=35, personality='')
         self.npc2 = LivingNpc(name="actor", gender='f', age=42, personality='')
@@ -259,7 +262,7 @@ class TestLivingNpcActions():
         item = Item(name="test item", short_descr="test item", descr="A test item.")
         self.location.insert(item)
         responses.add(responses.POST, self.dummy_backend_config['URL'] + self.dummy_backend_config['ENDPOINT'],
-                  json={'results':[{'text':'{"action":"take", "item":"test item"}'}]}, status=200)
+                  json={'results':[{'text':'{"actions":[{"action":"take", "item":"test item", "target":"", "goal":"", "thoughts":""}]}'}]}, status=200)
         actions = self.npc.autonomous_action()
         assert(actions == 'test takes test item')
         assert(self.npc.search_item('test item', include_location=False))
@@ -268,7 +271,7 @@ class TestLivingNpcActions():
         item = Item(name="test item", short_descr="test item", descr="A test item.")
         self.npc.init_inventory([item])
         responses.add(responses.POST, self.dummy_backend_config['URL'] + self.dummy_backend_config['ENDPOINT'],
-                  json={'results':[{'text':'{"action":"give", "item":"test item", "target":"actor"}'}]}, status=200)
+                  json={'results':[{'text':'{"actions":[{"action":"give", "target":"actor", "item":"test item", "text":"", "goal":"", "thoughts":""}]}'}]}, status=200)
         self.npc.autonomous_action()
         assert self.npc.search_item('test item', include_location=False) == None
         assert(self.npc2.search_item('test item', include_location=False))
@@ -283,7 +286,7 @@ class TestLivingNpcActions():
         item = Item(name="test item", short_descr="test item", descr="A test item.")
         self.location.insert(item)
         responses.add(responses.POST, self.dummy_backend_config['URL'] + self.dummy_backend_config['ENDPOINT'],
-                  json={'results':[{'text':'{"action":"take", "item":"test item"}'}]}, status=200)
+                  json={'results':[{'text':'{"actions":[{"action":"take", "item":"test item", "target":"", "goal":"", "thoughts":""}]}'}]}, status=200)
         actions = self.npc.autonomous_action()
         assert(actions == 'test takes test item')
         assert(self.npc.search_item('test item', include_location=False))
@@ -293,7 +296,7 @@ class TestLivingNpcActions():
         item = Item(name="test item", short_descr="test item", descr="A test item.")
         self.npc.init_inventory([item])
         responses.add(responses.POST, self.dummy_backend_config['URL'] + self.dummy_backend_config['ENDPOINT'],
-                  json={'results':[{'text':'{"action":"give", "item":"test item", "target":"actor"}'}]}, status=200)
+                  json={'results':[{'text':'{"actions":[{"action":"give", "target":"actor", "item":"test item", "text":"", "goal":"", "thoughts":""}]}'}]}, status=200)
         self.npc.autonomous_action()
         assert self.npc.search_item('test item', include_location=False) == None
         assert(self.npc2.search_item('test item', include_location=False))
@@ -305,7 +308,7 @@ class TestLivingNpcActions():
         Exit.connect(self.location, 'room 2', '', None,
             location2, 'room 1', '', None)
         responses.add(responses.POST, self.dummy_backend_config['URL'] + self.dummy_backend_config['ENDPOINT'],
-                  json={'results':[{'text':'{"action":"move", "target":"room 2"}'}]}, status=200)
+                  json={'results':[{'text':'{"actions":[{"action":"move", "target":"room 2", "text":"", "goal":"", "thoughts":""}]}'}]}, status=200)
         self.npc.autonomous_action()
         assert(self.npc.location == location2)
         assert ["Test leaves towards room 2."] == self.msg_trace_npc.messages
@@ -315,14 +318,14 @@ class TestLivingNpcActions():
         giant_rat = Living(name='rat', gender='m')
         self.location.insert(giant_rat)
         responses.add(responses.POST, self.dummy_backend_config['URL'] + self.dummy_backend_config['ENDPOINT'],
-                  json={'results':[{'text':'{"action":"attack", "text":"take that, you filthy animal!", "target":"rat"}'}]}, status=200)
+                  json={'results':[{'text':'{"actions":[{"action":"attack", "target":"rat", "text":"take that, you filthy animal!", "goal":"", "thoughts":""}]}'}]}, status=200)
         actions = self.npc.autonomous_action()
         assert(actions == 'test attacks rat') # TODO: only receives one message due to change of how targeted actions are handled
 
     @responses.activate
     def test_say(self):
         responses.add(responses.POST, self.dummy_backend_config['URL'] + self.dummy_backend_config['ENDPOINT'],
-                  json={'results':[{'text':'{"action":"say", "text":"How are you doing?", "target":"actor"}'}]}, status=200)
+                  json={'results':[{'text':'{"actions":[{"action":"say", "target":"actor", "text":"How are you doing?", "goal":"", "thoughts":""}]}'}]}, status=200)
         responses.add(responses.POST, self.dummy_backend_config['URL'] + self.dummy_backend_config['ENDPOINT'],
                   json={'results':[{'text':'{"response":"Fine."}'}]}, status=200)
         actions = self.npc.autonomous_action()
@@ -335,7 +338,7 @@ class TestLivingNpcActions():
         self.npc.location.remove(self.npc2, self.npc2)
         self.npc.location.remove(self.msg_trace_npc, self.msg_trace_npc)
         responses.add(responses.POST, self.dummy_backend_config['URL'] + self.dummy_backend_config['ENDPOINT'],
-                  json={'results':[{'text':'{"action":"hide", "text":"this looks dangerous!"}'}]}, status=200)
+                  json={'results':[{'text':'{"actions":[{"action":"hide", "target":"", "text":"this looks dangerous!", "goal":"", "thoughts":""}]}'}]}, status=200)
         actions = self.npc.autonomous_action()
         assert(actions == '"this looks dangerous!"')
         assert(self.npc.hidden)
@@ -345,11 +348,40 @@ class TestLivingNpcActions():
         self.npc.hidden = True
         self.npc.stats.action_points = 1
         responses.add(responses.POST, self.dummy_backend_config['URL'] + self.dummy_backend_config['ENDPOINT'],
-                  json={'results':[{'text':'{"action":"unhide"}'}]}, status=200)
+                  json={'results':[{'text':'{"actions":[{"action":"unhide", "target":"", "text":"", "goal":"", "thoughts":""}]}'}]}, status=200)
         actions = self.npc.autonomous_action()
         assert ['test reveals themselves'] == self.msg_trace_npc.messages
         assert not self.npc.hidden
         
+    def test_autonomous_idle_action_executes_planned_actions(self):
+        # regression: queued ActionResponse objects must be executed through the
+        # ActionExecutor, never stringified into the game output
+        from tale.llm.npc_agent import NpcAgent
+        from tale.llm.schemas import ActionSchema
+        from tale.llm.responses.ActionResponse import ActionResponse
+
+        class StubLlm:
+            def free_form_action(self, **kwargs):
+                return [
+                    ActionResponse(ActionSchema(action='take', item='test item')),
+                    ActionResponse(ActionSchema(action='say', text='got it')),
+                ]
+
+        item = Item(name="test item", short_descr="test item", descr="A test item.")
+        self.location.insert(item)
+        self.npc.autonomous = True
+        self.npc.agent = NpcAgent(StubLlm())
+
+        first = self.npc.idle_action()
+        assert first == 'test takes test item'
+        assert self.npc.search_item('test item', include_location=False) == item
+        second = self.npc.idle_action()
+        assert second == '"got it"'
+        assert self.npc.planned_actions == []
+        for m in self.msg_trace_npc.messages:
+            assert 'ActionResponse' not in m
+        assert self.msg_trace_npc.messages == ['test : test takes test item\n\n', 'test : "got it"\n\n']
+
     @responses.activate
     def test_search(self):
         self.npc.stats.skills.set(SkillType.SEARCH, 100)
@@ -357,7 +389,7 @@ class TestLivingNpcActions():
         self.npc2.hidden = True
         self.npc2.stats.skills.set(SkillType.HIDE, 0)
         responses.add(responses.POST, self.dummy_backend_config['URL'] + self.dummy_backend_config['ENDPOINT'],
-                  json={'results':[{'text':'{"action":"search"}'}]}, status=200)
+                  json={'results':[{'text':'{"actions":[{"action":"search", "target":"", "text":"", "goal":"", "thoughts":""}]}'}]}, status=200)
         actions = self.npc.autonomous_action()
         assert(actions == '')
         assert not self.npc2.hidden

@@ -82,7 +82,7 @@ class TestDungeonGenerator:
 class TestDungeonPopulator():
 
     def setup_method(self):
-        driver = IFDriver(screen_delay=99, gui=False, web=True, wizard_override=True)
+        driver = IFDriver(screen_delay=99, web=True, wizard_override=True)
         driver.game_clock = util.GameDateTime(datetime.datetime(year=2023, month=1, day=1), 1)
         driver.moneyfmt = util.MoneyFormatter.create_for(MoneyType.MODERN)
         self.layout = Layout(Coord(0, 0, 0))

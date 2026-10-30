@@ -1,9 +1,11 @@
+from typing import List
+from tale.llm.schemas import ItemSchema
 
 
 class WorldItemsResponse():
 
-    def __init__(self, response: dict = {}):
-        self.items = response.get("items", [])
+    def __init__(self, items: List[ItemSchema] = None):
+        self.items = [i.model_dump() for i in (items or [])]
         self.valid = len(self.items) > 0
         self._validate_items()
 

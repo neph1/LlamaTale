@@ -1,0 +1,88 @@
+{
+    "story": {
+        "name": "Web Debug"
+    },
+    "zones": {
+        "Debug Zone": {
+            "description": "A minimal zone for debugging the web frontend.",
+            "level": 1,
+            "mood": 3,
+            "races": [],
+            "items": [],
+            "size": 5,
+            "center": [
+                0,
+                0,
+                0
+            ],
+            "name": "Debug Zone",
+            "locations": [
+                {
+                    "name": "Tavern",
+                    "descr": "A cozy debug tavern. Wooden tables, a crackling fireplace, and a bar in the corner. This room exists purely to test that location images render correctly in the web frontend.",
+                    "short_descr": "A cozy debug tavern.",
+                    "exits": [],
+                    "world_location": [
+                        "0",
+                        "0",
+                        "0"
+                    ],
+                    "built": true
+                }
+            ]
+        }
+    },
+    "world": {
+        "npcs": {
+            "barkeep": {
+                "location": "Tavern",
+                "name": "Barkeep",
+                "title": "The Barkeep",
+                "aliases": [
+                    "bartender",
+                    "innkeeper"
+                ],
+                "short_descr": "A friendly barkeep polishing a glass.",
+                "descr": "A stout barkeep with a neatly trimmed beard, polishing a glass behind the bar. He looks like he has seen it all.",
+                "personality": "Friendly and chatty. Always ready to serve a drink or share a story.",
+                "occupation": "Barkeep",
+                "age": 45,
+                "type": "Mob",
+                "race": "human",
+                "gender": "male",
+                "level": 1,
+                "stats": {
+                    "ac": 0,
+                    "hp": 10,
+                    "max_hp": 10,
+                    "level": 1,
+                    "weapon_skills": {
+                        "6": 10
+                    },
+                    "gender": "m",
+                    "alignment": 0,
+                    "weight": 80.0,
+                    "xp": 0,
+                    "strength": 4,
+                    "dexterity": 3,
+                    "unarmed_attack": "FISTS"
+                },
+                "memory": {
+                    "known_locations": {},
+                    "observed_events": [],
+                    "conversations": [],
+                    "sentiments": {},
+                    "action_history": [],
+                    "planned_actions": [],
+                    "goal": null
+                }
+            }
+        },
+        "items": {},
+        "spawners": []
+    },
+    "catalogue": {
+        "items": [],
+        "creatures": []
+    }
+}

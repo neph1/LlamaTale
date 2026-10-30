@@ -1,7 +1,7 @@
 import datetime
 import json
 from typing import List
-from tale import json_util, load_items, util
+from tale import load_items, util
 from tale.base import Exit, Living, Location, Weapon, Wearable
 from tale.coord import Coord
 from tale.driver_if import IFDriver
@@ -266,7 +266,7 @@ class TestParseUtils():
         assert(loaded_stats.weapon_skills.get(WeaponType.UNARMED) == 10)
         
     def test_load_mob_spawners(self):
-        driver = IFDriver(screen_delay=99, gui=False, web=True, wizard_override=True)
+        driver = IFDriver(screen_delay=99, web=True, wizard_override=True)
         driver.game_clock = util.GameDateTime(datetime.datetime(year=2023, month=1, day=1), 1)
 
         json_spawners = [
@@ -322,7 +322,7 @@ class TestParseUtils():
         assert spawners[1].drop_items == None
 
     def test_load_item_spawners(self):
-        driver = IFDriver(screen_delay=99, gui=False, web=True, wizard_override=True)
+        driver = IFDriver(screen_delay=99, web=True, wizard_override=True)
         driver.game_clock = util.GameDateTime(datetime.datetime(year=2023, month=1, day=1), 1)
         driver.moneyfmt = util.MoneyFormatter.create_for(MoneyType.FANTASY)
 
@@ -370,31 +370,6 @@ class TestParseUtils():
         assert spawners[1].container == None
         assert spawners[1].max_items == 5
 
-    def test_sanitize_json(self):
-        json_string = '{ "name": "Whispering Woods", "description": "A dense, misty forest teeming with life. The trees whisper secrets to those who listen, and the creatures here are said to possess ancient wisdom. Friendly creatures roam the area, and the air is filled with the sweet scent of enchanted flowers.", "races": [], "items": [], "mood": 5, "level": 1} '
-        sanitized = json_util.safe_load(json_string)
-        assert sanitized['name'] == 'Whispering Woods'
-
-    def test_sanitize_json_strips_reasoning_tags(self):
-        json_string = '<think>I should provide a forest description first.</think>{"name": "Whispering Woods", "mood": 5}'
-        sanitized = json_util.safe_load(json_string)
-        assert sanitized['name'] == 'Whispering Woods'
-
-    def test_sanitize_json_strips_reasoning_fences(self):
-        json_string = '```thinking\nI will now prepare structured output.\n```\n```json\n{"name": "Whispering Woods", "mood": 5}\n```'
-        sanitized = json_util.safe_load(json_string)
-        assert sanitized['mood'] == 5
-
-    def test_sanitize_json_keeps_tag_like_string_values(self):
-        json_string = '{"name": "Whispering Woods", "note": "<think>this stays in content</think>"}'
-        sanitized = json_util.safe_load(json_string)
-        assert sanitized['note'] == '<think>this stays in content</think>'
-
-    def test_sanitize_json_unwraps_double_encoded_reasoning(self):
-        json_string = '"<analysis>Internal notes</analysis>{\\"name\\": \\"Whispering Woods\\", \\"mood\\": 5}"'
-        sanitized = json_util.safe_load(json_string)
-        assert sanitized['name'] == 'Whispering Woods'
-
     def test_mood_string_from_int(self):
         assert parse_utils.mood_string_from_int(5) == ' uttermost friendly'
         assert parse_utils.mood_string_from_int(0) == ' neutral'
@@ -404,7 +379,7 @@ class TestParseUtils():
 class TestLoadNpcs:
 
     def setup_method(self):
-        self.driver = IFDriver(screen_delay=99, gui=False, web=True, wizard_override=True)
+        self.driver = IFDriver(screen_delay=99, web=True, wizard_override=True)
         self.driver.game_clock = util.GameDateTime(datetime.datetime(year=2023, month=1, day=1), 1)
         self.driver.moneyfmt = util.MoneyFormatter.create_for(MoneyType.MODERN)
 

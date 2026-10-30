@@ -1,5 +1,3 @@
-
-
 import json
 import random
 from tale.llm import llm_config
@@ -20,8 +18,7 @@ class GenerateZone(LlmRequest):
         world_mood = args['world_mood']
         catalogue = args['catalogue']
 
-        prompt = llm_config.params['PRE_JSON_PROMPT']
-        prompt += llm_config.params['CREATE_ZONE_PROMPT'].format(
+        prompt = llm_config.params['CREATE_ZONE_PROMPT'].format(
             context='{context}',
             mood = parse_utils.mood_string_from_int(random.gauss(world_mood, 2)),
             direction=direction,

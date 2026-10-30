@@ -19,8 +19,7 @@ Tale requires Python 3.5 or newer.
 (If you have an older version of Python, stick to Tale 2.8 or older, which still supports Python 2.7 as well)
 
 You can run Tale in console mode, where it is a pure text interface running in your
-console window. But you can also run Tale in a simple GUI application (built with Tkinter)
-or in your web browser.
+console window. Or you can run Tale in your web browser.
 
 .. note::
     The multi-user aspects are fairly new and still somewhat incomplete.
@@ -60,7 +59,6 @@ There's a tiny demo embedded in the library itself, you can start that with::
     python -m tale.demo.story
 
 You can add several command line options:
- * ``--gui`` add this to get a GUI interface
  * ``--web`` add this to get a web browser interface
  * ``--mud`` add this to launch the demo game as mud (multi-user) server
 
@@ -81,7 +79,7 @@ Anyway, the command to do so is::
     $ tale-run --game <path-to-the-story/demo-directory>`
 
 You can use the ``--help`` argument to see some help about this command.
-You can use ``--gui`` or ``--web`` to start the GUI or browser version of the interface rather than the text console version.
+You can use ``--web`` to start the browser version of the interface rather than the text console version.
 There are some other command line arguments such as ``--mode`` that allow you to select other things, look at the help
 output to learn more.
 
@@ -124,7 +122,7 @@ A random list of the features of the current codebase:
 - requires Python 3.5 or newer
 - game engine and framework code is separated from the actual game code
 - single-player Interactive Fiction mode and multi-player MUD mode
-- selectable interface types: text console interface, GUI (Tkinter), or web browser interface
+- selectable interface types: text console interface, or web browser interface
 - MUD mode runs as a web server (no old-skool console access via telnet or ssh for now)
 - can load and run games/stories directly from a zipfile or from extracted folders.
 - wizard and normal player privileges, wizards gain access to a set of special 'debug' commands that are helpful

@@ -161,10 +161,12 @@ class TaleMudFastAPIApp:
             """Serve static files"""
             try:
                 resource = vfs.internal_resources["web/" + file_path]
+                # no-cache so browsers always revalidate CSS/JS/images during development
+                headers = {"Cache-Control": "no-cache"}
                 if resource.is_text:
-                    return HTMLResponse(content=resource.text)
+                    return Response(content=resource.text, media_type=resource.mimetype, headers=headers)
                 else:
-                    return Response(content=resource.data, media_type=resource.mimetype)
+                    return Response(content=resource.data, media_type=resource.mimetype, headers=headers)
             except KeyError:
                 from fastapi import HTTPException
                 raise HTTPException(status_code=404, detail="File not found")
