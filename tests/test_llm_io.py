@@ -94,11 +94,15 @@ class TestLlmIo():
         config_file['BACKEND'] = 'kobold_cpp'
         backend_config = self._load_backend_config('kobold_cpp')
         responses.add(responses.POST, backend_config['URL'] + backend_config['ENDPOINT'],
-                    json={'results':['']}, status=500)
+                    json={'error': 'internal server error'}, status=500)
         io_util = IoUtil(config=config_file, backend_config=backend_config)
 
-        response = io_util.synchronous_request(request_body=json.loads(backend_config['DEFAULT_BODY']), prompt='test evoke', context='')
-        assert(response == '')
+        try:
+            io_util.synchronous_request(request_body=json.loads(backend_config['DEFAULT_BODY']), prompt='test evoke', context='')
+            assert False, "Expected LlmResponseException"
+        except LlmResponseException as exc:
+            assert 'HTTP 500' in str(exc)
+            assert 'internal server error' in str(exc)
 
     @responses.activate
     def test_structured_request_sets_response_format(self):
@@ -199,21 +203,40 @@ class TestLlmIo():
             assert 'Failed to validate' in str(exc)
 
     @responses.activate
-    def test_structured_request_empty_content_with_http_error(self):
-        """Non-200 from backend should print error and structured_request should raise."""
+    def test_structured_request_http_error_includes_body(self):
+        """Non-200 from backend should raise with the HTTP status and body in the message."""
         config_file = self._load_config()
         config_file['BACKEND'] = 'llama_cpp'
         backend_config = self._load_backend_config('llama_cpp')
         responses.add(responses.POST, backend_config['URL'] + backend_config['ENDPOINT'],
-                    json={'error': {'message': 'response_format json_schema not supported by this model'}}, status=400)
+                    json={'error': {'message': 'model overloaded'}}, status=503)
         io_util = IoUtil(config=config_file, backend_config=backend_config)
         request_body = json.loads(backend_config['DEFAULT_BODY'])
         try:
             io_util.structured_request(request_body=request_body, prompt='test', model=FollowSchema, context='')
             assert False, "Expected LlmResponseException"
         except LlmResponseException as exc:
-            assert 'Empty response' in str(exc)
-            assert 'response_format' in str(exc)
+            assert 'HTTP 503' in str(exc)
+            assert 'model overloaded' in str(exc)
+
+    @responses.activate
+    def test_structured_request_falls_back_to_non_strict(self):
+        """If the server rejects strict:true, structured_request retries without strict."""
+        config_file = self._load_config()
+        config_file['BACKEND'] = 'llama_cpp'
+        backend_config = self._load_backend_config('llama_cpp')
+        url = backend_config['URL'] + backend_config['ENDPOINT']
+        # First call (strict) rejected with 400 mentioning 'strict'
+        responses.add(responses.POST, url,
+                    json={'error': {'message': 'strict mode not supported for this model'}}, status=400)
+        # Second call (non-strict) succeeds
+        responses.add(responses.POST, url,
+                    json={'choices': [{'message': {'content': '{"response": "yes", "reason": "ok"}'}}]}, status=200)
+        io_util = IoUtil(config=config_file, backend_config=backend_config)
+        request_body = json.loads(backend_config['DEFAULT_BODY'])
+        model = io_util.structured_request(request_body=request_body, prompt='test', model=FollowSchema, context='')
+        assert model.response == 'yes'
+        assert model.reason == 'ok'
 
     @responses.activate
     def test_parse_result_null_content(self):
