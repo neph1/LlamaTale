@@ -1,4 +1,5 @@
 import tale
+from tale import mud_context
 from tale.base import Item, ParseResult
 from tale.driver import Driver
 from tale.llm.LivingNpc import LivingNpc
@@ -90,6 +91,12 @@ class TestTalkQuest():
 
     testNpc = LivingNpc("TestNpc", "m", age=20)
     testNpc2 = LivingNpc("TestNpc2", "m", age=20)
+
+    def setup_method(self):
+        # pin the globals to this class's driver (with its FakeIoUtil) for each
+        # test, so other test modules cannot leak their own mud_context state in
+        mud_context.driver = self.d
+        mud_context.config = self.d.story.config
 
     def test_talk_quest(self):
         quest = Quest(name="TestQuest", reason="out of bowling balls", reward=100, giver=self.testNpc.name, type=QuestType.TALK, target="TestNpc")

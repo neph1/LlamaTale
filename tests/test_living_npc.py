@@ -192,9 +192,12 @@ class TestLivingNpcActions():
     story = DynamicStory()
     driver.story = story
     mud_context.config = story.config
-    #mud_context.driver = driver
 
     def setup_method(self):
+        # pin the globals to this class's mocked driver/config for each test,
+        # so other test modules cannot leak their own mud_context state in
+        mud_context.driver = self.driver
+        mud_context.config = self.story.config
         self.location = Location("test_room")
         self.npc = LivingNpc(name='test', gender='f', age=35, personality='')
         self.npc2 = LivingNpc(name="actor", gender='f', age=42, personality='')
