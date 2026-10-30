@@ -192,9 +192,12 @@ class TestLivingNpcActions():
     story = DynamicStory()
     driver.story = story
     mud_context.config = story.config
-    #mud_context.driver = driver
 
     def setup_method(self):
+        # pin the globals to this class's mocked driver/config for each test,
+        # so other test modules cannot leak their own mud_context state in
+        mud_context.driver = self.driver
+        mud_context.config = self.story.config
         self.location = Location("test_room")
         self.npc = LivingNpc(name='test', gender='f', age=35, personality='')
         self.npc2 = LivingNpc(name="actor", gender='f', age=42, personality='')
@@ -350,6 +353,35 @@ class TestLivingNpcActions():
         assert ['test reveals themselves'] == self.msg_trace_npc.messages
         assert not self.npc.hidden
         
+    def test_autonomous_idle_action_executes_planned_actions(self):
+        # regression: queued ActionResponse objects must be executed through the
+        # ActionExecutor, never stringified into the game output
+        from tale.llm.npc_agent import NpcAgent
+        from tale.llm.schemas import ActionSchema
+        from tale.llm.responses.ActionResponse import ActionResponse
+
+        class StubLlm:
+            def free_form_action(self, **kwargs):
+                return [
+                    ActionResponse(ActionSchema(action='take', item='test item')),
+                    ActionResponse(ActionSchema(action='say', text='got it')),
+                ]
+
+        item = Item(name="test item", short_descr="test item", descr="A test item.")
+        self.location.insert(item)
+        self.npc.autonomous = True
+        self.npc.agent = NpcAgent(StubLlm())
+
+        first = self.npc.idle_action()
+        assert first == 'test takes test item'
+        assert self.npc.search_item('test item', include_location=False) == item
+        second = self.npc.idle_action()
+        assert second == '"got it"'
+        assert self.npc.planned_actions == []
+        for m in self.msg_trace_npc.messages:
+            assert 'ActionResponse' not in m
+        assert self.msg_trace_npc.messages == ['test : test takes test item\n\n', 'test : "got it"\n\n']
+
     @responses.activate
     def test_search(self):
         self.npc.stats.skills.set(SkillType.SEARCH, 100)
