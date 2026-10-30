@@ -43,11 +43,15 @@ class IoUtil():
         print(f"Backend returned HTTP {response.status_code}: {response.text[:500]}")
         return ''
 
-    def structured_request(self, request_body: dict, prompt: str, model: Type[T], context: str = '') -> T:
+    def structured_request(self, request_body: dict, prompt: str, model: Type[T], context: str = '', retries: int = 1) -> T:
         """ Send request with JSON Schema structured output and return a validated model.
 
         The model's JSON Schema is sent via response_format so the backend constrains
         generation to schema-valid JSON. The response is then validated by Pydantic.
+
+        On JSON parse/validation failure (e.g. output truncated by max_tokens),
+        retries once with a fresh request — truncation is transient and a re-roll
+        often completes the JSON.
         """
         schema = model.model_json_schema()
         request_body['response_format'] = {
@@ -58,24 +62,31 @@ class IoUtil():
                 'schema': schema,
             },
         }
-        text = self.synchronous_request(request_body, prompt=prompt, context=context)
-        # Some backends return content as a list of typed parts (reasoning models);
-        # normalize to a plain string before JSON validation.
-        if isinstance(text, list):
-            text = ''.join(
-                part.get('text', '') for part in text
-                if isinstance(part, dict) and part.get('type') == 'text'
-            )
-        if not text or not str(text).strip():
-            raise LlmResponseException(
-                f"Empty response from backend for structured request ({model.__name__}). "
-                f"The model may not support response_format json_schema, or output was "
-                f"truncated (check max_tokens). See backend logs for HTTP errors."
-            )
-        try:
-            return model.model_validate_json(str(text))
-        except ValidationError as exc:
-            raise LlmResponseException(f"Failed to validate {model.__name__}: {exc}")
+        last_exc = None
+        for attempt in range(retries + 1):
+            text = self.synchronous_request(request_body, prompt=prompt, context=context)
+            # Some backends return content as a list of typed parts (reasoning models);
+            # normalize to a plain string before JSON validation.
+            if isinstance(text, list):
+                text = ''.join(
+                    part.get('text', '') for part in text
+                    if isinstance(part, dict) and part.get('type') == 'text'
+                )
+            if not text or not str(text).strip():
+                last_exc = LlmResponseException(
+                    f"Empty response from backend for structured request ({model.__name__}). "
+                    f"The model may not support response_format json_schema, or output was "
+                    f"truncated (check max_tokens). See backend logs for HTTP errors."
+                )
+                continue
+            try:
+                return model.model_validate_json(str(text))
+            except ValidationError as exc:
+                last_exc = LlmResponseException(f"Failed to validate {model.__name__}: {exc}")
+                if attempt < retries:
+                    print(f"Structured request for {model.__name__} failed (attempt {attempt + 1}/{retries + 1}), retrying...")
+                    continue
+        raise last_exc
     
     def asynchronous_request(self, request_body: dict, prompt: str, context: str = '') -> str:
         if self.backend != 'kobold_cpp':

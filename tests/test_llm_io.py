@@ -162,6 +162,43 @@ class TestLlmIo():
         assert adapter.parse_result(result) == 'Hello world'
 
     @responses.activate
+    def test_structured_request_retries_on_truncated_json(self):
+        """Truncated JSON (EOF mid-string) should trigger one retry, then succeed."""
+        config_file = self._load_config()
+        config_file['BACKEND'] = 'llama_cpp'
+        backend_config = self._load_backend_config('llama_cpp')
+        url = backend_config['URL'] + backend_config['ENDPOINT']
+        # First response: truncated JSON; second: complete
+        responses.add(responses.POST, url,
+                    json={'choices': [{'message': {'content': '{"response": "By the tim...the river mending as we'}}]}, status=200)
+        responses.add(responses.POST, url,
+                    json={'choices': [{'message': {'content': '{"response": "Hello there", "reason": "greeting"}'}}]}, status=200)
+        io_util = IoUtil(config=config_file, backend_config=backend_config)
+        request_body = json.loads(backend_config['DEFAULT_BODY'])
+        model = io_util.structured_request(request_body=request_body, prompt='test', model=FollowSchema, context='')
+        assert model.response == 'Hello there'
+        assert model.reason == 'greeting'
+
+    @responses.activate
+    def test_structured_request_retry_exhausted_raises(self):
+        """If all retries fail, the last error is raised."""
+        config_file = self._load_config()
+        config_file['BACKEND'] = 'llama_cpp'
+        backend_config = self._load_backend_config('llama_cpp')
+        url = backend_config['URL'] + backend_config['ENDPOINT']
+        # Both attempts return truncated JSON
+        for _ in range(2):
+            responses.add(responses.POST, url,
+                        json={'choices': [{'message': {'content': '{"response": "truncated...'}}]}, status=200)
+        io_util = IoUtil(config=config_file, backend_config=backend_config)
+        request_body = json.loads(backend_config['DEFAULT_BODY'])
+        try:
+            io_util.structured_request(request_body=request_body, prompt='test', model=FollowSchema, context='')
+            assert False, "Expected LlmResponseException"
+        except LlmResponseException as exc:
+            assert 'Failed to validate' in str(exc)
+
+    @responses.activate
     def test_structured_request_empty_content_with_http_error(self):
         """Non-200 from backend should print error and structured_request should raise."""
         config_file = self._load_config()
