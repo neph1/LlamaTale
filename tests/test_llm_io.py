@@ -131,6 +131,45 @@ class TestLlmIo():
         assert 'response_format' in request_body
 
     @responses.activate
+    def test_structured_request_multi_part_content(self):
+        """Reasoning models (DeepSeek, QwQ) return content as a list of typed parts."""
+        config_file = self._load_config()
+        config_file['BACKEND'] = 'llama_cpp'
+        backend_config = self._load_backend_config('llama_cpp')
+        multi_part = [
+            {'type': 'thinking', 'thinking': 'Let me think about this...'},
+            {'type': 'text', 'text': '{"response": "yes", "reason": "because"}'},
+        ]
+        responses.add(responses.POST, backend_config['URL'] + backend_config['ENDPOINT'],
+                    json={'choices': [{'message': {'content': multi_part}}]}, status=200)
+        io_util = IoUtil(config=config_file, backend_config=backend_config)
+        request_body = json.loads(backend_config['DEFAULT_BODY'])
+        model = io_util.structured_request(request_body=request_body, prompt='test', model=FollowSchema, context='')
+        assert model.response == 'yes'
+        assert model.reason == 'because'
+
+    @responses.activate
+    def test_parse_result_multi_part_content(self):
+        """LlamaCppAdapter.parse_result should concatenate text parts from multi-part content."""
+        from tale.llm.io_adapters import LlamaCppAdapter
+        adapter = LlamaCppAdapter('http://localhost:8080', '/v1/chat/completions', '', '', '', '')
+        multi_part = [
+            {'type': 'thinking', 'thinking': 'internal reasoning'},
+            {'type': 'text', 'text': 'Hello '},
+            {'type': 'text', 'text': 'world'},
+        ]
+        result = json.dumps({'choices': [{'message': {'content': multi_part}}]})
+        assert adapter.parse_result(result) == 'Hello world'
+
+    @responses.activate
+    def test_parse_result_string_content(self):
+        """LlamaCppAdapter.parse_result should pass through plain string content."""
+        from tale.llm.io_adapters import LlamaCppAdapter
+        adapter = LlamaCppAdapter('http://localhost:8080', '/v1/chat/completions', '', '', '', '')
+        result = json.dumps({'choices': [{'message': {'content': 'plain text'}}]})
+        assert adapter.parse_result(result) == 'plain text'
+
+    @responses.activate
     def test_structured_request_validation_error(self):
         config_file = self._load_config()
         config_file['BACKEND'] = 'llama_cpp'
