@@ -17,6 +17,7 @@ from typing import Dict, Any, List, Tuple, Optional
 
 from .. import vfs
 from .if_browser_io import HttpIo
+from ..web.web_utils import exits_for_web
 from .. import __version__ as tale_version_str
 from ..driver import Driver
 from ..player import PlayerConnection
@@ -201,12 +202,12 @@ class TaleMudFastAPIApp:
                                 special.append("noecho")
                             npc_names = ''
                             items = ''
-                            exits = ''
+                            exits = []
                             if location:
                                 npc_names = ','.join([l.name for l in location.livings if l.alive and l.visible and l != conn.player])
                                 items = ','.join([i.name for i in location.items if i.visible])
-                                exits = ','.join(list(set([e.name for e in location.exits.values() if e.visible])))
-                            
+                                exits = exits_for_web(location)
+
                             response = {
                                 "type": "text",
                                 "text": "\n".join(html),
@@ -216,7 +217,7 @@ class TaleMudFastAPIApp:
                                 "location_image": location.avatar if location and location.avatar else "",
                                 "npcs": npc_names if location else '',
                                 "items": items if location else '',
-                                "exits": exits if location else '',
+                                "exits": exits,
                             }
                             await websocket.send_text(json.dumps(response))
                             has_output = True

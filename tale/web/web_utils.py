@@ -1,8 +1,57 @@
 import os
 import shutil
+from typing import List
 
 
 dialogue_splitter = ' &lt;:&gt; '
+
+# short forms of the compass directions, used to display exits like "kitchen(n)"
+DIRECTION_ABBREVIATIONS = {
+    "north": "n",
+    "south": "s",
+    "east": "e",
+    "west": "w",
+    "northeast": "ne",
+    "northwest": "nw",
+    "southeast": "se",
+    "southwest": "sw",
+    "up": "u",
+    "down": "d",
+    "in": "in",
+    "out": "out",
+}
+
+
+def direction_abbreviation(direction: str) -> str:
+    """Returns the short form of a direction ('north' -> 'n'), or '' if it is not a known direction."""
+    if not direction:
+        return ""
+    return DIRECTION_ABBREVIATIONS.get(direction.lower(), "")
+
+
+def exits_for_web(location) -> List[dict]:
+    """
+    Builds a list of exit descriptors for the web UI, one per unique visible exit of the location:
+    [{'name': <exit name>, 'direction': <short direction or ''>}, ...]
+    The direction is the exit's compass direction alias (e.g. 'n' for 'north'); it is empty when
+    the exit has no direction alias or when the exit name itself is already the direction.
+    """
+    result = []
+    seen = set()
+    for exit_obj in location.exits.values():
+        if exit_obj in seen or not exit_obj.visible:
+            continue
+        seen.add(exit_obj)
+        direction = ""
+        for direction_name, bound_exit in location.exits.items():
+            if bound_exit is not exit_obj or direction_name == exit_obj.name:
+                continue
+            abbrev = direction_abbreviation(direction_name)
+            if abbrev:
+                direction = abbrev
+                break
+        result.append({"name": exit_obj.name, "direction": direction})
+    return result
 
 web_resources_path = '../../tale/web' # the game is run from the stories directory
 resource_folder = 'resources'

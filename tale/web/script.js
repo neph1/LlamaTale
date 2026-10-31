@@ -115,22 +115,13 @@ function process_text(json)
                 const npcs = json["npcs"];
                 populateNpcDropdown(npcs);
                 populateNpcImages(npcs);
-                
-                const npcsArray = npcs.split(',');
-                let npcConcat = '';
-                for (let i = 0; i < npcsArray.length; i++) {
-                    const npcContainer = document.createElement('div'); // Create a container div for each NPC
-                    const npcName = npcsArray[i].trim();
-                    npcContainer.appendChild(document.createTextNode(npcName));
-                    npcConcat += npcContainer.outerHTML;
-                }
-                document.getElementById('npcs-in-location').innerHTML = npcConcat;
+                renderNpcList(npcs);
             }
             if(json.hasOwnProperty("items")) {
                 document.getElementById('items-in-location').innerHTML = json["items"];
             }
             if(json.hasOwnProperty("exits")) {
-                document.getElementById('exits-in-location').innerHTML = json["exits"];
+                renderExits(json["exits"]);
             }
             setLocationImage(json["location"].toLowerCase().replace(/ /g, '_') + '.jpg');
             
@@ -314,6 +305,66 @@ function updateImage() {
 
         reader.readAsDataURL(file);
     }
+}
+
+// Render the present characters as clickable names; clicking one selects it in the npc dropdown
+function renderNpcList(csvString) {
+    const container = document.getElementById('npcs-in-location');
+    container.innerHTML = '';
+    const npcsArray = csvString.split(',');
+    for (let i = 0; i < npcsArray.length; i++) {
+        const npcName = npcsArray[i].trim();
+        if (!npcName) continue;
+        const npcContainer = document.createElement('div'); // Create a container div for each NPC
+        const link = document.createElement('span');
+        link.className = 'clickable-npc';
+        link.textContent = npcName;
+        link.title = 'Select ' + npcName + ' in the dropdown';
+        link.onclick = function () { selectNpc(npcName); };
+        npcContainer.appendChild(link);
+        container.appendChild(npcContainer);
+    }
+}
+
+function selectNpc(name) {
+    var dropdown = document.getElementById('npc-dropdown');
+    dropdown.value = name;
+    if (dropdown.value !== name) { // not in the list (shouldn't happen); add it
+        var option = document.createElement('option');
+        option.value = name;
+        option.text = name;
+        dropdown.add(option);
+        dropdown.value = name;
+    }
+    document.getElementById('input-cmd').focus();
+}
+
+// Render the visible exits as clickable "name(direction)" entries; clicking one puts the
+// exit name in the command box (without sending it)
+function renderExits(exits) {
+    const container = document.getElementById('exits-in-location');
+    container.innerHTML = '';
+    if (!Array.isArray(exits)) { // backwards compatibility with a plain comma-separated string
+        container.textContent = exits;
+        return;
+    }
+    exits.forEach(function (exit, index) {
+        if (index > 0) {
+            container.appendChild(document.createTextNode(', '));
+        }
+        const link = document.createElement('span');
+        link.className = 'clickable-exit';
+        link.textContent = exit.direction ? exit.name + '(' + exit.direction + ')' : exit.name;
+        link.title = 'Put "' + exit.name + '" in the command box';
+        link.onclick = function () { fillCommand(exit.name); };
+        container.appendChild(link);
+    });
+}
+
+function fillCommand(text) {
+    const cmd_input = document.getElementById('input-cmd');
+    cmd_input.value = text;
+    cmd_input.focus();
 }
 
 function populateNpcDropdown(csvString) {
