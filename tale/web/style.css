@@ -56,12 +56,12 @@ pre {
     color: green;
 }
 
-.clickable-npc, .clickable-exit {
+.clickable-npc, .clickable-exit, .clickable-item {
     cursor: pointer;
     text-decoration: underline;
 }
 
-.clickable-npc:hover, .clickable-exit:hover {
+.clickable-npc:hover, .clickable-exit:hover, .clickable-item:hover {
     color: lightgreen;
 }
 

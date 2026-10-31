@@ -118,7 +118,7 @@ function process_text(json)
                 renderNpcList(npcs);
             }
             if(json.hasOwnProperty("items")) {
-                document.getElementById('items-in-location').innerHTML = json["items"];
+                renderItemList(json["items"]);
             }
             if(json.hasOwnProperty("exits")) {
                 renderExits(json["exits"]);
@@ -365,6 +365,34 @@ function fillCommand(text) {
     const cmd_input = document.getElementById('input-cmd');
     cmd_input.value = text;
     cmd_input.focus();
+}
+
+// Render the visible items as clickable names; clicking one puts the item name in the
+// command box (without sending it) -- the verb (e.g. examine or take) is chosen with
+// the action dropdown
+function renderItemList(csvString) {
+    const container = document.getElementById('items-in-location');
+    container.innerHTML = '';
+    if (typeof csvString !== 'string' || !csvString) {
+        if (csvString) container.textContent = csvString;
+        return;
+    }
+    const itemsArray = csvString.split(',');
+    let first = true;
+    for (let i = 0; i < itemsArray.length; i++) {
+        const itemName = itemsArray[i].trim();
+        if (!itemName) continue;
+        if (!first) {
+            container.appendChild(document.createTextNode(', '));
+        }
+        first = false;
+        const link = document.createElement('span');
+        link.className = 'clickable-item';
+        link.textContent = itemName;
+        link.title = 'Put "' + itemName + '" in the command box (choose e.g. examine or take in the action dropdown)';
+        link.onclick = function () { fillCommand(itemName); };
+        container.appendChild(link);
+    }
 }
 
 function populateNpcDropdown(csvString) {
