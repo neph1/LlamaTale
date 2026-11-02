@@ -264,8 +264,8 @@ class Driver(pubsub.Listener):
             copy_web_resources(gamepath)
             self.custom_resources = True
 
-        self.story.config.mud_host = self.story.config.mud_host or "localhost"
-        self.story.config.mud_port = self.story.config.mud_port or 8180
+        self.story.config.mud_host = os.environ.get("LLAMATALE_HOST") or self.story.config.mud_host or "localhost"
+        self.story.config.mud_port = int(os.environ.get("LLAMATALE_PORT") or self.story.config.mud_port or 8180)
         self.story.config.server_mode = self.game_mode
         if self.game_mode != GameMode.IF and self.story.config.server_tick_method == TickMethod.COMMAND:
             raise ValueError("'command' tick method can only be used in 'if' game mode")

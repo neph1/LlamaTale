@@ -1,0 +1,38 @@
+services:
+  llamatale:
+    build: .
+    image: llamatale:latest
+    ports:
+      - "8180:8180"
+    volumes:
+      - llamatale-data:/data
+      # Optional: override LLM backend settings without rebuilding.
+      # - ./llm_config.yaml:/app/llm_config.yaml:ro
+      # - ./backend_kobold_cpp.yaml:/app/backend_kobold_cpp.yaml:ro
+    environment:
+      # LLM backend: kobold_cpp, llama_cpp, openai, ... (default: kobold_cpp)
+      LLAMATALE_BACKEND: kobold_cpp
+      # URL of the LLM backend server. Use the compose service name when the
+      # backend runs as another container on this network.
+      LLAMATALE_BACKEND_URL: http://koboldcpp:5001
+      # KOBOLD_CPP_API_PASSWORD: ""   # if koboldcpp runs with --password
+      # OPENAI_API_KEY: ""            # for the openai backend
+      # Optional image generation server (only needed if the story enables it):
+      # LLAMATALE_IMAGE_GEN_ADDRESS: automatic1111
+      # LLAMATALE_IMAGE_GEN_PORT: 7860
+      # MCP server port (only if you pass --mcp):
+      # LLAMATALE_MCP_PORT: 8765
+    # Default command runs the Prancing Llama story in MUD mode.
+    # For single-player IF mode in the browser instead, override the command:
+    # command: ["-g", "/app/stories/prancingllama", "-w"]
+    restart: unless-stopped
+
+  # Example LLM backend. LlamaTale talks to koboldcpp's API on port 5001.
+  # koboldcpp:
+  #   image: koboldcpp/koboldcpp:latest
+  #   ports:
+  #     - "5001:5001"
+  #   # add GPU flags (--gpus all) and model args as needed
+
+volumes:
+  llamatale-data:
