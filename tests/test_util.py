@@ -378,7 +378,7 @@ class TestVfs(unittest.TestCase):
         self.assertFalse(is_text("image/jpeg"))
 
     def test_vfs_load_and_names(self):
-        vfs = VirtualFileSystem(root_package="os")
+        vfs = VirtualFileSystem(root_package="tale")
         with self.assertRaises(VfsError):
             _ = vfs["a\\b"]
         with self.assertRaises(VfsError):
@@ -520,7 +520,7 @@ class TestVfs(unittest.TestCase):
         self.assertEqual("tests/files/compressed.png.gz", resource.name)
 
     def test_vfs_contents(self):
-        vfs = VirtualFileSystem(root_package="os")
+        vfs = VirtualFileSystem(root_package="tale")
         with self.assertRaises(VfsError):
             vfs.contents()
         vfs = VirtualFileSystem(root_path=".")

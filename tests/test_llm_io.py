@@ -94,11 +94,15 @@ class TestLlmIo():
         config_file['BACKEND'] = 'kobold_cpp'
         backend_config = self._load_backend_config('kobold_cpp')
         responses.add(responses.POST, backend_config['URL'] + backend_config['ENDPOINT'],
-                    json={'results':['']}, status=500)
+                    json={'error': 'internal server error'}, status=500)
         io_util = IoUtil(config=config_file, backend_config=backend_config)
 
-        response = io_util.synchronous_request(request_body=json.loads(backend_config['DEFAULT_BODY']), prompt='test evoke', context='')
-        assert(response == '')
+        try:
+            io_util.synchronous_request(request_body=json.loads(backend_config['DEFAULT_BODY']), prompt='test evoke', context='')
+            assert False, "Expected LlmResponseException"
+        except LlmResponseException as exc:
+            assert 'HTTP 500' in str(exc)
+            assert 'internal server error' in str(exc)
 
     @responses.activate
     def test_structured_request_sets_response_format(self):
@@ -129,6 +133,136 @@ class TestLlmIo():
         assert model.response == 'no'
         assert model.reason == 'not interested'
         assert 'response_format' in request_body
+
+    @responses.activate
+    def test_structured_request_multi_part_content(self):
+        """Reasoning models (DeepSeek, QwQ) return content as a list of typed parts."""
+        config_file = self._load_config()
+        config_file['BACKEND'] = 'llama_cpp'
+        backend_config = self._load_backend_config('llama_cpp')
+        multi_part = [
+            {'type': 'thinking', 'thinking': 'Let me think about this...'},
+            {'type': 'text', 'text': '{"response": "yes", "reason": "because"}'},
+        ]
+        responses.add(responses.POST, backend_config['URL'] + backend_config['ENDPOINT'],
+                    json={'choices': [{'message': {'content': multi_part}}]}, status=200)
+        io_util = IoUtil(config=config_file, backend_config=backend_config)
+        request_body = json.loads(backend_config['DEFAULT_BODY'])
+        model = io_util.structured_request(request_body=request_body, prompt='test', model=FollowSchema, context='')
+        assert model.response == 'yes'
+        assert model.reason == 'because'
+
+    @responses.activate
+    def test_parse_result_multi_part_content(self):
+        """LlamaCppAdapter.parse_result should concatenate text parts from multi-part content."""
+        from tale.llm.io_adapters import LlamaCppAdapter
+        adapter = LlamaCppAdapter('http://localhost:8080', '/v1/chat/completions', '', '', '', '')
+        multi_part = [
+            {'type': 'thinking', 'thinking': 'internal reasoning'},
+            {'type': 'text', 'text': 'Hello '},
+            {'type': 'text', 'text': 'world'},
+        ]
+        result = json.dumps({'choices': [{'message': {'content': multi_part}}]})
+        assert adapter.parse_result(result) == 'Hello world'
+
+    @responses.activate
+    def test_structured_request_retries_on_truncated_json(self):
+        """Truncated JSON (EOF mid-string) should trigger one retry, then succeed."""
+        config_file = self._load_config()
+        config_file['BACKEND'] = 'llama_cpp'
+        backend_config = self._load_backend_config('llama_cpp')
+        url = backend_config['URL'] + backend_config['ENDPOINT']
+        # First response: truncated JSON; second: complete
+        responses.add(responses.POST, url,
+                    json={'choices': [{'message': {'content': '{"response": "By the tim...the river mending as we'}}]}, status=200)
+        responses.add(responses.POST, url,
+                    json={'choices': [{'message': {'content': '{"response": "Hello there", "reason": "greeting"}'}}]}, status=200)
+        io_util = IoUtil(config=config_file, backend_config=backend_config)
+        request_body = json.loads(backend_config['DEFAULT_BODY'])
+        model = io_util.structured_request(request_body=request_body, prompt='test', model=FollowSchema, context='')
+        assert model.response == 'Hello there'
+        assert model.reason == 'greeting'
+
+    @responses.activate
+    def test_structured_request_retry_exhausted_raises(self):
+        """If all retries fail, the last error is raised."""
+        config_file = self._load_config()
+        config_file['BACKEND'] = 'llama_cpp'
+        backend_config = self._load_backend_config('llama_cpp')
+        url = backend_config['URL'] + backend_config['ENDPOINT']
+        # Both attempts return truncated JSON
+        for _ in range(2):
+            responses.add(responses.POST, url,
+                        json={'choices': [{'message': {'content': '{"response": "truncated...'}}]}, status=200)
+        io_util = IoUtil(config=config_file, backend_config=backend_config)
+        request_body = json.loads(backend_config['DEFAULT_BODY'])
+        try:
+            io_util.structured_request(request_body=request_body, prompt='test', model=FollowSchema, context='')
+            assert False, "Expected LlmResponseException"
+        except LlmResponseException as exc:
+            assert 'Failed to validate' in str(exc)
+
+    @responses.activate
+    def test_structured_request_http_error_includes_body(self):
+        """Non-200 from backend should raise with the HTTP status and body in the message."""
+        config_file = self._load_config()
+        config_file['BACKEND'] = 'llama_cpp'
+        backend_config = self._load_backend_config('llama_cpp')
+        responses.add(responses.POST, backend_config['URL'] + backend_config['ENDPOINT'],
+                    json={'error': {'message': 'model overloaded'}}, status=503)
+        io_util = IoUtil(config=config_file, backend_config=backend_config)
+        request_body = json.loads(backend_config['DEFAULT_BODY'])
+        try:
+            io_util.structured_request(request_body=request_body, prompt='test', model=FollowSchema, context='')
+            assert False, "Expected LlmResponseException"
+        except LlmResponseException as exc:
+            assert 'HTTP 503' in str(exc)
+            assert 'model overloaded' in str(exc)
+
+    @responses.activate
+    def test_structured_request_falls_back_to_non_strict(self):
+        """If the server rejects strict:true, structured_request retries without strict."""
+        config_file = self._load_config()
+        config_file['BACKEND'] = 'llama_cpp'
+        backend_config = self._load_backend_config('llama_cpp')
+        url = backend_config['URL'] + backend_config['ENDPOINT']
+        # First call (strict) rejected with 400 mentioning 'strict'
+        responses.add(responses.POST, url,
+                    json={'error': {'message': 'strict mode not supported for this model'}}, status=400)
+        # Second call (non-strict) succeeds
+        responses.add(responses.POST, url,
+                    json={'choices': [{'message': {'content': '{"response": "yes", "reason": "ok"}'}}]}, status=200)
+        io_util = IoUtil(config=config_file, backend_config=backend_config)
+        request_body = json.loads(backend_config['DEFAULT_BODY'])
+        model = io_util.structured_request(request_body=request_body, prompt='test', model=FollowSchema, context='')
+        assert model.response == 'yes'
+        assert model.reason == 'ok'
+
+    @responses.activate
+    def test_parse_result_null_content(self):
+        """Reasoning models may return content: null when truncated."""
+        from tale.llm.io_adapters import LlamaCppAdapter
+        adapter = LlamaCppAdapter('http://localhost:8080', '/v1/chat/completions', '', '', '', '')
+        result = json.dumps({'choices': [{'message': {'content': None, 'reasoning_content': 'long thinking...'}}]})
+        assert adapter.parse_result(result) == ''
+
+    @responses.activate
+    def test_parse_result_only_thinking_parts(self):
+        """Multi-part content with only thinking parts returns empty string."""
+        from tale.llm.io_adapters import LlamaCppAdapter
+        adapter = LlamaCppAdapter('http://localhost:8080', '/v1/chat/completions', '', '', '', '')
+        result = json.dumps({'choices': [{'message': {'content': [
+            {'type': 'thinking', 'thinking': 'only reasoning, no text output'}
+        ]}}]})
+        assert adapter.parse_result(result) == ''
+
+    @responses.activate
+    def test_parse_result_string_content(self):
+        """LlamaCppAdapter.parse_result should pass through plain string content."""
+        from tale.llm.io_adapters import LlamaCppAdapter
+        adapter = LlamaCppAdapter('http://localhost:8080', '/v1/chat/completions', '', '', '', '')
+        result = json.dumps({'choices': [{'message': {'content': 'plain text'}}]})
+        assert adapter.parse_result(result) == 'plain text'
 
     @responses.activate
     def test_structured_request_validation_error(self):
