@@ -396,7 +396,14 @@ class LlmUtil():
     def _init_image_gen(self, image_gen: str):
         """ Initialize the image generator"""
         clazz =  getattr(sys.modules['tale.image_gen.' + image_gen.lower()], image_gen)
-        self._image_gen = clazz()
+        # Allow the image generation server address to be overridden via environment
+        # variables, so containers can point at a server on another host.
+        address = os.environ.get("LLAMATALE_IMAGE_GEN_ADDRESS", "127.0.0.1")
+        port = int(os.environ.get("LLAMATALE_IMAGE_GEN_PORT", "0") or 0)
+        if port:
+            self._image_gen = clazz(address, port)
+        else:
+            self._image_gen = clazz(address)
 
     def _get_world_context(self):
         return WorldGenerationContext(story_context=self.__story_context,

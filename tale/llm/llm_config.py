@@ -12,6 +12,12 @@ def load_config() -> dict:
             print(exc)
             params = {}
     
+    # Allow the LLM backend to be selected via environment variable (useful in containers),
+    # overriding the BACKEND value from the YAML file.
+    backend = os.environ.get("LLAMATALE_BACKEND")
+    if backend:
+        params['BACKEND'] = backend
+
     # Load prompt templates from individual files
     prompts_dir = os.path.join(os.path.dirname(__file__), "prompt_templates")
     if os.path.exists(prompts_dir):
