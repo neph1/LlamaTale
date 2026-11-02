@@ -910,13 +910,16 @@ def do_say(player: Player, parsed: base.ParseResult, ctx: util.Context) -> None:
     if not parsed.unparsed.endswith((".", "!", "?")):
         message += "."
     target = ""
-    if parsed.who_count:
-        possible_target = parsed.who_1
-        if parsed.who_info[possible_target].previous_word == "to":
-            if parsed.args[0] in (possible_target.name, possible_target.title) or parsed.args[0] in possible_target.aliases:
+    if message.lower().startswith("to "):
+        # no soul parse means no who_info, so look up "say to <name> <message>" ourselves.
+        # try the longest name first, so 'mor brita' wins over 'mor'
+        words = message[3:].split()
+        for count in range(min(len(words) - 1, 4), 0, -1):
+            possible_target = player.location.search_living(" ".join(words[:count]).rstrip(",:"))
+            if possible_target and possible_target is not player:
                 target = " to " + possible_target.title
-                _, _, message = message.partition(parsed.args[0])
-                message = message.lstrip()
+                message = " ".join(words[count:])
+                break
     player.tell("You say%s: %s" % (target, message), evoke=False, short_len=False)
     player.tell_others("{Actor} says%s: %s" % (target, message), evoke=True, short_len=False)
 
