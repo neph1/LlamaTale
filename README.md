@@ -30,30 +30,6 @@ Or run it as single-player interactive fiction in your browser:
 
     docker run -p 8180:8180 -v llamatale-data:/data llamatale -g /app/stories/prancingllama -w
 
-The `/data` volume persists MUD accounts (`useraccounts.sqlite`), savegames and uploads.
-
-LlamaTale needs an external LLM backend. Point the container at yours with environment variables:
-
-| Variable | Purpose | Example |
-|---|---|---|
-| `LLAMATALE_BACKEND` | LLM backend (`kobold_cpp`, `llama_cpp`, `openai`, ...) | `kobold_cpp` |
-| `LLAMATALE_BACKEND_URL` | URL of the LLM backend server | `http://koboldcpp:5001` |
-| `<BACKEND>_URL` | Backend-specific URL override (e.g. `KOBOLD_CPP_URL`) | `http://host.docker.internal:5001` |
-| `OPENAI_API_KEY` / `KOBOLD_CPP_API_PASSWORD` | API credentials (passed through to the backend) | |
-| `LLAMATALE_IMAGE_GEN_ADDRESS` / `LLAMATALE_IMAGE_GEN_PORT` | Image generation server (only if the story enables it) | `automatic1111` / `7860` |
-| `LLAMATALE_HOST` / `LLAMATALE_PORT` | Bind address/port of the web server (default `0.0.0.0:8180` in the image) | |
-
-`docker-compose.yml` wires this up with a volume and an optional `koboldcpp` service on a shared network:
-
-    docker compose up
-
-To verify the image without an LLM server, run the automated smoke test (headless story run with a built-in dummy LLM backend) inside the container:
-
-    docker run --rm --entrypoint python -w /app llamatale -m tale.smoketest --game /app/stories/prancingllama --script /app/stories/prancingllama/smoke_test.txt
-
-The container has a `HEALTHCHECK` that probes the web UI, so `docker ps` shows `healthy` once the game is up.
-
-
 ![prancingllama3](https://github.com/neph1/LlamaTale/assets/7988802/07e382b9-2ae1-4230-82c8-3bcfb77556e2)
 
 
