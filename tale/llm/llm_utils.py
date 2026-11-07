@@ -15,7 +15,7 @@ from tale.llm.contexts.EvokeContext import EvokeContext
 from tale.llm.contexts.FollowContext import FollowContext
 from tale.llm.contexts.WorldGenerationContext import WorldGenerationContext
 from tale.llm.dynamic_story import DynamicStory
-from tale.llm.llm_io import IoUtil
+from tale.llm.llm_io import DummyIoUtil, IoUtil
 from tale.llm.contexts.DialogueContext import DialogueContext
 from tale.llm.quest_building import QuestBuilding
 from tale.llm.responses.ActionResponse import ActionResponse
@@ -67,7 +67,12 @@ class LlmUtil():
         self.short_word_limit = llm_config.params['SHORT_WORD_LIMIT']
         
         self.__story = None # type: DynamicStory
-        self.io_util = io_util or IoUtil(config=llm_config.params, backend_config=backend_config)
+        if io_util:
+            self.io_util = io_util
+        elif self.backend == 'dummy':
+            self.io_util = DummyIoUtil()
+        else:
+            self.io_util = IoUtil(config=llm_config.params, backend_config=backend_config)
         self.stream = backend_config['STREAM']
         self.connection = None # type: PlayerConnection
         self._image_gen = None # type: ImageGeneratorBase

@@ -1,6 +1,7 @@
+import collections
 import requests
 import json
-from typing import Type, TypeVar
+from typing import Any, Dict, List, Literal, Sequence, Type, TypeVar, Union, get_args, get_origin
 from pydantic import BaseModel, ValidationError
 from tale.errors import LlmResponseException
 from tale.llm.io_adapters import KoboldCppAdapter, LlamaCppAdapter
@@ -110,3 +111,81 @@ class IoUtil():
             return self.io_adapter.stream_request(self.headers, request_body, io, wait)
         # fall back if no io adapter
         return self.synchronous_request(request_body=request_body, prompt=prompt, context=context)
+
+
+def _default_for_annotation(annotation: Any) -> Any:
+    """A minimal canned value for a required pydantic field of the given type."""
+    origin = get_origin(annotation)
+    if origin is Union:
+        args = [a for a in get_args(annotation) if a is not type(None)]
+        return _default_for_annotation(args[0]) if args else None
+    if origin is Literal:
+        args = get_args(annotation)
+        return args[0] if args else None
+    if origin in (list, dict):
+        return origin()
+    if annotation is str:
+        return "ok"
+    if annotation is bool:
+        return False
+    if annotation is int:
+        return 0
+    if annotation is float:
+        return 0.0
+    if isinstance(annotation, type) and issubclass(annotation, BaseModel):
+        return _empty_model_data(annotation)
+    return None
+
+
+def _empty_model_data(model: Type[BaseModel]) -> Dict[str, Any]:
+    """Values for all required fields of the model; fields with defaults are left to pydantic."""
+    return {name: _default_for_annotation(field.annotation)
+            for name, field in model.model_fields.items() if field.is_required()}
+
+
+class DummyIoUtil(IoUtil):
+    """Dummy LLM backend that answers with canned responses instead of contacting a real server.
+
+    Used for smoke tests and offline runs (set BACKEND: dummy in llm_config.yaml, or let
+    tale.smoketest select it). Plain requests get the next canned response from `responses`
+    (or `default_response` when the queue is empty). Structured requests validate the canned
+    response against the requested model; if it doesn't fit, a minimal schema-valid instance
+    is constructed from the model's field defaults.
+    """
+
+    DEFAULT_RESPONSE = "The story continues quietly."
+
+    def __init__(self, responses: Sequence[str] = (), default_response: str = None):
+        super().__init__()   # no config: this backend never talks to a server
+        self.backend = 'dummy'
+        self.stream = False
+        self.io_adapter = None
+        self.responses = collections.deque(responses)  # type: collections.deque
+        self.default_response = default_response if default_response is not None else self.DEFAULT_RESPONSE
+        self.requests: List[str] = []   # prompts seen, for debugging and assertions
+
+    def _next_response(self, prompt: str = None) -> str:
+        self.requests.append(prompt or '')
+        if self.responses:
+            return self.responses.popleft()
+        return self.default_response
+
+    def synchronous_request(self, request_body: dict, prompt: str = None, context: str = '') -> str:
+        return self._next_response(prompt)
+
+    def asynchronous_request(self, request_body: dict, prompt: str = None, context: str = '') -> str:
+        return self._next_response(prompt)
+
+    def stream_request(self, request_body: dict, prompt: str = None, context: str = '', io=None, wait: bool = False) -> str:
+        return self._next_response(prompt)
+
+    def structured_request(self, request_body: dict, prompt: str = None, model: Type[T] = None, context: str = '', retries: int = 1) -> T:
+        text = self._next_response(prompt)
+        try:
+            return model.model_validate_json(text)
+        except ValidationError:
+            try:
+                return model.model_validate(_empty_model_data(model))
+            except ValidationError as exc:
+                raise LlmResponseException(
+                    f"Dummy backend has no valid canned answer for {model.__name__}: {text!r} ({exc})")

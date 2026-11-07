@@ -1,0 +1,29 @@
+# Automated smoke test script for The Prancing Llama.
+# Run with: python -m tale.smoketest --game stories/prancingllama --script stories/prancingllama/smoke_test.txt
+# (also executed by tests/test_smoke.py)
+# One command per line; blank lines and lines starting with '#' are ignored.
+# The first lines answer the character creation dialog.
+smokey
+m
+y
+smith
+# look around and try some basic commands
+look
+exits
+inventory
+who
+time
+help
+# walk around the inn: entrance -> main hall -> hearth -> main hall -> bar -> cellar -> bar -> main hall -> entrance
+main hall
+say hello
+west
+east
+north
+down
+up
+south
+south
+# done
+quit
+y

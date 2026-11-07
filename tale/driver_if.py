@@ -30,7 +30,8 @@ class IFDriver(driver.Driver):
     The Single user 'driver'.
     Used to control interactive fiction where there's only one 'player'.
     """
-    def __init__(self, *, screen_delay: int=DEFAULT_SCREEN_DELAY, web: bool=False, wizard_override: bool=False, character_to_load: str='') -> None:
+    def __init__(self, *, screen_delay: int=DEFAULT_SCREEN_DELAY, web: bool=False, wizard_override: bool=False,
+                 character_to_load: str='', io_type: str='') -> None:
         super().__init__()
         self.game_mode = GameMode.IF
         if screen_delay < 0 or screen_delay > 100:
@@ -39,6 +40,10 @@ class IFDriver(driver.Driver):
         self.io_type = "console"
         if web:
             self.io_type = "web"
+        if io_type:
+            if io_type not in ("console", "web", "scripted"):
+                raise ValueError("invalid io type, must be one of: console web scripted")
+            self.io_type = io_type
         self.wizard_override = wizard_override
         if character_to_load:
             character_loader = CharacterLoader()
@@ -123,8 +128,11 @@ class IFDriver(driver.Driver):
             from .tio.console_io import ConsoleIo
             io = ConsoleIo(connection)
             io.install_tab_completion(self)
+        elif player_io_type == "scripted":
+            from .tio.scripted_io import ScriptedIo
+            io = ScriptedIo(connection)
         else:
-            raise ValueError("invalid io type, must be one of: web console")
+            raise ValueError("invalid io type, must be one of: web console scripted")
         connection.player = new_player
         connection.io = io
         self.all_players[new_player.name] = connection
