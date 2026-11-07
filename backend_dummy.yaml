@@ -1,0 +1,9 @@
+# Dummy backend: no real LLM server is contacted. IoUtil/LlmUtil use the
+# DummyIoUtil class (canned answers) for this backend, so this file only
+# provides the config keys that LlmUtil expects to find.
+URL: "dummy://local"
+ENDPOINT: "/generate"
+STREAM: False
+STREAM_ENDPOINT: "/stream"
+DATA_ENDPOINT: "/check"
+DEFAULT_BODY: '{}'
