@@ -184,3 +184,30 @@ Stories can have sections that progress over time:
 ## Example
 
 See `stories/test_story` for a complete example story implementation.
+
+---
+
+# Smoke Tests
+
+`tale/smoketest.py` runs a story headless as an automated smoke test:
+
+```
+python -m tale.smoketest --game stories/prancingllama --script stories/prancingllama/smoke_test.txt
+```
+
+- It starts the story with `IFDriver(io_type="scripted")` (see `tale/tio/scripted_io.py`),
+  which records all output instead of using a terminal, and runs the driver main loop in a
+  background thread.
+- The LLM backend is switched to the dummy backend (`BACKEND: dummy`, `backend_dummy.yaml`,
+  `DummyIoUtil` in `tale/llm/llm_io.py`) which answers with canned responses, so no real LLM
+  server is needed.
+- Each script line (one command per line, `#` comments allowed) is fed through
+  `player.store_input_line()`; the runner waits until the driver has consumed the line and
+  written a new input prompt before sending the next one.
+- Exceptions during the run go through the regular crash log (`tale_crash.log`,
+  `tale.util.log_crash`). The smoke test compares the log before and after the run and raises
+  `SmokeTestError` if anything was appended.
+
+`tests/test_smoke.py` runs the prancingllama smoke test (`stories/prancingllama/smoke_test.txt`)
+in a subprocess as part of the pytest suite. To smoke test another story, add a script file
+next to it and invoke `tale.smoketest` with `--game`/`--script`.

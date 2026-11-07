@@ -12,7 +12,7 @@ from tale.llm.llm_utils import LlmUtil
 from tale.player import Player
 from tale.skills.skills import SkillType
 from tale.story import StoryConfig
-from tests.supportstuff import FakeDriver, FakeIoUtil
+from tests.supportstuff import FakeDriver, FakeIoUtil, MsgTraceNPC
 
 
 class TestExamineCommand():
@@ -226,3 +226,32 @@ class TestExamineCommand():
 
         with pytest.raises(ActionRefused, match="You don't have enough action points to pick the lock."):
             normal.do_pick_lock(self.test_player, parse_result, self.context)
+
+class TestSayCommand():
+
+    context = tale.mud_context
+    context.config = StoryConfig()
+
+    def setup_method(self):
+        tale.mud_context.driver = FakeDriver()
+        self.test_player = Player('player', 'f')
+        self.listener = MsgTraceNPC('brita lindqvist', 'f', title='Brita Lindqvist')
+        self.listener.aliases = {'brita', 'mor brita'}
+        self.location = Location('test_location')
+        self.location.init_inventory([self.test_player, self.listener])
+
+    def test_say_to_alias(self):
+        normal.do_say(self.test_player, ParseResult(verb='say', unparsed='to brita why do you wander the graves?'), self.context)
+        assert self.listener.messages == ['Player says to Brita Lindqvist: why do you wander the graves?']
+
+    def test_say_to_multi_word_name(self):
+        normal.do_say(self.test_player, ParseResult(verb='say', unparsed='to Brita Lindqvist, hello'), self.context)
+        assert self.listener.messages == ['Player says to Brita Lindqvist: hello.']
+
+    def test_say_to_unknown(self):
+        normal.do_say(self.test_player, ParseResult(verb='say', unparsed='to lars hello'), self.context)
+        assert self.listener.messages == ['Player says: to lars hello.']
+
+    def test_say_without_target(self):
+        normal.do_say(self.test_player, ParseResult(verb='say', unparsed='hello'), self.context)
+        assert self.listener.messages == ['Player says: hello.']
