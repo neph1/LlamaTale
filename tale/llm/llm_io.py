@@ -1,4 +1,5 @@
 import collections
+import os
 import requests
 import json
 from typing import Any, Dict, List, Literal, Sequence, Type, TypeVar, Union, get_args, get_origin
@@ -16,7 +17,10 @@ class IoUtil():
             # for tests
             return 
         self.backend = config['BACKEND']
-        self.url = backend_config['URL']
+        # Allow the backend server URL to be overridden via environment variable,
+        # so containers can point at a backend on another host without editing the YAML.
+        url_override = os.environ.get(f"{self.backend.upper()}_URL") or os.environ.get("LLAMATALE_BACKEND_URL")
+        self.url = url_override or backend_config['URL']
         self.endpoint = backend_config['ENDPOINT']
         headers = {}
         if self.backend != 'kobold_cpp':

@@ -16,6 +16,20 @@ Check the wiki on how to get started : https://github.com/neph1/LlamaTale/wiki
 
 Or <a href="https://discord.gg/SmUNnPZXYd">join the discord server</a> if you have any questions.
 
+## Running with Docker
+
+A `Dockerfile` is included for easy distribution. Build the image:
+
+    docker build -t llamatale .
+
+Run the bundled "Prancing Llama" story as a multi-player MUD server (web UI at `http://localhost:8180/tale/`):
+
+    docker run -p 8180:8180 -v llamatale-data:/data llamatale
+
+Or run it as single-player interactive fiction in your browser:
+
+    docker run -p 8180:8180 -v llamatale-data:/data llamatale -g /app/stories/prancingllama -w
+
 ![prancingllama3](https://github.com/neph1/LlamaTale/assets/7988802/07e382b9-2ae1-4230-82c8-3bcfb77556e2)
 
 
@@ -30,51 +44,3 @@ More features (See https://github.com/neph1/LlamaTale/releases for a more up to 
 * You can mix predefined locations with dynamically generated ones. Ie, create a base and let the LLM do the rest.
 * <a href="https://github.com/neph1/LlamaTale/releases/tag/v0.17.0">Quests</a>. See new places and meet new people with the (simple) automated quest system.
 * Support for KoboldCpp and OpenAI API based backends.
-
-
-Old Example of talking to Elid:
- 
-  You say: elid: ’what are you doing here?’.
-
->   Elid Gald says: “Elid Gald chuckles mischievously at Arto’s question
-  and smirks, adjusting his hat before responding, “Why, I’m just
-  enjoying a stroll through the market, my dear sir.  And what about
-  yourself?  What brings you to these parts?”  His voice is smooth and
-  alluring with an undercurrent of danger hidden beneath it.”
-
-  You say: elid: ’i’m looking for some goods to buy, my purse is laden
-  with gold’.
-
->   Elid Gald says: “Elid Gald nods approvingly at Arto’s mention of
-  wealth and grins wickedly, leaning in closer to whisper, “Well then,
-  perhaps I can help you find something truly unique and valuable.
-  Perhaps some items that are not available on the open market, eh?  You
-  see, I have connections with certain…merchants who might be willing
-  to part with their finest wares for someone like you.”  He pauses
-  meaningfully, allowing the implication to linger in the air between
-  them as his hand slips casually into his pocket.As he speaks, one
-  could almost hear the clinking of coins in his pocket - but whether
-  it’s real or just a clever illusion is anyone’s guess.  “You know,” he
-  says softly, “I’ve always been known for my eye for rare and exquisite
-  goods.  Why not let me help you acquire something truly special?
-  After all, I’m sure you don’t want to be caught with common trinkets.”
-  His voice is silky smooth and seductive as he leans even closer to
-  Arto, a glint of mischief in his remaining eye.”Wouldn’t you
-  rather have something that sets you apart from others?  Something that
-  screams ’wealthy aristocrat’?””
-
-You say: elid: ’maybe you’re right.. do you charge a fee for your
-  services?’.
-
->   Elid Gald says: “Elid Gald chuckles softly and takes a step back,
-  giving Arto an appraising look.  “I always charge a fee, young man,”
-  he says with a smirk, “And my fee is quite substantial.  But I believe
-  that the items I can help you acquire will be more than worth it.”
-  His voice is still silky smooth and seductive, his mischievous gaze
-  never leaving Arto’s face.\n”However,” He continues, “If you’re
-  willing to make a deal with me… let’s say, a mutually beneficial
-  agreement… then we could discuss a different kind of payment.”  He
-  winks at Arto, his remaining eye gleaming with curiosity.”What do
-  you think?  Are you willing to take a risk for something truly
-  unique?””
-
