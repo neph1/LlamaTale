@@ -24,7 +24,7 @@ ENV LLAMATALE_HOST=0.0.0.0 \
     LLAMATALE_PORT=8180
 
 HEALTHCHECK --interval=30s --timeout=5s --start-period=30s --retries=3 \
-    CMD python -c "import urllib.request; urllib.request.urlopen(urllib.request.Request('http://127.0.0.1:8180/', method='HEAD'), timeout=4)" || exit 1
+    CMD python -c "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8180/tale/', timeout=4)" || exit 1
 
 ENTRYPOINT ["python", "-m", "tale.main"]
 CMD ["-g", "/app/stories/prancingllama", "-m", "mud"]
