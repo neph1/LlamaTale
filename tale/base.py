@@ -1501,7 +1501,10 @@ class Living(MudObject):
             elif living.following is defender:
                 defenders.append(living)
 
-        c = combat.Combat(attackers, defenders, target_body_part=target_body_part)
+        lethal = True
+        if mud_context.driver is not None and mud_context.driver.story is not None:
+            lethal = mud_context.driver.story.config.lethal
+        c = combat.Combat(attackers, defenders, target_body_part=target_body_part, lethal=lethal)
         result = c.resolve_attack()
         
         room_msg = "%s attacks %s! %s" % (attacker_name, victim_name, result)

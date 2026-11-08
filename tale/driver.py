@@ -31,8 +31,8 @@ from tale.npc_defs import StationaryNpc
 from tale.zone import Zone
 
 from . import __version__ as tale_version_str, _check_required_libraries
-from . import mud_context, errors, util, cmds, player, pubsub, charbuilder, lang, verbdefs, vfs, base
-from .story import TickMethod, GameMode, MoneyType, StoryBase
+from . import mud_context, errors, util, cmds, player, pubsub, charbuilder, lang, verbdefs, vfs, base, combat
+from .story import TickMethod, GameMode, MoneyType, CombatType, StoryBase
 from .tio import DEFAULT_SCREEN_WIDTH
 from .races import playable_races
 from .errors import StoryCompleted
@@ -1070,13 +1070,21 @@ class Driver(pubsub.Listener):
             if isinstance(defender, player.Player):
                 defender_title = defender_title + " (as 'You')"
             defender_titles.append(defender_title)
-        
 
-        return llm_config.params['COMBAT_PROMPT'].format(attackers=attacker_names, 
+        combat_type = CombatType.HISTORICAL.value
+        lethal = True
+        if self.story is not None:
+            combat_type = self.story.config.combat_type
+            lethal = self.story.config.lethal
+
+        return llm_config.params['COMBAT_PROMPT'].format(attackers=attacker_names,
                                                     defenders=defender_titles,
                                                     location=location_title,
                                                     input_text=combat_result,
-                                                    context=self.story.config.context if self.story else ''), attacker_msg
+                                                    context=self.story.config.context if self.story else '',
+                                                    combat_type=combat_type,
+                                                    lethality='lethal' if lethal else 'non-lethal',
+                                                    lethality_guidance=combat.lethality_guidance(combat_type, lethal)), attacker_msg
 
     def build_location(self, targetLocation: base.Location, zone: Zone, player: player.Player):
         dynamic_story = typing.cast(DynamicStory, self.story)

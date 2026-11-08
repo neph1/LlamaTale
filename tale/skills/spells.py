@@ -1,6 +1,8 @@
 
 import random
+from tale import mud_context
 from tale.base import Living
+from tale.combat import apply_damage
 from tale.cmds import spells
 from tale.errors import ActionRefused
 from tale.skills import magic
@@ -43,8 +45,10 @@ def cast_bolt(caster: Living, target: Living, level: int = 1) -> None:
         caster.tell("Your bolt spell fizzles out", evoke=True, short_len=True)
         return
 
-    hp = random.randint(1, level)
-    target.stats.hp -= hp
+    lethal = True
+    if mud_context.driver is not None and mud_context.driver.story is not None:
+        lethal = mud_context.driver.story.config.lethal
+    hp = apply_damage(target, random.randint(1, level), lethal=lethal)
     caster.tell("You cast an energy bolt that hits %s for %d damage" % (target.name, hp), evoke=True)
     caster.tell_others("%s casts an energy bolt that hits %s for %d damage" % (caster.name, target.name, hp), evoke=True)
 
