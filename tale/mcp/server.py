@@ -73,8 +73,8 @@ def create_server(manager: StoryManager, port: int = DEFAULT_MCP_PORT) -> FastMC
     def set_config(fields: dict) -> None:
         """Set story config fields. Pass a dict of fields to change, e.g.
         ``{"name": "...", "world_mood": 3, "type": "..."}``. Supported fields
-        include name, author, type, world_info, world_mood, context,
-        startlocation_player, startlocation_wizard, and more."""
+        include name, author, type, world_info, world_mood, combat_type, lethal,
+        context, startlocation_player, startlocation_wizard, and more."""
         manager.set_config(**fields)
 
     # -- zones -----------------------------------------------------------------
@@ -305,7 +305,7 @@ def create_server(manager: StoryManager, port: int = DEFAULT_MCP_PORT) -> FastMC
     def get_story_state() -> dict:
         """Return the story's narrative state: story (context string with past
         sections), current_section, past_sections, progress, length, name, type,
-        world_info, world_mood."""
+        world_info, world_mood, combat_type, lethal."""
         return manager.get_story_state()
 
     @mcp.tool()

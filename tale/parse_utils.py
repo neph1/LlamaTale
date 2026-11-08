@@ -14,6 +14,7 @@ from tale.npc_defs import StationaryMob, StationaryNpc, Trader
 from tale.races import BodyType, UnarmedAttack
 from tale.mob_spawner import MobSpawner
 from tale.story import GameMode, MoneyType, TickMethod, StoryConfig
+from tale.combat import parse_combat_type
 from tale.story_context import StoryContext
 from tale.skills.weapon_type import WeaponType
 import json
@@ -185,6 +186,9 @@ def load_story_config(json_file: dict):
     config.type = json_file.get('type', '')
     config.world_info = json_file.get('world_info', '')
     config.world_mood = json_file.get('world_mood', config.world_mood)
+    config.combat_type = json_file.get('combat_type', config.combat_type)
+    parsed_combat_type = parse_combat_type(config.combat_type)
+    config.lethal = json_file.get('lethal', parsed_combat_type.lethal_by_default if parsed_combat_type else True)
     config.custom_resources = json_file.get('custom_resources', config.custom_resources)
     config.image_gen = json_file.get('image_gen', config.image_gen)
     config.epoch = json_file.get('epoch', config.epoch)
@@ -220,6 +224,8 @@ def save_story_config(config: StoryConfig) -> dict:
     json_file['type'] = config.type
     json_file['world_info'] = config.world_info
     json_file['world_mood'] = config.world_mood
+    json_file['combat_type'] = config.combat_type
+    json_file['lethal'] = config.lethal
     json_file['context'] = config.context if isinstance(config.context, str) else config.context.to_json()
     json_file['custom_resources'] = config.custom_resources
     json_file['image_gen'] = config.image_gen

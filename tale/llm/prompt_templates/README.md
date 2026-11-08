@@ -36,7 +36,7 @@ The prompts are organized into several categories:
 ### Action Prompts
 - `ACTION_PROMPT.txt` - Prompt for character actions
 - `IDLE_ACTION_PROMPT.txt` - Prompt for idle character behavior
-- `COMBAT_PROMPT.txt` - Prompt for combat descriptions
+- `COMBAT_PROMPT.txt` - Prompt for combat descriptions. Besides `{context}`, `{attackers}`, `{defenders}`, `{location}` and `{input_text}`, it has three lethality slots filled from the story config (`combat_type` / `lethal` in `StoryConfig`): `{combat_type}` (named tone or free text), `{lethality}` ("lethal"/"non-lethal") and `{lethality_guidance}` (per-level instruction telling the LLM how to narrate the fight).
 
 ### World Building Prompts
 - `CREATE_LOCATION_PROMPT.txt` - Prompt for creating locations

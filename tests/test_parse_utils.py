@@ -39,6 +39,30 @@ class TestParseUtils():
 
         new_config = parse_utils.load_story_config(stored_config)
         assert(isinstance(new_config.context, StoryContext))
+
+    def test_story_config_combat_type_roundtrip(self):
+        config_json = parse_utils.load_json("tests/files/test_story_config.json")
+        config = parse_utils.load_story_config(config_json)
+        # absent keys: historical/lethal defaults, old savegames stay compatible
+        assert(config.combat_type == 'historical')
+        assert(config.lethal is True)
+
+        config.combat_type = 'sparring'
+        config.lethal = False
+        stored_config = parse_utils.save_story_config(config)
+        assert(stored_config['combat_type'] == 'sparring')
+        assert(stored_config['lethal'] is False)
+
+        new_config = parse_utils.load_story_config(stored_config)
+        assert(new_config.combat_type == 'sparring')
+        assert(new_config.lethal is False)
+
+        # combat_type set without lethal: lethality defaults from the tone
+        legacy = {key: value for key, value in stored_config.items() if key not in ('combat_type', 'lethal')}
+        assert(parse_utils.load_story_config(legacy).lethal is True)
+        only_type = dict(legacy)
+        only_type['combat_type'] = 'non-lethal'
+        assert(parse_utils.load_story_config(only_type).lethal is False)
         
     def test_connect_location_to_exit(self):
         """ This simulates a room having been generated before"""

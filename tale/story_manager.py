@@ -229,6 +229,8 @@ class StoryManager:
             type=config.type,
             world_info=config.world_info,
             world_mood=config.world_mood,
+            combat_type=config.combat_type,
+            lethal=config.lethal,
             custom_resources=config.custom_resources,
             day_night=config.day_night,
             random_events=config.random_events,
@@ -715,7 +717,7 @@ class StoryManager:
     def get_story_state(self) -> dict:
         """The story's narrative state: story (the context string with past
         sections), current_section, past_sections, progress, length, name,
-        type, world_info, world_mood."""
+        type, world_info, world_mood, combat_type, lethal."""
         config = self._story.config
         context = config.context
         if isinstance(context, StoryContext):
@@ -729,6 +731,8 @@ class StoryManager:
                 "type": config.type,
                 "world_info": config.world_info,
                 "world_mood": config.world_mood,
+                "combat_type": config.combat_type,
+                "lethal": config.lethal,
             }
         # the context may be a bare base-story string (not yet a StoryContext)
         return {
@@ -741,6 +745,8 @@ class StoryManager:
             "type": config.type,
             "world_info": config.world_info,
             "world_mood": config.world_mood,
+            "combat_type": config.combat_type,
+            "lethal": config.lethal,
         }
 
     def get_world_map(self) -> dict:

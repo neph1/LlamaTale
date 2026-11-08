@@ -4,9 +4,11 @@ Util class for combat related functions.
 
 """
 
+import logging
 import random
-from typing import List, Tuple
+from typing import Any, List, Optional, Tuple
 from tale.skills import weapon_type
+from tale.story import CombatType
 import tale.base as base
 from tale.wearable import WearLocation, body_parts_for_bodytype
 from tale.wearable import WearLocation
@@ -14,12 +16,71 @@ import random
 from collections import Counter
 import random
 
+log = logging.getLogger(__name__)
+
+LETHALITY_GUIDANCE = {
+    CombatType.NONLETHAL: "Nobody dies. Serious injuries do not occur. Fights end with surrender, exhaustion, or knockout.",
+    CombatType.SPARRING: "This is controlled practice. Describe technique and restraint. It ends before anyone is truly hurt.",
+    CombatType.CARTOONY: "Describe slapstick, exaggerated, humorous action. Injuries are comedic and temporary.",
+    CombatType.HISTORICAL: "Grounded and realistic. Injuries are painful and matter. Death is possible.",
+    CombatType.ULTRAVIOLENT: "Graphic, visceral, brutal. Do not sanitize the violence.",
+}
+
+
+def apply_damage(target: 'base.Living', damage: int, lethal: bool = True) -> int:
+    """Apply damage to a living, flooring hp at 1 when combat is non-lethal.
+    Returns the damage actually applied."""
+    if not lethal:
+        damage = min(damage, max(target.stats.hp - 1, 0))
+    target.stats.hp -= damage
+    return damage
+
+
+def parse_combat_type(value: Any) -> Optional[CombatType]:
+    """Match a combat_type string case-insensitively against the CombatType enum.
+    Returns None for free-text values (custom tone)."""
+    if not value:
+        return None
+    text = str(value).strip().lower()
+    for combat_type in CombatType:
+        if text in (combat_type.value.lower(), combat_type.name.lower()):
+            return combat_type
+    return None
+
+
+def lethality_guidance(combat_type: Any, lethal: bool) -> str:
+    """Narration guidance sentence for the LLM prompt, based on the combat type
+    (named level or free text) and the lethality flag."""
+    parsed = parse_combat_type(combat_type)
+    if parsed is not None:
+        return LETHALITY_GUIDANCE[parsed]
+    if combat_type:
+        log.info("Using custom combat_type %r as free-text combat tone (lethal=%s)", combat_type, lethal)
+    if lethal:
+        return LETHALITY_GUIDANCE[CombatType.HISTORICAL]
+    return LETHALITY_GUIDANCE[CombatType.NONLETHAL]
+
+
 class Combat():
 
-    def __init__(self, attackers: List['base.Living'], defenders: List['base.Living'], target_body_part: WearLocation = None) -> None:
+    def __init__(self, attackers: List['base.Living'], defenders: List['base.Living'], target_body_part: WearLocation = None, lethal: bool = True) -> None:
         self.attackers = attackers
         self.defenders = defenders
         self.target_body_part = target_body_part
+        self.lethal = lethal
+
+    def _apply_damage(self, actor: 'base.Living', damage: int) -> int:
+        """Apply damage to an actor, honoring the non-lethal hp floor of 1.
+        Returns the damage actually applied."""
+        return apply_damage(actor, damage, lethal=self.lethal)
+
+    def _defeat_text(self, actor: 'base.Living', applied_damage: int) -> str:
+        """Mechanical end-of-fight narration for an actor that was just hit."""
+        if actor.stats.hp < 1:
+            return f'{actor.title} dies from their injuries.'
+        if not self.lethal and applied_damage > 0 and actor.stats.hp == 1:
+            return f'{actor.title} is knocked out and yields.'
+        return ''
     
     def _calculate_attack_success(self, actor: 'base.Living') -> int:
         """ Calculate the success of an attack. <5 is a critical hit.
@@ -94,15 +155,14 @@ class Combat():
         They get a chance to block, unless it's a critical hit, 5/100.
         Returns a textual representation of the combat and the damage done to each actor.
         """
-        texts = []
+        texts = []  # type: List[str]
         
         for attacker in self.attackers:
             random_defender = random.choice(self.defenders)
             text_result, damage_to_defender = self._round(attacker, random_defender)   
             texts.append(text_result)
-            random_defender.stats.hp -= damage_to_defender
-            if random_defender.stats.hp < 1:
-                texts.append(f'{random_defender.title} dies from their injuries.')
+            applied = self._apply_damage(random_defender, damage_to_defender)
+            texts.append(self._defeat_text(random_defender, applied))
 
         for defender in self.defenders:
             if defender.stats.hp < 1:
@@ -111,11 +171,10 @@ class Combat():
             text_result, damage_to_attacker = self._round(defender, random_attacker)
             texts.append(text_result)
 
-            random_attacker.stats.hp -= damage_to_attacker
-            if random_attacker.stats.hp < 1:
-                texts.append(f'{random_attacker.title} dies from their injuries.')
-            
-        return '\n'.join(texts)
+            applied = self._apply_damage(random_attacker, damage_to_attacker)
+            texts.append(self._defeat_text(random_attacker, applied))
+
+        return '\n'.join(text for text in texts if text)
     
     def _round(self, actor1: 'base.Living', actor2: 'base.Living') -> Tuple[List[str], int]:
         attack_result = self._calculate_attack_success(actor1)

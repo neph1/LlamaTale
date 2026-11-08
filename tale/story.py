@@ -13,7 +13,7 @@ from packaging.version import Version
 from . import __version__ as tale_version_str
 from .errors import StoryConfigError
 
-__all__ = ["TickMethod", "GameMode", "MoneyType", "StoryBase", "StoryConfig"]
+__all__ = ["TickMethod", "GameMode", "MoneyType", "CombatType", "StoryBase", "StoryConfig"]
 
 
 class TickMethod(enum.Enum):
@@ -33,6 +33,22 @@ class MoneyType(enum.Enum):
 
     def __bool__(self):
         return bool(self.value)
+
+
+class CombatType(enum.Enum):
+    """Named narrative flavors of combat. The value is used verbatim in LLM prompts;
+    any other string is treated as free-text tone by the prompt layer."""
+    NONLETHAL = "non-lethal"        # nobody dies: brawls, sport, padded weapons
+    SPARRING = "sparring"           # training fights, pulled blows, referee rules
+    CARTOONY = "cartoony"           # slapstick, no real injury logic
+    HISTORICAL = "historical"       # default: grounded, realistic, can be lethal
+    ULTRAVIOLENT = "ultra-violent"  # gritty gore, lethality emphasized
+
+    @property
+    def lethal_by_default(self) -> bool:
+        """Default lethality for this combat type, used when the story config
+        sets combat_type but no explicit lethal flag."""
+        return self in (CombatType.HISTORICAL, CombatType.ULTRAVIOLENT)
 
 
 class StoryConfig:
@@ -76,6 +92,8 @@ class StoryConfig:
         self.type = ""                       # brief description of the setting and type of story, for LLM context
         self.world_info = ""                 # brief description of the world, for LLM context
         self.world_mood = 0                  # how safe is the world? 5 is a happy place, -5 is nightmare mode.
+        self.combat_type = CombatType.HISTORICAL.value  # narrative flavor of combat; any string allowed (free text = custom tone)
+        self.lethal = True                   # can combatants actually die? False floors hp at 1 (beaten, not killed)
         self.custom_resources = False        # type: bool # does this story use custom resources?
         self.image_gen = None                # image generator to use for the story, or None
         self.day_night = False               # does this story have a day/night cycle?

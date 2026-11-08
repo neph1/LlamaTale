@@ -1,12 +1,14 @@
 import tale
+from types import SimpleNamespace
 from tale import lang
 from tale.base import Location, Weapon
 from tale.llm.LivingNpc import LivingNpc
-from tale.combat import Combat
+from tale.combat import Combat, apply_damage, lethality_guidance, parse_combat_type
 from tale.llm.contexts.CombatContext import CombatContext
 from tale.player import Player
 from tale.races import BodyType
 from tale.skills.weapon_type import WeaponType
+from tale.story import CombatType, StoryConfig
 from tale.wearable import WearLocation
 from tests.supportstuff import FakeDriver
 from tale.wearable import WearLocation
@@ -120,6 +122,115 @@ class TestCombat():
         assert(lang.capital(rat.title) in combat_prompt)
         assert('attacker hits' in combat_prompt)
         assert msg == 'attacker hits'
+        # no story loaded: historical/lethal defaults are narrated to the LLM
+        assert('historical' in combat_prompt)
+        assert('lethal' in combat_prompt)
+        assert('Death is possible' in combat_prompt)
+
+    def test_prepare_combat_prompt_nonlethal_story(self):
+        driver = tale.driver.Driver()
+        config = StoryConfig()
+        config.combat_type = CombatType.SPARRING.value
+        config.lethal = False
+        driver.story = SimpleNamespace(config=config)
+        attacker = LivingNpc(name='attacker', gender='f', age=37, personality='A fierce fighter')
+        rat = LivingNpc(name='Giant Rat', gender='m', age=4, personality='Sneaky and nasty')
+
+        combat_prompt, msg = driver.prepare_combat_prompt(attackers=[attacker],
+                                                     defenders=[rat],
+                                                     attacker_msg='attacker hits',
+                                                     combat_result='attacker hits',
+                                                     location_title='the arena')
+
+        assert('sparring' in combat_prompt)
+        assert('non-lethal' in combat_prompt)
+        assert('controlled practice' in combat_prompt)
+        assert('Death is possible' not in combat_prompt)
+
+    def test_prepare_combat_prompt_custom_combat_type(self):
+        driver = tale.driver.Driver()
+        config = StoryConfig()
+        config.combat_type = 'wuxia wire-fu choreography'
+        config.lethal = False
+        driver.story = SimpleNamespace(config=config)
+        attacker = LivingNpc(name='attacker', gender='f', age=37, personality='A fierce fighter')
+        rat = LivingNpc(name='Giant Rat', gender='m', age=4, personality='Sneaky and nasty')
+
+        combat_prompt, msg = driver.prepare_combat_prompt(attackers=[attacker],
+                                                     defenders=[rat],
+                                                     attacker_msg='attacker hits',
+                                                     combat_result='attacker hits',
+                                                     location_title='the arena')
+
+        # free-text tone is passed verbatim, lethal flag picks the guidance
+        assert('wuxia wire-fu choreography' in combat_prompt)
+        assert('non-lethal' in combat_prompt)
+        assert('Nobody dies' in combat_prompt)
+
+    def test_nonlethal_combat_floors_hp_at_one(self):
+        attacker = LivingNpc(name='attacker', gender='m', age=42, personality='A fierce fighter')
+        defender = LivingNpc(name='defender', gender='f', age=37, personality='A fierce fighter')
+        attacker.stats.weapon_skills.set(WeaponType.UNARMED, 100)
+        attacker.stats.wc = 100
+        defender.stats.hp = 5
+        defender.stats.max_hp = 5
+
+        combat = Combat([attacker], [defender], lethal=False)
+        text = combat.resolve_attack()
+
+        assert defender.stats.hp == 1
+        assert defender.alive
+        assert 'defender is knocked out and yields.' in text
+        assert 'dies' not in text
+
+        # further hits cannot push hp below 1 either
+        text = combat.resolve_attack()
+        assert defender.stats.hp == 1
+        assert defender.alive
+        assert 'dies' not in text
+
+    def test_lethal_combat_can_kill(self):
+        attacker = LivingNpc(name='attacker', gender='m', age=42, personality='A fierce fighter')
+        defender = LivingNpc(name='defender', gender='f', age=37, personality='A fierce fighter')
+        attacker.stats.weapon_skills.set(WeaponType.UNARMED, 100)
+        attacker.stats.wc = 100
+        defender.stats.hp = 5
+        defender.stats.max_hp = 5
+
+        combat = Combat([attacker], [defender], lethal=True)
+        text = combat.resolve_attack()
+
+        assert defender.stats.hp < 1
+        assert 'defender dies from their injuries.' in text
+
+    def test_apply_damage_floor(self):
+        rat = LivingNpc(name='Giant Rat', gender='m', age=4, personality='Sneaky and nasty')
+        rat.stats.hp = 5
+        assert apply_damage(rat, 100, lethal=False) == 4
+        assert rat.stats.hp == 1
+        assert apply_damage(rat, 3, lethal=False) == 0
+        assert rat.stats.hp == 1
+        assert apply_damage(rat, 3, lethal=True) == 3
+        assert rat.stats.hp == -2
+
+    def test_parse_combat_type(self):
+        assert parse_combat_type('non-lethal') == CombatType.NONLETHAL
+        assert parse_combat_type('ULTRA-VIOLENT') == CombatType.ULTRAVIOLENT
+        assert parse_combat_type('Sparring') == CombatType.SPARRING
+        assert parse_combat_type('cartoony') == CombatType.CARTOONY
+        assert parse_combat_type('wuxia wire-fu') is None
+        assert parse_combat_type('') is None
+        assert parse_combat_type(None) is None
+
+    def test_lethality_guidance(self):
+        assert 'Nobody dies' in lethality_guidance('non-lethal', False)
+        assert 'controlled practice' in lethality_guidance('sparring', False)
+        assert 'slapstick' in lethality_guidance('cartoony', False)
+        assert 'Death is possible' in lethality_guidance('historical', True)
+        assert 'Do not sanitize' in lethality_guidance('ultra-violent', True)
+        # free text: lethal flag alone picks the guidance
+        assert 'Nobody dies' in lethality_guidance('wuxia wire-fu', False)
+        assert 'Death is possible' in lethality_guidance('wuxia wire-fu', True)
 
     def test_combat_context(self):
         location = Location('Test Location', 'Test Location')
