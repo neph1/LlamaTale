@@ -1,0 +1,80 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "llamatale"
+dynamic = ["version"]
+description = "LLM-powered interactive fiction, MUD & mudlib framework"
+readme = "README.md"
+requires-python = ">=3.9"
+license = "LGPL-3.0-only"
+authors = [
+    {name = "Irmen de Jong", email = "irmen@razorvine.net"},
+]
+keywords = ["mud", "mudlib", "interactive fiction", "text adventure", "llm"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Environment :: Console",
+    "Intended Audience :: Developers",
+    "Intended Audience :: End Users/Desktop",
+    "Natural Language :: English",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python",
+    "Programming Language :: Python :: 3",
+    "Topic :: Communications :: Chat",
+    "Topic :: Games/Entertainment",
+    "Topic :: Games/Entertainment :: Role-Playing",
+    "Topic :: Games/Entertainment :: Multi-User Dungeons (MUD)",
+]
+dependencies = [
+    "appdirs",
+    "colorama>=0.3.6",
+    "PyYAML",
+    "Requests",
+    "smartypants>=1.8.6",
+    "serpent>=1.23",
+    "aiohttp",
+    "pillow",
+    "packaging",
+    "fastapi",
+    "websockets>=12.0",
+    "uvicorn>=0.24.0",
+    "mcp>=1.28.0,<2",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest",
+    "flake8",
+    "responses",
+    "aioresponses",
+    "mock",
+]
+
+[project.urls]
+Homepage = "https://github.com/neph1/LlamaTale"
+Documentation = "https://github.com/neph1/LlamaTale/wiki"
+Repository = "https://github.com/neph1/LlamaTale"
+Issues = "https://github.com/neph1/LlamaTale/issues"
+
+[project.scripts]
+llamatale = "tale.main:main"
+tale-run = "tale.main:main"
+
+[tool.setuptools.dynamic]
+version = {attr = "tale.__version__"}
+
+[tool.setuptools]
+include-package-data = true
+
+[tool.setuptools.packages.find]
+include = ["tale*"]
+
+[tool.setuptools.package-data]
+"tale" = ["soul_adverbs.txt"]
+"tale.tio" = ["quill_pen_paper.ico", "quill_pen_paper.gif"]
+"tale.llm" = ["*.yaml", "prompt_templates/*"]
+"tale.image_gen" = ["*.yaml"]
+"tale.items" = ["*.json"]
+"tale.web" = ["*"]

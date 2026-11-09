@@ -20,8 +20,8 @@ try:
     import tale
     tale._check_required_libraries()
     import tale.main
-    from distutils.version import LooseVersion
-    if LooseVersion(tale.__version__) < LooseVersion("{required_tale_version}"):
+    from packaging.version import Version
+    if Version(tale.__version__) < Version("{required_tale_version}"):
         print("Tale version installed:", tale.__version__, file=sys.stderr)
         print("Tale version required : {required_tale_version}", file=sys.stderr)
         tale_error = "installed Tale library version too old"

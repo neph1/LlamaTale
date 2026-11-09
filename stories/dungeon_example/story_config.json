@@ -3,7 +3,7 @@
     "author": "LlamaTale Example",
     "author_address": "",
     "version": "1.0",
-    "requires_tale": "4.0",
+    "requires_tale": "0.51.0",
     "supported_modes": ["IF"],
     "player_name": "",
     "player_gender": "m",

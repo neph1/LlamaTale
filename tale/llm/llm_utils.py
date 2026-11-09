@@ -40,7 +40,7 @@ class LlmUtil():
 
     def __init__(self, io_util: IoUtil = None):
         self.backend = llm_config.params['BACKEND']
-        with open(os.path.realpath(os.path.join(os.path.dirname(__file__), f"../../backend_{self.backend}.yaml")), "r") as stream:
+        with open(os.path.realpath(os.path.join(os.path.dirname(__file__), f"backend_{self.backend}.yaml")), "r") as stream:
             try:
                 backend_config = yaml.safe_load(stream)
             except yaml.YAMLError as exc:

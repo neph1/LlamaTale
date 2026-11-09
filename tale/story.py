@@ -46,7 +46,7 @@ class StoryConfig:
         self.author = ""                     # the story's author name
         self.author_address = ""             # the author's email address
         self.version = "1.10"                # arbitrary but is used to check savegames for compatibility
-        self.requires_tale = "4.0"           # tale library required to run the game
+        self.requires_tale = "0.51.0"        # llamatale library required to run the game
         self.supported_modes = {GameMode.IF}    # what driver modes (if/mud) are supported by this story
         self.player_name = ""                # set a name to create a prebuilt player, None to use the character builder
         self.player_gender = ""              # m/f (n is technically possible, but not preferred)
