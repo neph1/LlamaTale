@@ -35,8 +35,10 @@ def load_json(file_path: str):
 
 
 def location_from_json(json_object: dict):
+    from tale import stealth
     location = Location(name=json_object['name'], descr=json_object.get('descr', ''))
     location.built = json_object.get('built', True)
+    location.concealment = stealth.clamp_concealment(json_object.get('concealment', 0))
     return location
 
 def load_npcs(json_npcs: list, locations: list[Location] = [], world_items = [], parse_occupation = False) -> dict:
@@ -613,6 +615,7 @@ def save_locations(locations: List[Location]) -> dict:
         json_location['exits'] = []
         json_location['world_location'] = location.world_location.as_tuple()
         json_location['built'] = location.built
+        json_location['concealment'] = location.concealment
         exits = []
         for exit in location.exits.values():
             json_exit = {}

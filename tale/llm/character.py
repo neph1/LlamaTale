@@ -78,7 +78,7 @@ class CharacterBuilding():
     def perform_idle_action(self, character_name: str, location: Location, story_context: str, character_card: CharacterCard, sentiments: dict = {}, last_action: str = '', event_history: str = '') -> list:
         characters = {}
         for living in location.livings:
-            if living.visible and living.name != character_name.lower():
+            if living.visible and not living.hidden and living.name != character_name.lower():
                 if living.alive:
                     characters[living.name] = living.short_description
                 else:

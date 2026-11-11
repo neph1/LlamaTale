@@ -24,7 +24,7 @@ from tale.llm.responses.WorldCreaturesResponse import WorldCreaturesResponse
 from tale.llm.responses.WorldItemsResponse import WorldItemsResponse
 
 from . import wizcmd, disabled_in_gamemode
-from .. import base, lang, util, pubsub, races, __version__
+from .. import base, lang, util, pubsub, races, stealth, __version__
 from ..errors import ParseError, ActionRefused, NonSoulVerb, SecurityViolation, TaleError, TaleFlowControlException
 from ..player import Player
 from ..story import *
@@ -854,6 +854,42 @@ def do_set_visible(player: Player, parsed: base.ParseResult, ctx: util.Context) 
     except ValueError as x:
         raise ActionRefused(str(x))
     
+@wizcmd("set_concealment")
+def do_set_concealment(player: Player, parsed: base.ParseResult, ctx: util.Context) -> None:
+    """Set the stealth concealment tier of a location.
+    Usage: set_concealment <location|here> <0-4>
+    """
+    if len(parsed.args) != 2:
+        raise ParseError("You need to specify the location and the concealment tier (0-4)")
+    name = str(parsed.args[0]).lower()
+    location = None
+    if name in ("here", player.location.name.lower()):
+        location = player.location
+    else:
+        story = ctx.driver.story
+        if isinstance(story, DynamicStory):
+            location = story.find_location(name)
+    if not location:
+        raise ParseError("No location found: " + str(parsed.args[0]))
+    try:
+        tier = int(parsed.args[1])
+    except ValueError:
+        raise ActionRefused("Concealment tier must be an integer between 0 and 4")
+    location.concealment = stealth.clamp_concealment(tier)
+    player.tell("%s concealment set to %d" % (location.name, location.concealment))
+
+@wizcmd("perceive")
+def do_perceive(player: Player, parsed: base.ParseResult, ctx: util.Context) -> None:
+    """Debug: force a full perception sweep (both scopes) of the current location
+    and its neighbors, returning the raw contest and glimpse outcomes.
+    Usage: perceive
+    """
+    outcomes = stealth.perceive_sweep(player)
+    if outcomes:
+        player.tell("Perception sweep:\n" + "\n".join(outcomes), evoke=False)
+    else:
+        player.tell("Perception sweep: no hidden livings here, no glimpses from adjacent locations.")
+
 @wizcmd("set_description")
 def do_set_description(player: Player, parsed: base.ParseResult, ctx: util.Context) -> None:
     """Set description of any object."""

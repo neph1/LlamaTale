@@ -1,11 +1,19 @@
 
 import random
+from tale import stealth
 from tale.base import Living
 from tale.cmds import spells
 from tale.errors import ActionRefused
 from tale.skills import magic
 from tale.skills.magic import MagicType, Spell
 from tale.skills.skills import SkillType
+
+
+def _risky_spellcast(caster: Living) -> None:
+    """Casting while hidden (any spell except hide) triggers an immediate
+    perception contest with a penalty on the caster."""
+    if caster.hidden:
+        stealth.risky_action(caster, hider_penalty=stealth.SPELL_WHILE_HIDDEN_PENALTY)
 
 
 not_enough_magic_points = "You don't have enough magic points"
@@ -25,6 +33,7 @@ def cast_heal(caster: Living, target: Living, level: int = 1) -> None:
         return
 
     target.stats.replenish_hp(5 * level)
+    _risky_spellcast(caster)
     caster.tell("You cast a healing spell that heals %s for %d hit points" % (target.name, 5 * level), evoke=True)
     caster.tell_others("%s casts a healing spell on %s" % (caster.name, target.name), evoke=True)
 
@@ -44,6 +53,7 @@ def cast_bolt(caster: Living, target: Living, level: int = 1) -> None:
         return
 
     hp = random.randint(1, level)
+    _risky_spellcast(caster)
     target.stats.hp -= hp
     caster.tell("You cast an energy bolt that hits %s for %d damage" % (target.name, hp), evoke=True)
     caster.tell_others("%s casts an energy bolt that hits %s for %d damage" % (caster.name, target.name, hp), evoke=True)
@@ -67,6 +77,7 @@ def cast_drain(caster: Living, target: Living, level: int = 1) -> None:
     target.stats.magic_points -= points
 
     caster.stats.magic_points += points
+    _risky_spellcast(caster)
 
     caster.tell("You cast a 'drain' spell that drains %s of %d combat and magic points" % (target.name, points), evoke=True)
     caster.tell_others("%s casts a 'drain' spell that drains energy from %s" % (caster.name, target.name), evoke=True)
@@ -86,6 +97,7 @@ def cast_rejuvenate(caster: Living, target: Living, level: int = 1) -> None:
         return
 
     target.stats.replenish_hp(5 * level)
+    _risky_spellcast(caster)
     caster.tell("You cast a rejuvenate spell that replenishes %s for %d action points" % (target.name, 5 * level), evoke=True)
     caster.tell_others("%s casts a rejuvenate spell on %s" % (caster.name, target.name), evoke=True)
 
@@ -100,10 +112,7 @@ def cast_hide(caster: Living, target: Living, level: int = 1) -> None:
     
     caster.stats.magic_points -= spell.base_cost * level
 
-    if random.randint(1, 100) > skillValue:
-        caster.tell("Your hide spell fizzles out", evoke=True, short_len=True)
-        return
-    
+    # magic bypasses the skill contest: the stance is set without a throw
     target.hidden = True
     caster.tell(f"You cast a 'hide' spell and %s disappears from view", evoke=True)
     caster.tell_others(f"{caster.name} casts a 'hide' spell and %s disappears from view", evoke=True)
@@ -116,28 +125,27 @@ def cast_reveal(caster: Living, level: int = 1) -> None:
 
     if not spell.check_cost(caster.stats.magic_points, level):
         raise ActionRefused(not_enough_magic_points)
-    
+
     caster.stats.magic_points -= spell.base_cost * level
-    
+
     if random.randint(1, 100) > skillValue:
         caster.tell("Your reveal spell fizzles out", evoke=True, short_len=True)
         return
-    
-    livings = caster.location.livings
 
-    if len(caster.location.livings) == 1:
+    hidden_livings = [living for living in caster.location.livings
+                     if living != caster and living.hidden and living.visible]
+
+    if not hidden_livings:
         caster.tell("Your spell reveals nothing.")
         return
 
     found = False
-        
-    for living in livings:
-        if living != caster and living.hidden:
-            if random.randint(1, 100) < level * 10 - living.stats.skills.get(SkillType.HIDE):
-                living.hidden = False
-                caster.tell("Your spell reveals %s." % living.title)
-                caster.location.tell("%s's spell reveals %s" % (caster.title, living.title), exclude_living=caster)
-                found = True
+
+    for living in hidden_livings:
+        result = stealth.resolve_contest(living, caster, searcher_bonus=stealth.REVEAL_SPELL_BONUS + level * 10)
+        if result.band == stealth.DetectionBand.DETECTED:
+            caster.tell("Your spell reveals %s." % living.title)
+            found = True
 
     if not found:
         caster.tell("Your spell reveals nothing.")
