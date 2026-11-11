@@ -126,7 +126,7 @@ class TestActionExecutor():
         assert result == []
 
     def test_hide_unhide(self):
-        self.location.remove(self.trace, self.trace)  # can't hide with others around
+        self.location.remove(self.trace, self.trace)  # keep the hide entry uncontested
         self.npc.stats.skills.set(SkillType.HIDE, 100)
         self.npc.stats.action_points = 2
         self.npc.action_executor.execute(make_action(action='hide'))

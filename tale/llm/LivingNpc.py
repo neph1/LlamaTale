@@ -102,11 +102,13 @@ class LivingNpc(Living):
     def _parse_occupation(self, occupation: str) -> None:
         """ Parse the occupation of the npc."""
         if occupation in ['soldier', 'guard', 'mercenary', 'knight', 'warrior']: # Warrior
+            self.stats.skills.set(SkillType.PERCEPTION, random.randint(30, 50) + random.randint(0, 5) * self.stats.level)
             self.stats.weapon_skills.set(WeaponType.ONE_HANDED, random.randint(30, 50) + random.randint(0, 5) * self.stats.level)
             self.stats.weapon_skills.set(WeaponType.TWO_HANDED, random.randint(15, 30) + random.randint(0, 3) * self.stats.level)
             self.stats.weapon_skills.set(WeaponType.UNARMED, random.randint(30, 60))
             return
         if occupation in ['archer', 'ranger', 'hunter', 'marksman']: # Archer
+            self.stats.skills.set(SkillType.PERCEPTION, random.randint(30, 50) + random.randint(0, 5) * self.stats.level)
             self.stats.weapon_skills.set(WeaponType.ONE_HANDED, random.randint(15, 30) + random.randint(0, 3) * self.stats.level)
             self.stats.weapon_skills.set(WeaponType.ONE_HANDED_RANGED, random.randint(30, 50) + random.randint(0, 5) * self.stats.level)
             self.stats.weapon_skills.set(WeaponType.TWO_HANDED_RANGED, random.randint(30, 50) + random.randint(0, 5) * self.stats.level)

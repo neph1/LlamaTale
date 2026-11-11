@@ -57,6 +57,7 @@ from . import lang
 from . import mud_context
 from . import pubsub
 from . import races
+from . import stealth
 from . import util
 from . import story
 from . import verbdefs
@@ -310,11 +311,17 @@ class MudObject:
 
     @property
     def title(self) -> str:
-        return (self._title + '[hidden]') if self.hidden else self._title
+        return self._title
 
     @title.setter
     def title(self, value: str) -> None:
         self._title = value
+
+    @property
+    def status_title(self) -> str:
+        """Title including the [hidden] stance marker; only for the entity's own status display.
+        Hidden entities are excluded from other characters' prompts entirely (see tale/stealth.py)."""
+        return (self._title + ' [hidden]') if self.hidden else self._title
 
     @property
     def description(self) -> str:
@@ -702,6 +709,7 @@ class Location(MudObject):
         self.generated = False # whether this location is LLM generated or not
         self.world_location = Coord() # the world location of this location
         self.indoors = False  # is this location indoors?
+        self.concealment = 0  # stealth concealment tier 0-4, see tale/stealth.py
 
     def __contains__(self, obj: Union['Living', Item]) -> bool:
         return obj in self.livings or obj in self.items
@@ -799,6 +807,8 @@ class Location(MudObject):
     def look(self, exclude_living: 'Living'=None, short: bool=False) -> Sequence[str]:
         """returns a list of paragraph strings describing the surroundings, possibly excluding one living from the description list"""
         paragraphs = ["<location>[" + self.title + "]</>"]
+        if exclude_living is not None and getattr(exclude_living, "hidden", False):
+            paragraphs.append("<dim>[hidden]</>")
         if short:
             if self.exits and mud_context.config.show_exits_in_look:
                 paragraphs.append("Exits: " + ", ".join(sorted(set(self.exits.keys()))))
@@ -1443,6 +1453,9 @@ class Living(MudObject):
             pending_actions.send(lambda who=self, where=original_location: target.notify_player_arrived(who, where))
         else:
             pending_actions.send(lambda who=self, where=original_location: target.notify_npc_arrived(who, where))
+        # engine-run perception: entry contest against hidden occupants (and against
+        # the entrant itself if it is hidden), plus adjacent-location glimpses
+        stealth.on_location_entry(self, original_location, target, direction_names)
 
     def search_item(self, name: str, include_inventory: bool=True,
                     include_location: bool=True, include_containers_in_inventory: bool=True) -> Optional[Item]:
@@ -1486,6 +1499,7 @@ class Living(MudObject):
         if self.stats.action_points < 1:
             self.tell("You are too tired to attack.")
             return
+        ambush = self.hidden
         if self.hidden:
             self.hidden = False
             self.stats.action_points -= 3
@@ -1501,7 +1515,7 @@ class Living(MudObject):
             elif living.following is defender:
                 defenders.append(living)
 
-        c = combat.Combat(attackers, defenders, target_body_part=target_body_part)
+        c = combat.Combat(attackers, defenders, target_body_part=target_body_part, ambush=ambush)
         result = c.resolve_attack()
         
         room_msg = "%s attacks %s! %s" % (attacker_name, victim_name, result)
@@ -1678,65 +1692,62 @@ class Living(MudObject):
         return remains
     
     def hide(self, hide: bool = True):
-        """ Hide or reveal the living entity. """
+        """ Enter or leave the hide stance (persistent hidden-by-default mode).
+        Entering costs 1 AP; with observers present the entry is contested
+        against the best perception in the room (see tale/stealth.py). """
 
         if not hide:
-            self.hidden = False
             self.hidden = False
             self.tell("You reveal yourself")
             self.location.tell("%s reveals themselves" % self.title, exclude_living=self)
             return
-        
+
         if self.stats.action_points < 1:
             raise ActionRefused("You don't have enough action points to hide.")
-        if len(self.location.livings) > 1:
-            raise ActionRefused("You can't hide when there are other living entities around.")
-        
+
         self.stats.action_points -= 1
 
-        skillValue = self.stats.skills.get(SkillType.HIDE)
-        if random.randint(1, 100) > skillValue:
-            self.tell("You fail to hide.")
-            return
-        
-        self.hidden = hide
+        entry = stealth.hide_entry_contest(self)
+        if entry is not None:
+            if entry.band == stealth.DetectionBand.DETECTED:
+                self.tell("You fumble -- you can't hide while being watched so closely.")
+                self.location.tell("%s tries to hide but is spotted." % self.title, exclude_living=self)
+                return
+            if entry.band == stealth.DetectionBand.TRACES:
+                stealth.inject_grounded_fact(entry.searcher, stealth.trace_fact())
+
+        self.hidden = True
         self.tell("You hide yourself.")
-        self.location.tell("%s hides" % self.title, exclude_living=self)
+        if entry is None:
+            self.location.tell("%s hides" % self.title, exclude_living=self)
 
     def search_hidden(self, silent: bool = False):
-        """ Search for hidden entities in the room.
-         For automatic searches (like when entering a room),
-         no fail messages will show, and no action points will be used."""
-        
+        """ Active search for hidden livings in the room: a perception contest
+        with a searcher bonus against each hidden occupant (see tale/stealth.py).
+         For automatic searches no fail messages will show, and no action
+         points will be used."""
+
         if self.stats.action_points < 1:
             raise ActionRefused("You don't have enough action points to search.")
-
-        livings = self.location.livings
 
         if not silent:
             self.stats.action_points -= 1
             self.location.tell("%s searches for something." % (self.title), exclude_living=self)
 
-        if len(self.location.livings) == 1:
+        hidden_livings = [living for living in self.location.livings
+                          if living != self and living.hidden and living.visible]
+
+        if not hidden_livings:
             if not silent:
                 self.tell("You don't find anything.")
             return
-        
-        if silent:
-            skillValue = self.stats.perception * 5
-        else:
-            skillValue = self.stats.skills.get(SkillType.SEARCH)
 
         found = False
-        
-        for living in livings:
-            if living != self and living.hidden:
-                modifier = skillValue - living.stats.skills.get(SkillType.HIDE)
-                if random.randint(1, 100) < skillValue + modifier:
-                    living.hidden = False
-                    self.tell("You find %s." % living.title)
-                    self.location.tell("%s reveals %s" % (self.title, living.title), exclude_living=self)
-                    found = True
+
+        for living in hidden_livings:
+            result = stealth.resolve_contest(living, self, searcher_bonus=stealth.SEARCH_BONUS)
+            if result.band == stealth.DetectionBand.DETECTED:
+                found = True
 
         if not found and not silent:
             self.tell("You don't find anything.")
@@ -1755,8 +1766,10 @@ class Living(MudObject):
 
         if random.randint(1, 100) > skillValue:
             self.tell("You fail to pick the lock.")
+            if self.hidden:
+                stealth.risky_action(self, searcher_bonus=stealth.PICK_LOCK_FUMBLE_SEARCH_BONUS)
             return
-        
+
         door.unlock()
 
         self.tell("You successfully pick the lock.", evoke=True)
@@ -2120,6 +2133,8 @@ class Door(Exit):
 
         if random.randint(1, 100) > skillValue:
             actor.tell("You fail to pick the lock.")
+            if actor.hidden:
+                stealth.risky_action(actor, searcher_bonus=stealth.PICK_LOCK_FUMBLE_SEARCH_BONUS)
             return
         
         self.locked = False
