@@ -65,6 +65,8 @@ class Boxlike(Container):
         self.opened = True
         actor.tell("You opened the %s." % self.name)
         actor.tell_others("{Actor} opened the %s." % self.name)
+        from .. import traps
+        traps.trigger_open(self, actor)
 
     def close(self, actor: Living, item: Item=None) -> None:
         if not self.opened:

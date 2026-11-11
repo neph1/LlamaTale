@@ -1,0 +1,12 @@
+# Automated smoke test script for The Trapped Chest.
+# Run with: python -m tale.smoketest --game stories/trap_chest --script stories/trap_chest/smoke_test.txt
+# One command per line; blank lines and lines starting with '#' are ignored.
+# The first lines answer the character creation dialog.
+adventurer
+m
+y
+# look around, then spring the trap on the chest
+look
+open chest
+# searching reveals the (now sprung) trap's extra description
+examine chest

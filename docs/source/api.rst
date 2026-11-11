@@ -82,6 +82,11 @@ Tale API
 .. automodule:: tale.story
     :members:
 
+:mod:`tale.traps` --- Trap system (attach traps to any MudObject, JSON trap dicts for LLM world-building)
+------------------------------------------------------------------------------------------------------------
+.. automodule:: tale.traps
+    :members:
+
 :mod:`tale.util` --- Generic utilities
 --------------------------------------
 .. automodule:: tale.util
