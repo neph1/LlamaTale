@@ -6,16 +6,20 @@ import json
 import unittest
 from unittest import mock
 
-from tale import mud_context, pubsub, traps
+from tale import mud_context, pubsub, traps, util
 from tale.base import Location, Exit, Item, Living, Container, Door, ParseResult
+from tale.cmds import normal
 from tale.demo.story import Story as DemoStory
 from tale.errors import ActionRefused
 from tale.items.basic import Boxlike
+from tale.llm.dynamic_story import DynamicStory
+from tale.llm.llm_utils import LlmUtil
 from tale.load_items import load_item
 from tale.parse_utils import location_from_json
+from tale.player import Player
 from tale.skills.skills import SkillType, Skills
 from tale.traps import Trap, TrapItem, TrapState, TrapTrigger, TrapOutcome
-from tests.supportstuff import FakeDriver
+from tests.supportstuff import FakeDriver, FakeIoUtil
 
 
 class TestTrapBasics(unittest.TestCase):
@@ -421,3 +425,78 @@ class TestTrapItemAndLoading(unittest.TestCase):
         self.assertEqual(trap.effect_params, {"spell": "BOLT", "spell_level": 3})
         self.assertEqual(trap.owner, "wizard")
         self.assertEqual(trap.llm_hint, "hint")
+
+
+class TestChestTrapScenario(unittest.TestCase):
+    """Scenario: a single room with a chest rigged with a trap that springs when opened."""
+
+    def setUp(self):
+        mud_context.driver = FakeDriver()
+        mud_context.config = DemoStory().config
+        mud_context.resources = mud_context.driver.resources
+        self.io_util = FakeIoUtil(response=[])
+        self.io_util.stream = False
+        self.llm_util = LlmUtil(self.io_util)
+        self.story = DynamicStory()
+        self.llm_util.set_story(self.story)
+        mud_context.driver.llm_util = self.llm_util
+        mud_context.driver.story = self.story
+        self.room = Location("Vault", "A small stone vault.")
+        self.player = Player("player", "m")
+        self.room.insert(self.player, None)
+        self.chest = Boxlike("chest", "oak chest", descr="A sturdy oak chest with iron bands.")
+        self.room.insert(self.chest, None)
+        traps.attach(self.chest, {
+            "level": 3, "trigger": "OPEN", "effect": "DAMAGE", "hidden": True,
+            "descr": "A poison needle is hidden in the lock.",
+            "llm_hint": "The needle is meant to wound, not kill.",
+            "effect_hint": "On full effect the needle sinks in deep. On partial it only scratches.",
+        })
+        self.ctx = util.Context.from_global()
+
+    def _open_chest(self):
+        normal.do_open(self.player, ParseResult(verb="open", args=["chest"]), self.ctx)
+
+    def test_opening_trapped_chest_springs_trap(self):
+        hp_before = self.player.stats.hp
+        with mock.patch("tale.traps.dodge_roll", return_value=-5), \
+             mock.patch("tale.traps.random.randint", return_value=3):  # damage roll
+            self._open_chest()
+        self.assertTrue(self.chest.opened)
+        self.assertEqual(traps.get(self.chest).state, TrapState.SPRUNG)
+        self.assertEqual(self.player.stats.hp, hp_before - 3)
+
+    def test_clean_dodge_opening_chest_leaves_trap_armed(self):
+        hp_before = self.player.stats.hp
+        with mock.patch("tale.traps.dodge_roll", return_value=50):
+            self._open_chest()
+        self.assertTrue(self.chest.opened)
+        self.assertEqual(self.player.stats.hp, hp_before)  # unharmed
+        self.assertEqual(traps.get(self.chest).state, TrapState.ARMED)  # still dangerous
+
+    def test_search_then_disarm_then_open_is_safe(self):
+        self.player.stats.skills.set(SkillType.SEARCH, 100)
+        with mock.patch("tale.traps.random.randint", return_value=50):  # search roll succeeds
+            self.player.search_hidden()
+        self.assertEqual(traps.get(self.chest).state, TrapState.REVEALED)
+        self.assertIn("trap", self.chest.extra_desc)
+        self.player.stats.skills.set(SkillType.DISARM_TRAP, 100)
+        with mock.patch("tale.traps.random.randint", return_value=50):  # disarm roll succeeds
+            result = traps.disarm(self.chest, self.player, self.ctx)
+        self.assertEqual(result, "disarmed")
+        hp_before = self.player.stats.hp
+        self._open_chest()  # no mock: even a full hit would change hp, a disarmed trap must not fire
+        self.assertEqual(self.player.stats.hp, hp_before)
+        self.assertEqual(traps.get(self.chest).state, TrapState.DISARMED)
+
+    def test_trap_json_block_on_chest_dict(self):
+        coffer = load_item({"name": "coffer", "type": "Boxlike",
+                            "trap": {"level": 3, "trigger": "OPEN", "effect": "DAMAGE"}})
+        self.assertEqual(traps.get(coffer).trigger, TrapTrigger.OPEN)
+        self.room.insert(coffer, None)
+        hp_before = self.player.stats.hp
+        with mock.patch("tale.traps.dodge_roll", return_value=-5), \
+             mock.patch("tale.traps.random.randint", return_value=2):
+            normal.do_open(self.player, ParseResult(verb="open", args=["coffer"]), self.ctx)
+        self.assertEqual(self.player.stats.hp, hp_before - 2)
+        self.assertEqual(traps.get(coffer).state, TrapState.SPRUNG)
