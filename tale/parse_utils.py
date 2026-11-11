@@ -34,9 +34,17 @@ def load_json(file_path: str):
         return json.load(f, strict=False)
 
 
+def _maybe_attach_trap(mudobj, data: dict):
+    """ Attaches a trap from a "trap": {...} block if present. Rejects malformed traps. """
+    trap_data = data.get('trap')
+    if trap_data:
+        from tale.traps import attach, trap_from_dict
+        attach(mudobj, trap_from_dict(trap_data, obj=mudobj))
+
 def location_from_json(json_object: dict):
     location = Location(name=json_object['name'], descr=json_object.get('descr', ''))
     location.built = json_object.get('built', True)
+    _maybe_attach_trap(location, json_object)
     return location
 
 def load_npcs(json_npcs: list, locations: list[Location] = [], world_items = [], parse_occupation = False) -> dict:
@@ -343,6 +351,7 @@ def parse_generated_exits(exits: list, exit_location_name: str, location: Locati
             neighbor = neighbor_locations[direction] # type: Location
             new_exit = Exit(directions=[neighbor.name, direction], target_location=neighbor, short_descr= f'To the {direction} you see {neighbor.name}.')
             connect_location_to_exit(neighbor, location, new_exit)
+            _maybe_attach_trap(new_exit, exit)
             new_exits.append(new_exit)
         elif exit['name'] != exit_location_name:
             # create location
@@ -373,6 +382,7 @@ def parse_generated_exits(exits: list, exit_location_name: str, location: Locati
                             target_location=new_location, 
                             short_descr=to_description, 
                             enter_msg=exit.get('enter_msg', ''))
+            _maybe_attach_trap(exit_to, exit)
             new_exits.append(exit_to)
             new_locations.append(new_location)
                 

@@ -45,6 +45,8 @@ def load_item(item: dict):
         new_item = _init_boxlike(item)
     elif item_type == 'Wearable':
         new_item = _init_wearable(item)
+    elif item_type == 'Trap' or item_type == 'TrapItem':
+        new_item = _init_trap(item)
     else:
         module = sys.modules['tale.items.basic']
         try:
@@ -57,6 +59,11 @@ def load_item(item: dict):
         new_item = clazz(name=item['name'], title=item.get('title', item['name']), descr=item.get('descr', ''), short_descr=item.get('short_descr', ''))
         if isinstance(new_item, Note):
             set_note(new_item, item)
+    trap_data = item.get('trap')
+    if trap_data:
+        # a "trap": {...} block attaches a trap to any item (validated, rejects malformed traps)
+        from tale.traps import attach, trap_from_dict
+        attach(new_item, trap_from_dict(trap_data, obj=new_item))
     return new_item
 
 def _init_money(item: dict):
@@ -99,6 +106,15 @@ def _init_drink(item: dict):
 
 def _init_boxlike(item: dict):
     return Boxlike(name=item['name'],
+                    title=item.get('title', item['name']),
+                    short_descr=item.get('short_descr', ''),
+                    descr=item.get('descr', ''),
+                    weight=item.get('weight', 1),
+                    value=item.get('value', 1))
+
+def _init_trap(item: dict):
+    from tale.traps import TrapItem
+    return TrapItem(name=item['name'],
                     title=item.get('title', item['name']),
                     short_descr=item.get('short_descr', ''),
                     descr=item.get('descr', ''),

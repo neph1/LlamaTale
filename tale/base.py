@@ -437,7 +437,8 @@ class MudObject:
 
     def handle_verb(self, parsed: ParseResult, actor: 'Living') -> bool:
         """Handle a custom verb (specified in the verbs dict). Return True if handled, False if not handled."""
-        return False
+        from . import traps
+        return traps.handle_touch(self, parsed, actor)
 
     def notify_action(self, parsed: ParseResult, actor: 'Living') -> None:
         """
@@ -545,7 +546,8 @@ class Item(MudObject):
 
     def notify_moved(self, source_container: ContainingType, target_container: ContainingType, actor: Optional['Living']) -> None:
         """Called when the item has been moved from one place to another"""
-        pass
+        from . import traps
+        traps.trigger_move(self, actor)
 
     def allow_item_move(self, actor: Optional['Living'], verb: str="move") -> None:
         """Does the item allow to be moved (picked up, given away) by someone? (yes; no ActionRefused is raised)"""
@@ -898,7 +900,9 @@ class Location(MudObject):
         """
         # @todo this code cannot deal with yields directly but you can raise AsyncDialog exception,
         # that indicates to the driver that it should initiate the given async dialog when continuing.
-        handled = any(living._handle_verb_base(parsed, actor) for living in self.livings)
+        handled = super().handle_verb(parsed, actor)
+        if not handled:
+            handled = any(living._handle_verb_base(parsed, actor) for living in self.livings)
         if not handled:
             handled = any(item.handle_verb(parsed, actor) for item in self.items)
             if not handled:
@@ -944,7 +948,8 @@ class Location(MudObject):
         If you need that, you should create a pubsub topic event, where the correct
         objects are listening on.
         """
-        pass
+        from . import traps
+        traps.trigger_enter(self, npc)
 
     def notify_npc_left(self, npc: 'Living', target_location: 'Location') -> None:
         """
@@ -970,7 +975,8 @@ class Location(MudObject):
         If you need that, you should create a pubsub topic event, where the correct
         objects are listening on.
         """
-        pass
+        from . import traps
+        traps.trigger_enter(self, player)
 
     def notify_player_left(self, player, target_location: 'Location') -> None:
         """
@@ -1554,7 +1560,7 @@ class Living(MudObject):
 
     def handle_verb(self, parsed: ParseResult, actor: 'Living') -> bool:
         """Handle a custom verb (specified in the verbs dict). Return True if handled, False if not handled."""
-        return False
+        return super().handle_verb(parsed, actor)
 
     def _notify_action_all(self, parsed: ParseResult, actor: 'Living') -> None:
         """
@@ -1576,7 +1582,8 @@ class Living(MudObject):
             if actor is self or parsed.verb in self.verbs:
                 return  # avoid reacting to ourselves, or reacting to verbs we already have a handler for
         """
-        pass
+        from . import traps
+        traps.tick_restrain(self)
 
     def look(self, short: Optional[bool]=None) -> None:
         """look around in your surroundings. Dummy for base livings (they don't perform 'look' nor react to it)."""
@@ -1717,8 +1724,15 @@ class Living(MudObject):
             self.stats.action_points -= 1
             self.location.tell("%s searches for something." % (self.title), exclude_living=self)
 
-        if len(self.location.livings) == 1:
+        from . import traps
+        found_traps = traps.search_reveal(self, silent=silent)
+        for trapped_obj in found_traps:
+            self.tell("You discover a hidden trap!", evoke=True)
             if not silent:
+                self.location.tell("%s discovers a hidden trap!" % self.title, exclude_living=self, evoke=True, short_len=True)
+
+        if len(self.location.livings) == 1:
+            if not silent and not found_traps:
                 self.tell("You don't find anything.")
             return
         
@@ -2013,6 +2027,8 @@ class Door(Exit):
             if self.linked_door:
                 self.linked_door.opened = True
                 self.target.tell("The %s is opened from the other side." % self.linked_door.name, evoke=False, short_len=True)
+            from . import traps
+            traps.trigger_open(self, actor)
 
     def close(self, actor: Living, item: Item=None) -> None:
         """Close the door with optional item. Notifies actor and room of this event."""

@@ -1849,6 +1849,26 @@ def do_search_hidden(player: Player, parsed: base.ParseResult, ctx: util.Context
 
     player.search_hidden()
     
+@cmd("disarm")
+def do_disarm(player: Player, parsed: base.ParseResult, ctx: util.Context) -> None:
+    """Disarm a trap you have discovered."""
+    from tale import traps
+    if len(parsed.args) < 1:
+        raise ParseError("Disarm what?")
+    name = str(parsed.args[0])
+    if name in ("room", "here", "floor", "ground"):
+        target = player.location
+    else:
+        target = player.search_item(name)
+        if target is None:
+            for direction, exit in player.location.exits.items():
+                if name == direction or name == exit.name or name in exit.aliases:
+                    target = exit
+                    break
+    if target is None:
+        raise ActionRefused("You don't see that here.")
+    traps.disarm(target, player, ctx)
+
 @cmd("pick_lock")
 def do_pick_lock(player: Player, parsed: base.ParseResult, ctx: util.Context) -> None:
     """Pick a lock on a door."""
