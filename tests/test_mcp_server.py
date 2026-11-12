@@ -733,7 +733,11 @@ class TestProgressionTools():
         mcp = create_server(mgr)
         mgr.set_story_context("Base plot")
         call_tool(mcp, "advance_story_section", {"section": "The beginning"})
-        assert mgr.story.config.context.current_section == "The beginning"
+        context = mgr.story.config.context
+        assert context.active_beat().description == "The beginning"
+        state = mgr.get_story_state()
+        assert state["current_section"] == "The beginning"
+        assert state["beats"] == [{"id": "beat-0", "description": "The beginning", "status": "active"}]
 
     def test_set_start_location(self):
         mgr = make_manager()

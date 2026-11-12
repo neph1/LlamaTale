@@ -303,9 +303,10 @@ def create_server(manager: StoryManager, port: int = DEFAULT_MCP_PORT) -> FastMC
 
     @mcp.tool()
     def get_story_state() -> dict:
-        """Return the story's narrative state: story (context string with past
-        sections), current_section, past_sections, progress, length, name, type,
-        world_info, world_mood."""
+        """Return the story's narrative state: story (context string rendered from
+        beats), beats (id, description, status per beat), progress, length, name,
+        type, world_info, world_mood. current_section and past_sections are derived
+        from the beats (active/completed descriptions) and deprecated."""
         return manager.get_story_state()
 
     @mcp.tool()
@@ -341,8 +342,9 @@ def create_server(manager: StoryManager, port: int = DEFAULT_MCP_PORT) -> FastMC
     @mcp.tool()
     def advance_story_section(section: str) -> None:
         """
-        Sets the current section or focus for the story.
-        Functions as a "grounding" for generated content.
+        Advance the story. For authored beats this moves the pointer to the
+        next beat; for generated stories the section text becomes the new
+        active beat. Functions as a "grounding" for generated content.
         """
         manager.advance_story_section(section)
 

@@ -335,7 +335,9 @@ class TestStoryProgression():
         mgr = StoryManager(make_story())
         mgr.set_story_context("Base plot")
         mgr.advance_story_section("The beginning")
-        assert mgr.story.config.context.current_section == "The beginning"
+        context = mgr.story.config.context
+        assert context.active_beat().description == "The beginning"
+        assert context.active_beat().id == "beat-0"
 
     def test_set_start_location(self):
         mgr = StoryManager(make_story())
@@ -656,13 +658,15 @@ class TestLiveState():
         story.config.world_info = "A world of magic"
         story.config.world_mood = 3
         story.config.context = StoryContext("Base plot")
-        story.config.context.set_current_section("The beginning")
+        story.config.context.add_beat("The beginning")
         state = mgr.get_story_state()
         assert state["name"] == "Test Story"
         assert state["type"] == "A fantasy adventure"
         assert state["world_info"] == "A world of magic"
         assert state["world_mood"] == 3
         assert state["current_section"] == "The beginning"
+        assert state["past_sections"] == []
+        assert state["beats"] == [{"id": "beat-0", "description": "The beginning", "status": "active"}]
         assert state["progress"] == 0.0
         assert "Base plot" in state["story"]
 

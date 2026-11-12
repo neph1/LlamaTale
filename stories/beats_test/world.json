@@ -1,0 +1,43 @@
+{
+    "story": {
+        "name": "Beats Test Story"
+    },
+    "zones": {
+        "test_zone": {
+            "description": "A tiny test zone",
+            "level": 1,
+            "mood": 0,
+            "races": [],
+            "items": [],
+            "size": 1,
+            "center": [
+                0,
+                0,
+                0
+            ],
+            "name": "test_zone",
+            "locations": [
+                {
+                    "name": "Start room",
+                    "descr": "A plain room used for testing.",
+                    "short_descr": "A plain room",
+                    "exits": [],
+                    "world_location": [
+                        0,
+                        0,
+                        0
+                    ],
+                    "items": []
+                }
+            ]
+        }
+    },
+    "world": {
+        "npcs": [],
+        "items": []
+    },
+    "catalogue": {
+        "items": [],
+        "creatures": []
+    }
+}
