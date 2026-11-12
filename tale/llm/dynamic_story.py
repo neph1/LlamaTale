@@ -112,8 +112,6 @@ class DynamicStory(StoryBase):
             self.random_events = RandomEvent(driver.llm_util, driver.all_players.values())
 
         load_authored_beats(self.config)
-        if isinstance(self.config.context, StoryContext):
-            driver.register_periodicals(self.config.context)
 
     def get_zone(self, name: str) -> Zone:
         """ Find a zone by name."""

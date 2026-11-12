@@ -1,13 +1,13 @@
 """
 Tests for the scenario beat data model (tale/scenario.py) and for a story
-with authored beats (stories/beats_test) driven by the TIMER tick method.
+with authored beats (stories/beats_test), advanced via StoryContext.set_beat
+(the !set_beat wizard command).
 """
 import json
 
 import pytest
 
 import tale.parse_utils as parse_utils
-from tale import util
 from tale.json_story import JsonStory
 from tale.scenario import Beat, BeatStatus, load_beats
 from tale.story_context import StoryContext
@@ -85,9 +85,9 @@ class TestBeatsStoryConfig:
 
 
 class TestBeatsStory:
-    """The TIMER tick test story with three authored beats: the beat pointer
-    walks 0 -> 2 as progress crosses the L/N boundaries, to_context shows the
-    active beat description, and a save contains the beat statuses."""
+    """The test story with three authored beats: the beat pointer walks
+    0 -> 2 via set_beat, to_context shows the active beat description,
+    and a save contains the beat statuses."""
 
     def _load_story(self) -> JsonStory:
         driver = FakeDriver()
@@ -107,27 +107,23 @@ class TestBeatsStory:
     def test_pointer_walks_through_all_beats(self):
         story = self._load_story()
         context = story.config.context
-        ctx = util.Context(driver=FakeDriver(), clock=None, config=None, player_connection=None)
-        # 3 authored beats over length 10: boundaries at progress 10/3 and 20/3
-        seen = [context.active_beat().id]
-        for _ in range(10):
-            context.increase_progress(ctx)
-            seen.append(context.active_beat().id)
-        assert seen == ["arrival", "arrival", "arrival", "arrival",
-                        "suspicion", "suspicion", "suspicion",
-                        "descent", "descent", "descent", "descent"]
-        # exhaustion: at progress == length the last beat stays ACTIVE
-        assert context.progress == 10.0
+        assert context.active_beat().id == "arrival"
+        context.set_beat("suspicion")
+        assert context.active_beat().id == "suspicion"
+        assert context.beats[0].status == BeatStatus.COMPLETED
+        context.set_beat("descent")
+        assert context.active_beat().id == "descent"
         assert [beat.status for beat in context.beats] == [BeatStatus.COMPLETED, BeatStatus.COMPLETED, BeatStatus.ACTIVE]
         assert "Active beat: The cellar holds the answer." in context.to_context()
         assert "The investigators arrive at the boarding house." in context.to_context_with_past()
+        # an unknown id leaves the state unchanged
+        assert context.set_beat("nope") is None
+        assert context.active_beat().id == "descent"
 
     def test_save_contains_beat_statuses(self, tmp_path):
         story = self._load_story()
         context = story.config.context
-        ctx = util.Context(driver=FakeDriver(), clock=None, config=None, player_connection=None)
-        for _ in range(4):
-            context.increase_progress(ctx)   # crosses the first beat boundary (10/3)
+        context.set_beat("suspicion")
         assert context.active_beat().id == "suspicion"
         story.save(str(tmp_path), allow_absolute=True)
         saved = json.load(open(tmp_path / 'story_config.json'))
@@ -143,14 +139,11 @@ class TestBeatsStory:
         story = self._load_story()
         mgr = StoryManager(story)
         context = story.config.context
-        ctx = util.Context(driver=FakeDriver(), clock=None, config=None, player_connection=None)
-        for _ in range(4):
-            context.increase_progress(ctx)
+        context.set_beat("suspicion")
         assert context.active_beat().id == "suspicion"
         mgr.save(str(tmp_path))
         # advance further, then load the save again: runtime beat state is restored
-        for _ in range(3):
-            context.increase_progress(ctx)
+        context.set_beat("descent")
         assert context.active_beat().id == "descent"
         mgr.load(str(tmp_path))
         context = mgr.story.config.context

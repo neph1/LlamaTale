@@ -105,8 +105,8 @@ class TestPrancingLlamaSmokeTest(unittest.TestCase):
 
 
 class TestBeatsStorySmokeTest(unittest.TestCase):
-    """Run the beats_test story (TIMER tick, authored beats) end-to-end with the dummy
-    backend: the timer-driven beat progression must not crash the driver."""
+    """Run the beats_test story (authored beats, advanced with the !set_beat wizard
+    command) end-to-end with the dummy backend: it must not crash the driver."""
 
     def test_beats_story_smoke_test(self):
         repo_root = pathlib.Path(__file__).parent.parent.resolve()

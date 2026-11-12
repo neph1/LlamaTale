@@ -1,8 +1,6 @@
-import math
 from typing import List, Optional
 
 from tale.scenario import Beat, BeatStatus, validate_beats
-from tale.util import Context, call_periodically
 
 
 class StoryContext:
@@ -52,6 +50,18 @@ class StoryContext:
         nxt.status = BeatStatus.ACTIVE
         return nxt
 
+    def set_beat(self, beat_id: str) -> Optional[Beat]:
+        """Activate the beat with the given id; the previously ACTIVE beat
+        becomes COMPLETED. Returns the beat, or None if the id is unknown."""
+        beat = next((b for b in self.beats if b.id == beat_id), None)
+        if beat is None:
+            return None
+        active = self.active_beat()
+        if active is not None and active is not beat:
+            active.status = BeatStatus.COMPLETED
+        beat.status = BeatStatus.ACTIVE
+        return beat
+
     def add_beat(self, description: str) -> Beat:
         """Generated stories: complete the ACTIVE beat and append a new ACTIVE
         beat with a generated id "beat-{n}". Returns the new beat."""
@@ -64,29 +74,6 @@ class StoryContext:
         beat = Beat(id="beat-%d" % len(self.beats), description=description, status=BeatStatus.ACTIVE)
         self.beats.append(beat)
         return beat
-
-    # -- progression ---------------------------------------------------------
-
-    @call_periodically(10, 20)
-    def increase_progress(self, ctx: Context) -> bool:
-        """ increase the progress by the given amount, return True if a beat boundary was crossed """
-        print("Increasing progress")
-        start_progress = self.progress
-        self.progress += self.speed
-        if self.progress >= self.length:
-            self.progress = self.length
-        if self._beat_boundary_crossed(start_progress):
-            ctx.driver.llm_util.advance_story_section(self)
-            return True
-        return False
-
-    def _beat_boundary_crossed(self, start_progress: float) -> bool:
-        """Authored beats span length/len(beats) progress each; generated
-        stories advance one beat per integer progress crossing."""
-        if self.authored and self.beats:
-            span = self.length / len(self.beats)
-            return math.floor(self.progress / span) > math.floor(start_progress / span)
-        return math.floor(start_progress) != math.floor(self.progress)
 
     # -- rendering -----------------------------------------------------------
 

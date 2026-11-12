@@ -1,4 +1,4 @@
-# Automated smoke test script for the beats test story (TIMER tick, authored beats).
+# Automated smoke test script for the beats test story (authored beats).
 # Run with: python -m tale.smoketest --game stories/beats_test --script stories/beats_test/smoke_test.txt
 # One command per line; blank lines and lines starting with '#' are ignored.
 # The first lines answer the character creation dialog.
@@ -6,14 +6,11 @@ smokey
 m
 y
 smith
-# the timer tick advances the story through its authored beats while we play
+# walk the story through its authored beats with the wizard command
+!set_beat suspicion
+!set_beat descent
 look
 exits
 inventory
-wait
-wait
-wait
-wait
-look
 quit
 y

@@ -5,6 +5,7 @@ from tale import parse_utils
 from tale.driver import Driver
 from tale.json_story import JsonStory
 from tale.main import run_from_cmdline
+from tale.player import Player
 
 
 class Story(JsonStory):
@@ -16,6 +17,10 @@ class Story(JsonStory):
 
     def init(self, driver: Driver) -> None:
         super(Story, self).init(driver)
+
+    def init_player(self, player: Player) -> None:
+        # test story: the (single) player may use wizard commands such as !set_beat
+        player.privileges.add("wizard")
 
 
 if __name__ == "__main__":
