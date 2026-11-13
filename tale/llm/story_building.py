@@ -23,10 +23,18 @@ class StoryBuilding():
         return self.io_util.synchronous_request(request_body, prompt=prompt)
     
     def advance_story_section(self, story_context: StoryContext) -> str:
+        beat = story_context.advance_to_next_beat()
+        if beat is not None:
+            # authored beats: move the pointer to the next beat
+            return beat.description
+        if story_context.authored:
+            # authored story exhausted: the last beat stays ACTIVE
+            active = story_context.active_beat()
+            return active.description if active else ""
         context = AdvanceStoryContext(story_context)
         prompt = llm_config.params['ADVANCE_STORY_PROMPT'].format(context=context.to_prompt_string())
         request_body = self.default_body
         result = self.io_util.synchronous_request(request_body, prompt=prompt)
-        story_context.set_current_section(result)
+        story_context.add_beat(result)
         return result
     

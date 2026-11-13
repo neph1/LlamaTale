@@ -773,4 +773,5 @@ class TestStoryBuilding():
         result = self.llm_util._story_building.advance_story_section(self.story.config.context)
 
         assert(result == 'Chapter 2')
-        assert(self.story.config.context.current_section == 'Chapter 2')
+        assert(self.story.config.context.active_beat().description == 'Chapter 2')
+        assert(self.story.config.context.active_beat().id == 'beat-0')

@@ -104,5 +104,25 @@ class TestPrancingLlamaSmokeTest(unittest.TestCase):
         self.assertIn("SMOKE TEST OK", result.stdout)
 
 
+class TestBeatsStorySmokeTest(unittest.TestCase):
+    """Run the beats_test story (authored beats, advanced with the !set_beat wizard
+    command) end-to-end with the dummy backend: it must not crash the driver."""
+
+    def test_beats_story_smoke_test(self):
+        repo_root = pathlib.Path(__file__).parent.parent.resolve()
+        game = repo_root / "stories" / "beats_test"
+        script = game / "smoke_test.txt"
+        self.assertTrue(script.exists(), "smoke script missing: %s" % script)
+        with tempfile.TemporaryDirectory() as tmp:
+            env = dict(os.environ, PYTHONPATH=str(repo_root) + os.pathsep + os.environ.get("PYTHONPATH", ""))
+            result = subprocess.run(
+                [sys.executable, "-m", "tale.smoketest",
+                 "--game", str(game), "--script", str(script), "--timeout", "90"],
+                cwd=tmp, env=env, capture_output=True, text=True, timeout=600)
+        self.assertEqual(0, result.returncode,
+                         msg="smoke test failed.\nstdout:\n%s\nstderr:\n%s" % (result.stdout, result.stderr))
+        self.assertIn("SMOKE TEST OK", result.stdout)
+
+
 if __name__ == '__main__':
     unittest.main()

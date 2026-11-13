@@ -28,6 +28,7 @@ from .. import base, lang, util, pubsub, races, __version__
 from ..errors import ParseError, ActionRefused, NonSoulVerb, SecurityViolation, TaleError, TaleFlowControlException
 from ..player import Player
 from ..story import *
+from ..story_context import StoryContext
 
 
 def lookup_module_path(path: str) -> ModuleType:
@@ -991,3 +992,20 @@ def do_save(player: Player, parsed: base.ParseResult, ctx: util.Context) -> None
             raise ActionRefused(str(x))
     else:
         raise ActionRefused("Not a dynamic story")
+
+
+@wizcmd("set_beat")
+def do_set_beat(player: Player, parsed: base.ParseResult, ctx: util.Context) -> None:
+    """Set the active story beat by id. The previously active beat is marked completed.
+    Usage: !set_beat <beat id>"""
+    beat_id = parsed.unparsed.strip()
+    if not beat_id:
+        raise ParseError("Set which beat? Usage: !set_beat <beat id>")
+    story = ctx.driver.story
+    context = story.config.context if story else None
+    if not isinstance(context, StoryContext):
+        raise ActionRefused("This story has no beat-based story context")
+    beat = context.set_beat(beat_id)
+    if beat is None:
+        raise ActionRefused("No beat with id '%s'. Known beats: %s" % (beat_id, ", ".join(b.id for b in context.beats) or "none"))
+    player.tell("Active beat is now '%s': %s" % (beat.id, beat.description))

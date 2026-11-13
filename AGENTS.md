@@ -144,17 +144,22 @@ Story configuration and base classes.
 - `TickMethod`: Enum (COMMAND, TIMER)
 - `MoneyType`: Enum (FANTASY, MODERN, NOTHING)
 
+### tale/scenario.py
+Beat data model for story progression.
+- `BeatStatus`: IntEnum (LOCKED/ACTIVE/COMPLETED/FAILED), `str()` gives the lowercase name.
+- `Beat`: A single story beat: `id`, `description` (the string that enters the LLM context while active), `status`; `to_json()`/`from_json()` serialization.
+- `load_beats()`/`validate_beats()`: load and validate authored beats from JSON (unique, non-empty ids; description required).
+
 ### tale/story_context.py
 Story progression and narrative structure.
-- `StoryContext`: Manages story sections and progress.
+- `StoryContext`: Manages story beats and progress.
   - `base_story`: Base plot description
-  - `current_section`: Active story section
-  - `past_sections`: List of completed sections
-  - `progress`: Float tracking advancement (0.0 to length)
-  - `increase_progress()`: Periodically called method to advance story
-  - `to_context()`, `to_context_with_past()`: Generate LLM context strings
-  - `from_json()`, `to_json()`: Serialization for save games
-  - Decorated with `@call_periodically(10, 20)` for automatic progress updates
+  - `beats`: List of `Beat` objects; one ACTIVE beat, the rest LOCKED/COMPLETED
+  - `authored`: True when the beats come from the story config, False when generated on the fly
+  - `progress`: Float tracking advancement (0.0 to length); not increased automatically anymore
+  - `set_beat(id)`: Activate the beat with the given id (used by the `!set_beat` wizard command); the previously active beat becomes COMPLETED
+  - `to_context()`, `to_context_with_past()`: Generate LLM context strings from the active/completed beats
+  - `from_json()`, `to_json()`: Serialization for save games (old saves with current_section/past_sections are migrated to beats)
 
 ## Story Configuration
 
@@ -175,11 +180,10 @@ class MyStory(StoryBase):
 
 ## Story Progression
 
-Stories can have sections that progress over time:
-- `StoryContext` tracks which section is active
-- Progress advances automatically (COMMAND or TIMER tick method)
-- When progress crosses integer thresholds, LLM advances to next section
-- Past sections are preserved for context
+Stories progress through beats:
+- `StoryContext` tracks which beat is active (see `tale/scenario.py`)
+- Stories with authored beats (`"beats"` key in story_config.json) are advanced by hand with the wizard command `!set_beat <beat id>` (no automatic time-based progress)
+- Completed beats are preserved for context
 
 ## Example
 

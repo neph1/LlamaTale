@@ -5,7 +5,9 @@ import pytest
 import tale
 from tale.base import Item, Location, ParseResult, Weapon
 from tale.cmds import wizard, wizcmd
-from tale.errors import ParseError
+from tale.errors import ActionRefused, ParseError
+from tale.scenario import Beat, BeatStatus
+from tale.story_context import StoryContext
 from tale.items.basic import Food
 from tale.llm.LivingNpc import LivingNpc
 from tale.llm.dynamic_story import DynamicStory
@@ -314,3 +316,54 @@ class TestSetRpPrompt():
         deferred = context.driver.deferreds[0] # type: tale.driver.Deferred
         assert deferred is not None
         deferred.due_gametime
+
+
+
+
+class TestSetBeatCommand():
+
+    test_player = Player('test', 'f')
+    test_player.privileges.add('wizard')
+
+    def _beat_story_context(self):
+        context = tale._MudContext()
+        context.config = StoryConfig()
+        story = DynamicStory()
+        context.driver = FakeDriver()
+        context.driver.story = story
+        story.config.context = StoryContext("A test story")
+        story.config.context.set_beats([Beat("one", "First"), Beat("two", "Second"), Beat("three", "Third")])
+        return context, story
+
+    def test_set_beat(self):
+        context, story = self._beat_story_context()
+        parse_result = ParseResult(verb='set_beat', args=['two'], unparsed='two')
+        wizard.do_set_beat(self.test_player, parse_result, context)
+        story_context = story.config.context
+        assert story_context.active_beat().id == 'two'
+        assert story_context.beats[0].status == BeatStatus.COMPLETED
+        assert story_context.beats[1].status == BeatStatus.ACTIVE
+
+    def test_set_beat_no_args(self):
+        context, story = self._beat_story_context()
+        parse_result = ParseResult(verb='set_beat', args=[], unparsed='')
+        with pytest.raises(ParseError, match="Set which beat?"):
+            wizard.do_set_beat(self.test_player, parse_result, context)
+
+    def test_set_beat_unknown_id(self):
+        context, story = self._beat_story_context()
+        parse_result = ParseResult(verb='set_beat', args=['nope'], unparsed='nope')
+        with pytest.raises(ActionRefused, match="No beat with id 'nope'"):
+            wizard.do_set_beat(self.test_player, parse_result, context)
+        assert story.config.context.active_beat().id == 'one'
+
+    def test_set_beat_no_story_context(self):
+        context = tale._MudContext()
+        context.config = StoryConfig()
+        story = DynamicStory()
+        context.driver = FakeDriver()
+        context.driver.story = story
+        story.config.context = "just a base story string"
+        parse_result = ParseResult(verb='set_beat', args=['one'], unparsed='one')
+        with pytest.raises(ActionRefused, match="no beat-based story context"):
+            wizard.do_set_beat(self.test_player, parse_result, context)
