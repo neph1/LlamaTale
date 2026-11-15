@@ -14,6 +14,9 @@ Usage:
 
 Script format: one command per line; blank lines and lines starting with '#'
 are ignored. The first lines usually answer the character creation dialog.
+Two assertion directives are supported: '# expect: <text>' and
+'# expect-not: <text>' check the output produced by the immediately preceding
+command line (the run fails if the expectation does not hold).
 
 'Tale' mud driver, mudlib and interactive fiction framework
 Copyright by Irmen de Jong (irmen@razorvine.net)
@@ -21,10 +24,11 @@ Copyright by Irmen de Jong (irmen@razorvine.net)
 import argparse
 import logging
 import os
+import random
 import sys
 import threading
 import time
-from typing import Callable, List, Optional, Sequence
+from typing import Callable, List, Optional, Sequence, Tuple, Union
 
 from tale import util
 from tale.driver_if import IFDriver
@@ -39,6 +43,13 @@ class SmokeTestError(Exception):
 
 DEFAULT_TIMEOUT = 30.0
 
+# A script step is either a command line (str) or an assertion directive
+# ("expect", text) / ("expect_not", text) that applies to the preceding command's output.
+ScriptStep = Union[str, Tuple[str, str]]
+
+EXPECT_PREFIX = "# expect:"
+EXPECT_NOT_PREFIX = "# expect-not:"
+
 
 def load_script(path) -> List[str]:
     """Load a smoke test script: one command per line, '#' comments and blank lines skipped."""
@@ -49,6 +60,27 @@ def load_script(path) -> List[str]:
             if line and not line.startswith("#"):
                 lines.append(line)
     return lines
+
+
+def load_steps(path) -> List[ScriptStep]:
+    """Load a smoke test script into steps: command lines plus assertion directives.
+    '# expect: <text>' / '# expect-not: <text>' are checked against the output of the
+    command line they follow; plain '#' lines are comments."""
+    steps = []  # type: List[ScriptStep]
+    with open(path, "r", encoding="utf-8") as f:
+        for line in f:
+            line = line.strip()
+            if not line:
+                continue
+            if line.startswith(EXPECT_NOT_PREFIX):
+                steps.append(("expect_not", line[len(EXPECT_NOT_PREFIX):].strip()))
+            elif line.startswith(EXPECT_PREFIX):
+                steps.append(("expect", line[len(EXPECT_PREFIX):].strip()))
+            elif line.startswith("#"):
+                continue
+            else:
+                steps.append(line)
+    return steps
 
 
 def _crash_log_path() -> str:
@@ -81,13 +113,16 @@ def _check_crash_log(path: str, before: Optional[bytes]) -> None:
 class SmokeTestRunner:
     """Runs a story headless and executes a script of commands, failing on crashes or timeouts."""
 
-    def __init__(self, game_path, script: Sequence[str], *, timeout: float = DEFAULT_TIMEOUT,
-                 canned_responses: Sequence[str] = (), echo: Optional[Callable[[str], None]] = None) -> None:
+    def __init__(self, game_path, script: Sequence[ScriptStep], *, timeout: float = DEFAULT_TIMEOUT,
+                 canned_responses: Sequence[str] = (), echo: Optional[Callable[[str], None]] = None,
+                 wizard: bool = False, seed: Optional[int] = None) -> None:
         self.game_path = str(game_path)
-        self.script = list(script)
+        self.steps = list(script)
         self.timeout = timeout
         self.canned_responses = list(canned_responses)
         self.echo = echo
+        self.wizard = wizard
+        self.seed = seed
         self.driver = None          # type: Optional[IFDriver]
         self.connection = None      # type: Optional[PlayerConnection]
         self._thread = None         # type: Optional[threading.Thread]
@@ -118,7 +153,9 @@ class SmokeTestRunner:
         old_excepthook = sys.excepthook
         # use the dummy backend with canned answers; no real LLM server is needed
         llm_config.params['BACKEND'] = 'dummy'
-        self.driver = IFDriver(screen_delay=0, io_type="scripted")
+        if self.seed is not None:
+            random.seed(self.seed)   # reproducible dice rolls (stealth contests etc.)
+        self.driver = IFDriver(screen_delay=0, io_type="scripted", wizard_override=self.wizard)
         if self.canned_responses:
             io_util = self.driver.llm_util.io_util
             if isinstance(io_util, DummyIoUtil):
@@ -164,12 +201,37 @@ class SmokeTestRunner:
         raise SmokeTestError("timed out waiting for an input prompt from the driver")
 
     def _run_script(self) -> None:
-        for line in self.script:
-            self._send(line)
+        steps = self.steps
+        i = 0
+        while i < len(steps):
+            step = steps[i]
+            if not isinstance(step, str):
+                raise SmokeTestError("assertion directive %r must follow a command line" % (step,))
+            output_lines = self._send(step)
+            i += 1
+            expectations = []  # type: List[Tuple[str, str]]
+            while i < len(steps) and not isinstance(steps[i], str):
+                expectations.append(steps[i])
+                i += 1
+            self._check_expectations(expectations, output_lines, step)
 
-    def _send(self, line: str) -> None:
+    def _check_expectations(self, expectations: List[Tuple[str, str]], output_lines: List[str], command: str) -> None:
+        """Check '# expect:' / '# expect-not:' directives against one command's output."""
+        if not expectations:
+            return
+        text = "\n".join(output_lines)
+        for kind, needle in expectations:
+            if kind == "expect" and needle not in text:
+                raise SmokeTestError("after command %r, expected output to contain %r\nactual output:\n%s"
+                                     % (command, needle, text))
+            if kind == "expect_not" and needle in text:
+                raise SmokeTestError("after command %r, expected output not to contain %r\nactual output:\n%s"
+                                     % (command, needle, text))
+
+    def _send(self, line: str) -> List[str]:
         """Feed one input line and wait until the driver has processed it and is ready
-        for the next input (a new prompt is written) or the game has stopped."""
+        for the next input (a new prompt is written) or the game has stopped.
+        Returns the output lines produced while processing it."""
         conn = self.connection
         player = conn.player
         io = conn.io
@@ -189,8 +251,10 @@ class SmokeTestRunner:
         else:
             raise SmokeTestError("timed out waiting for feedback after command %r" % line)
         with io.cond:
-            for output_line in io.lines[before_lines:]:
-                self._log(output_line)
+            output_lines = list(io.lines[before_lines:])
+        for output_line in output_lines:
+            self._log(output_line)
+        return output_lines
 
     def _stop_driver_thread(self) -> None:
         if self.driver is not None:
@@ -201,10 +265,12 @@ class SmokeTestRunner:
 
 
 def run_smoke_test(game_path, script_path, *, timeout: float = DEFAULT_TIMEOUT,
-                   echo: Optional[Callable[[str], None]] = print) -> str:
+                   echo: Optional[Callable[[str], None]] = print, wizard: bool = False,
+                   seed: Optional[int] = None) -> str:
     """Run a smoke test on the given story with the given command script.
     Returns the game transcript. Raises SmokeTestError on failure."""
-    runner = SmokeTestRunner(game_path, load_script(script_path), timeout=timeout, echo=echo)
+    runner = SmokeTestRunner(game_path, load_steps(script_path), timeout=timeout, echo=echo,
+                             wizard=wizard, seed=seed)
     return runner.run()
 
 
@@ -212,6 +278,7 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
     parser = argparse.ArgumentParser(description="""
         Automated smoke test: start a story with a dummy LLM backend (canned answers),
         execute the commands from the script file (waiting for each one to be processed),
+        check any '# expect:' / '# expect-not:' assertions against each command's output,
         and fail if anything was appended to the crash log (%s) during the run.
         """ % util.CRASH_LOG_FILENAME)
     parser.add_argument('-g', '--game', type=str, required=True, help='path to the story directory')
@@ -219,9 +286,14 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
                         help='path to the script file with commands to execute (one per line)')
     parser.add_argument('-t', '--timeout', type=float, default=DEFAULT_TIMEOUT,
                         help='per-step timeout in seconds (default %(default)s)')
+    parser.add_argument('-w', '--wizard', action='store_true',
+                        help='start the game in wizard mode (enables wizard commands such as set_concealment and perceive)')
+    parser.add_argument('--seed', type=int, default=None,
+                        help='seed the random number generator for reproducible dice rolls')
     args = parser.parse_args(argv)
     try:
-        transcript = run_smoke_test(args.game, args.script, timeout=args.timeout)
+        transcript = run_smoke_test(args.game, args.script, timeout=args.timeout,
+                                    wizard=args.wizard, seed=args.seed)
     except SmokeTestError as x:
         print("SMOKE TEST FAILED: %s" % x, file=sys.stderr)
         return 1

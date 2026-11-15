@@ -144,11 +144,13 @@ class TestExamineCommand():
         assert not test_npc.following
 
     def test_hide(self):
+        # alone in the room: entering the stance is uncontested and costs 1 AP
         self.test_player.stats.skills.set(SkillType.HIDE, 100)
         self.test_player.stats.action_points = 1
         normal.do_hide(self.test_player, ParseResult(verb='hide', args=[]), self.context)
         assert self.test_player.hidden
-        
+        assert self.test_player.stats.action_points == 0
+
         with pytest.raises(ActionRefused, match="You're already hidden. If you want to reveal yourself, use 'unhide'."):
             normal.do_hide(self.test_player, ParseResult(verb='hide', args=[]), self.context)
 
@@ -157,10 +159,13 @@ class TestExamineCommand():
         with pytest.raises(ActionRefused, match="You don't have enough action points to hide."):
             normal.do_hide(self.test_player, ParseResult(verb='hide', args=[]), self.context)
 
-        self.test_player.hidden = False
-
+        # with an observer present the entry is contested: a watcher with
+        # perception 100 always beats a hider with HIDE 0 -> fumble, no stance
         self.test_player.stats.skills.set(SkillType.HIDE, 0)
         self.test_player.stats.action_points = 1
+        watcher = LivingNpc('watcher', 'm')
+        watcher.stats.skills.set(SkillType.PERCEPTION, 100)
+        self.location.insert(watcher, actor=None)
         normal.do_hide(self.test_player, ParseResult(verb='hide', args=[]), self.context)
         assert not self.test_player.hidden
 
@@ -176,18 +181,20 @@ class TestExamineCommand():
 
         test_npc = LivingNpc('test_npc', 'f')
         test_npc.hidden = True
-        test_npc.stats.skills.set(SkillType.HIDE, 100)
+        test_npc.stats.skills.set(SkillType.HIDE, 200)
         location = Location('test_room')
         location.init_inventory([self.test_player, test_npc])
 
-        self.test_player.stats.skills.set(SkillType.SEARCH, 0)
+        # active search contests perception + search bonus vs hide skill:
+        # perception 0 cannot beat HIDE 200 -> not found, stance persists
+        self.test_player.stats.skills.set(SkillType.PERCEPTION, 0)
         self.test_player.stats.action_points = 1
 
         normal.do_search_hidden(self.test_player, ParseResult(verb='search', args=[]), self.context)
 
         assert test_npc.hidden
 
-        self.test_player.stats.skills.set(SkillType.SEARCH, 100)
+        self.test_player.stats.skills.set(SkillType.PERCEPTION, 100)
         test_npc.stats.skills.set(SkillType.HIDE, 0)
         self.test_player.stats.action_points = 1
 

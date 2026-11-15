@@ -675,7 +675,7 @@ class StoryManager:
         """The structured live state of a location (mirrors ActionContext):
         name, description, short_descr, indoors, world_location:[x,y,z],
         exits:{direction: target_name},
-        livings:[{name, short_descr, alive, visible, is_player}],
+        livings:[{name, short_descr, alive, visible, hidden, is_player}],
         items:[{name, look_description, visible}]. Returns an empty dict if the
         location is not found."""
         _zone_obj, location = self._zone_location(zone, name)
@@ -689,6 +689,7 @@ class StoryManager:
                 "short_descr": living.short_description,
                 "alive": living.alive,
                 "visible": living.visible,
+                "hidden": living.hidden,
                 "is_player": living.name in player_names,
             })
         items = []

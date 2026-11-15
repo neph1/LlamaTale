@@ -56,6 +56,7 @@ class LocationSchema(BaseModel):
     items: List[Union[ItemSchema, str]] = Field(default_factory=list)
     npcs: List[Union[NpcSchema, str]] = Field(default_factory=list)
     indoors: bool = False
+    concealment: int = 0  # stealth concealment tier 0-4 (0 open, 4 darkness/dense fog/heavy crowd)
 
     @field_validator('items', mode='before')
     @classmethod

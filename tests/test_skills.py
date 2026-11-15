@@ -12,7 +12,8 @@ class TestSkills():
         expected_json = {
             SkillType.HIDE.value: 5,
             SkillType.SEARCH.value: 3,
-            SkillType.PICK_LOCK.value: 1
+            SkillType.PICK_LOCK.value: 1,
+            SkillType.PERCEPTION.value: 10
         }
 
         assert skills.to_json() == expected_json
@@ -21,7 +22,8 @@ class TestSkills():
         json_data = {
             SkillType.HIDE.value: 5,
             SkillType.SEARCH.value: 3,
-            SkillType.PICK_LOCK.value: 1
+            SkillType.PICK_LOCK.value: 1,
+            SkillType.PERCEPTION.value: 10
         }
 
         expected_skills = Skills()

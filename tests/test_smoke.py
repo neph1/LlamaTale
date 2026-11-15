@@ -17,7 +17,7 @@ import unittest
 
 from tale.llm.llm_io import DummyIoUtil
 from tale.llm.schemas import ActionListSchema, DialogueSchema
-from tale.smoketest import SmokeTestError, _check_crash_log, load_script
+from tale.smoketest import SmokeTestError, _check_crash_log, load_script, load_steps
 
 
 class TestDummyBackend(unittest.TestCase):
@@ -57,6 +57,28 @@ class TestSmokeTestHelpers(unittest.TestCase):
         finally:
             os.unlink(path)
 
+    def test_load_steps_parses_expect_directives(self):
+        with tempfile.NamedTemporaryFile("w", suffix=".txt", delete=False) as f:
+            f.write("# comment\nlook\n# expect: Entrance\n# expect-not: rat\n"
+                    "hide\n# expect: You hide yourself.\nquit\ny\n")
+            path = f.name
+        try:
+            self.assertEqual(
+                ["look", ("expect", "Entrance"), ("expect_not", "rat"),
+                 "hide", ("expect", "You hide yourself."), "quit", "y"],
+                load_steps(path))
+        finally:
+            os.unlink(path)
+
+    def test_load_steps_directive_before_any_command_is_kept_for_runner_to_reject(self):
+        with tempfile.NamedTemporaryFile("w", suffix=".txt", delete=False) as f:
+            f.write("# expect: nope\nlook\n")
+            path = f.name
+        try:
+            self.assertEqual([("expect", "nope"), "look"], load_steps(path))
+        finally:
+            os.unlink(path)
+
     def test_crash_log_check_raises_when_log_grew(self):
         with tempfile.TemporaryDirectory() as tmp:
             path = os.path.join(tmp, "tale_crash.log")
@@ -84,24 +106,33 @@ class TestSmokeTestHelpers(unittest.TestCase):
 
 
 class TestPrancingLlamaSmokeTest(unittest.TestCase):
-    """Run the prancingllama story end-to-end with the dummy backend and the smoke script.
-    Fails if any step times out or if the crash log changes during the run."""
+    """Run the prancingllama story end-to-end with the dummy backend and the smoke scripts.
+    Fails if any step times out, if an '# expect:' assertion fails, or if the crash log
+    changes during the run."""
 
-    def test_prancingllama_smoke_test(self):
+    def _run_smoke_script(self, script_name: str, extra_args=()):
         repo_root = pathlib.Path(__file__).parent.parent.resolve()
         game = repo_root / "stories" / "prancingllama"
-        script = game / "smoke_test.txt"
+        script = game / script_name
         self.assertTrue(script.exists(), "smoke script missing: %s" % script)
         with tempfile.TemporaryDirectory() as tmp:
             # run in a temp cwd so the crash log and other artifacts don't pollute the repo
             env = dict(os.environ, PYTHONPATH=str(repo_root) + os.pathsep + os.environ.get("PYTHONPATH", ""))
             result = subprocess.run(
                 [sys.executable, "-m", "tale.smoketest",
-                 "--game", str(game), "--script", str(script), "--timeout", "60"],
+                 "--game", str(game), "--script", str(script), "--timeout", "60", *extra_args],
                 cwd=tmp, env=env, capture_output=True, text=True, timeout=600)
         self.assertEqual(0, result.returncode,
                          msg="smoke test failed.\nstdout:\n%s\nstderr:\n%s" % (result.stdout, result.stderr))
         self.assertIn("SMOKE TEST OK", result.stdout)
+
+    def test_prancingllama_smoke_test(self):
+        self._run_smoke_script("smoke_test.txt")
+
+    def test_prancingllama_stealth_smoke_test(self):
+        # exercises the stealth rework (hide stance, concealment, perception contests):
+        # wizard mode for !set/!set_concealment/!perceive, fixed seed for reproducible rolls
+        self._run_smoke_script("smoke_test_stealth.txt", extra_args=["--wizard", "--seed", "42"])
 
 
 class TestBeatsStorySmokeTest(unittest.TestCase):

@@ -813,7 +813,7 @@ class TestMudAccounts(unittest.TestCase):
             self.assertEqual("Edhellen", account.stats.language)
             self.assertEqual({'1': 0, '2': 0, '3': 0, '4': 0, '5': 0, '6': 0, '7': 0}, account.stats.weapon_skills)
             self.assertEqual({}, account.stats.magic_skills)
-            self.assertEqual( {'1': 0, '2': 0, '3': 0}, account.stats.skills)
+            self.assertEqual( {'1': 0, '2': 0, '3': 0, '4': 10}, account.stats.skills)
         finally:
             dbfile.unlink()
 
