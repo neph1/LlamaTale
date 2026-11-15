@@ -14,6 +14,7 @@ from tale.llm.LivingNpc import LivingNpc
 from tale.quest import Quest, QuestType
 from tale.mob_spawner import MobSpawner
 from tale.random_event import RandomEvent
+from tale.scenario import Beat
 from tale.story import GameMode, StoryBase, StoryConfig
 
 from tale.story_context import StoryContext
@@ -28,6 +29,21 @@ _FORBIDDEN_SAVE_DIRS = (
     # macOS: /etc and /var are symlinks into /private
     '/private/etc', '/private/var', '/System',
 )
+
+
+def load_authored_beats(config: StoryConfig) -> None:
+    """Load the config's authored beats (the "beats" key of story_config.json)
+    into its StoryContext. A context that already carries beats (a restored
+    savegame) keeps its runtime state and is only marked as authored."""
+    if not config.beats:
+        return
+    if isinstance(config.context, str):
+        config.context = StoryContext(config.context)
+    beats = [beat if isinstance(beat, Beat) else Beat.from_json(beat) for beat in config.beats]
+    if config.context.beats:
+        config.context.authored = True
+    else:
+        config.context.set_beats(beats)
 
 
 def validate_save_path(save_name: str, allow_absolute: bool = False) -> str:
@@ -95,8 +111,7 @@ class DynamicStory(StoryBase):
         if self.config.random_events:
             self.random_events = RandomEvent(driver.llm_util, driver.all_players.values())
 
-        if isinstance(self.config.context, StoryContext):
-            driver.register_periodicals(self.config.context)
+        load_authored_beats(self.config)
 
     def get_zone(self, name: str) -> Zone:
         """ Find a zone by name."""

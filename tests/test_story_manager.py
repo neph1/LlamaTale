@@ -331,11 +331,24 @@ class TestStoryProgression():
         assert isinstance(mgr.story.config.context, StoryContext)
         assert mgr.story.config.context.base_story == "A grand adventure"
 
-    def test_advance_story_section(self):
+    def test_set_beat(self):
         mgr = StoryManager(make_story())
         mgr.set_story_context("Base plot")
-        mgr.advance_story_section("The beginning")
-        assert mgr.story.config.context.current_section == "The beginning"
+        beat = mgr.set_beat("beat-0", "The beginning")
+        assert beat == {"id": "beat-0", "description": "The beginning", "status": "active"}
+        context = mgr.story.config.context
+        assert context.active_beat().description == "The beginning"
+        assert context.active_beat().id == "beat-0"
+
+    def test_set_beat_unknown_id_adds_and_selects(self):
+        mgr = StoryManager(make_story())
+        mgr.set_story_context("Base plot")
+        mgr.set_beat("one", "First")
+        beat = mgr.set_beat("two", "Second")
+        assert beat == {"id": "two", "description": "Second", "status": "active"}
+        context = mgr.story.config.context
+        assert context.active_beat().id == "two"
+        assert [b.status.name for b in context.beats] == ["COMPLETED", "ACTIVE"]
 
     def test_set_start_location(self):
         mgr = StoryManager(make_story())
@@ -656,13 +669,15 @@ class TestLiveState():
         story.config.world_info = "A world of magic"
         story.config.world_mood = 3
         story.config.context = StoryContext("Base plot")
-        story.config.context.set_current_section("The beginning")
+        story.config.context.add_beat("The beginning")
         state = mgr.get_story_state()
         assert state["name"] == "Test Story"
         assert state["type"] == "A fantasy adventure"
         assert state["world_info"] == "A world of magic"
         assert state["world_mood"] == 3
         assert state["current_section"] == "The beginning"
+        assert state["past_sections"] == []
+        assert state["beats"] == [{"id": "beat-0", "description": "The beginning", "status": "active"}]
         assert state["progress"] == 0.0
         assert "Base plot" in state["story"]
 

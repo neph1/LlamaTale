@@ -73,6 +73,7 @@ class StoryConfig:
         self.items = ""                      # items to populate the world with. only used by json loading
         self.npcs = ""                       # npcs to populate the world with. only used by json loading
         self.context = ""                    # context to giving background for the story.
+        self.beats = []                      # type: List[Any]  # authored story beats (tale.scenario.Beat), from the "beats" key of story_config.json
         self.type = ""                       # brief description of the setting and type of story, for LLM context
         self.world_info = ""                 # brief description of the world, for LLM context
         self.world_mood = 0                  # how safe is the world? 5 is a happy place, -5 is nightmare mode.
