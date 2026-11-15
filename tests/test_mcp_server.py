@@ -140,7 +140,7 @@ class TestServerCreation():
         "list_players", "get_player", "get_npc", "get_location_live",
         "get_story_state", "get_world_map",
         "poll_events", "reset_events",
-        "set_story_context", "advance_story_section", "set_start_location",
+        "set_story_context", "set_beat", "set_start_location",
         "save", "load",
         "set_location_description", "add_exit", "remove_exit", "set_exit_state",
         "move_npc", "npc_say", "npc_attack", "npc_do", "set_npc_goal",
@@ -728,16 +728,33 @@ class TestProgressionTools():
         call_tool(mcp, "set_story_context", {"base_story": "A grand adventure"})
         assert mgr.story.config.context.base_story == "A grand adventure"
 
-    def test_advance_story_section(self):
+    def test_set_beat(self):
         mgr = make_manager()
         mcp = create_server(mgr)
         mgr.set_story_context("Base plot")
-        call_tool(mcp, "advance_story_section", {"section": "The beginning"})
+        texts, structured = call_tool(mcp, "set_beat", {"beat_id": "beat-0", "description": "The beginning"})
         context = mgr.story.config.context
+        assert context.active_beat().id == "beat-0"
         assert context.active_beat().description == "The beginning"
         state = mgr.get_story_state()
         assert state["current_section"] == "The beginning"
         assert state["beats"] == [{"id": "beat-0", "description": "The beginning", "status": "active"}]
+
+    def test_set_beat_unknown_id_adds_new_beat(self):
+        mgr = make_manager()
+        mcp = create_server(mgr)
+        mgr.set_story_context("Base plot")
+        call_tool(mcp, "set_beat", {"beat_id": "beat-0", "description": "The beginning"})
+        # an unknown id adds a new beat and selects it; the previous one is completed
+        texts, structured = call_tool(mcp, "set_beat", {"beat_id": "climax", "description": "The finale"})
+        context = mgr.story.config.context
+        assert context.active_beat().id == "climax"
+        assert context.active_beat().description == "The finale"
+        assert [b.status.name for b in context.beats] == ["COMPLETED", "ACTIVE"]
+        state = mgr.get_story_state()
+        assert state["current_section"] == "The finale"
+        assert state["past_sections"] == ["The beginning"]
+        assert [b["id"] for b in state["beats"]] == ["beat-0", "climax"]
 
     def test_set_start_location(self):
         mgr = make_manager()

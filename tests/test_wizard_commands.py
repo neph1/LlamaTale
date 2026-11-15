@@ -350,12 +350,15 @@ class TestSetBeatCommand():
         with pytest.raises(ParseError, match="Set which beat?"):
             wizard.do_set_beat(self.test_player, parse_result, context)
 
-    def test_set_beat_unknown_id(self):
+    def test_set_beat_unknown_id_adds_new_beat(self):
         context, story = self._beat_story_context()
-        parse_result = ParseResult(verb='set_beat', args=['nope'], unparsed='nope')
-        with pytest.raises(ActionRefused, match="No beat with id 'nope'"):
-            wizard.do_set_beat(self.test_player, parse_result, context)
-        assert story.config.context.active_beat().id == 'one'
+        parse_result = ParseResult(verb='set_beat', args=['nope', 'A', 'new', 'beat'], unparsed='nope A new beat')
+        wizard.do_set_beat(self.test_player, parse_result, context)
+        story_context = story.config.context
+        assert story_context.active_beat().id == 'nope'
+        assert story_context.active_beat().description == 'A new beat'
+        assert story_context.beats[0].status == BeatStatus.COMPLETED
+        assert [b.id for b in story_context.beats] == ['one', 'two', 'three', 'nope']
 
     def test_set_beat_no_story_context(self):
         context = tale._MudContext()

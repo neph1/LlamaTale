@@ -340,13 +340,15 @@ def create_server(manager: StoryManager, port: int = DEFAULT_MCP_PORT) -> FastMC
         manager.set_story_context(base_story)
 
     @mcp.tool()
-    def advance_story_section(section: str) -> None:
+    def set_beat(beat_id: str, description: str = "") -> dict:
         """
-        Advance the story. For authored beats this moves the pointer to the
-        next beat; for generated stories the section text becomes the new
-        active beat. Functions as a "grounding" for generated content.
+        Set the active story beat by id. If no beat with that id exists, a new
+        beat with the given description is added and selected. The previously
+        active beat is marked completed. Replaces advance_story_section.
+        Returns the beat: {id, description, status}. Empty dict if the story
+        has no beat context.
         """
-        manager.advance_story_section(section)
+        return manager.set_beat(beat_id, description) or {}
 
     @mcp.tool()
     def set_start_location(zone: str, name: str) -> None:

@@ -198,7 +198,7 @@ SELFTEST_TOOLS = [
     ("spawn_item", {"item_name": "torch", "zone": "TestZone", "location_name": "TestRoom"}, "spawn an item"),
     ("list_world_items", {}, "list live world items"),
     ("set_story_context", {"base_story": "A test adventure"}, "set the base plot"),
-    ("advance_story_section", {"section": "The beginning"}, "advance the story"),
+    ("set_beat", {"beat_id": "beat-0", "description": "The beginning"}, "set the active beat"),
     ("set_start_location", {"zone": "TestZone", "name": "TestRoom"}, "set the start location"),
 ]
 

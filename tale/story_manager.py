@@ -770,17 +770,16 @@ class StoryManager:
         with self._lock:
             self._story.config.context = StoryContext(base_story)
 
-    def advance_story_section(self, section: str) -> None:
-        """Advance the story context. For authored beats this moves the pointer
-        to the next beat; for generated stories the section text becomes a new
-        beat."""
+    def set_beat(self, beat_id: str, description: str = "") -> Optional[dict]:
+        """Set the active story beat by id. If no beat with that id exists, a
+        new beat with the given description is added and selected. The
+        previously active beat is marked completed. Returns the beat as a dict
+        ({id, description, status}), or None if the story has no beat context."""
         with self._lock:
             context = self._story.config.context
-            if isinstance(context, StoryContext):
-                if context.authored:
-                    context.advance_to_next_beat()
-                else:
-                    context.add_beat(section)
+            if not isinstance(context, StoryContext):
+                return None
+            return context.set_beat(beat_id, description).to_json()
 
     def set_start_location(self, zone: str, name: str) -> None:
         """Set the player/wizard start location to ``zone.name``.

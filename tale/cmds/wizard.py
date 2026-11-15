@@ -996,16 +996,20 @@ def do_save(player: Player, parsed: base.ParseResult, ctx: util.Context) -> None
 
 @wizcmd("set_beat")
 def do_set_beat(player: Player, parsed: base.ParseResult, ctx: util.Context) -> None:
-    """Set the active story beat by id. The previously active beat is marked completed.
-    Usage: !set_beat <beat id>"""
-    beat_id = parsed.unparsed.strip()
-    if not beat_id:
-        raise ParseError("Set which beat? Usage: !set_beat <beat id>")
+    """Set the active story beat by id. If the id doesn't exist, a new beat is added
+    and selected. The previously active beat is marked completed.
+    Usage: !set_beat <beat id> [description]"""
+    if not parsed.args:
+        raise ParseError("Set which beat? Usage: !set_beat <beat id> [description]")
+    beat_id = parsed.args[0]
+    description = " ".join(parsed.args[1:])
     story = ctx.driver.story
     context = story.config.context if story else None
     if not isinstance(context, StoryContext):
         raise ActionRefused("This story has no beat-based story context")
-    beat = context.set_beat(beat_id)
-    if beat is None:
-        raise ActionRefused("No beat with id '%s'. Known beats: %s" % (beat_id, ", ".join(b.id for b in context.beats) or "none"))
-    player.tell("Active beat is now '%s': %s" % (beat.id, beat.description))
+    existed = any(b.id == beat_id for b in context.beats)
+    beat = context.set_beat(beat_id, description)
+    if existed:
+        player.tell("Active beat is now '%s': %s" % (beat.id, beat.description))
+    else:
+        player.tell("Added new beat '%s' and activated it: %s" % (beat.id, beat.description))

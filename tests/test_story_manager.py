@@ -331,13 +331,24 @@ class TestStoryProgression():
         assert isinstance(mgr.story.config.context, StoryContext)
         assert mgr.story.config.context.base_story == "A grand adventure"
 
-    def test_advance_story_section(self):
+    def test_set_beat(self):
         mgr = StoryManager(make_story())
         mgr.set_story_context("Base plot")
-        mgr.advance_story_section("The beginning")
+        beat = mgr.set_beat("beat-0", "The beginning")
+        assert beat == {"id": "beat-0", "description": "The beginning", "status": "active"}
         context = mgr.story.config.context
         assert context.active_beat().description == "The beginning"
         assert context.active_beat().id == "beat-0"
+
+    def test_set_beat_unknown_id_adds_and_selects(self):
+        mgr = StoryManager(make_story())
+        mgr.set_story_context("Base plot")
+        mgr.set_beat("one", "First")
+        beat = mgr.set_beat("two", "Second")
+        assert beat == {"id": "two", "description": "Second", "status": "active"}
+        context = mgr.story.config.context
+        assert context.active_beat().id == "two"
+        assert [b.status.name for b in context.beats] == ["COMPLETED", "ACTIVE"]
 
     def test_set_start_location(self):
         mgr = StoryManager(make_story())

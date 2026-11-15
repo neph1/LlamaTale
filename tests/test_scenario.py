@@ -116,9 +116,11 @@ class TestBeatsStory:
         assert [beat.status for beat in context.beats] == [BeatStatus.COMPLETED, BeatStatus.COMPLETED, BeatStatus.ACTIVE]
         assert "Active beat: The cellar holds the answer." in context.to_context()
         assert "The investigators arrive at the boarding house." in context.to_context_with_past()
-        # an unknown id leaves the state unchanged
-        assert context.set_beat("nope") is None
-        assert context.active_beat().id == "descent"
+        # an unknown id adds a new beat and selects it
+        beat = context.set_beat("epilogue", "The investigators leave.")
+        assert beat.id == "epilogue"
+        assert context.active_beat().id == "epilogue"
+        assert context.beats[2].status == BeatStatus.COMPLETED
 
     def test_save_contains_beat_statuses(self, tmp_path):
         story = self._load_story()

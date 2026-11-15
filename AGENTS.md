@@ -157,7 +157,7 @@ Story progression and narrative structure.
   - `beats`: List of `Beat` objects; one ACTIVE beat, the rest LOCKED/COMPLETED
   - `authored`: True when the beats come from the story config, False when generated on the fly
   - `progress`: Float tracking advancement (0.0 to length); not increased automatically anymore
-  - `set_beat(id)`: Activate the beat with the given id (used by the `!set_beat` wizard command); the previously active beat becomes COMPLETED
+  - `set_beat(id, description="")`: Activate the beat with the given id, adding it as a new beat if it doesn't exist (used by the `!set_beat` wizard command and the MCP `set_beat` tool); the previously active beat becomes COMPLETED
   - `to_context()`, `to_context_with_past()`: Generate LLM context strings from the active/completed beats
   - `from_json()`, `to_json()`: Serialization for save games (old saves with current_section/past_sections are migrated to beats)
 
@@ -182,7 +182,7 @@ class MyStory(StoryBase):
 
 Stories progress through beats:
 - `StoryContext` tracks which beat is active (see `tale/scenario.py`)
-- Stories with authored beats (`"beats"` key in story_config.json) are advanced by hand with the wizard command `!set_beat <beat id>` (no automatic time-based progress)
+- Stories with authored beats (`"beats"` key in story_config.json) are advanced by hand with the wizard command `!set_beat <beat id> [description]` or the MCP `set_beat` tool (no automatic time-based progress)
 - Completed beats are preserved for context
 
 ## Example

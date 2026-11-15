@@ -41,8 +41,22 @@ class TestStoryContext:
         assert beat.status == BeatStatus.ACTIVE
         assert context.beats[0].status == BeatStatus.COMPLETED
         assert context.active_beat().id == "two"
-        assert context.set_beat("nope") is None
-        assert context.active_beat().id == "two"
+
+    def test_set_beat_unknown_id_adds_new_beat(self):
+        context = StoryContext(base_story="A hero's journey")
+        context.set_beats([Beat("one", "First"), Beat("two", "Second")])
+        beat = context.set_beat("three", "Third")
+        assert beat.id == "three"
+        assert beat.description == "Third"
+        assert beat.status == BeatStatus.ACTIVE
+        assert context.active_beat().id == "three"
+        assert context.beats[0].status == BeatStatus.COMPLETED
+        assert [b.id for b in context.beats] == ["one", "two", "three"]
+
+    def test_set_beat_empty_id_rejected(self):
+        context = StoryContext(base_story="A hero's journey")
+        with pytest.raises(ValueError):
+            context.set_beat("")
 
     def test_set_beat_generated_beats(self):
         context = StoryContext(base_story="A hero's journey")

@@ -50,28 +50,31 @@ class StoryContext:
         nxt.status = BeatStatus.ACTIVE
         return nxt
 
-    def set_beat(self, beat_id: str) -> Optional[Beat]:
+    def set_beat(self, beat_id: str, description: str = "") -> Beat:
         """Activate the beat with the given id; the previously ACTIVE beat
-        becomes COMPLETED. Returns the beat, or None if the id is unknown."""
+        becomes COMPLETED. If no beat with that id exists, a new beat is
+        added and selected. Returns the beat."""
+        if not beat_id:
+            raise ValueError("beat id must be a non-empty string")
         beat = next((b for b in self.beats if b.id == beat_id), None)
-        if beat is None:
-            return None
-        active = self.active_beat()
-        if active is not None and active is not beat:
-            active.status = BeatStatus.COMPLETED
-        beat.status = BeatStatus.ACTIVE
-        return beat
+        if beat is not None:
+            active = self.active_beat()
+            if active is not None and active is not beat:
+                active.status = BeatStatus.COMPLETED
+            beat.status = BeatStatus.ACTIVE
+            return beat
+        return self.add_beat(description, id=beat_id)
 
-    def add_beat(self, description: str) -> Beat:
+    def add_beat(self, description: str, id: str = None) -> Beat:
         """Generated stories: complete the ACTIVE beat and append a new ACTIVE
-        beat with a generated id "beat-{n}". Returns the new beat."""
+        beat with a generated id "beat-{n}" (or the given id). Returns the new beat."""
         active = self.active_beat()
         if active is not None:
             if active.description:
                 active.status = BeatStatus.COMPLETED
             else:
                 self.beats.remove(active)
-        beat = Beat(id="beat-%d" % len(self.beats), description=description, status=BeatStatus.ACTIVE)
+        beat = Beat(id=id or "beat-%d" % len(self.beats), description=description, status=BeatStatus.ACTIVE)
         self.beats.append(beat)
         return beat
 
