@@ -7,6 +7,8 @@ global llm_cache; only the hashes live here.
 """
 
 import tale.llm.llm_cache as llm_cache
+from tale.llm.responses.ActionResponse import ActionResponse
+from tale.llm.schemas import ActionSchema
 
 
 class EventMemory:
@@ -76,14 +78,32 @@ class EventMemory:
             observed_events=list(self.events),
             sentiments=self.sentiments,
             action_history=list(self.action_history),
-            planned_actions=list(self.planned_actions),
+            planned_actions=[self._dump_action(action) for action in self.planned_actions],
             goal=self.goal)
 
     def load(self, memory: dict) -> None:
         self.known_locations = memory.get('known_locations', {})
         # 'conversations' is a legacy key from older savegames
-        self.events = list(memory.get('observed_events', [])) + list(memory.get('conversations', []))
+        events = list(memory.get('observed_events', [])) + list(memory.get('conversations', []))
+        self.events = [llm_cache.cache_event(event) if isinstance(event, str) else event for event in events]
         self.sentiments = memory.get('sentiments', {})
         self.action_history = list(memory.get('action_history', []))
-        self.planned_actions = list(memory.get('planned_actions', []))
+        self.planned_actions = [self._load_action(action) for action in memory.get('planned_actions', [])]
         self.goal = memory.get('goal', None)
+
+    @staticmethod
+    def _dump_action(action):
+        if isinstance(action, list):
+            return [EventMemory._dump_action(a) for a in action]
+        if isinstance(action, ActionResponse):
+            return dict(vars(action))
+        return action
+
+    @staticmethod
+    def _load_action(action):
+        if isinstance(action, list):
+            return [EventMemory._load_action(a) for a in action]
+        if isinstance(action, dict):
+            fields = {key: value for key, value in action.items() if key in ActionSchema.model_fields}
+            return ActionResponse(ActionSchema(**fields))
+        return action

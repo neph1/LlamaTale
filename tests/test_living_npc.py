@@ -7,6 +7,8 @@ from tale.llm import llm_cache
 from tale.base import Exit, Item, Living, Location, ParseResult, Weapon
 from tale.llm.LivingNpc import LivingNpc
 from tale.llm.item_handling_result import ItemHandlingResult
+from tale.llm.responses.ActionResponse import ActionResponse
+from tale.llm.schemas import ActionSchema
 from tale.llm.dynamic_story import DynamicStory
 from tale.llm.llm_io import IoUtil
 from tale.llm.llm_utils import LlmUtil
@@ -112,6 +114,24 @@ class TestLivingNpc():
         assert(memories['sentiments'] == npc_clean.sentiments)
 
         assert(llm_cache.get_events(npc_clean._observed_events) == 'test_event<break>test_event 2')
+
+    def test_memory_load_string_events(self):
+        npc = LivingNpc(name='test', gender='m', age=42, personality='')
+        npc.load_memory({'observed_events': ['plain string event'], 'sentiments': {'other': 'kind'}})
+        assert(npc.get_observed_events(None) == 'plain string event')
+        assert(npc.sentiments == {'other': 'kind'})
+
+    def test_memory_planned_actions_json_roundtrip(self):
+        npc = LivingNpc(name='test', gender='m', age=42, personality='')
+        npc.memory.plan([ActionResponse(ActionSchema(action='take', item='rock', text='grabs the rock'))])
+        dumped = json.loads(json.dumps(npc.dump_memory()))
+        assert(dumped['planned_actions'] == [[{'goal': '', 'text': 'grabs the rock', 'target': '', 'item': 'rock', 'action': 'take', 'sentiment': '', 'thoughts': ''}]])
+
+        npc_clean = LivingNpc(name='test', gender='m', age=42, personality='')
+        npc_clean.load_memory(dumped)
+        action = npc_clean.memory.next_planned()
+        assert(isinstance(action, ActionResponse))
+        assert(action.action == 'take' and action.item == 'rock' and action.text == 'grabs the rock')
 
     def test_avatar_not_exists(self):
         npc = LivingNpc(name='test', gender='m', age=42, personality='')

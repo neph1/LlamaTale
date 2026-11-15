@@ -8,7 +8,9 @@ from tale.driver_if import IFDriver
 from tale.item_spawner import ItemSpawner
 from tale.items.basic import Boxlike, Drink, Food, Health
 from tale.mob_spawner import MobSpawner
-from tale.npc_defs import Trader
+from tale.llm.responses.ActionResponse import ActionResponse
+from tale.llm.schemas import ActionSchema
+from tale.npc_defs import StationaryNpc, Trader
 from tale.races import BodyType
 from tale.story import GameMode, MoneyType
 from tale.skills.weapon_type import WeaponType
@@ -410,7 +412,35 @@ class TestLoadNpcs:
         assert(saved_npcs['kobbo']['name'] == 'Kobbo')
         assert(saved_npcs['kobbo']['title'] == 'Kobbo the King')
         assert(saved_npcs['kobbo']['location'] == 'Royal grotto')
- 
+
+    def test_npc_memory_save_load_roundtrip(self):
+        locations = {}
+        locations['Royal grotto'] = Location('Royal grotto', 'A small grotto, fit for a kobold king')
+        npc = StationaryNpc(name='Kobbo', gender='m', age=42, personality='', race='kobold',
+                            title='Kobbo the King', descr='A kobold', short_descr='A kobold')
+        npc.location = locations['Royal grotto']
+        npc.memory.observe('Kobbo waved at the player')
+        npc.memory.set_sentiment('player', 'friendly')
+        npc.memory.known_locations['Royal grotto'] = 'A small grotto'
+        npc.memory.add_action('Kobbo waved')
+        npc.memory.plan([ActionResponse(ActionSchema(action='say', text='hello there'))])
+        npc.memory.goal = 'guard the grotto'
+
+        saved_npcs = parse_utils.save_npcs([npc])
+        json.dumps(saved_npcs)  # the saved story must be JSON serializable
+        assert(saved_npcs['kobbo']['memory']['sentiments'] == {'player': 'friendly'})
+
+        loaded_npcs = parse_utils.load_npcs(list(saved_npcs.values()), locations=locations)
+        loaded = loaded_npcs['Kobbo']
+        assert(loaded.sentiments == {'player': 'friendly'})
+        assert(loaded.known_locations == {'Royal grotto': 'A small grotto'})
+        assert(loaded.get_observed_events(None) == 'Kobbo waved at the player')
+        assert(loaded.action_history == ['Kobbo waved'])
+        assert(loaded.goal == 'guard the grotto')
+        planned = loaded.planned_actions
+        assert(len(planned) == 1 and isinstance(planned[0][0], ActionResponse))
+        assert(planned[0][0].action == 'say' and planned[0][0].text == 'hello there')
+
     def test_load_npcs_generated(self):
         npcs_string = '{"npcs": [{"name": "Rosewood Fairy", "sentiment": "friendly", "race": "Fae", "gender": "female", "level": 5, "description": "A delicate creature with wings as soft as rose petals, offering quests and guidance.", "occupation":"healer"}]}'
         npcs = json.loads(npcs_string)

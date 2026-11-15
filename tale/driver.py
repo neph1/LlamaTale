@@ -894,6 +894,8 @@ class Driver(pubsub.Listener):
                         parse_occupation = char_data.get('parse_occupation', False),)
         npc.autonomous = character.autonomous
         npc.output_thoughts = character.output_thoughts
+        if character.memory:
+            npc.load_memory(character.memory)
         wearing = character.wearing.split(',')
         for item in wearing:
             if item:

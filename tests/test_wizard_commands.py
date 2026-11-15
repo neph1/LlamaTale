@@ -43,6 +43,18 @@ class TestWizardCommands():
         assert(npc.age == 99)
         assert(npc.get_wearable(WearLocation.TORSO) is not None)
 
+    def test_load_character_from_data_with_memory(self):
+        parse_result = ParseResult(
+            verb='load_character_from_data',
+            unparsed='{"name": "mem npc", "memory": {"observed_events": ["met the king"], "sentiments": {"king": "hostile"}, "known_locations": {"tavern": "a cozy tavern"}, "action_history": ["waved"], "goal": "befriend the king"}, "relationships": {"queen": "kind"}}')
+        npc = wizard.do_load_character_from_data(self.test_player, parse_result, self.context) # type: LivingNpc
+        assert(npc.name == 'mem')
+        assert(npc.sentiments == {'king': 'hostile', 'queen': 'kind'})
+        assert(npc.get_observed_events(None) == 'met the king')
+        assert(npc.known_locations == {'tavern': 'a cozy tavern'})
+        assert(npc.action_history == ['waved'])
+        assert(npc.goal == 'befriend the king')
+
     def test_set_visible(self):
         location = Location('test')
         player = Player('test', 'f')
