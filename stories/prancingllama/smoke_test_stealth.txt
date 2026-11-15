@@ -1,0 +1,79 @@
+# Stealth smoke test for The Prancing Llama.
+# Run with: python -m tale.smoketest --game stories/prancingllama --script stories/prancingllama/smoke_test_stealth.txt --wizard --seed 42
+# (also executed by tests/test_smoke.py)
+# One command per line; '#' comments are ignored. '# expect: <text>' and
+# '# expect-not: <text>' assert on the output of the immediately preceding command.
+# The first lines answer the character creation dialog.
+# Note: contest outcomes are dice rolls; the assertions below are pinned to --seed 42.
+smokey
+m
+y
+smith
+# expect: Welcome to The Prancing Llama
+# --- uncontested hide: alone in the entrance ---
+hide
+# expect: You hide yourself.
+hide
+# expect: already hidden
+look
+# expect: [hidden]
+unhide
+# expect: You reveal yourself
+unhide
+# expect: not hidden
+# --- hidden livings are excluded from look; wizard can force the stance ---
+north
+# expect: Main Hall
+!set shanda.hidden=True
+# expect: Field set
+look
+# expect-not: Shanda
+!perceive
+# expect: Perception sweep
+# expect: band=
+!set shanda.hidden=False
+# expect: Field set
+look
+# expect: Shanda
+# --- active search with nothing hidden ---
+search_hidden
+# expect: You don't find anything.
+# --- contested hide with NPCs present, then talk while hidden (risky action) ---
+hide
+# expect: You hide yourself.
+say hello while sneaking
+# expect: You say
+# expect: spots you hiding
+# --- ambush: attack from hiding ---
+hide
+# expect: You hide yourself.
+attack shanda
+# expect: attack
+# --- move while hidden: entry contests and adjacent glimpses run ---
+south
+# expect: Entrance
+unhide
+# expect: You reveal yourself
+# --- concealment tiers via wizard command (clamped to 0-4) ---
+!set_concealment here 4
+# expect: concealment set to 4
+!set_concealment here 9
+# expect: concealment set to 4
+!set_concealment here 0
+# expect: concealment set to 0
+# --- uncontested hide in the cellar, then move while hidden ---
+north
+# expect: Main Hall
+north
+# expect: Bar
+down
+# expect: Cellar
+hide
+# expect: You hide yourself.
+up
+# expect: Bar
+unhide
+# expect: You reveal yourself
+# done
+quit
+y
