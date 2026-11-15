@@ -15,8 +15,10 @@ server depends on.
 import os
 import random
 import threading
+import weakref
 from typing import Optional
 
+from tale import pubsub
 from tale.base import Location, Exit, Door
 from tale.errors import LocationIntegrityError
 from tale.items.basic import Note
@@ -33,8 +35,29 @@ import tale.parse_utils as parse_utils
 from tale.load_items import load_item, load_items
 from tale.mcp.validation import validate_zone, validate_location, validate_npc, validate_item
 from tale.mcp.events import StoryEvents
+from tale.scenario import STORY_EVENTS_TOPIC, StoryEvent
 
 __all__ = ["StoryManager", "register", "current", "get"]
+
+
+class _BeatEventListener(pubsub.Listener):
+    """Forwards typed story events (the "story-events" pubsub topic) to the
+    live story's beat context, which completes goal-beats from them. The
+    context is resolved lazily on every event, so savegame loads that swap
+    out ``story.config`` keep working."""
+
+    def __init__(self, manager: "StoryManager") -> None:
+        self._manager_ref = weakref.ref(manager)
+
+    def pubsub_event(self, topicname, event) -> None:
+        if topicname != STORY_EVENTS_TOPIC or not isinstance(event, StoryEvent):
+            return
+        manager = self._manager_ref()
+        if manager is None:
+            return
+        context = manager._story.config.context
+        if isinstance(context, StoryContext):
+            context.on_story_event(event)
 
 
 # --- module-level registry for in-process access ------------------------------
@@ -105,6 +128,9 @@ class StoryManager:
         # the live world's wiretap topics so an agent can poll what is happening.
         self._events = StoryEvents(maxlen=500)
         self._subscribe_events()
+        # typed story events drive beat goal completion (tale/scenario.py)
+        self._beat_events = _BeatEventListener(self)
+        pubsub.topic(STORY_EVENTS_TOPIC).subscribe(self._beat_events)
 
     # -- helpers ----------------------------------------------------------------
 
@@ -715,9 +741,10 @@ class StoryManager:
 
     def get_story_state(self) -> dict:
         """The story's narrative state: story (the context string rendered from
-        beats), beats (id, description, status per beat), progress, length,
-        name, type, world_info, world_mood. current_section and past_sections
-        are kept as derived legacy fields (active/completed beat descriptions)."""
+        beats), beats (id, description, status, match, goals per beat), progress,
+        length, name, type, world_info, world_mood. current_section and
+        past_sections are kept as derived legacy fields (active/completed beat
+        descriptions)."""
         config = self._story.config
         context = config.context
         if isinstance(context, StoryContext):

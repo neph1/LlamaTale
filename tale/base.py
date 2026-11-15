@@ -56,6 +56,7 @@ from tale.skills.skills import SkillType, Skills
 from . import lang
 from . import mud_context
 from . import pubsub
+from .scenario import NpcKilled, publish_story_event
 from . import races
 from . import stealth
 from . import util
@@ -1681,6 +1682,8 @@ class Living(MudObject):
         """Called when the living dies."""
         remains = None
         self.alive = False
+        # typed world event: lets story beats with a kill goal finish
+        publish_story_event(NpcKilled(npc=self.name, npc_title=self.title))
         remains = None
         if self.should_produce_remains:
             remains = Container(f"remains of {self.title}")
