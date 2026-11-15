@@ -1079,6 +1079,15 @@ class Stats:
         if self.magic_points > self.max_magic_points:
             self.magic_points = self.max_magic_points
 
+def _substitute_placeholders(message: str, **placeholders: str) -> str:
+    """
+    Replace only the known {placeholder} tokens in message, in a single pass.
+    Unlike str.format(), stray or unknown braces (e.g. in LLM-generated text)
+    are left untouched instead of raising ValueError, and substituted values
+    are not re-scanned for further placeholders.
+    """
+    return re.sub(r'\{(\w+)\}', lambda m: placeholders.get(m.group(1), m.group(0)), message)
+
 class Living(MudObject):
     """
     A living entity in the mud world (also known as an NPC).
@@ -1249,15 +1258,17 @@ class Living(MudObject):
         There are a few formatting strings for easy shorthands:
         {actor}/{Actor} = the acting living's title / acting living's title capitalized (subject in the sentence)
         {target}/{Target} = the target's title / target's title capitalized (object in the sentence)
+        Only these known placeholders are substituted; any other braces in the message
+        (e.g. from LLM-generated text) are passed through unchanged.
         If you need even more tweaks with telling stuff, use living.location.tell directly.
         """
         if target is None:
-            room_msg = message.format(actor=self.title, Actor=lang.capital(self.title))
+            room_msg = _substitute_placeholders(message, actor=self.title, Actor=lang.capital(self.title))
             self.location.tell(room_msg, exclude_living=self, evoke=evoke, short_len=short_len)
         else:
-            room_msg = message.format(actor=self.title, Actor=lang.capital(self.title),
-                                      target=target.title, Target=lang.capital(target.title))
-            spec_msg = message.format(actor=self.title, Actor=lang.capital(self.title), target="you", Target="You")
+            room_msg = _substitute_placeholders(message, actor=self.title, Actor=lang.capital(self.title),
+                                                target=target.title, Target=lang.capital(target.title))
+            spec_msg = _substitute_placeholders(message, actor=self.title, Actor=lang.capital(self.title), target="you", Target="You")
             self.location.tell(room_msg, exclude_living=self, specific_targets={target}, specific_target_msg=spec_msg, evoke=evoke, short_len=short_len, alt_prompt=alt_prompt, extra_context=extra_context)
 
     def parse(self, commandline: str, external_verbs: Set[str]=set()) -> ParseResult:
