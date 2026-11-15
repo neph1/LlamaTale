@@ -14,9 +14,11 @@ Usage:
 
 Script format: one command per line; blank lines and lines starting with '#'
 are ignored. The first lines usually answer the character creation dialog.
-Two assertion directives are supported: '# expect: <text>' and
-'# expect-not: <text>' check the output produced by the immediately preceding
-command line (the run fails if the expectation does not hold).
+Assertion directives check the immediately preceding command line (the run fails
+if an expectation does not hold): '# expect: <text>' and '# expect-not: <text>'
+check the command's output text; '# expect-beat: <id>=<status>' and
+'# expect-goal: <beat>/<type>/<target>=<satisfied|unsatisfied>' check the live
+story engine state (beat statuses and goal satisfaction flags).
 
 'Tale' mud driver, mudlib and interactive fiction framework
 Copyright by Irmen de Jong (irmen@razorvine.net)
@@ -35,6 +37,7 @@ from tale.driver_if import IFDriver
 from tale.llm import llm_config
 from tale.llm.llm_io import DummyIoUtil
 from tale.player import PlayerConnection
+from tale.story_context import StoryContext
 
 
 class SmokeTestError(Exception):
@@ -43,12 +46,16 @@ class SmokeTestError(Exception):
 
 DEFAULT_TIMEOUT = 30.0
 
-# A script step is either a command line (str) or an assertion directive
-# ("expect", text) / ("expect_not", text) that applies to the preceding command's output.
+# A script step is either a command line (str) or an assertion directive that applies
+# to the preceding command: ("expect", text) / ("expect_not", text) check the command's
+# output text; ("expect_beat", "id=status") / ("expect_goal", "beat/type/target=state")
+# check the live story engine state (beat statuses / goal satisfaction flags).
 ScriptStep = Union[str, Tuple[str, str]]
 
 EXPECT_PREFIX = "# expect:"
 EXPECT_NOT_PREFIX = "# expect-not:"
+EXPECT_BEAT_PREFIX = "# expect-beat:"
+EXPECT_GOAL_PREFIX = "# expect-goal:"
 
 
 def load_script(path) -> List[str]:
@@ -65,7 +72,9 @@ def load_script(path) -> List[str]:
 def load_steps(path) -> List[ScriptStep]:
     """Load a smoke test script into steps: command lines plus assertion directives.
     '# expect: <text>' / '# expect-not: <text>' are checked against the output of the
-    command line they follow; plain '#' lines are comments."""
+    command line they follow; '# expect-beat: <id>=<status>' and
+    '# expect-goal: <beat>/<type>/<target>=<satisfied|unsatisfied>' are checked against
+    the live story engine state after that command. Plain '#' lines are comments."""
     steps = []  # type: List[ScriptStep]
     with open(path, "r", encoding="utf-8") as f:
         for line in f:
@@ -74,6 +83,10 @@ def load_steps(path) -> List[ScriptStep]:
                 continue
             if line.startswith(EXPECT_NOT_PREFIX):
                 steps.append(("expect_not", line[len(EXPECT_NOT_PREFIX):].strip()))
+            elif line.startswith(EXPECT_BEAT_PREFIX):
+                steps.append(("expect_beat", line[len(EXPECT_BEAT_PREFIX):].strip()))
+            elif line.startswith(EXPECT_GOAL_PREFIX):
+                steps.append(("expect_goal", line[len(EXPECT_GOAL_PREFIX):].strip()))
             elif line.startswith(EXPECT_PREFIX):
                 steps.append(("expect", line[len(EXPECT_PREFIX):].strip()))
             elif line.startswith("#"):
@@ -216,7 +229,9 @@ class SmokeTestRunner:
             self._check_expectations(expectations, output_lines, step)
 
     def _check_expectations(self, expectations: List[Tuple[str, str]], output_lines: List[str], command: str) -> None:
-        """Check '# expect:' / '# expect-not:' directives against one command's output."""
+        """Check assertion directives against one command's output ('# expect:' /
+        '# expect-not:') or against the live story engine state ('# expect-beat:' /
+        '# expect-goal:')."""
         if not expectations:
             return
         text = "\n".join(output_lines)
@@ -227,6 +242,63 @@ class SmokeTestRunner:
             if kind == "expect_not" and needle in text:
                 raise SmokeTestError("after command %r, expected output not to contain %r\nactual output:\n%s"
                                      % (command, needle, text))
+            if kind == "expect_beat":
+                self._check_beat_expectation(needle, command)
+            if kind == "expect_goal":
+                self._check_goal_expectation(needle, command)
+
+    def _story_context(self):
+        """The live story's beat context (StoryContext), or None if unavailable."""
+        driver = self.driver
+        if driver is None or getattr(driver, "story", None) is None:
+            return None
+        context = driver.story.config.context
+        return context if isinstance(context, StoryContext) else None
+
+    def _check_beat_expectation(self, spec: str, command: str) -> None:
+        """'# expect-beat: <id>=<status>' — check a beat's status in the live context."""
+        beat_id, sep, status = spec.partition("=")
+        if not sep or not beat_id.strip() or not status.strip():
+            raise SmokeTestError("malformed expect-beat directive %r (want '<id>=<status>')" % spec)
+        context = self._story_context()
+        if context is None:
+            raise SmokeTestError("after command %r: no beat-based story context to check %r against" % (command, spec))
+        beat = next((b for b in context.beats if b.id == beat_id.strip()), None)
+        if beat is None:
+            raise SmokeTestError("after command %r: no beat with id %r (beats: %s)"
+                                 % (command, beat_id.strip(), [b.id for b in context.beats]))
+        expected = status.strip().lower()
+        actual = str(beat.status)
+        if actual != expected:
+            raise SmokeTestError("after command %r: expected beat %r to be %r, but it is %r"
+                                 % (command, beat.id, expected, actual))
+
+    def _check_goal_expectation(self, spec: str, command: str) -> None:
+        """'# expect-goal: <beat>/<type>/<target>=<satisfied|unsatisfied>' — check a
+        goal's satisfied flag in the live context."""
+        goal_spec, sep, state = spec.partition("=")
+        parts = goal_spec.split("/", 2)
+        if not sep or len(parts) != 3 or not state.strip():
+            raise SmokeTestError("malformed expect-goal directive %r "
+                                 "(want '<beat>/<type>/<target>=<satisfied|unsatisfied>')" % spec)
+        beat_id, goal_type, target = (p.strip() for p in parts)
+        context = self._story_context()
+        if context is None:
+            raise SmokeTestError("after command %r: no beat-based story context to check %r against" % (command, spec))
+        beat = next((b for b in context.beats if b.id == beat_id), None)
+        if beat is None:
+            raise SmokeTestError("after command %r: no beat with id %r (beats: %s)"
+                                 % (command, beat_id, [b.id for b in context.beats]))
+        goal = next((g for g in beat.goals if g.type == goal_type and g.target.lower() == target.lower()), None)
+        if goal is None:
+            raise SmokeTestError("after command %r: beat %r has no goal %s/%r (goals: %s)"
+                                 % (command, beat_id, goal_type, target, beat.goals))
+        expected = state.strip().lower() == "satisfied"
+        if goal.satisfied != expected:
+            raise SmokeTestError("after command %r: expected goal %s/%s of beat %r to be %s, but it is %s"
+                                 % (command, goal.type, goal.target, beat_id,
+                                    "satisfied" if expected else "unsatisfied",
+                                    "satisfied" if goal.satisfied else "unsatisfied"))
 
     def _send(self, line: str) -> List[str]:
         """Feed one input line and wait until the driver has processed it and is ready
@@ -279,6 +351,7 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
         Automated smoke test: start a story with a dummy LLM backend (canned answers),
         execute the commands from the script file (waiting for each one to be processed),
         check any '# expect:' / '# expect-not:' assertions against each command's output,
+        '# expect-beat:' / '# expect-goal:' against the live story engine state,
         and fail if anything was appended to the crash log (%s) during the run.
         """ % util.CRASH_LOG_FILENAME)
     parser.add_argument('-g', '--game', type=str, required=True, help='path to the story directory')
