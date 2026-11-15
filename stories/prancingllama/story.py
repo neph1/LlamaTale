@@ -16,7 +16,7 @@ from tale.charbuilder import PlayerNaming
 from tale.skills.skills import SkillType
 from tale.story import *
 from tale.skills.weapon_type import WeaponType
-from tale.scenario import Beat
+from tale.scenario import Beat, Goal
 from tale.story_context import StoryContext
 from tale.wearable import WearLocation
 from tale.zone import Zone
@@ -43,7 +43,10 @@ class Story(DynamicStory):
     # authored story beats, installed into config.context by load_authored_beats (DynamicStory.init)
     # and advanced by hand with the wizard command !set_beat <beat id>
     config.beats = [
-        Beat(id="arrival", description="The outpost is calm: travellers shelter from the mountain cold inside the Prancing Llama, where the drama between those avoiding the cold and those seeking the cold plays out."),
+        # the map is received from Norhardt during a dialogue exchange with him:
+        # the interact event completes this beat and triggers the blizzard beat
+        Beat(id="arrival", description="The outpost is calm: travellers shelter from the mountain cold inside the Prancing Llama, where the drama between those avoiding the cold and those seeking the cold plays out.",
+             goals=[Goal("interact", "Norhardt")]),
         Beat(id="blizzard", description="A blizzard envelops the outpost. Howling wind drives snow against the walls, the mountain passes are sealed off and the cold outside turns deadly. The travellers are trapped inside together, and something is stirring beneath the snow covered peaks."),
     ]
     config.type = "A low level fantasy adventure with focus of character building and interaction."
