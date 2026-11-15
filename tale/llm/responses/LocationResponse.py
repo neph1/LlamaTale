@@ -1,4 +1,4 @@
-from tale import load_items, parse_utils
+from tale import load_items, parse_utils, stealth
 from tale.base import Location
 from tale.llm.schemas import LocationSchema
 
@@ -48,6 +48,8 @@ class LocationResponse():
 
             if model.indoors:
                 location_to_build.indoors = True
+
+            location_to_build.concealment = stealth.clamp_concealment(model.concealment)
 
             self.items = self._add_items(location_to_build, model, world_items)
 

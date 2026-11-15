@@ -675,7 +675,7 @@ class StoryManager:
         """The structured live state of a location (mirrors ActionContext):
         name, description, short_descr, indoors, world_location:[x,y,z],
         exits:{direction: target_name},
-        livings:[{name, short_descr, alive, visible, is_player}],
+        livings:[{name, short_descr, alive, visible, hidden, is_player}],
         items:[{name, look_description, visible}]. Returns an empty dict if the
         location is not found."""
         _zone_obj, location = self._zone_location(zone, name)
@@ -689,6 +689,7 @@ class StoryManager:
                 "short_descr": living.short_description,
                 "alive": living.alive,
                 "visible": living.visible,
+                "hidden": living.hidden,
                 "is_player": living.name in player_names,
             })
         items = []
@@ -713,16 +714,19 @@ class StoryManager:
         }
 
     def get_story_state(self) -> dict:
-        """The story's narrative state: story (the context string with past
-        sections), current_section, past_sections, progress, length, name,
-        type, world_info, world_mood."""
+        """The story's narrative state: story (the context string rendered from
+        beats), beats (id, description, status per beat), progress, length,
+        name, type, world_info, world_mood. current_section and past_sections
+        are kept as derived legacy fields (active/completed beat descriptions)."""
         config = self._story.config
         context = config.context
         if isinstance(context, StoryContext):
+            active = context.active_beat()
             return {
                 "story": context.to_context_with_past(),
-                "current_section": context.current_section,
-                "past_sections": list(context.past_sections),
+                "beats": [beat.to_json() for beat in context.beats],
+                "current_section": active.description if active else "",
+                "past_sections": [beat.description for beat in context.completed_beats()],
                 "progress": context.progress,
                 "length": context.length,
                 "name": config.name,
@@ -733,6 +737,7 @@ class StoryManager:
         # the context may be a bare base-story string (not yet a StoryContext)
         return {
             "story": context if isinstance(context, str) else str(context),
+            "beats": [],
             "current_section": "",
             "past_sections": [],
             "progress": 0.0,
@@ -766,12 +771,16 @@ class StoryManager:
         with self._lock:
             self._story.config.context = StoryContext(base_story)
 
-    def advance_story_section(self, section: str) -> None:
-        """Advance the story context to a new section."""
+    def set_beat(self, beat_id: str, description: str = "") -> Optional[dict]:
+        """Set the active story beat by id. If no beat with that id exists, a
+        new beat with the given description is added and selected. The
+        previously active beat is marked completed. Returns the beat as a dict
+        ({id, description, status}), or None if the story has no beat context."""
         with self._lock:
             context = self._story.config.context
-            if isinstance(context, StoryContext):
-                context.set_current_section(section)
+            if not isinstance(context, StoryContext):
+                return None
+            return context.set_beat(beat_id, description).to_json()
 
     def set_start_location(self, zone: str, name: str) -> None:
         """Set the player/wizard start location to ``zone.name``.
@@ -804,12 +813,13 @@ class StoryManager:
         NPCs/items and spawners in place.
         """
         with self._lock:
-            from tale.llm.dynamic_story import WorldInfo, Catalogue
+            from tale.llm.dynamic_story import WorldInfo, Catalogue, load_authored_beats
             from tale.parse import parse_locations
             import tale.llm.llm_cache as llm_cache
 
             world = parse_utils.load_json(os.path.join(path, 'world.json'))
             config = parse_utils.load_story_config(parse_utils.load_json(os.path.join(path, 'story_config.json')))
+            load_authored_beats(config)
 
             # reset state and rebuild from the saved files
             self._story._zones = dict()

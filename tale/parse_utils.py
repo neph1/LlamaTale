@@ -13,6 +13,7 @@ from tale.skills.magic import MagicType
 from tale.npc_defs import StationaryMob, StationaryNpc, Trader
 from tale.races import BodyType, UnarmedAttack
 from tale.mob_spawner import MobSpawner
+from tale.scenario import Beat, load_beats
 from tale.story import GameMode, MoneyType, TickMethod, StoryConfig
 from tale.story_context import StoryContext
 from tale.skills.weapon_type import WeaponType
@@ -42,9 +43,11 @@ def _maybe_attach_trap(mudobj, data: dict):
         attach(mudobj, trap_from_dict(trap_data, obj=mudobj))
 
 def location_from_json(json_object: dict):
+    from tale import stealth
     location = Location(name=json_object['name'], descr=json_object.get('descr', ''))
     location.built = json_object.get('built', True)
     _maybe_attach_trap(location, json_object)
+    location.concealment = stealth.clamp_concealment(json_object.get('concealment', 0))
     return location
 
 def load_npcs(json_npcs: list, locations: list[Location] = [], world_items = [], parse_occupation = False) -> dict:
@@ -190,6 +193,7 @@ def load_story_config(json_file: dict):
         config.context = StoryContext().from_json(context)
     else:
         config.context = context
+    config.beats = load_beats(json_file['beats']) if json_file.get('beats') else []
     config.type = json_file.get('type', '')
     config.world_info = json_file.get('world_info', '')
     config.world_mood = json_file.get('world_mood', config.world_mood)
@@ -229,6 +233,7 @@ def save_story_config(config: StoryConfig) -> dict:
     json_file['world_info'] = config.world_info
     json_file['world_mood'] = config.world_mood
     json_file['context'] = config.context if isinstance(config.context, str) else config.context.to_json()
+    json_file['beats'] = [beat.to_json() if isinstance(beat, Beat) else beat for beat in config.beats]
     json_file['custom_resources'] = config.custom_resources
     json_file['image_gen'] = config.image_gen
     json_file['epoch'] = 0 # TODO: fix later
@@ -623,6 +628,7 @@ def save_locations(locations: List[Location]) -> dict:
         json_location['exits'] = []
         json_location['world_location'] = location.world_location.as_tuple()
         json_location['built'] = location.built
+        json_location['concealment'] = location.concealment
         exits = []
         for exit in location.exits.values():
             json_exit = {}

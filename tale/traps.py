@@ -394,7 +394,8 @@ def search_reveal(searcher: Living, silent: bool = False) -> List[MudObject]:
     if loc is None:
         return []
     if silent:
-        skill_value = searcher.stats.perception * 5
+        # passive search: PERCEPTION skill, same multiplier convention as tale/stealth.py
+        skill_value = searcher.stats.skills.get(SkillType.PERCEPTION) * 5
     else:
         skill_value = searcher.stats.skills.get(SkillType.SEARCH)
     found = []  # type: List[MudObject]

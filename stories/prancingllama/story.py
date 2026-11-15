@@ -16,6 +16,7 @@ from tale.charbuilder import PlayerNaming
 from tale.skills.skills import SkillType
 from tale.story import *
 from tale.skills.weapon_type import WeaponType
+from tale.scenario import Beat
 from tale.story_context import StoryContext
 from tale.wearable import WearLocation
 from tale.zone import Zone
@@ -39,12 +40,19 @@ class Story(DynamicStory):
     config.startlocation_wizard = "prancingllama.entrance"
     config.zones = ["prancingllama"]
     config.context = StoryContext(base_story="The final outpost high up in a cold, craggy mountain range. A drama unfolds between those avoiding the cold and those seeking the cold. And what is lurking underneath the snow covered peaks and uncharted valleys?")
+    # authored story beats, installed into config.context by load_authored_beats (DynamicStory.init)
+    # and advanced by hand with the wizard command !set_beat <beat id>
+    config.beats = [
+        Beat(id="arrival", description="The outpost is calm: travellers shelter from the mountain cold inside the Prancing Llama, where the drama between those avoiding the cold and those seeking the cold plays out."),
+        Beat(id="blizzard", description="A blizzard envelops the outpost. Howling wind drives snow against the walls, the mountain passes are sealed off and the cold outside turns deadly. The travellers are trapped inside together, and something is stirring beneath the snow covered peaks."),
+    ]
     config.type = "A low level fantasy adventure with focus of character building and interaction."
     config.custom_resources = True
     
     
     def init(self, driver: Driver) -> None:
         """Called by the game driver when it is done with its initial initialization."""
+        super().init(driver)   # installs the authored beats (config.beats) into config.context
         self.driver = driver
         self._zones = dict() # type: {str, Zone}
          

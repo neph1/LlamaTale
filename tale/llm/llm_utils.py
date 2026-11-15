@@ -31,7 +31,6 @@ from tale.player_utils import TextBuffer
 import tale.parse_utils as parse_utils
 import tale.llm.llm_cache as llm_cache
 from tale.quest import Quest
-from tale.story_context import StoryContext
 from tale.web.web_utils import copy_single_image
 from tale.zone import Zone
 
@@ -393,10 +392,6 @@ class LlmUtil():
         self.__world_info = story.config.world_info
         if story.config.image_gen:
             self._init_image_gen(story.config.image_gen)
-
-    def advance_story_section(self, story_context: StoryContext) -> str:
-        """ Increase the story progress"""
-        return self._story_building.advance_story_section(story_context or self.__story.config.context)
 
     def _init_image_gen(self, image_gen: str):
         """ Initialize the image generator"""

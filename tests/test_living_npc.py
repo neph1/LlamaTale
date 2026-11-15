@@ -391,7 +391,7 @@ class TestLivingNpcActions():
 
     @responses.activate
     def test_search(self):
-        self.npc.stats.skills.set(SkillType.SEARCH, 100)
+        self.npc.stats.skills.set(SkillType.PERCEPTION, 100)
         self.npc.stats.action_points = 1
         self.npc2.hidden = True
         self.npc2.stats.skills.set(SkillType.HIDE, 0)
@@ -400,4 +400,4 @@ class TestLivingNpcActions():
         actions = self.npc.autonomous_action()
         assert(actions == '')
         assert not self.npc2.hidden
-        assert ["test searches for something.", "test reveals actor"] == self.msg_trace_npc.messages
+        assert ["test searches for something.", "test reveals actor!"] == self.msg_trace_npc.messages

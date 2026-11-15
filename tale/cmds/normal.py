@@ -17,6 +17,7 @@ from tale.skills.skills import SkillType
 from . import abbreviations, cmd, disabled_in_gamemode, disable_notify_action, overrides_soul, no_soul_parse, wizcmd
 from .. import base
 from .. import lang
+from .. import stealth
 from .. import races
 from .. import util
 from .. import cmds
@@ -922,6 +923,8 @@ def do_say(player: Player, parsed: base.ParseResult, ctx: util.Context) -> None:
                 break
     player.tell("You say%s: %s" % (target, message), evoke=False, short_len=False)
     player.tell_others("{Actor} says%s: %s" % (target, message), evoke=True, short_len=False)
+    if player.hidden:
+        stealth.risky_action(player, hider_penalty=stealth.TALK_WHILE_HIDDEN_PENALTY)
 
 
 @cmd("wait")

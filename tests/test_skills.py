@@ -16,6 +16,7 @@ class TestSkills():
             SkillType.HIDE.value: 5,
             SkillType.SEARCH.value: 3,
             SkillType.PICK_LOCK.value: 1,
+            SkillType.PERCEPTION.value: 10,
             SkillType.DODGE.value: 2,
             SkillType.SET_TRAP.value: 4,
             SkillType.DISARM_TRAP.value: 6
@@ -28,6 +29,7 @@ class TestSkills():
             SkillType.HIDE.value: 5,
             SkillType.SEARCH.value: 3,
             SkillType.PICK_LOCK.value: 1,
+            SkillType.PERCEPTION.value: 10,
             SkillType.DODGE.value: 2,
             SkillType.SET_TRAP.value: 4,
             SkillType.DISARM_TRAP.value: 6

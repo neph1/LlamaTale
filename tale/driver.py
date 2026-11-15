@@ -31,7 +31,7 @@ from tale.npc_defs import StationaryNpc
 from tale.zone import Zone
 
 from . import __version__ as tale_version_str, _check_required_libraries
-from . import mud_context, errors, util, cmds, player, pubsub, charbuilder, lang, verbdefs, vfs, base
+from . import mud_context, errors, util, cmds, player, pubsub, charbuilder, lang, verbdefs, vfs, base, stealth
 from .story import TickMethod, GameMode, MoneyType, StoryBase
 from .tio import DEFAULT_SCREEN_WIDTH
 from .races import playable_races
@@ -631,6 +631,9 @@ class Driver(pubsub.Listener):
                             topic_pending_actions.send(lambda actor=player: actor.location._notify_action_all(parsed, actor))
                     else:
                         raise errors.ParseError(parse_error)
+                    # sneaking is tiring: every action taken while hidden costs +1 AP
+                    if player.hidden and parsed.verb not in ("hide", "unhide"):
+                        player.stats.action_points = max(0, player.stats.action_points - stealth.HIDDEN_ACTION_AP_SURCHARGE)
             except errors.RetrySoulVerb:
                 # cmd decided it can't deal with the parsed stuff and that it needs to be retried as soul emote.
                 player.validate_socialize_targets(parsed)
