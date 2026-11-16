@@ -27,13 +27,19 @@
     "beats": [
         {
             "id": "arrival",
-            "description": "The investigators arrive at the boarding house."
+            "description": "The investigators arrive at the boarding house.",
+            "on_start": [
+                {"effect": "set_goal", "npc": "Mrs. Corbin", "goal": "avoid all questions about the cellar"}
+            ]
         },
         {
             "id": "suspicion",
             "description": "The landlady's story does not add up.",
             "goals": [
                 {"type": "interact", "target": "Mrs. Corbin"}
+            ],
+            "on_end": [
+                {"effect": "add_item", "item": "torn diary page", "to": "player"}
             ]
         },
         {
@@ -41,6 +47,9 @@
             "description": "The cellar holds the answer.",
             "goals": [
                 {"type": "kill", "target": "the thing in the cellar"}
+            ],
+            "on_start": [
+                {"effect": "move_npc", "npc": "Mrs. Corbin", "to": "Cellar"}
             ]
         }
     ],

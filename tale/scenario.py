@@ -7,12 +7,15 @@ Goal satisfaction is decided by typed world events published on the
 "story-events" pubsub topic at the call sites where something goal-relevant
 happens (quest completed, dialogue exchanged, NPC killed); the LLM never
 judges whether a beat is complete. This module holds the data model (Beat,
-BeatStatus, Goal) and the typed event vocabulary; the progression logic lives
-in tale/story_context.py for now and will grow into the full Scenario engine
-in later phases.
+BeatStatus, Goal, Effect), the effect vocabulary and registry, and the typed
+event vocabulary; the progression logic lives in tale/story_context.py for now
+and will grow into the full Scenario engine in later phases. Beat boundary
+effects (on_start/on_end/on_fail) are executed by tale/effects.py.
 """
 from enum import IntEnum
-from typing import List
+from typing import Callable, Dict, List, Literal, Optional
+
+from pydantic import AliasChoices, BaseModel, ConfigDict, Field, ValidationError
 
 from tale import pubsub
 
@@ -132,6 +135,146 @@ class Goal:
         return "Goal(type=%r, target=%r, satisfied=%r)" % (self.type, self.target, self.satisfied)
 
 
+# -- effects -------------------------------------------------------------------
+# Beat boundary effects (on_start / on_end / on_fail) are declarative dicts with
+# an "effect" discriminator. JSON scenarios are restricted to the built-in
+# vocabulary below (EFFECT_MODELS validates each entry's arguments); code-defined
+# stories can register additional effects with @register_effect. Execution lives
+# in tale/effects.py (EffectRunner), which maps the built-ins onto the existing
+# StoryManager operations.
+
+
+class _EffectModel(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+
+class AddItemEffect(_EffectModel):
+    """{"effect": "add_item", "item": "brass key", "to": "player"|npc|location}"""
+    effect: Literal["add_item"] = "add_item"
+    item: str = Field(min_length=1)
+    to: str = Field(default="player", min_length=1)
+
+
+class RemoveItemEffect(_EffectModel):
+    """{"effect": "remove_item", "item": "brass key", "from": "player"|npc|location}"""
+    model_config = ConfigDict(extra="forbid", populate_by_name=True)
+    effect: Literal["remove_item"] = "remove_item"
+    item: str = Field(min_length=1)
+    frm: str = Field(default="player", alias="from", min_length=1)
+
+
+class SpawnNpcEffect(_EffectModel):
+    """{"effect": "spawn_npc", "npc": "giant rat", "at": "cellar"} (a catalogue creature)"""
+    effect: Literal["spawn_npc"] = "spawn_npc"
+    name: str = Field(min_length=1, validation_alias=AliasChoices("npc", "name"))
+    at: str = Field(min_length=1)
+
+
+class MoveNpcEffect(_EffectModel):
+    """{"effect": "move_npc", "npc": "Mrs. Corbin", "to": "cellar"}"""
+    effect: Literal["move_npc"] = "move_npc"
+    name: str = Field(min_length=1, validation_alias=AliasChoices("npc", "name"))
+    to: str = Field(min_length=1)
+
+
+class RemoveNpcEffect(_EffectModel):
+    """{"effect": "remove_npc", "npc": "Mrs. Corbin"}"""
+    effect: Literal["remove_npc"] = "remove_npc"
+    name: str = Field(min_length=1, validation_alias=AliasChoices("npc", "name"))
+
+
+class SetGoalEffect(_EffectModel):
+    """{"effect": "set_goal", "npc": "Mrs. Corbin", "goal": "avoid questions about the cellar"}"""
+    effect: Literal["set_goal"] = "set_goal"
+    name: str = Field(min_length=1, validation_alias=AliasChoices("npc", "name"))
+    goal: str = Field(min_length=1)
+
+
+EFFECT_MODELS: Dict[str, type] = {
+    "add_item": AddItemEffect,
+    "remove_item": RemoveItemEffect,
+    "spawn_npc": SpawnNpcEffect,
+    "move_npc": MoveNpcEffect,
+    "remove_npc": RemoveNpcEffect,
+    "set_goal": SetGoalEffect,
+}
+
+_effect_handlers: Dict[str, Callable] = {}
+
+
+def register_effect(name: str) -> Callable:
+    """Decorator registering a custom effect handler (for code-defined stories).
+
+    The handler is called as ``handler(ctx, args)`` where ``ctx`` is the
+    tale.effects.EffectRunner (giving access to the live StoryManager) and
+    ``args`` is the effect dict (including the "effect" key). JSON scenarios
+    cannot use custom effects: loading rejects effect names that are neither
+    built-in nor registered."""
+    if not isinstance(name, str) or not name:
+        raise ValueError("effect name must be a non-empty string")
+
+    def decorator(func: Callable) -> Callable:
+        _effect_handlers[name] = func
+        return func
+    return decorator
+
+
+def get_effect_handler(name: str) -> Optional[Callable]:
+    """The registered handler for an effect name, or None."""
+    return _effect_handlers.get(name)
+
+
+def known_effects() -> List[str]:
+    """All effect names loadable from JSON: the built-in vocabulary plus any
+    custom effects registered so far."""
+    return sorted(set(EFFECT_MODELS) | set(_effect_handlers))
+
+
+class Effect:
+    """A single declarative beat-boundary effect: an ``effect`` discriminator
+    plus its argument dict. ``args`` does not contain the "effect" key;
+    :meth:`to_json` adds it back."""
+
+    def __init__(self, effect: str, args: dict = None) -> None:
+        if not isinstance(effect, str) or not effect:
+            raise ValueError("effect name must be a non-empty string")
+        self.effect = effect
+        self.args = dict(args) if args else {}
+
+    @classmethod
+    def from_json(cls, data: dict) -> "Effect":
+        """Validate and wrap an effect dict. Built-in effect names are validated
+        against their pydantic model (EFFECT_MODELS); custom names are accepted
+        only when a handler was registered with @register_effect; anything else
+        is rejected, keeping the JSON vocabulary closed."""
+        if not isinstance(data, dict) or not isinstance(data.get("effect"), str) or not data["effect"]:
+            raise ValueError("each effect needs an 'effect' key with a non-empty string: %r" % (data,))
+        name = data["effect"]
+        model = EFFECT_MODELS.get(name)
+        if model is not None:
+            try:
+                model.model_validate(data)
+            except ValidationError as exc:
+                raise ValueError("invalid '%s' effect %r: %s" % (name, data, exc)) from exc
+        elif name not in _effect_handlers:
+            raise ValueError("unknown effect %r (known: %s)" % (name, ", ".join(known_effects())))
+        return cls(name, {key: value for key, value in data.items() if key != "effect"})
+
+    def to_json(self) -> dict:
+        return {"effect": self.effect, **self.args}
+
+    def __repr__(self) -> str:
+        return "Effect(%r)" % (self.to_json(),)
+
+
+def _as_effect_list(effects) -> List[Effect]:
+    if effects is None:
+        return []
+    if not isinstance(effects, list):
+        raise ValueError("an effect list must be a list of effect dicts: %r" % (effects,))
+    return [effect if isinstance(effect, Effect) else Effect.from_json(effect) for effect in effects]
+
+
 class Beat:
     """A single story beat: an id, the description that enters the LLM
     context while the beat is active, its status, and the goals that
@@ -142,7 +285,8 @@ class Beat:
     auto-completing staging beats arrive with the full DAG engine."""
 
     def __init__(self, id: str, description: str = "", status: BeatStatus = BeatStatus.LOCKED,
-                 goals: List[Goal] = None, match: str = "all") -> None:
+                 goals: List[Goal] = None, match: str = "all",
+                 on_start: list = None, on_end: list = None, on_fail: list = None) -> None:
         if match not in GOAL_MATCHES:
             raise ValueError("beat match must be one of %s, got %r" % (GOAL_MATCHES, match))
         self.id = id
@@ -150,6 +294,10 @@ class Beat:
         self.status = status
         self.goals = list(goals) if goals else []
         self.match = match
+        self.on_start = _as_effect_list(on_start)
+        self.on_end = _as_effect_list(on_end)
+        self.on_fail = _as_effect_list(on_fail)
+        self._effects_run = set()  # type: set  # boundaries already executed; runtime only, not serialized
 
     def record_event(self, event: StoryEvent) -> bool:
         """Mark every goal the event satisfies; return True if the beat's
@@ -171,7 +319,10 @@ class Beat:
                 "description": self.description,
                 "status": str(self.status),
                 "match": self.match,
-                "goals": [goal.to_json() for goal in self.goals]}
+                "goals": [goal.to_json() for goal in self.goals],
+                "on_start": [effect.to_json() for effect in self.on_start],
+                "on_end": [effect.to_json() for effect in self.on_end],
+                "on_fail": [effect.to_json() for effect in self.on_fail]}
 
     @classmethod
     def from_json(cls, data: dict) -> "Beat":
@@ -183,7 +334,10 @@ class Beat:
                    description=data.get("description", ""),
                    status=status,
                    goals=goals,
-                   match=data.get("match", "all"))
+                   match=data.get("match", "all"),
+                   on_start=data.get("on_start"),
+                   on_end=data.get("on_end"),
+                   on_fail=data.get("on_fail"))
 
     def __repr__(self) -> str:
         return "Beat(id=%r, status=%s, description=%r, goals=%r)" % (self.id, self.status, self.description, self.goals)

@@ -134,9 +134,9 @@ class TestStoryContext:
         assert data == {
             "base_story": "A hero's journey",
             "beats": [
-                {"id": "beat-0", "description": "Prologue", "status": "completed", "match": "all", "goals": []},
-                {"id": "beat-1", "description": "Chapter 1", "status": "completed", "match": "all", "goals": []},
-                {"id": "beat-2", "description": "Chapter 2", "status": "active", "match": "all", "goals": []},
+                {"id": "beat-0", "description": "Prologue", "status": "completed", "match": "all", "goals": [], "on_start": [], "on_end": [], "on_fail": []},
+                {"id": "beat-1", "description": "Chapter 1", "status": "completed", "match": "all", "goals": [], "on_start": [], "on_end": [], "on_fail": []},
+                {"id": "beat-2", "description": "Chapter 2", "status": "active", "match": "all", "goals": [], "on_start": [], "on_end": [], "on_fail": []},
             ],
             "progress": 0.0,
             "length": 10.0,

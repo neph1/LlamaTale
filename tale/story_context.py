@@ -3,6 +3,12 @@ from typing import List, Optional
 from tale import pubsub
 from tale.scenario import Beat, BeatStatus, STORY_EVENTS_TOPIC, StoryEvent, validate_beats
 
+_BOUNDARY_FOR_STATUS = {
+    BeatStatus.ACTIVE: "on_start",
+    BeatStatus.COMPLETED: "on_end",
+    BeatStatus.FAILED: "on_fail",
+}
+
 
 class StoryContext(pubsub.Listener):
     """Story progression state: a base plot plus a list of beats.
@@ -22,6 +28,54 @@ class StoryContext(pubsub.Listener):
         self.progress = 0.0
         self.length = 10.0
         self.speed = 1.0
+        self.effect_runner = None  # tale.effects.EffectRunner; set by StoryManager, else resolved via the global registry
+
+    # -- beat boundary effects ---------------------------------------------------
+
+    def _effect_runner(self):
+        """The runner used for beat boundary effects: the explicitly set one, or
+        one over the globally registered StoryManager. None when no StoryManager
+        exists yet (effects stay pending in that case)."""
+        if self.effect_runner is not None:
+            return self.effect_runner
+        from tale import story_manager
+        from tale.effects import EffectRunner
+        try:
+            return EffectRunner(story_manager.current(), story_context=self)
+        except RuntimeError:
+            return None
+
+    def _run_boundary_effects(self, beat: Beat, boundary: str) -> None:
+        """Run a beat's boundary effect list (on_start/on_end/on_fail) through
+        the effect runner. Each boundary runs at most once per beat (tracked in
+        beat._effects_run); when no StoryManager exists yet the boundary stays
+        pending and run_pending_effects() runs it later."""
+        effects = getattr(beat, boundary, None)
+        if not effects or boundary in beat._effects_run:
+            return
+        runner = self._effect_runner()
+        if runner is None:
+            return
+        runner.run(effects, story_context=self)
+        beat._effects_run.add(boundary)
+
+    def run_pending_effects(self) -> None:
+        """Run the on_start effects of the ACTIVE beat if they have not run yet
+        (the story can be initialized before its StoryManager exists)."""
+        active = self.active_beat()
+        if active is not None and active.on_start and "on_start" not in active._effects_run:
+            self._run_boundary_effects(active, "on_start")
+
+    def _transition(self, beat: Beat, status: BeatStatus) -> None:
+        """Move a beat to a new status (forward only: LOCKED -> ACTIVE ->
+        COMPLETED/FAILED), running its boundary effects exactly once per
+        transition. A no-op when the beat is already in that status."""
+        if beat.status == status:
+            return
+        beat.status = status
+        boundary = _BOUNDARY_FOR_STATUS.get(status)
+        if boundary is not None:
+            self._run_boundary_effects(beat, boundary)
 
     # -- world events ----------------------------------------------------------
 
@@ -56,12 +110,12 @@ class StoryContext(pubsub.Listener):
             active = self.active_beat()
             if active is None or not active.goals_match():
                 break
-            active.status = BeatStatus.COMPLETED
+            self._transition(active, BeatStatus.COMPLETED)
             completed.append(active.id)
             nxt = next((beat for beat in self.beats if beat.status == BeatStatus.LOCKED), None)
             if nxt is None:
                 break
-            nxt.status = BeatStatus.ACTIVE
+            self._transition(nxt, BeatStatus.ACTIVE)
         return completed
 
     # -- beats ---------------------------------------------------------------
@@ -74,7 +128,7 @@ class StoryContext(pubsub.Listener):
         self.beats = list(beats)
         self.authored = True
         if self.beats and all(beat.status == BeatStatus.LOCKED for beat in self.beats):
-            self.beats[0].status = BeatStatus.ACTIVE
+            self._transition(self.beats[0], BeatStatus.ACTIVE)
         self._settle()
 
     def active_beat(self) -> Optional[Beat]:
@@ -94,8 +148,8 @@ class StoryContext(pubsub.Listener):
             return None
         active = self.active_beat()
         if active is not None:
-            active.status = BeatStatus.COMPLETED
-        nxt.status = BeatStatus.ACTIVE
+            self._transition(active, BeatStatus.COMPLETED)
+        self._transition(nxt, BeatStatus.ACTIVE)
         self._settle()
         return self.active_beat()
 
@@ -111,8 +165,8 @@ class StoryContext(pubsub.Listener):
         if beat is not None:
             active = self.active_beat()
             if active is not None and active is not beat:
-                active.status = BeatStatus.COMPLETED
-            beat.status = BeatStatus.ACTIVE
+                self._transition(active, BeatStatus.COMPLETED)
+            self._transition(beat, BeatStatus.ACTIVE)
             self._settle()
             return self.active_beat() or beat
         return self.add_beat(description, id=beat_id)
@@ -123,11 +177,12 @@ class StoryContext(pubsub.Listener):
         active = self.active_beat()
         if active is not None:
             if active.description:
-                active.status = BeatStatus.COMPLETED
+                self._transition(active, BeatStatus.COMPLETED)
             else:
                 self.beats.remove(active)
-        beat = Beat(id=id or "beat-%d" % len(self.beats), description=description, status=BeatStatus.ACTIVE)
+        beat = Beat(id=id or "beat-%d" % len(self.beats), description=description, status=BeatStatus.LOCKED)
         self.beats.append(beat)
+        self._transition(beat, BeatStatus.ACTIVE)
         return beat
 
     # -- rendering -----------------------------------------------------------
@@ -157,6 +212,10 @@ class StoryContext(pubsub.Listener):
             self.beats = [Beat(id="beat-%d" % i, description=section, status=BeatStatus.COMPLETED)
                           for i, section in enumerate(past_sections)]
             self.beats.append(Beat(id="beat-%d" % len(past_sections), description=current_section, status=BeatStatus.ACTIVE))
+        for beat in self.beats:
+            # restored statuses mean their boundary effects already ran before the save
+            boundary = _BOUNDARY_FOR_STATUS.get(beat.status)
+            beat._effects_run = {boundary} if boundary else set()
         self._settle()
         return self
 
