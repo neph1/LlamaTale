@@ -77,6 +77,28 @@ class TestCharacterLoader():
         assert(character.memory['sentiments'] == {'bob': 'shy', 'alice': 'kind'})
         assert(character.memory['observed_events'] == ['bob waved'])
 
+    def test_CharacterV2_from_json_top_level_sentiments(self):
+        char_data = {
+            'name': 'Sent Bot',
+            'memory': {'sentiments': {'bob': 'shy'}},
+            'sentiments': {'alice': 'kind'}}
+        character = CharacterV2().from_json(char_data)
+        assert(character.memory['sentiments'] == {'bob': 'shy', 'alice': 'kind'})
+
+    def test_CharacterV2_from_json_relationships_override_memory_sentiments(self):
+        char_data = {
+            'name': 'Conflict Bot',
+            'memory': {'sentiments': {'king': 'hostile', 'queen': 'neutral'}},
+            'relationships': {'king': 'friendly'}}
+        character = CharacterV2().from_json(char_data)
+        # top-level relationships win over memory sentiments on key conflict
+        assert(character.memory['sentiments'] == {'king': 'friendly', 'queen': 'neutral'})
+
+    def test_CharacterV2_from_json_without_memory(self):
+        char_data = {'name': 'Plain Bot'}
+        character = CharacterV2().from_json(char_data)
+        assert(character.memory == {})
+
     def _verify_character(self, character: CharacterV2):
         assert(character.name == 'test')
         assert(character.appearance == 'test appearance')

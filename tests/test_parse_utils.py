@@ -429,6 +429,10 @@ class TestLoadNpcs:
         saved_npcs = parse_utils.save_npcs([npc])
         json.dumps(saved_npcs)  # the saved story must be JSON serializable
         assert(saved_npcs['kobbo']['memory']['sentiments'] == {'player': 'friendly'})
+        # the top-level planned_actions key must be the serialized (JSON-safe) form,
+        # not live ActionResponse objects
+        assert(saved_npcs['kobbo']['planned_actions'] == saved_npcs['kobbo']['memory']['planned_actions'])
+        assert(saved_npcs['kobbo']['planned_actions'] == [[{'goal': '', 'text': 'hello there', 'target': '', 'item': '', 'action': 'say', 'sentiment': '', 'thoughts': ''}]])
 
         loaded_npcs = parse_utils.load_npcs(list(saved_npcs.values()), locations=locations)
         loaded = loaded_npcs['Kobbo']

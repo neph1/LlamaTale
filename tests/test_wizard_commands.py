@@ -1,8 +1,10 @@
 
 
 
+import json
 import pytest
 import tale
+import tale.parse_utils as parse_utils
 from tale.base import Item, Location, ParseResult, Weapon
 from tale.cmds import wizard, wizcmd
 from tale.errors import ActionRefused, ParseError
@@ -12,6 +14,7 @@ from tale.items.basic import Food
 from tale.llm.LivingNpc import LivingNpc
 from tale.llm.dynamic_story import DynamicStory
 from tale.llm.llm_utils import LlmUtil
+from tale.llm.responses.ActionResponse import ActionResponse
 from tale.player import Player
 from tale.story import StoryConfig
 from tale.story_manager import StoryManager
@@ -54,6 +57,28 @@ class TestWizardCommands():
         assert(npc.known_locations == {'tavern': 'a cozy tavern'})
         assert(npc.action_history == ['waved'])
         assert(npc.goal == 'befriend the king')
+
+    def test_load_character_memory_survives_save_and_reload(self):
+        parse_result = ParseResult(
+            verb='load_character_from_data',
+            unparsed='{\"name\": \"mem npc\", \"memory\": {\"observed_events\": [\"met the king\"], \"sentiments\": {\"king\": \"hostile\"}, \"known_locations\": {\"tavern\": \"a cozy tavern\"}, \"action_history\": [\"waved\"], \"planned_actions\": [[{\"action\": \"say\", \"text\": \"hello there\"}]], \"goal\": \"befriend the king\"}, \"relationships\": {\"queen\": \"kind\"}}')
+        npc = wizard.do_load_character_from_data(self.test_player, parse_result, self.context) # type: LivingNpc
+        assert(npc.sentiments == {'king': 'hostile', 'queen': 'kind'})
+
+        # simulate !save_story writing world.json to disk and loading it back
+        saved = parse_utils.save_npcs([npc])
+        saved = json.loads(json.dumps(saved))
+        locations = {npc.location.name: npc.location}
+        loaded_npcs = parse_utils.load_npcs(list(saved.values()), locations=locations)
+        loaded = loaded_npcs['Mem']
+        assert(loaded.sentiments == {'king': 'hostile', 'queen': 'kind'})
+        assert(loaded.get_observed_events(None) == 'met the king')
+        assert(loaded.known_locations == {'tavern': 'a cozy tavern'})
+        assert(loaded.action_history == ['waved'])
+        assert(loaded.goal == 'befriend the king')
+        planned = loaded.memory.next_planned()
+        assert(isinstance(planned, ActionResponse))
+        assert(planned.action == 'say' and planned.text == 'hello there')
 
     def test_set_visible(self):
         location = Location('test')
