@@ -190,6 +190,13 @@ class SetGoalEffect(_EffectModel):
     goal: str = Field(min_length=1)
 
 
+class SetDescriptionEffect(_EffectModel):
+    """{"effect": "set_description", "location": "cellar", "description": "A dark, damp cellar."}"""
+    effect: Literal["set_description"] = "set_description"
+    location: str = Field(min_length=1, validation_alias=AliasChoices("location", "at"))
+    description: str = Field(min_length=1)
+
+
 EFFECT_MODELS: Dict[str, type] = {
     "add_item": AddItemEffect,
     "remove_item": RemoveItemEffect,
@@ -197,6 +204,7 @@ EFFECT_MODELS: Dict[str, type] = {
     "move_npc": MoveNpcEffect,
     "remove_npc": RemoveNpcEffect,
     "set_goal": SetGoalEffect,
+    "set_description": SetDescriptionEffect,
 }
 
 _effect_handlers: Dict[str, Callable] = {}

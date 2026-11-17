@@ -74,7 +74,8 @@ def registered_manager():
 class TestEffectModel:
 
     def test_known_effects_are_the_builtin_vocabulary(self):
-        assert known_effects() == ["add_item", "move_npc", "remove_item", "remove_npc", "set_goal", "spawn_npc"]
+        assert known_effects() == ["add_item", "move_npc", "remove_item", "remove_npc",
+                                   "set_description", "set_goal", "spawn_npc"]
 
     def test_from_json_accepts_all_builtins(self):
         assert Effect.from_json({"effect": "add_item", "item": "brass key", "to": "player"}).to_json() == \
@@ -91,6 +92,9 @@ class TestEffectModel:
                {"effect": "remove_npc", "npc": "corbin"}
         assert Effect.from_json({"effect": "set_goal", "npc": "corbin", "goal": "hide"}).to_json() == \
                {"effect": "set_goal", "npc": "corbin", "goal": "hide"}
+        assert Effect.from_json({"effect": "set_description", "location": "Cellar", "description": "A dark cellar."}).to_json() == \
+               {"effect": "set_description", "location": "Cellar", "description": "A dark cellar."}
+        assert Effect.from_json({"effect": "set_description", "at": "Cellar", "description": "A dark cellar."}).args["at"] == "Cellar"
 
     def test_from_json_rejects_malformed_effects(self):
         for bad in ["not a dict", {"item": "x"}, {"effect": ""}, {"effect": 42},
@@ -99,6 +103,10 @@ class TestEffectModel:
                     {"effect": "add_item", "item": "x", "nope": 1},  # unknown key
                     {"effect": "spawn_npc", "npc": "rat"},        # missing at
                     {"effect": "set_goal", "npc": "c"},           # missing goal
+                    {"effect": "set_description", "location": "c"},  # missing description
+                    {"effect": "set_description", "description": "d"},  # missing location
+                    {"effect": "set_description", "location": "c", "description": ""},  # empty description
+                    {"effect": "set_description", "location": "c", "description": "d", "x": 1},  # unknown key
                     {"effect": "narrative_event", "text": "x"}]:  # not in the vocabulary yet
             with pytest.raises(ValueError):
                 Effect.from_json(bad)
@@ -204,6 +212,66 @@ class TestEffectRunnerBuiltins:
         results = run_effects([Effect.from_json({"effect": "remove_item", "item": "nope", "from": "Cave"})], manager=mgr)
         assert results[0]["success"] is False
         assert "nope" in results[0]["error"]
+
+    def test_remove_item_accepts_frm_field_name(self, registered_manager):
+        # "frm" is the model field name (populate_by_name), "from" its alias; both
+        # validate, so the handler must honor either
+        mgr, story, cave, hall, corbin = registered_manager
+        from tale.effects import run_effects
+        assert mgr.give_item("torch", "Cave")[0]
+        results = run_effects([Effect.from_json({"effect": "remove_item", "item": "torch", "frm": "Cave"})], manager=mgr)
+        assert results[0]["success"] is True
+        assert list(cave.items) == []
+
+    def test_add_item_with_explicit_item_def(self, registered_manager):
+        # code-constructed effects may pass a full item dict (JSON cannot: the
+        # model requires a string item name)
+        mgr, story, cave, hall, corbin = registered_manager
+        from tale.effects import run_effects
+        results = run_effects([Effect("add_item", {"item": {"name": "custom thing", "type": "Other"}, "to": "Cave"})],
+                              manager=mgr)
+        assert results[0]["success"] is True
+        assert [item.name for item in cave.items] == ["custom thing"]
+        ok, error = mgr.give_item("another", "Hall", item_def={"name": "another", "type": "Other"})
+        assert ok, error
+        assert [item.name for item in hall.items] == ["another"]
+
+    def test_remove_npc_refuses_players(self, registered_manager):
+        # _find_living also matches connected players; remove_npc must not yank one
+        mgr, story, cave, hall, corbin = registered_manager
+        from tale.effects import run_effects
+        hero = Living("Hero", "m")
+        cave.insert(hero, None)
+        mgr._driver = StubDriver([hero])
+        results = run_effects([Effect.from_json({"effect": "remove_npc", "npc": "Hero"})], manager=mgr)
+        assert results[0]["success"] is False
+        assert hero in cave.livings
+
+    def test_set_description(self, registered_manager):
+        mgr, story, cave, hall, corbin = registered_manager
+        from tale.effects import run_effects
+        cave.built = False  # an LLM-described location; the effect must mark it built
+        results = run_effects([Effect.from_json({"effect": "set_description", "location": "cave",  # case-insensitive
+                                                  "description": "A damp cave."})], manager=mgr)
+        assert results == [{"effect": "set_description", "success": True, "error": ""}]
+        assert cave.description == "A damp cave."
+        assert cave.built is True  # the LLM must not overwrite the authored description
+        # "at" works as an alias for the location key
+        results = run_effects([Effect.from_json({"effect": "set_description", "at": "Hall",
+                                                  "description": "A grand hall."})], manager=mgr)
+        assert results[0]["success"] is True
+        assert hall.description == "A grand hall."
+
+    def test_set_description_unknown_location_or_empty_text(self, registered_manager):
+        mgr, story, cave, hall, corbin = registered_manager
+        from tale.effects import EffectRunner
+        results = EffectRunner(mgr).run([Effect.from_json({"effect": "set_description", "location": "Nowhere",
+                                                           "description": "x"}),
+                                         Effect("set_description", {"location": "Cave", "description": ""})])
+        assert all(r["success"] is False for r in results)
+        assert "Nowhere" in results[0]["error"]
+        assert "non-empty" in results[1]["error"]
+        assert cave.description == ""
 
     def test_spawn_npc(self, registered_manager):
         mgr, story, cave, hall, corbin = registered_manager
@@ -377,6 +445,76 @@ class TestStoryContextEffects:
         assert [item.name for item in cave.items] == ["key"]
         assert context.active_beat()._effects_run == {"on_start"}
 
+    def test_pending_on_end_runs_when_manager_appears(self):
+        # a beat completed before any StoryManager existed must not lose its on_end
+        story, cave, hall = make_story()
+        context = story.config.context
+        context.set_beats([
+            Beat("one", "One.", on_end=[Effect.from_json({"effect": "add_item", "item": "key", "to": "Cave"})]),
+            Beat("two", "Two."),
+        ])
+        context.set_beat("two")  # completes "one" with no runner: on_end stays pending
+        assert context.beats[0].status == BeatStatus.COMPLETED
+        assert list(cave.items) == []
+        mgr = StoryManager(story)  # wires the runner and flushes all pending boundaries
+        assert [item.name for item in cave.items] == ["key"]
+        assert context.beats[0]._effects_run == {"on_end"}
+
+    def test_set_beat_via_manager_runs_boundary_effects(self, registered_manager):
+        # StoryManager.set_beat holds the manager lock while the transition runs
+        # effects that call back into the manager: this needs the reentrant lock
+        mgr, story, cave, hall, corbin = registered_manager
+        context = story.config.context
+        context.set_beats([
+            Beat("one", "One.", on_end=[Effect.from_json({"effect": "add_item", "item": "key", "to": "Cave"})]),
+            Beat("two", "Two.", on_start=[Effect.from_json({"effect": "set_goal", "npc": "corbin", "goal": "wait"})]),
+        ])
+        beat = mgr.set_beat("two")
+        assert beat["id"] == "two"
+        assert [item.name for item in cave.items] == ["key"]
+        assert corbin.goal == "wait"
+
+    def test_on_start_set_description_fires_at_transition(self, registered_manager):
+        mgr, story, cave, hall, corbin = registered_manager
+        context = story.config.context
+        context.set_beats([
+            Beat("one", "One."),
+            Beat("two", "Two.", on_start=[Effect.from_json({"effect": "set_description", "location": "Hall",
+                                                            "description": "The hall is now candlelit."})]),
+        ])
+        assert hall.description == ""
+        context.set_beat("two")
+        assert hall.description == "The hall is now candlelit."
+        assert context.beats[1]._effects_run == {"on_start"}
+
+    def test_on_fail_boundary_runs_once(self, registered_manager):
+        mgr, story, cave, hall, corbin = registered_manager
+        context = story.config.context
+        context.set_beats([Beat("doomed", "Doomed.",
+                                on_fail=[Effect.from_json({"effect": "add_item", "item": "ash", "to": "Cave"})])])
+        beat = context.beats[0]
+        context._transition(beat, BeatStatus.FAILED)
+        assert [item.name for item in cave.items] == ["ash"]
+        assert beat._effects_run == {"on_fail"}
+        context._transition(beat, BeatStatus.FAILED)  # already failed: no-op, no re-run
+        assert [item.name for item in cave.items] == ["ash"]
+
+    def test_set_story_context_wires_effect_runner(self):
+        # without a globally registered manager, the runner must come from the
+        # manager that created the context, not from the global registry
+        mgr, story, cave, hall, corbin = make_manager()
+        saved = sm._current
+        sm._current = None
+        try:
+            mgr.set_story_context("Base plot")
+            context = story.config.context
+            assert context.effect_runner is not None
+            context.set_beats([Beat("a", "A.",
+                                    on_start=[Effect.from_json({"effect": "add_item", "item": "key", "to": "Cave"})])])
+            assert [item.name for item in cave.items] == ["key"]
+        finally:
+            sm._current = saved
+
     def test_save_load_preserves_effects_and_does_not_rerun_them(self, registered_manager):
         mgr, story, cave, hall, corbin = registered_manager
         context = story.config.context
@@ -430,3 +568,35 @@ class TestBeatsTestStoryEffects:
         reloaded = parse_utils.load_story_config(stored)
         by_id = {beat.id: beat for beat in reloaded.beats}
         assert by_id["suspicion"].on_end[0].to_json() == {"effect": "add_item", "item": "torn diary page", "to": "player"}
+
+    def test_beats_test_story_effects_execute_end_to_end(self):
+        # the authored JSON effects actually fire against a live world:
+        # arrival on_start sets Mrs. Corbin's goal; talking to her completes
+        # suspicion, whose on_end gives the player the torn diary page
+        import tale.parse_utils as parse_utils
+        from tale.scenario import publish_story_event, Interacted
+        config = parse_utils.load_story_config(parse_utils.load_json('stories/beats_test/story_config.json'))
+        story, cave, hall = make_story()
+        cellar = Location("Cellar")
+        story.add_location(cellar, "TestZone")
+        mgr = StoryManager(story)
+        corbin = Living("Mrs. Corbin", "f")
+        cave.insert(corbin, None)
+        story.world.add_npc(corbin)
+        hero = Living("Hero", "m")
+        cave.insert(hero, None)
+        mgr._driver = StubDriver([hero])
+        saved = sm._current
+        sm.register(mgr)
+        try:
+            context = story.config.context
+            context.set_beats(config.beats)
+            assert context.active_beat().id == "arrival"
+            assert corbin.goal == "avoid all questions about the cellar"  # arrival on_start
+            context.set_beat("suspicion")  # arrival is goal-less: advance manually
+            publish_story_event(Interacted(npc="mrs. corbin", npc_title="Mrs. Corbin"))
+            assert context.active_beat().id == "descent"
+            assert [item.name for item in hero.inventory] == ["torn diary page"]  # suspicion on_end
+            assert corbin.location is cellar  # descent on_start
+        finally:
+            sm._current = saved

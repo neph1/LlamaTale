@@ -92,6 +92,10 @@ def _find_location(manager, name: str):
         raise ValueError("a location name is required")
     location = manager.story.find_location(name)
     if location is None:
+        # story.find_location is case-sensitive; match like StoryManager._find_location
+        lower = name.lower()
+        location = next((loc for loc in manager.story.locations.values() if loc.name.lower() == lower), None)
+    if location is None:
         raise ValueError("location '%s' not found" % name)
     return location
 
@@ -123,8 +127,12 @@ def _effect_add_item(runner: EffectRunner, args: dict) -> None:
 
 @scenario.register_effect("remove_item")
 def _effect_remove_item(runner: EffectRunner, args: dict) -> None:
-    """{"effect": "remove_item", "item": "brass key", "from": "player"|npc|location}"""
-    ok, error = runner.manager.remove_item_from(args.get("item", ""), args.get("from", "player"))
+    """{"effect": "remove_item", "item": "brass key", "from": "player"|npc|location}
+
+    The holder key may be given as "from" (the alias) or "frm" (the field
+    name); both validate, so accept either."""
+    frm = args.get("from") or args.get("frm") or "player"
+    ok, error = runner.manager.remove_item_from(args.get("item", ""), frm)
     if not ok:
         raise ValueError(error)
 
@@ -170,3 +178,18 @@ def _effect_set_goal(runner: EffectRunner, args: dict) -> None:
     ok, error = runner.manager.set_npc_goal(_effect_name(args), args.get("goal", ""))
     if not ok:
         raise ValueError(error)
+
+
+@scenario.register_effect("set_description")
+def _effect_set_description(runner: EffectRunner, args: dict) -> None:
+    """{"effect": "set_description", "location": "cellar", "description": "..."}
+    ("at" also accepted for the location); reuses StoryManager.set_location_description."""
+    manager = runner.manager
+    description = args.get("description", "")
+    if not description:
+        raise ValueError("description must be a non-empty string")
+    location = _find_location(manager, args.get("location") or args.get("at") or "")
+    ok, error = manager.set_location_description(_zone_name_for(manager, location), location.name, description)
+    if not ok:
+        raise ValueError(error)
+    location.built = True  # the LLM must not generate its own description over the authored one

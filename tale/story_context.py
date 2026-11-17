@@ -60,16 +60,21 @@ class StoryContext(pubsub.Listener):
         beat._effects_run.add(boundary)
 
     def run_pending_effects(self) -> None:
-        """Run the on_start effects of the ACTIVE beat if they have not run yet
-        (the story can be initialized before its StoryManager exists)."""
-        active = self.active_beat()
-        if active is not None and active.on_start and "on_start" not in active._effects_run:
-            self._run_boundary_effects(active, "on_start")
+        """Run every boundary effect that is still pending because its beat
+        transitioned before a StoryManager existed: for each beat, the boundary
+        implied by its current status (on_start/on_end/on_fail) runs if it has
+        not run yet. Restored savegames mark their boundaries as already run,
+        so this is a no-op for them."""
+        for beat in self.beats:
+            boundary = _BOUNDARY_FOR_STATUS.get(beat.status)
+            if boundary is not None:
+                self._run_boundary_effects(beat, boundary)
 
     def _transition(self, beat: Beat, status: BeatStatus) -> None:
-        """Move a beat to a new status (forward only: LOCKED -> ACTIVE ->
-        COMPLETED/FAILED), running its boundary effects exactly once per
-        transition. A no-op when the beat is already in that status."""
+        """Move a beat to a new status, running its boundary effects exactly
+        once per transition. A no-op when the beat is already in that status.
+        (set_beat may move a COMPLETED beat back to ACTIVE; its boundary
+        effects still do not re-run.)"""
         if beat.status == status:
             return
         beat.status = status

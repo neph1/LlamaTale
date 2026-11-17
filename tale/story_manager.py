@@ -803,7 +803,9 @@ class StoryManager:
     def set_story_context(self, base_story: str) -> None:
         """Set the base plot of the story context."""
         with self._lock:
-            self._story.config.context = StoryContext(base_story)
+            context = StoryContext(base_story)
+            context.effect_runner = EffectRunner(self, story_context=context)
+            self._story.config.context = context
 
     def set_beat(self, beat_id: str, description: str = "") -> Optional[dict]:
         """Set the active story beat by id. If no beat with that id exists, a
@@ -853,15 +855,12 @@ class StoryManager:
 
             world = parse_utils.load_json(os.path.join(path, 'world.json'))
             config = parse_utils.load_story_config(parse_utils.load_json(os.path.join(path, 'story_config.json')))
-            load_authored_beats(config)
 
             # reset state and rebuild from the saved files
             self._story._zones = dict()
             self._story._world = WorldInfo()
             self._story._catalogue = Catalogue()
             self._story.config = config
-            if isinstance(config.context, StoryContext):
-                config.context.effect_runner = EffectRunner(self, story_context=config.context)
 
             for zone_json in world.get('zones', {}).values():
                 zones, _exits = parse_locations.load_locations(zone_json)
@@ -898,6 +897,14 @@ class StoryManager:
             if os.path.exists(llm_cache_path):
                 llm_cache.load(parse_utils.load_json(llm_cache_path))
             self._subscribe_events()   # the world was rebuilt; subscribe to its wiretaps
+
+            # install the authored beats only now that the world is rebuilt, so
+            # beat-boundary effects run against the new world (not the stale
+            # one); wire the runner and flush any effects that stayed pending
+            load_authored_beats(config)
+            if isinstance(config.context, StoryContext):
+                config.context.effect_runner = EffectRunner(self, story_context=config.context)
+                config.context.run_pending_effects()
 
     # -- LLM-backed generation (optional; delegates to WorldBuilding, then
     #    applies the result to the story via the mutation API above) -----------
@@ -1295,10 +1302,11 @@ class StoryManager:
 
     def remove_world_npc(self, name: str) -> tuple:
         """Remove a live NPC from its location and from the world store.
-        Returns ``(success, error_message)``."""
+        Only world-store NPCs qualify; a connected player that happens to match
+        the name is refused. Returns ``(success, error_message)``."""
         with self._lock:
             npc = self._find_living(name)
-            if npc is None:
+            if npc is None or self._story.world.npcs.get(npc.name) is not npc:
                 return False, f"npc '{name}' not found"
             if npc.location is not None and npc in npc.location.livings:
                 npc.location.remove(npc, None)
