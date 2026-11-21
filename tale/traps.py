@@ -44,7 +44,7 @@ from .skills.skills import SkillType
 
 
 __all__ = ["TrapState", "TrapTrigger", "TrapOutcome", "Trap", "TrapItem",
-           "attach", "get", "remove", "resolve", "disarm", "search_reveal",
+           "attach", "get", "remove", "set_state", "resolve", "disarm", "search_reveal",
            "trigger_enter", "trigger_open", "trigger_move", "handle_touch", "tick_restrain",
            "trap_from_dict", "dodge_roll", "band_for_roll",
            "EFFECT_DAMAGE", "EFFECT_RESTRAIN", "EFFECT_HOBBLE", "EFFECT_DOOR", "EFFECT_ALARM", "EFFECT_SPELL",
@@ -213,6 +213,17 @@ def get(obj: MudObject) -> Optional[Trap]:
 
 def remove(obj: MudObject) -> None:
     obj.story_data.pop(TRAP_KEY, None)
+
+
+def set_state(obj: MudObject, state: TrapState) -> Optional[Trap]:
+    """Directly set the trap state on obj (world-building / MCP tooling; no skill throw).
+    Returns the updated trap, or None if obj has no trap."""
+    trap = get(obj)
+    if trap is None:
+        return None
+    trap.state = state
+    _set(obj, trap)
+    return trap
 
 
 def _set(obj: MudObject, trap: Trap) -> None:

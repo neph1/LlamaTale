@@ -428,6 +428,50 @@ def create_server(manager: StoryManager, port: int = DEFAULT_MCP_PORT) -> FastMC
         Returns {"success": bool, "error": str}."""
         return _result(*manager.set_npc_goal(name, goal))
 
+    # -- traps -------------------------------------------------------------------
+
+    @mcp.tool()
+    def add_trap(zone: str, location: str, object: str, trap: dict) -> dict:
+        """Attach a trap to an object in a live location (zone, location).
+
+        ``object`` is "room" (or "") for the location itself, an item name in
+        the location, or an exit direction. ``trap`` is a dict:
+        {"level": 1-10, "trigger": "ENTER|OPEN|MOVE|TOUCH",
+         "effect": "DAMAGE|RESTRAIN|HOBBLE|DOOR|ALARM|SPELL",
+         "effect_params": {...}, "hidden": bool, "reset": bool, "owner": str,
+         "descr": str, "llm_hint": str, "effect_hint": str}
+        The trigger must be valid for the object type (ENTER only on the room,
+        OPEN on containers/doors, MOVE on items, TOUCH anywhere); malformed
+        traps are rejected. Returns {"success": bool, "error": str}."""
+        return _result(*manager.add_trap(zone, location, object, trap))
+
+    @mcp.tool()
+    def get_trap(zone: str, location: str, object: str) -> dict:
+        """Return the trap dict attached to the object in a live location
+        (zone, location), or an empty dict if there is no trap (or the object
+        is not found). ``object``: "room"/"" for the location, an item name, or
+        an exit direction."""
+        return manager.get_trap(zone, location, object)
+
+    @mcp.tool()
+    def remove_trap(zone: str, location: str, object: str) -> dict:
+        """Remove the trap from an object in a live location (zone, location).
+        Returns {"success": bool, "error": str}."""
+        return _result(*manager.remove_trap(zone, location, object))
+
+    @mcp.tool()
+    def arm_trap(zone: str, location: str, object: str) -> dict:
+        """(Re-)arm the trap on an object in a live location: state -> ARMED.
+        Returns {"success": bool, "error": str}."""
+        return _result(*manager.arm_trap(zone, location, object))
+
+    @mcp.tool()
+    def disarm_trap(zone: str, location: str, object: str) -> dict:
+        """Disarm the trap on an object in a live location: state -> DISARMED.
+        This is a direct world-building state change (no skill throw, unlike the
+        in-game 'disarm' command). Returns {"success": bool, "error": str}."""
+        return _result(*manager.disarm_trap(zone, location, object))
+
     # -- LLM-driven / narrative (Stage 4) --------------------------------------
 
     @mcp.tool()
