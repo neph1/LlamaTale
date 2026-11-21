@@ -50,7 +50,8 @@ class CharacterV2():
                  wearing: str= '',
                  wielding: str='',
                  items: str = '',
-                 follower: bool = False) -> None:
+                 follower: bool = False,
+                 memory: dict = None) -> None:
         self.name = name
         self.race = race
         self.gender = gender
@@ -68,10 +69,16 @@ class CharacterV2():
         self.items = items
         self.autonomous = False
         self.follower = follower
+        self.memory = memory or {}
         if aliases:
             self.aliases = aliases
         
     def from_json(self, json: dict):
+        data = json.get('data')
+        if isinstance(data, dict):
+            merged = dict(data)
+            merged.update({key: value for key, value in json.items() if key != 'data'})
+            json = merged
         self.name = json.get('name').lower().split(' ')[0]
         self.title = json.get('title', json.get('name'))
         self.race = json.get('race', 'human').lower()
@@ -92,5 +99,12 @@ class CharacterV2():
         self.autonomous = json.get('autonomous', False)
         self.follower = json.get('follower', False)
         self.output_thoughts = json.get('output_thoughts', False)
+        memory = dict(json.get('memory') or {})
+        relationships = json.get('sentiments') or json.get('relationships') or {}
+        if relationships:
+            sentiments = dict(memory.get('sentiments') or {})
+            sentiments.update(relationships)
+            memory['sentiments'] = sentiments
+        self.memory = memory
         return self
         
