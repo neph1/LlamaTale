@@ -1,0 +1,53 @@
+{
+    "story": "trap_chest",
+    "zones": {
+        "Vault": {
+            "name": "vault",
+            "description": "A single stone vault room.",
+            "level": 1,
+            "mood": -2,
+            "races": [],
+            "items": [],
+            "size": 1,
+            "center": [0, 0, 0],
+            "locations": [
+                {
+                    "name": "Vault",
+                    "descr": "A small, windowless stone vault. Dust motes swirl in the stale air. The only thing of interest is an oak chest in the corner.",
+                    "short_descr": "",
+                    "exits": [],
+                    "world_location": [0, 0, 0],
+                    "built": true,
+                    "items": [
+                        {
+                            "name": "chest",
+                            "title": "oak chest",
+                            "descr": "A sturdy oak chest with iron bands. Something about the lock looks off.",
+                            "short_descr": "A sturdy oak chest sits in the corner.",
+                            "type": "Boxlike",
+                            "trap": {
+                                "level": 3,
+                                "trigger": "OPEN",
+                                "effect": "DAMAGE",
+                                "hidden": true,
+                                "descr": "A poison needle is hidden in the chest's lock.",
+                                "llm_hint": "The trap is a wounding prank, not a killer. Narrate the victim angry and hurt, not dead.",
+                                "effect_hint": "On full effect the poison needle sinks deep into the opener's hand. On partial effect it only scratches. On a clean escape the opener jerks their hand back just in time."
+                            }
+                        }
+                    ]
+                }
+            ]
+        }
+    },
+    "world": {
+        "npcs": {},
+        "items": {},
+        "spawners": [],
+        "item_spawners": []
+    },
+    "catalogue": {
+        "creatures": [],
+        "items": []
+    }
+}

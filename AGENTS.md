@@ -86,6 +86,21 @@ Player-specific code.
 - Output formatting, screen width/indent management.
 - Tell system for messaging.
 
+### tale/traps.py
+Trap system. A trap can be attached to any MudObject via `traps.attach(obj, trap)`; it lives in
+`obj.story_data["trap"]` as a builtins-only dict (survives savegames automatically).
+- `Trap` dataclass + `TrapState`/`TrapTrigger`/`TrapOutcome` enums; triggers: ENTER (location arrival),
+  OPEN (Boxlike/Door.open), MOVE (Item.notify_moved), TOUCH (custom verb via handle_verb).
+- Resolution is a DODGE skill throw (`randint(1,100) + DODGE - level*10`) with outcome bands
+  escape/partial/full/complication; `disarm` command uses DISARM_TRAP, SEARCH reveals hidden traps.
+- Effects: DAMAGE, RESTRAIN, HOBBLE, DOOR (close/lock), ALARM, SPELL (skips caster checks).
+- Traps are data: JSON dicts (`"trap": {...}` blocks in item/location/exit dicts, `type: "Trap"`
+  items) are validated by `traps.trap_from_dict` (level clamped 1..10, known effect, trigger valid
+  for the object type) so LLM world-building can create them without Python. `TrapItem` is the
+  physical, takeable form. LLM guidance strings (`llm_hint`, `effect_hint`, `descr`) are passed as
+  `extra_context` on narration messages.
+- Note: `Location.nearby(no_traps=True)` uses "trap" for one-way exit destinations; unrelated.
+
 ## Game Modes
 
 ### IF Mode (`GameMode.IF`)
