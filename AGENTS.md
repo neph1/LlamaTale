@@ -151,6 +151,7 @@ Beat data model for story progression, plus the typed world-event vocabulary tha
 - `Goal`: a code-verifiable beat goal: `type` + `target` + runtime `satisfied` flag. Known types today: `quest_complete`, `interact`, `kill` (`visit`/`have_item`/`flag` land later); unknown types are rejected at load. The LLM never judges satisfaction.
 - Typed story events published on the `"story-events"` pubsub topic via `publish_story_event()` (synchronous delivery): `QuestCompleted` (from `Quest.complete()`), `Interacted` (from `LivingNpc.do_say()`), `NpcKilled` (from `Living.do_on_death()`).
 - `load_beats()`/`validate_beats()`: load and validate authored beats from JSON (unique, non-empty ids; description required; goals validated).
+- `Effect` + `EFFECT_MODELS`: the declarative beat-boundary effect vocabulary (`on_start`/`on_end`/`on_fail` lists on each beat). Built-ins: `add_item`, `remove_item`, `spawn_npc`, `move_npc`, `remove_npc`, `set_goal`, `set_description` — each a dict with an `effect` discriminator, validated by a per-type Pydantic model; unknown names are rejected at load so JSON stays closed. `register_effect(name)` registers custom handlers for code-defined stories (`handler(ctx, args)`, ctx is the EffectRunner).
 
 ### tale/story_context.py
 Story progression and narrative structure.
@@ -162,7 +163,11 @@ Story progression and narrative structure.
   - `set_beat(id, description="")`: Activate the beat with the given id, adding it as a new beat if it doesn't exist (used by the `!set_beat` wizard command and the MCP `set_beat` tool); the previously active beat becomes COMPLETED
   - `on_story_event(event)` / `subscribe_events()` / `unsubscribe_events()`: typed world events are recorded against every beat's goals; ACTIVE beats whose goals match (all/any) become COMPLETED and the next LOCKED beat activates, cascading (`_settle()`). Goal-less beats never auto-complete (manual advance). StoryManager subscribes the live story's context automatically.
   - `to_context()`, `to_context_with_past()`: Generate LLM context strings from the active/completed beats
-  - `from_json()`, `to_json()`: Serialization for save games (old saves with current_section/past_sections are migrated to beats; beat goals and their satisfied flags persist)
+  - `_transition(beat, status)`: the single status-change point; runs the beat's boundary effects (`on_start`/`on_end`/`on_fail`) exactly once per transition via the effect runner (`effect_runner`, set by StoryManager; resolved from the global registry otherwise; pending boundary effects run when the manager appears via `run_pending_effects()`)
+  - `from_json()`, `to_json()`: Serialization for save games (old saves with current_section/past_sections are migrated to beats; beat goals, satisfied flags and effect lists persist; restored statuses count as already-run so boundaries are not re-executed)
+
+### tale/effects.py
+- `EffectRunner`: executes effect lists against the live world through the StoryManager (given explicitly or resolved via `story_manager.current()`). Effect errors are logged and reported per effect (`[{"effect", "success", "error"}]`) without stopping the rest. The seven built-in handlers map onto StoryManager operations (`give_item`/`remove_item_from`/`remove_world_npc` plus the existing `spawn_npc`, `move_npc`, `set_npc_goal`, `set_location_description`); `run_effects()` is the convenience wrapper.
 
 ## Story Configuration
 
@@ -187,6 +192,7 @@ Stories progress through beats:
 - `StoryContext` tracks which beat is active (see `tale/scenario.py`)
 - Stories with authored beats (`"beats"` key in story_config.json) are advanced by hand with the wizard command `!set_beat <beat id> [description]` or the MCP `set_beat` tool (no automatic time-based progress)
 - A beat may declare `goals` (e.g. `{"type": "kill", "target": "giant rat"}`, `interact`, `quest_complete`; `"match": "all"/"any"`). Typed world events (quest completed, dialogue with an NPC, NPC killed) published on the `"story-events"` pubsub topic complete such beats automatically; goals satisfied before activation complete the beat when it activates
+- A beat may declare boundary effects `on_start`/`on_end`/`on_fail` (e.g. `{"effect": "add_item", "item": "torn diary page", "to": "player"}`); they run once at the status transition (see `tale/effects.py`)
 - Completed beats are preserved for context
 
 ## Example

@@ -19,7 +19,8 @@ import weakref
 from typing import Optional
 
 from tale import pubsub
-from tale.base import Location, Exit, Door
+from tale.base import Item, Living, Location, Exit, Door
+from tale.effects import EffectRunner
 from tale.errors import LocationIntegrityError
 from tale.items.basic import Note
 from tale.llm.LivingNpc import LivingNpc
@@ -116,7 +117,7 @@ class StoryManager:
         self._story = story
         self._llm_util = llm_util
         self._driver = driver
-        self._lock = threading.Lock()
+        self._lock = threading.RLock()  # reentrant: beat effects run under set_beat's lock and call back into the manager
         # make sure the story has the live-world and catalogue objects it needs
         # (a bare DynamicStory creates them in __init__, but a reconstructed one
         # may not have them yet).
@@ -131,6 +132,12 @@ class StoryManager:
         # typed story events drive beat goal completion (tale/scenario.py)
         self._beat_events = _BeatEventListener(self)
         pubsub.topic(STORY_EVENTS_TOPIC).subscribe(self._beat_events)
+        # beat boundary effects (tale/effects.py) run through this manager; if the
+        # story was initialized before this manager existed, run the pending ones now
+        context = story.config.context
+        if isinstance(context, StoryContext):
+            context.effect_runner = EffectRunner(self, story_context=context)
+            context.run_pending_effects()
 
     # -- helpers ----------------------------------------------------------------
 
@@ -796,7 +803,9 @@ class StoryManager:
     def set_story_context(self, base_story: str) -> None:
         """Set the base plot of the story context."""
         with self._lock:
-            self._story.config.context = StoryContext(base_story)
+            context = StoryContext(base_story)
+            context.effect_runner = EffectRunner(self, story_context=context)
+            self._story.config.context = context
 
     def set_beat(self, beat_id: str, description: str = "") -> Optional[dict]:
         """Set the active story beat by id. If no beat with that id exists, a
@@ -846,7 +855,6 @@ class StoryManager:
 
             world = parse_utils.load_json(os.path.join(path, 'world.json'))
             config = parse_utils.load_story_config(parse_utils.load_json(os.path.join(path, 'story_config.json')))
-            load_authored_beats(config)
 
             # reset state and rebuild from the saved files
             self._story._zones = dict()
@@ -889,6 +897,14 @@ class StoryManager:
             if os.path.exists(llm_cache_path):
                 llm_cache.load(parse_utils.load_json(llm_cache_path))
             self._subscribe_events()   # the world was rebuilt; subscribe to its wiretaps
+
+            # install the authored beats only now that the world is rebuilt, so
+            # beat-boundary effects run against the new world (not the stale
+            # one); wire the runner and flush any effects that stayed pending
+            load_authored_beats(config)
+            if isinstance(config.context, StoryContext):
+                config.context.effect_runner = EffectRunner(self, story_context=config.context)
+                config.context.run_pending_effects()
 
     # -- LLM-backed generation (optional; delegates to WorldBuilding, then
     #    applies the result to the story via the mutation API above) -----------
@@ -985,19 +1001,24 @@ class StoryManager:
     def _find_living(self, name: str):
         """Find a live living (NPC or player) by name, case-insensitively.
 
-        Checks the world NPC store first, then (if a driver is present) the
-        connected players. Returns the Living object or None.
+        Checks the world NPC store first (by name, then by title or alias),
+        then (if a driver is present) the connected players. Returns the
+        Living object or None.
         """
         try:
             return self._story.world.get_npc(name)
         except KeyError:
             pass
         lower = name.lower()
+        for npc in self._story.world.npcs.values():
+            if npc.title.lower() == lower or lower in npc.aliases:
+                return npc
         driver = self._driver
         if driver:
             for conn in driver.all_players.values():
-                if conn.player.name.lower() == lower:
-                    return conn.player
+                player = conn.player
+                if player.name.lower() == lower or player.title.lower() == lower or lower in player.aliases:
+                    return player
         return None
 
     def _location_exit(self, location, direction: str):
@@ -1202,6 +1223,94 @@ class StoryManager:
             if npc is None:
                 return False, f"npc '{name}' not found"
             npc.goal = goal
+            return True, ""
+
+    # -- beat-effect support ------------------------------------------------------
+    # These back the declarative scenario effects (tale/effects.py): add_item,
+    # remove_item, remove_npc (spawn_npc / move_npc / set_goal above are reused
+    # directly). They resolve "player" to the connected player and accept npc
+    # and location names case-insensitively, like the rest of the live mutations.
+
+    def _first_player(self):
+        """The first connected player (the single player in IF mode), or None."""
+        driver = self._driver
+        if driver:
+            for conn in driver.all_players.values():
+                return conn.player
+        return None
+
+    def resolve_holder(self, name: str):
+        """Resolve a holder name to a live object: ``"player"`` is the connected
+        player, otherwise an npc/player name, otherwise a location name.
+        Returns None when nothing matches."""
+        if not name:
+            return None
+        if name.lower() == "player":
+            return self._first_player()
+        living = self._find_living(name)
+        if living is not None:
+            return living
+        return self._find_location(name)
+
+    def _build_item(self, item_name: str, item_def: dict = None):
+        """Build a fresh item instance: from ``item_def`` if given, else from the
+        catalogue template with that name (case-insensitive, like spawn_item),
+        else a plain ad-hoc Item with that name."""
+        if item_def is None:
+            item_def = next((item for item in self._story.catalogue.get_items()
+                             if item.get("name", "").lower() == item_name.lower()), None)
+        if item_def is not None:
+            return load_item(dict(item_def))
+        return Item(item_name)
+
+    def give_item(self, item_name: str, to: str = "player", item_def: dict = None) -> tuple:
+        """Create an item (a catalogue template by name, an explicit item dict,
+        or a plain ad-hoc item) and place it with ``to``: "player", an npc name,
+        or a location name. Items placed in a location are also registered in the
+        world store (like spawn_item). Returns ``(success, error_message)``."""
+        with self._lock:
+            holder = self.resolve_holder(to)
+            if holder is None:
+                return False, f"no player, npc or location named '{to}'"
+            item = self._build_item(item_name, item_def)
+            if isinstance(holder, Location):
+                holder.insert(item, None)
+                self._story.world.add_item(item)
+            else:
+                item.move(holder, actor=holder)
+            return True, ""
+
+    def remove_item_from(self, item_name: str, frm: str = "player") -> tuple:
+        """Remove an item (by name, alias- or title-aware) from a holder's
+        inventory or a location's items. ``frm`` is "player", an npc name, or a
+        location name. Returns ``(success, error_message)``."""
+        with self._lock:
+            holder = self.resolve_holder(frm)
+            if holder is None:
+                return False, f"no player, npc or location named '{frm}'"
+            collection = holder.inventory if isinstance(holder, Living) else holder.items
+            item = Item.search_item(item_name, collection)
+            if item is None:
+                return False, f"no item '{item_name}' found with '{frm}'"
+            if isinstance(holder, Living):
+                holder.remove(item, holder)
+            else:
+                holder.remove(item, None)
+            if self._story.world.items.get(item.name) is item:
+                del self._story.world.items[item.name]
+            return True, ""
+
+    def remove_world_npc(self, name: str) -> tuple:
+        """Remove a live NPC from its location and from the world store.
+        Only world-store NPCs qualify; a connected player that happens to match
+        the name is refused. Returns ``(success, error_message)``."""
+        with self._lock:
+            npc = self._find_living(name)
+            if npc is None or self._story.world.npcs.get(npc.name) is not npc:
+                return False, f"npc '{name}' not found"
+            if npc.location is not None and npc in npc.location.livings:
+                npc.location.remove(npc, None)
+            self._story.world.npcs.pop(npc.name, None)
             return True, ""
 
     # -- LLM-driven / narrative (Stage 4) --------------------------------------

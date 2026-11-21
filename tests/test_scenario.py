@@ -41,7 +41,7 @@ class TestBeat:
         beat = Beat("arrival", "The investigators arrive.", BeatStatus.ACTIVE)
         restored = Beat.from_json(beat.to_json())
         assert restored.to_json() == {"id": "arrival", "description": "The investigators arrive.", "status": "active",
-                                      "match": "all", "goals": []}
+                                      "match": "all", "goals": [], "on_start": [], "on_end": [], "on_fail": []}
         assert restored.status == BeatStatus.ACTIVE
 
     def test_from_json_defaults_to_locked(self):
