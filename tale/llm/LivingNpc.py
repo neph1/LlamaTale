@@ -17,6 +17,7 @@ from typing import Sequence
 
 from tale.quest import Quest
 from tale.resources_utils import pad_text_for_avatar, unpad_text
+from tale.scenario import Interacted, publish_story_event
 from tale.skills.magic import MagicType
 from tale.skills.skills import SkillType
 from tale.skills.weapon_type import WeaponType
@@ -208,6 +209,9 @@ class LivingNpc(Living):
             self._clear_quest()
     
     def do_say(self, what_happened: str, actor: Living) -> None:
+        # typed world event: a dialogue exchange with this NPC occurred (lets
+        # story beats with an interact goal finish)
+        publish_story_event(Interacted(npc=self.name, speaker=actor.name if actor else "", npc_title=self.title))
         self.memory.observe('{actor.title} says {what_happened}'.format(actor=actor, what_happened=unpad_text(what_happened)))
         short_len = False if isinstance(actor, Player) else True
         item = None

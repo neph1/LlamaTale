@@ -31,11 +31,17 @@
         },
         {
             "id": "suspicion",
-            "description": "The landlady's story does not add up."
+            "description": "The landlady's story does not add up.",
+            "goals": [
+                {"type": "interact", "target": "Mrs. Corbin"}
+            ]
         },
         {
             "id": "descent",
-            "description": "The cellar holds the answer."
+            "description": "The cellar holds the answer.",
+            "goals": [
+                {"type": "kill", "target": "the thing in the cellar"}
+            ]
         }
     ],
     "type": "a test story",

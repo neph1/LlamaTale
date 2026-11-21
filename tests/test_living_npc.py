@@ -113,6 +113,12 @@ class TestLivingNpc():
 
         assert(llm_cache.get_events(npc_clean._observed_events) == 'test_event<break>test_event 2')
 
+    def test_memory_load_string_events(self):
+        npc = LivingNpc(name='test', gender='m', age=42, personality='')
+        npc.load_memory({'observed_events': ['plain string event'], 'sentiments': {'other': 'kind'}})
+        assert(npc.get_observed_events(None) == 'plain string event')
+        assert(npc.sentiments == {'other': 'kind'})
+
     def test_avatar_not_exists(self):
         npc = LivingNpc(name='test', gender='m', age=42, personality='')
         has_avatar = npc.avatar == 'test'

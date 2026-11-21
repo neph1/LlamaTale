@@ -304,9 +304,10 @@ def create_server(manager: StoryManager, port: int = DEFAULT_MCP_PORT) -> FastMC
     @mcp.tool()
     def get_story_state() -> dict:
         """Return the story's narrative state: story (context string rendered from
-        beats), beats (id, description, status per beat), progress, length, name,
-        type, world_info, world_mood. current_section and past_sections are derived
-        from the beats (active/completed descriptions) and deprecated."""
+        beats), beats (id, description, status, match, goals per beat), progress,
+        length, name, type, world_info, world_mood. current_section and
+        past_sections are derived from the beats (active/completed descriptions)
+        and deprecated."""
         return manager.get_story_state()
 
     @mcp.tool()

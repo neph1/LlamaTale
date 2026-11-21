@@ -68,7 +68,8 @@ class TestEventMemory():
         assert loaded.events == memory.events
         assert loaded.sentiments == {'actor': 'kind'}
         assert loaded.action_history == ['waves']
-        assert loaded.planned_actions == [['dances']]
+        assert loaded.planned_actions == []  # planned actions are runtime-only, not persisted
+        assert 'planned_actions' not in dumped
         assert loaded.known_locations == {'room': 'description: room.'}
         assert loaded.goal == 'be merry'
         assert loaded.observed_events() == 'something happened'
@@ -78,6 +79,24 @@ class TestEventMemory():
         memory = EventMemory()
         memory.load({'observed_events': [], 'conversations': [h]})
         assert memory.events == [h]
+
+    def test_load_mixed_hash_and_string_events(self):
+        h = llm_cache.cache_event('cached event')
+        memory = EventMemory()
+        memory.load({'observed_events': [h, 'plain string event']})
+        assert memory.events[0] == h  # existing hashes pass through untouched
+        assert isinstance(memory.events[1], int)  # strings are cached into llm_cache
+        assert memory.observed_events() == 'cached event<break>plain string event'
+
+    def test_planned_actions_not_persisted(self):
+        memory = EventMemory()
+        memory.plan(['dances'])
+        dumped = memory.dump()
+        assert 'planned_actions' not in dumped
+
+        loaded = EventMemory()
+        loaded.load({'planned_actions': [['dances']]})
+        assert loaded.planned_actions == []  # planned actions are runtime-only, ignored on load
 
 
 class StubLlmUtil:

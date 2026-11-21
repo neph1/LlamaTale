@@ -271,6 +271,20 @@ class TestPlayer(unittest.TestCase):
         player.tell_others("{actor} and {Actor}", evoke=False)
         self.assertEqual(["wizard Merlin and Wizard Merlin"], fritz.messages)
 
+    def test_others_with_stray_braces(self):
+        # LLM-generated text can contain stray braces; tell_others must pass them through, not crash
+        attic = Location("Attic", "A dark attic.")
+        player = Player("merlin", "m")
+        player.title = "wizard Merlin"
+        julie = MsgTraceNPC("julie", "f", race="human")
+        julie.move(attic, silent=True)
+        player.move(attic, silent=True)
+        player.tell_others('says "brace } here" and { unknown } and {', evoke=False)
+        self.assertEqual(['says "brace } here" and { unknown } and {'], julie.messages)
+        julie.clearmessages()
+        player.tell_others("{Actor} waves at {target} }", target=julie, evoke=False)
+        self.assertEqual(["Wizard Merlin waves at you }"], julie.messages)
+
     def test_wiretap(self):
         attic = Location("Attic", "A dark attic.")
         player = Player("fritz", "m")
