@@ -533,7 +533,6 @@ def save_npcs(creatures: list) -> dict:
             stored_npc['goal'] = npc.goal
             stored_npc['autonomous'] = npc.autonomous
             stored_npc['aggressive'] = npc.aggressive
-            stored_npc['planned_actions'] = stored_npc['memory']['planned_actions']
 
         
         npcs[npc.name.lower()] = stored_npc

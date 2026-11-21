@@ -7,8 +7,6 @@ from tale.llm import llm_cache
 from tale.llm.LivingNpc import LivingNpc
 from tale.llm.event_memory import EventMemory
 from tale.llm.npc_agent import NpcAgent
-from tale.llm.responses.ActionResponse import ActionResponse
-from tale.llm.schemas import ActionSchema
 
 
 class TestEventMemory():
@@ -70,7 +68,8 @@ class TestEventMemory():
         assert loaded.events == memory.events
         assert loaded.sentiments == {'actor': 'kind'}
         assert loaded.action_history == ['waves']
-        assert loaded.planned_actions == [['dances']]
+        assert loaded.planned_actions == []  # planned actions are runtime-only, not persisted
+        assert 'planned_actions' not in dumped
         assert loaded.known_locations == {'room': 'description: room.'}
         assert loaded.goal == 'be merry'
         assert loaded.observed_events() == 'something happened'
@@ -89,31 +88,15 @@ class TestEventMemory():
         assert isinstance(memory.events[1], int)  # strings are cached into llm_cache
         assert memory.observed_events() == 'cached event<break>plain string event'
 
-    def test_load_planned_actions_filters_unknown_keys(self):
+    def test_planned_actions_not_persisted(self):
         memory = EventMemory()
-        memory.load({'planned_actions': [[{'action': 'say', 'text': 'hi', 'sentiment': 'angry', 'bogus_key': 42}]]})
-        action = memory.next_planned()
-        assert isinstance(action, ActionResponse)
-        assert action.action == 'say' and action.text == 'hi'
-        assert not hasattr(action, 'bogus_key')
-        assert action.sentiment == ''  # not an ActionSchema field, reset by ActionResponse
-
-    def test_planned_actions_multi_action_list_roundtrip(self):
-        memory = EventMemory()
-        memory.plan([ActionResponse(ActionSchema(action='take', item='rock')),
-                     ActionResponse(ActionSchema(action='say', text='got it'))])
-        dumped = json.loads(json.dumps(memory.dump()))
-        assert len(dumped['planned_actions']) == 1
-        assert len(dumped['planned_actions'][0]) == 2
-        assert all(isinstance(a, dict) for a in dumped['planned_actions'][0])
+        memory.plan(['dances'])
+        dumped = memory.dump()
+        assert 'planned_actions' not in dumped
 
         loaded = EventMemory()
-        loaded.load(dumped)
-        first = loaded.next_planned()
-        second = loaded.next_planned()
-        assert isinstance(first, ActionResponse) and first.action == 'take' and first.item == 'rock'
-        assert isinstance(second, ActionResponse) and second.action == 'say' and second.text == 'got it'
-        assert loaded.next_planned() is None
+        loaded.load({'planned_actions': [['dances']]})
+        assert loaded.planned_actions == []  # planned actions are runtime-only, ignored on load
 
 
 class StubLlmUtil:

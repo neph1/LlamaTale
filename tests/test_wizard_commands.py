@@ -14,7 +14,6 @@ from tale.items.basic import Food
 from tale.llm.LivingNpc import LivingNpc
 from tale.llm.dynamic_story import DynamicStory
 from tale.llm.llm_utils import LlmUtil
-from tale.llm.responses.ActionResponse import ActionResponse
 from tale.player import Player
 from tale.story import StoryConfig
 from tale.story_manager import StoryManager
@@ -61,7 +60,7 @@ class TestWizardCommands():
     def test_load_character_memory_survives_save_and_reload(self):
         parse_result = ParseResult(
             verb='load_character_from_data',
-            unparsed='{\"name\": \"mem npc\", \"memory\": {\"observed_events\": [\"met the king\"], \"sentiments\": {\"king\": \"hostile\"}, \"known_locations\": {\"tavern\": \"a cozy tavern\"}, \"action_history\": [\"waved\"], \"planned_actions\": [[{\"action\": \"say\", \"text\": \"hello there\"}]], \"goal\": \"befriend the king\"}, \"relationships\": {\"queen\": \"kind\"}}')
+            unparsed='{\"name\": \"mem npc\", \"memory\": {\"observed_events\": [\"met the king\"], \"sentiments\": {\"king\": \"hostile\"}, \"known_locations\": {\"tavern\": \"a cozy tavern\"}, \"action_history\": [\"waved\"], \"goal\": \"befriend the king\"}, \"relationships\": {\"queen\": \"kind\"}}')
         npc = wizard.do_load_character_from_data(self.test_player, parse_result, self.context) # type: LivingNpc
         assert(npc.sentiments == {'king': 'hostile', 'queen': 'kind'})
 
@@ -76,9 +75,7 @@ class TestWizardCommands():
         assert(loaded.known_locations == {'tavern': 'a cozy tavern'})
         assert(loaded.action_history == ['waved'])
         assert(loaded.goal == 'befriend the king')
-        planned = loaded.memory.next_planned()
-        assert(isinstance(planned, ActionResponse))
-        assert(planned.action == 'say' and planned.text == 'hello there')
+        assert(loaded.planned_actions == [])  # planned actions are runtime-only, not persisted
 
     def test_set_visible(self):
         location = Location('test')

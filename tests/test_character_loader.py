@@ -54,7 +54,6 @@ class TestCharacterLoader():
             'observed_events': ['test met the king'],
             'sentiments': {'king': 'hostile'},
             'action_history': ['test waved'],
-            'planned_actions': [],
             'goal': 'befriend the king'}
         char_data['relationships'] = {'queen': 'kind'}
         character = CharacterV2().from_json(char_data)

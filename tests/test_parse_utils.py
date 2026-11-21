@@ -429,10 +429,8 @@ class TestLoadNpcs:
         saved_npcs = parse_utils.save_npcs([npc])
         json.dumps(saved_npcs)  # the saved story must be JSON serializable
         assert(saved_npcs['kobbo']['memory']['sentiments'] == {'player': 'friendly'})
-        # the top-level planned_actions key must be the serialized (JSON-safe) form,
-        # not live ActionResponse objects
-        assert(saved_npcs['kobbo']['planned_actions'] == saved_npcs['kobbo']['memory']['planned_actions'])
-        assert(saved_npcs['kobbo']['planned_actions'] == [[{'goal': '', 'text': 'hello there', 'target': '', 'item': '', 'action': 'say', 'sentiment': '', 'thoughts': ''}]])
+        assert('planned_actions' not in saved_npcs['kobbo']['memory'])
+        assert('planned_actions' not in saved_npcs['kobbo'])
 
         loaded_npcs = parse_utils.load_npcs(list(saved_npcs.values()), locations=locations)
         loaded = loaded_npcs['Kobbo']
@@ -441,9 +439,7 @@ class TestLoadNpcs:
         assert(loaded.get_observed_events(None) == 'Kobbo waved at the player')
         assert(loaded.action_history == ['Kobbo waved'])
         assert(loaded.goal == 'guard the grotto')
-        planned = loaded.planned_actions
-        assert(len(planned) == 1 and isinstance(planned[0][0], ActionResponse))
-        assert(planned[0][0].action == 'say' and planned[0][0].text == 'hello there')
+        assert(loaded.planned_actions == [])
 
     def test_load_npcs_generated(self):
         npcs_string = '{"npcs": [{"name": "Rosewood Fairy", "sentiment": "friendly", "race": "Fae", "gender": "female", "level": 5, "description": "A delicate creature with wings as soft as rose petals, offering quests and guidance.", "occupation":"healer"}]}'
