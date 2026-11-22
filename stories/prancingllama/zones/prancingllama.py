@@ -17,6 +17,7 @@ class Cellar(Location):
     @call_periodically(40, 90)
     def spawn_rat(self, ctx: Context) -> None:
         rat_skull = Item("rat_skull", "giant rat skull", descr="It's a giant rat's bloody skull.")
+        rat_skull.aliases = ["skull", "rat skull"]
         if not self.rat or self.rat.alive == False:
             self.rat = Rat("giant rat", random.choice("m"), descr="A vicious looking, giant rat", race="giant rat")
             self.rat.should_produce_remains = True
@@ -49,7 +50,7 @@ outside.generated = True
 
 dungeon_start = Location("Cave Entrance", "A dark and foreboding entrance to the ice caves.")
 
-dungeon_entrance = DungeonEntrance("cave", dungeon_start, "A dark stairway leads down into the ice caves beneath The Prancing Llama.", "")
+dungeon_entrance = DungeonEntrance(["cave", "down"], dungeon_start, "A dark stairway leads down into the ice caves beneath The Prancing Llama.", "")
 dungeon_start.add_exits([dungeon_entrance])
 cellar.add_exits([dungeon_entrance])
 
