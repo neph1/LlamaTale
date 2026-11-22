@@ -1313,7 +1313,8 @@ class StoryManager:
             if npc.location is not None and npc in npc.location.livings:
                 npc.location.remove(npc, None)
             self._story.world.npcs.pop(npc.name, None)
-            
+            return True, ""
+
     # -- traps -----------------------------------------------------------------
 
     def _find_trappable(self, zone: str, location_name: str, object_name: str):
