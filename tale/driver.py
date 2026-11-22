@@ -647,7 +647,6 @@ class Driver(pubsub.Listener):
     def go_through_exit(self, player: player.Player, direction: str, evoke: bool=True) -> None:
         xt = player.location.exits[direction]
         xt.allow_passage(player)
-        target_location = xt.target # type: base.Location
 
         if isinstance(xt, DungeonEntrance.DungeonEntrance):
             dungeon_entrance = typing.cast(DungeonEntrance.DungeonEntrance, xt)
@@ -657,6 +656,18 @@ class Driver(pubsub.Listener):
                 zone = dynamic_story.find_zone(location=player.location.name)
                 dungeon_config = zone.dungeon_config if zone else None
                 dungeon_entrance.build_dungeon(self.story, self.llm_util, dungeon_config)
+            # build_dungeon re-points the exit at the generated dungeon entrance location,
+            # so only read the target after the dungeon has been built
+            target_location = xt.target # type: base.Location
+            # make sure there is a way back out of the dungeon to where we came from
+            if target_location is not None and target_location is not player.location:
+                if not any(exit.target is player.location for exit in target_location.exits.values()):
+                    return_names = [name for name in ("up", "out", "surface") if name not in target_location.exits]
+                    if return_names:
+                        target_location.add_exits([base.Exit(return_names, player.location,
+                                                              "A stairway leads back up out of the dungeon", "")])
+        else:
+            target_location = xt.target # type: base.Location
 
         if not target_location.built:
             dynamic_story = typing.cast(DynamicStory, self.story)
@@ -894,6 +905,8 @@ class Driver(pubsub.Listener):
                         parse_occupation = char_data.get('parse_occupation', False),)
         npc.autonomous = character.autonomous
         npc.output_thoughts = character.output_thoughts
+        if character.memory:
+            npc.load_memory(character.memory)
         wearing = character.wearing.split(',')
         for item in wearing:
             if item:
