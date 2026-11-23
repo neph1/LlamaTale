@@ -74,8 +74,27 @@ def create_server(manager: StoryManager, port: int = DEFAULT_MCP_PORT) -> FastMC
         """Set story config fields. Pass a dict of fields to change, e.g.
         ``{"name": "...", "world_mood": 3, "type": "..."}``. Supported fields
         include name, author, type, world_info, world_mood, combat_type, lethal,
-        context, startlocation_player, startlocation_wizard, and more."""
+        context, startlocation_player, startlocation_wizard, and more.
+        When combat_type is given without lethal, lethality defaults to the
+        tone's lethal_by_default (True for free text)."""
         manager.set_config(**fields)
+
+    @mcp.tool()
+    def get_combat_config() -> dict:
+        """Return the combat settings as a JSON-friendly dict: combat_type
+        (named tone or free text), the lethal flag, the parsed CombatType name
+        (null for free text), and the lethality guidance sentence used in
+        combat prompts."""
+        return manager.get_combat_config()
+
+    @mcp.tool()
+    def set_combat_type(combat_type: str, lethal: Optional[bool] = None) -> dict:
+        """Set the combat tone and lethality. combat_type is one of the named
+        CombatType values (non-lethal, sparring, cartoony, historical,
+        ultra-violent; case-insensitive) or any free-text tone. When lethal is
+        omitted it defaults to the tone's lethal_by_default (True for free
+        text). Returns {"success": bool, "error": str}."""
+        return _result(*manager.set_combat_type(combat_type, lethal))
 
     # -- zones -----------------------------------------------------------------
 

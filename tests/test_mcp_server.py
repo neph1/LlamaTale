@@ -130,7 +130,7 @@ class TestServerCreation():
 
     # the full set of tools from the plan (stories/worlds scope)
     EXPECTED_TOOLS = {
-        "get_config", "set_config",
+        "get_config", "set_config", "get_combat_config", "set_combat_type",
         "add_zone", "get_zone", "list_zones", "remove_zone", "link_zones",
         "add_location", "get_location", "list_locations", "remove_location",
         "set_exits",
@@ -181,6 +181,47 @@ class TestConfigTools():
         assert mgr.story.config.world_mood == 4
         config = tool_json(mcp, "get_config")
         assert config["name"] == "New Name"
+
+    def test_get_combat_config(self):
+        mcp = create_server(make_manager())
+        combat = tool_json(mcp, "get_combat_config")
+        assert combat["combat_type"] == "historical"
+        assert combat["lethal"] is True
+        assert combat["combat_type_parsed"] == "HISTORICAL"
+        assert "Death is possible" in combat["lethality_guidance"]
+
+    def test_set_combat_type(self):
+        mgr = make_manager()
+        mcp = create_server(mgr)
+        success, error = tool_result(mcp, "set_combat_type", {"combat_type": "non-lethal"})
+        assert success is True and error == ""
+        assert mgr.story.config.combat_type == "non-lethal"
+        assert mgr.story.config.lethal is False   # derived from the tone
+        combat = tool_json(mcp, "get_combat_config")
+        assert combat["combat_type"] == "non-lethal"
+        assert combat["lethal"] is False
+        assert combat["combat_type_parsed"] == "NONLETHAL"
+        assert "Nobody dies" in combat["lethality_guidance"]
+
+    def test_set_combat_type_explicit_lethal_and_invalid(self):
+        mgr = make_manager()
+        mcp = create_server(mgr)
+        success, error = tool_result(mcp, "set_combat_type", {"combat_type": "sparring", "lethal": True})
+        assert success is True and error == ""
+        assert mgr.story.config.lethal is True
+        success, error = tool_result(mcp, "set_combat_type", {"combat_type": ""})
+        assert success is False and "combat_type" in error
+        assert mgr.story.config.combat_type == "sparring"   # unchanged by the failed call
+
+    def test_set_config_combat_type_derives_lethal(self):
+        mgr = make_manager()
+        mcp = create_server(mgr)
+        call_tool(mcp, "set_config", {"fields": {"combat_type": "cartoony"}})
+        assert mgr.story.config.combat_type == "cartoony"
+        assert mgr.story.config.lethal is False
+        config = tool_json(mcp, "get_config")
+        assert config["combat_type"] == "cartoony"
+        assert config["lethal"] is False
 
 
 
