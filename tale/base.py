@@ -56,7 +56,9 @@ from tale.skills.skills import SkillType, Skills
 from . import lang
 from . import mud_context
 from . import pubsub
+from .scenario import NpcKilled, publish_story_event
 from . import races
+from . import stealth
 from . import util
 from . import story
 from . import verbdefs
@@ -310,11 +312,17 @@ class MudObject:
 
     @property
     def title(self) -> str:
-        return (self._title + '[hidden]') if self.hidden else self._title
+        return self._title
 
     @title.setter
     def title(self, value: str) -> None:
         self._title = value
+
+    @property
+    def status_title(self) -> str:
+        """Title including the [hidden] stance marker; only for the entity's own status display.
+        Hidden entities are excluded from other characters' prompts entirely (see tale/stealth.py)."""
+        return (self._title + ' [hidden]') if self.hidden else self._title
 
     @property
     def description(self) -> str:
@@ -437,7 +445,8 @@ class MudObject:
 
     def handle_verb(self, parsed: ParseResult, actor: 'Living') -> bool:
         """Handle a custom verb (specified in the verbs dict). Return True if handled, False if not handled."""
-        return False
+        from . import traps
+        return traps.handle_touch(self, parsed, actor)
 
     def notify_action(self, parsed: ParseResult, actor: 'Living') -> None:
         """
@@ -545,7 +554,8 @@ class Item(MudObject):
 
     def notify_moved(self, source_container: ContainingType, target_container: ContainingType, actor: Optional['Living']) -> None:
         """Called when the item has been moved from one place to another"""
-        pass
+        from . import traps
+        traps.trigger_move(self, actor)
 
     def allow_item_move(self, actor: Optional['Living'], verb: str="move") -> None:
         """Does the item allow to be moved (picked up, given away) by someone? (yes; no ActionRefused is raised)"""
@@ -702,6 +712,7 @@ class Location(MudObject):
         self.generated = False # whether this location is LLM generated or not
         self.world_location = Coord() # the world location of this location
         self.indoors = False  # is this location indoors?
+        self.concealment = 0  # stealth concealment tier 0-4, see tale/stealth.py
 
     def __contains__(self, obj: Union['Living', Item]) -> bool:
         return obj in self.livings or obj in self.items
@@ -799,6 +810,8 @@ class Location(MudObject):
     def look(self, exclude_living: 'Living'=None, short: bool=False) -> Sequence[str]:
         """returns a list of paragraph strings describing the surroundings, possibly excluding one living from the description list"""
         paragraphs = ["<location>[" + self.title + "]</>"]
+        if exclude_living is not None and getattr(exclude_living, "hidden", False):
+            paragraphs.append("<dim>[hidden]</>")
         if short:
             if self.exits and mud_context.config.show_exits_in_look:
                 paragraphs.append("Exits: " + ", ".join(sorted(set(self.exits.keys()))))
@@ -898,7 +911,9 @@ class Location(MudObject):
         """
         # @todo this code cannot deal with yields directly but you can raise AsyncDialog exception,
         # that indicates to the driver that it should initiate the given async dialog when continuing.
-        handled = any(living._handle_verb_base(parsed, actor) for living in self.livings)
+        handled = super().handle_verb(parsed, actor)
+        if not handled:
+            handled = any(living._handle_verb_base(parsed, actor) for living in self.livings)
         if not handled:
             handled = any(item.handle_verb(parsed, actor) for item in self.items)
             if not handled:
@@ -944,7 +959,8 @@ class Location(MudObject):
         If you need that, you should create a pubsub topic event, where the correct
         objects are listening on.
         """
-        pass
+        from . import traps
+        traps.trigger_enter(self, npc)
 
     def notify_npc_left(self, npc: 'Living', target_location: 'Location') -> None:
         """
@@ -970,7 +986,8 @@ class Location(MudObject):
         If you need that, you should create a pubsub topic event, where the correct
         objects are listening on.
         """
-        pass
+        from . import traps
+        traps.trigger_enter(self, player)
 
     def notify_player_left(self, player, target_location: 'Location') -> None:
         """
@@ -1067,6 +1084,15 @@ class Stats:
             self.magic_points = self.max_magic_points
         if self.magic_points > self.max_magic_points:
             self.magic_points = self.max_magic_points
+
+def _substitute_placeholders(message: str, **placeholders: str) -> str:
+    """
+    Replace only the known {placeholder} tokens in message, in a single pass.
+    Unlike str.format(), stray or unknown braces (e.g. in LLM-generated text)
+    are left untouched instead of raising ValueError, and substituted values
+    are not re-scanned for further placeholders.
+    """
+    return re.sub(r'\{(\w+)\}', lambda m: placeholders.get(m.group(1), m.group(0)), message)
 
 class Living(MudObject):
     """
@@ -1238,15 +1264,17 @@ class Living(MudObject):
         There are a few formatting strings for easy shorthands:
         {actor}/{Actor} = the acting living's title / acting living's title capitalized (subject in the sentence)
         {target}/{Target} = the target's title / target's title capitalized (object in the sentence)
+        Only these known placeholders are substituted; any other braces in the message
+        (e.g. from LLM-generated text) are passed through unchanged.
         If you need even more tweaks with telling stuff, use living.location.tell directly.
         """
         if target is None:
-            room_msg = message.format(actor=self.title, Actor=lang.capital(self.title))
+            room_msg = _substitute_placeholders(message, actor=self.title, Actor=lang.capital(self.title))
             self.location.tell(room_msg, exclude_living=self, evoke=evoke, short_len=short_len)
         else:
-            room_msg = message.format(actor=self.title, Actor=lang.capital(self.title),
-                                      target=target.title, Target=lang.capital(target.title))
-            spec_msg = message.format(actor=self.title, Actor=lang.capital(self.title), target="you", Target="You")
+            room_msg = _substitute_placeholders(message, actor=self.title, Actor=lang.capital(self.title),
+                                                target=target.title, Target=lang.capital(target.title))
+            spec_msg = _substitute_placeholders(message, actor=self.title, Actor=lang.capital(self.title), target="you", Target="You")
             self.location.tell(room_msg, exclude_living=self, specific_targets={target}, specific_target_msg=spec_msg, evoke=evoke, short_len=short_len, alt_prompt=alt_prompt, extra_context=extra_context)
 
     def parse(self, commandline: str, external_verbs: Set[str]=set()) -> ParseResult:
@@ -1443,6 +1471,9 @@ class Living(MudObject):
             pending_actions.send(lambda who=self, where=original_location: target.notify_player_arrived(who, where))
         else:
             pending_actions.send(lambda who=self, where=original_location: target.notify_npc_arrived(who, where))
+        # engine-run perception: entry contest against hidden occupants (and against
+        # the entrant itself if it is hidden), plus adjacent-location glimpses
+        stealth.on_location_entry(self, original_location, target, direction_names)
 
     def search_item(self, name: str, include_inventory: bool=True,
                     include_location: bool=True, include_containers_in_inventory: bool=True) -> Optional[Item]:
@@ -1486,6 +1517,7 @@ class Living(MudObject):
         if self.stats.action_points < 1:
             self.tell("You are too tired to attack.")
             return
+        ambush = self.hidden
         if self.hidden:
             self.hidden = False
             self.stats.action_points -= 3
@@ -1504,7 +1536,7 @@ class Living(MudObject):
         lethal = True
         if mud_context.driver is not None and mud_context.driver.story is not None:
             lethal = mud_context.driver.story.config.lethal
-        c = combat.Combat(attackers, defenders, target_body_part=target_body_part, lethal=lethal)
+        c = combat.Combat(attackers, defenders, target_body_part=target_body_part, lethal=lethal, ambush=ambush)
         result = c.resolve_attack()
         
         room_msg = "%s attacks %s! %s" % (attacker_name, victim_name, result)
@@ -1557,7 +1589,7 @@ class Living(MudObject):
 
     def handle_verb(self, parsed: ParseResult, actor: 'Living') -> bool:
         """Handle a custom verb (specified in the verbs dict). Return True if handled, False if not handled."""
-        return False
+        return super().handle_verb(parsed, actor)
 
     def _notify_action_all(self, parsed: ParseResult, actor: 'Living') -> None:
         """
@@ -1579,7 +1611,8 @@ class Living(MudObject):
             if actor is self or parsed.verb in self.verbs:
                 return  # avoid reacting to ourselves, or reacting to verbs we already have a handler for
         """
-        pass
+        from . import traps
+        traps.tick_restrain(self)
 
     def look(self, short: Optional[bool]=None) -> None:
         """look around in your surroundings. Dummy for base livings (they don't perform 'look' nor react to it)."""
@@ -1670,6 +1703,8 @@ class Living(MudObject):
         """Called when the living dies."""
         remains = None
         self.alive = False
+        # typed world event: lets story beats with a kill goal finish
+        publish_story_event(NpcKilled(npc=self.name, npc_title=self.title))
         remains = None
         if self.should_produce_remains:
             remains = Container(f"remains of {self.title}")
@@ -1681,67 +1716,71 @@ class Living(MudObject):
         return remains
     
     def hide(self, hide: bool = True):
-        """ Hide or reveal the living entity. """
+        """ Enter or leave the hide stance (persistent hidden-by-default mode).
+        Entering costs 1 AP; with observers present the entry is contested
+        against the best perception in the room (see tale/stealth.py). """
 
         if not hide:
-            self.hidden = False
             self.hidden = False
             self.tell("You reveal yourself")
             self.location.tell("%s reveals themselves" % self.title, exclude_living=self)
             return
-        
+
         if self.stats.action_points < 1:
             raise ActionRefused("You don't have enough action points to hide.")
-        if len(self.location.livings) > 1:
-            raise ActionRefused("You can't hide when there are other living entities around.")
-        
+
         self.stats.action_points -= 1
 
-        skillValue = self.stats.skills.get(SkillType.HIDE)
-        if random.randint(1, 100) > skillValue:
-            self.tell("You fail to hide.")
-            return
-        
-        self.hidden = hide
+        entry = stealth.hide_entry_contest(self)
+        if entry is not None:
+            if entry.band == stealth.DetectionBand.DETECTED:
+                self.tell("You fumble -- you can't hide while being watched so closely.")
+                self.location.tell("%s tries to hide but is spotted." % self.title, exclude_living=self)
+                return
+            if entry.band == stealth.DetectionBand.TRACES:
+                stealth.inject_grounded_fact(entry.searcher, stealth.trace_fact())
+
+        self.hidden = True
         self.tell("You hide yourself.")
-        self.location.tell("%s hides" % self.title, exclude_living=self)
+        if entry is None:
+            self.location.tell("%s hides" % self.title, exclude_living=self)
 
     def search_hidden(self, silent: bool = False):
-        """ Search for hidden entities in the room.
-         For automatic searches (like when entering a room),
-         no fail messages will show, and no action points will be used."""
-        
+        """ Active search for hidden livings in the room: a perception contest
+        with a searcher bonus against each hidden occupant (see tale/stealth.py).
+         For automatic searches no fail messages will show, and no action
+         points will be used."""
+
         if self.stats.action_points < 1:
             raise ActionRefused("You don't have enough action points to search.")
-
-        livings = self.location.livings
 
         if not silent:
             self.stats.action_points -= 1
             self.location.tell("%s searches for something." % (self.title), exclude_living=self)
 
-        if len(self.location.livings) == 1:
+        from . import traps
+        found_traps = traps.search_reveal(self, silent=silent)
+        for trapped_obj in found_traps:
+            self.tell("You discover a hidden trap!", evoke=True)
             if not silent:
+                self.location.tell("%s discovers a hidden trap!" % self.title, exclude_living=self, evoke=True, short_len=True)
+
+        hidden_livings = [living for living in self.location.livings
+                          if living != self and living.hidden and living.visible]
+
+        if not hidden_livings:
+            if not silent and not found_traps:
                 self.tell("You don't find anything.")
             return
-        
-        if silent:
-            skillValue = self.stats.perception * 5
-        else:
-            skillValue = self.stats.skills.get(SkillType.SEARCH)
 
         found = False
-        
-        for living in livings:
-            if living != self and living.hidden:
-                modifier = skillValue - living.stats.skills.get(SkillType.HIDE)
-                if random.randint(1, 100) < skillValue + modifier:
-                    living.hidden = False
-                    self.tell("You find %s." % living.title)
-                    self.location.tell("%s reveals %s" % (self.title, living.title), exclude_living=self)
-                    found = True
 
-        if not found and not silent:
+        for living in hidden_livings:
+            result = stealth.resolve_contest(living, self, searcher_bonus=stealth.SEARCH_BONUS)
+            if result.band == stealth.DetectionBand.DETECTED:
+                found = True
+
+        if not found and not silent and not found_traps:
             self.tell("You don't find anything.")
 
     def pick_lock(self, door: 'Door'):
@@ -1758,8 +1797,10 @@ class Living(MudObject):
 
         if random.randint(1, 100) > skillValue:
             self.tell("You fail to pick the lock.")
+            if self.hidden:
+                stealth.risky_action(self, searcher_bonus=stealth.PICK_LOCK_FUMBLE_SEARCH_BONUS)
             return
-        
+
         door.unlock()
 
         self.tell("You successfully pick the lock.", evoke=True)
@@ -2016,6 +2057,8 @@ class Door(Exit):
             if self.linked_door:
                 self.linked_door.opened = True
                 self.target.tell("The %s is opened from the other side." % self.linked_door.name, evoke=False, short_len=True)
+            from . import traps
+            traps.trigger_open(self, actor)
 
     def close(self, actor: Living, item: Item=None) -> None:
         """Close the door with optional item. Notifies actor and room of this event."""
@@ -2123,6 +2166,8 @@ class Door(Exit):
 
         if random.randint(1, 100) > skillValue:
             actor.tell("You fail to pick the lock.")
+            if actor.hidden:
+                stealth.risky_action(actor, searcher_bonus=stealth.PICK_LOCK_FUMBLE_SEARCH_BONUS)
             return
         
         self.locked = False

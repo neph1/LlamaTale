@@ -140,10 +140,11 @@ class TestServerCreation():
         "list_players", "get_player", "get_npc", "get_location_live",
         "get_story_state", "get_world_map",
         "poll_events", "reset_events",
-        "set_story_context", "advance_story_section", "set_start_location",
+        "set_story_context", "set_beat", "set_start_location",
         "save", "load",
         "set_location_description", "add_exit", "remove_exit", "set_exit_state",
         "move_npc", "npc_say", "npc_attack", "npc_do", "set_npc_goal",
+        "add_trap", "get_trap", "remove_trap", "arm_trap", "disarm_trap",
         "npc_act", "trigger_narrative_event",
         "generate_world_items", "generate_world_creatures", "generate_start_zone", "generate_location",
         "npc_template", "item_template", "creature_template", "zone_template", "location_template",
@@ -769,12 +770,33 @@ class TestProgressionTools():
         call_tool(mcp, "set_story_context", {"base_story": "A grand adventure"})
         assert mgr.story.config.context.base_story == "A grand adventure"
 
-    def test_advance_story_section(self):
+    def test_set_beat(self):
         mgr = make_manager()
         mcp = create_server(mgr)
         mgr.set_story_context("Base plot")
-        call_tool(mcp, "advance_story_section", {"section": "The beginning"})
-        assert mgr.story.config.context.current_section == "The beginning"
+        texts, structured = call_tool(mcp, "set_beat", {"beat_id": "beat-0", "description": "The beginning"})
+        context = mgr.story.config.context
+        assert context.active_beat().id == "beat-0"
+        assert context.active_beat().description == "The beginning"
+        state = mgr.get_story_state()
+        assert state["current_section"] == "The beginning"
+        assert state["beats"] == [{"id": "beat-0", "description": "The beginning", "status": "active", "match": "all", "goals": []}]
+
+    def test_set_beat_unknown_id_adds_new_beat(self):
+        mgr = make_manager()
+        mcp = create_server(mgr)
+        mgr.set_story_context("Base plot")
+        call_tool(mcp, "set_beat", {"beat_id": "beat-0", "description": "The beginning"})
+        # an unknown id adds a new beat and selects it; the previous one is completed
+        texts, structured = call_tool(mcp, "set_beat", {"beat_id": "climax", "description": "The finale"})
+        context = mgr.story.config.context
+        assert context.active_beat().id == "climax"
+        assert context.active_beat().description == "The finale"
+        assert [b.status.name for b in context.beats] == ["COMPLETED", "ACTIVE"]
+        state = mgr.get_story_state()
+        assert state["current_section"] == "The finale"
+        assert state["past_sections"] == ["The beginning"]
+        assert [b["id"] for b in state["beats"]] == ["beat-0", "climax"]
 
     def test_set_start_location(self):
         mgr = make_manager()
@@ -1117,3 +1139,123 @@ class TestMainFlags():
         started = self._run(monkeypatch, ["-g", "somegame"])
         assert started["mcp_enabled"] is False
         assert started["mcp_port"] == 8765
+
+
+# --- trap tools ----------------------------------------------------------------
+
+class TestTrapTools():
+
+    def setup_method(self):
+        self._saved = (mud_context.config, mud_context.driver)
+        mud_context.config = StoryConfig()
+        mud_context.driver = FakeDriver()
+
+    def teardown_method(self):
+        mud_context.config, mud_context.driver = self._saved
+
+    def _seed(self, mgr):
+        mgr.add_location({"name": "Vault", "descr": "A vault", "world_location": [0, 0, 0]}, "TestZone")
+        mgr.add_location({"name": "Hall", "descr": "A hall", "world_location": [1, 0, 0]}, "TestZone")
+        mgr.set_exits("TestZone", "Vault", [{"direction": "east", "name": "Hall"}])
+        from tale.base import Door
+        door = Door("north", mgr.story.get_location("TestZone", "Hall"),
+                    "a door", "A door to the north", locked=True, opened=False)
+        mgr.story.get_location("TestZone", "Vault").add_exits([door])
+        mgr.add_item({"name": "chest", "type": "Boxlike", "descr": "An oak chest"})
+        assert mgr.spawn_item("chest", "TestZone", "Vault") is True
+
+    def _chest(self, mgr):
+        from tale import traps
+        loc = mgr.story.get_location("TestZone", "Vault")
+        return next(i for i in loc.items if i.name == "chest"), loc
+
+    def test_add_and_get_trap_on_item(self):
+        from tale import traps
+        mgr = make_manager()
+        self._seed(mgr)
+        mcp = create_server(mgr)
+        success, error = tool_result(mcp, "add_trap", {
+            "zone": "TestZone", "location": "Vault", "object": "chest",
+            "trap": {"level": 3, "trigger": "OPEN", "effect": "DAMAGE", "hidden": True,
+                     "descr": "A poison needle in the lock.",
+                     "llm_hint": "Wound, don't kill.", "effect_hint": "Deep on full, scratch on partial."}})
+        assert success is True and error == ""
+        chest, _ = self._chest(mgr)
+        trap = traps.get(chest)
+        assert trap is not None and trap.trigger.name == "OPEN" and trap.state.name == "ARMED"
+        got = tool_json(mcp, "get_trap", {"zone": "TestZone", "location": "Vault", "object": "chest"})
+        assert got["effect"] == "DAMAGE" and got["level"] == 3 and got["state"] == "ARMED"
+        assert got["llm_hint"] == "Wound, don't kill."
+
+    def test_add_trap_on_room_and_on_exit(self):
+        mgr = make_manager()
+        self._seed(mgr)
+        mcp = create_server(mgr)
+        success, _ = tool_result(mcp, "add_trap", {
+            "zone": "TestZone", "location": "Vault", "object": "room",
+            "trap": {"level": 5, "trigger": "ENTER", "effect": "ALARM"}})
+        assert success is True
+        success, _ = tool_result(mcp, "add_trap", {
+            "zone": "TestZone", "location": "Vault", "object": "north",
+            "trap": {"level": 2, "trigger": "OPEN", "effect": "DOOR"}})
+        assert success is True
+        assert tool_json(mcp, "get_trap", {"zone": "TestZone", "location": "Vault", "object": "room"})["trigger"] == "ENTER"
+        assert tool_json(mcp, "get_trap", {"zone": "TestZone", "location": "Vault", "object": "north"})["effect"] == "DOOR"
+
+    def test_add_trap_rejects_malformed(self):
+        mgr = make_manager()
+        self._seed(mgr)
+        mcp = create_server(mgr)
+        # unknown effect
+        success, error = tool_result(mcp, "add_trap", {
+            "zone": "TestZone", "location": "Vault", "object": "chest",
+            "trap": {"level": 3, "trigger": "OPEN", "effect": "EXPLODE"}})
+        assert success is False and "effect" in error
+        # trigger invalid for the object type: no ENTER trap on a chest
+        success, error = tool_result(mcp, "add_trap", {
+            "zone": "TestZone", "location": "Vault", "object": "chest",
+            "trap": {"level": 3, "trigger": "ENTER", "effect": "DAMAGE"}})
+        assert success is False and "ENTER" in error
+        # unknown object / zone
+        success, error = tool_result(mcp, "add_trap", {
+            "zone": "TestZone", "location": "Vault", "object": "anvil",
+            "trap": {"level": 1, "trigger": "MOVE", "effect": "DAMAGE"}})
+        assert success is False and "anvil" in error
+        success, error = tool_result(mcp, "add_trap", {
+            "zone": "NoZone", "location": "Vault", "object": "chest",
+            "trap": {"level": 1, "trigger": "OPEN", "effect": "DAMAGE"}})
+        assert success is False and "NoZone" in error
+
+    def test_arm_disarm_remove_trap(self):
+        from tale import traps
+        mgr = make_manager()
+        self._seed(mgr)
+        mcp = create_server(mgr)
+        chest, _ = self._chest(mgr)
+        tool_result(mcp, "add_trap", {"zone": "TestZone", "location": "Vault", "object": "chest",
+                                      "trap": {"level": 2, "trigger": "OPEN", "effect": "RESTRAIN"}})
+        # disarm (direct state change, no throw)
+        success, error = tool_result(mcp, "disarm_trap", {"zone": "TestZone", "location": "Vault", "object": "chest"})
+        assert success is True and error == ""
+        assert traps.get(chest).state.name == "DISARMED"
+        assert tool_json(mcp, "get_trap", {"zone": "TestZone", "location": "Vault", "object": "chest"})["state"] == "DISARMED"
+        # re-arm
+        success, _ = tool_result(mcp, "arm_trap", {"zone": "TestZone", "location": "Vault", "object": "chest"})
+        assert success is True
+        assert traps.get(chest).state.name == "ARMED"
+        # remove
+        success, _ = tool_result(mcp, "remove_trap", {"zone": "TestZone", "location": "Vault", "object": "chest"})
+        assert success is True
+        assert traps.get(chest) is None
+        assert tool_json(mcp, "get_trap", {"zone": "TestZone", "location": "Vault", "object": "chest"}) == {}
+        # removing again fails
+        success, error = tool_result(mcp, "remove_trap", {"zone": "TestZone", "location": "Vault", "object": "chest"})
+        assert success is False and "no trap" in error
+
+    def test_arm_disarm_without_trap_fails(self):
+        mgr = make_manager()
+        self._seed(mgr)
+        mcp = create_server(mgr)
+        for tool in ("arm_trap", "disarm_trap"):
+            success, error = tool_result(mcp, tool, {"zone": "TestZone", "location": "Vault", "object": "chest"})
+            assert success is False and "no trap" in error

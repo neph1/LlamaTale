@@ -1,0 +1,98 @@
+{
+    "story": {
+        "name": "Beats Test Story"
+    },
+    "zones": {
+        "test_zone": {
+            "description": "A tiny test zone",
+            "level": 1,
+            "mood": 0,
+            "races": [],
+            "items": [],
+            "size": 1,
+            "center": [
+                0,
+                0,
+                0
+            ],
+            "name": "test_zone",
+            "locations": [
+                {
+                    "name": "Start room",
+                    "descr": "A plain room used for testing.",
+                    "short_descr": "A plain room",
+                    "exits": [
+                        {
+                            "name": "Cellar",
+                            "direction": "down",
+                            "short_descr": "A narrow stair leads down into the cellar.",
+                            "long_descr": ""
+                        }
+                    ],
+                    "world_location": [
+                        0,
+                        0,
+                        0
+                    ],
+                    "items": []
+                },
+                {
+                    "name": "Cellar",
+                    "descr": "A dark, damp cellar under the boarding house.",
+                    "short_descr": "A dark cellar",
+                    "exits": [
+                        {
+                            "name": "Start room",
+                            "direction": "up",
+                            "short_descr": "A narrow stair leads back up.",
+                            "long_descr": ""
+                        }
+                    ],
+                    "world_location": [
+                        0,
+                        0,
+                        -1
+                    ],
+                    "items": []
+                }
+            ]
+        }
+    },
+    "world": {
+        "npcs": {
+            "corbin": {
+                "name": "corbin",
+                "gender": "f",
+                "race": "human",
+                "type": "LivingNpc",
+                "title": "Mrs. Corbin",
+                "descr": "The landlady of the boarding house.",
+                "short_descr": "The landlady",
+                "location": "Start room"
+            },
+            "thing": {
+                "name": "the thing in the cellar",
+                "gender": "m",
+                "race": "giant rat",
+                "type": "Mob",
+                "title": "thing in the cellar",
+                "descr": "Something that skitters in the dark.",
+                "short_descr": "a skittering thing",
+                "location": "Cellar",
+                "stats": {
+                    "hp": 1,
+                    "max_hp": 1,
+                    "ac": 0,
+                    "level": 1,
+                    "race": "giant rat"
+                },
+                "aggressive": false
+            }
+        },
+        "items": {}
+    },
+    "catalogue": {
+        "items": [],
+        "creatures": []
+    }
+}

@@ -1,6 +1,8 @@
 
 from enum import IntEnum
 
+from tale.scenario import QuestCompleted, publish_story_event
+
 class QuestStatus(IntEnum):
     NOT_STARTED = 0
     NOT_COMPLETED = 1
@@ -55,6 +57,8 @@ class Quest():
     
     def complete(self):
         self.__status = QuestStatus.COMPLETED
+        # typed world event: lets story beats with a quest_complete goal finish
+        publish_story_event(QuestCompleted(quest=self.name, giver=self.giver, target=self.target))
 
     def start(self):
         self.__status = QuestStatus.NOT_COMPLETED

@@ -1,11 +1,15 @@
 
 
 
+import json
 import pytest
 import tale
+import tale.parse_utils as parse_utils
 from tale.base import Item, Location, ParseResult, Weapon
 from tale.cmds import wizard, wizcmd
-from tale.errors import ParseError
+from tale.errors import ActionRefused, ParseError
+from tale.scenario import Beat, BeatStatus
+from tale.story_context import StoryContext
 from tale.items.basic import Food
 from tale.llm.LivingNpc import LivingNpc
 from tale.llm.dynamic_story import DynamicStory
@@ -40,6 +44,38 @@ class TestWizardCommands():
         assert(npc.personality == 'test personality ')
         assert(npc.age == 99)
         assert(npc.get_wearable(WearLocation.TORSO) is not None)
+
+    def test_load_character_from_data_with_memory(self):
+        parse_result = ParseResult(
+            verb='load_character_from_data',
+            unparsed='{"name": "mem npc", "memory": {"observed_events": ["met the king"], "sentiments": {"king": "hostile"}, "known_locations": {"tavern": "a cozy tavern"}, "action_history": ["waved"], "goal": "befriend the king"}, "relationships": {"queen": "kind"}}')
+        npc = wizard.do_load_character_from_data(self.test_player, parse_result, self.context) # type: LivingNpc
+        assert(npc.name == 'mem')
+        assert(npc.sentiments == {'king': 'hostile', 'queen': 'kind'})
+        assert(npc.get_observed_events(None) == 'met the king')
+        assert(npc.known_locations == {'tavern': 'a cozy tavern'})
+        assert(npc.action_history == ['waved'])
+        assert(npc.goal == 'befriend the king')
+
+    def test_load_character_memory_survives_save_and_reload(self):
+        parse_result = ParseResult(
+            verb='load_character_from_data',
+            unparsed='{\"name\": \"mem npc\", \"memory\": {\"observed_events\": [\"met the king\"], \"sentiments\": {\"king\": \"hostile\"}, \"known_locations\": {\"tavern\": \"a cozy tavern\"}, \"action_history\": [\"waved\"], \"goal\": \"befriend the king\"}, \"relationships\": {\"queen\": \"kind\"}}')
+        npc = wizard.do_load_character_from_data(self.test_player, parse_result, self.context) # type: LivingNpc
+        assert(npc.sentiments == {'king': 'hostile', 'queen': 'kind'})
+
+        # simulate !save_story writing world.json to disk and loading it back
+        saved = parse_utils.save_npcs([npc])
+        saved = json.loads(json.dumps(saved))
+        locations = {npc.location.name: npc.location}
+        loaded_npcs = parse_utils.load_npcs(list(saved.values()), locations=locations)
+        loaded = loaded_npcs['Mem']
+        assert(loaded.sentiments == {'king': 'hostile', 'queen': 'kind'})
+        assert(loaded.get_observed_events(None) == 'met the king')
+        assert(loaded.known_locations == {'tavern': 'a cozy tavern'})
+        assert(loaded.action_history == ['waved'])
+        assert(loaded.goal == 'befriend the king')
+        assert(loaded.planned_actions == [])  # planned actions are runtime-only, not persisted
 
     def test_set_visible(self):
         location = Location('test')
@@ -314,3 +350,57 @@ class TestSetRpPrompt():
         deferred = context.driver.deferreds[0] # type: tale.driver.Deferred
         assert deferred is not None
         deferred.due_gametime
+
+
+
+
+class TestSetBeatCommand():
+
+    test_player = Player('test', 'f')
+    test_player.privileges.add('wizard')
+
+    def _beat_story_context(self):
+        context = tale._MudContext()
+        context.config = StoryConfig()
+        story = DynamicStory()
+        context.driver = FakeDriver()
+        context.driver.story = story
+        story.config.context = StoryContext("A test story")
+        story.config.context.set_beats([Beat("one", "First"), Beat("two", "Second"), Beat("three", "Third")])
+        return context, story
+
+    def test_set_beat(self):
+        context, story = self._beat_story_context()
+        parse_result = ParseResult(verb='set_beat', args=['two'], unparsed='two')
+        wizard.do_set_beat(self.test_player, parse_result, context)
+        story_context = story.config.context
+        assert story_context.active_beat().id == 'two'
+        assert story_context.beats[0].status == BeatStatus.COMPLETED
+        assert story_context.beats[1].status == BeatStatus.ACTIVE
+
+    def test_set_beat_no_args(self):
+        context, story = self._beat_story_context()
+        parse_result = ParseResult(verb='set_beat', args=[], unparsed='')
+        with pytest.raises(ParseError, match="Set which beat?"):
+            wizard.do_set_beat(self.test_player, parse_result, context)
+
+    def test_set_beat_unknown_id_adds_new_beat(self):
+        context, story = self._beat_story_context()
+        parse_result = ParseResult(verb='set_beat', args=['nope', 'A', 'new', 'beat'], unparsed='nope A new beat')
+        wizard.do_set_beat(self.test_player, parse_result, context)
+        story_context = story.config.context
+        assert story_context.active_beat().id == 'nope'
+        assert story_context.active_beat().description == 'A new beat'
+        assert story_context.beats[0].status == BeatStatus.COMPLETED
+        assert [b.id for b in story_context.beats] == ['one', 'two', 'three', 'nope']
+
+    def test_set_beat_no_story_context(self):
+        context = tale._MudContext()
+        context.config = StoryConfig()
+        story = DynamicStory()
+        context.driver = FakeDriver()
+        context.driver.story = story
+        story.config.context = "just a base story string"
+        parse_result = ParseResult(verb='set_beat', args=['one'], unparsed='one')
+        with pytest.raises(ActionRefused, match="no beat-based story context"):
+            wizard.do_set_beat(self.test_player, parse_result, context)

@@ -24,10 +24,11 @@ from tale.llm.responses.WorldCreaturesResponse import WorldCreaturesResponse
 from tale.llm.responses.WorldItemsResponse import WorldItemsResponse
 
 from . import wizcmd, disabled_in_gamemode
-from .. import base, lang, util, pubsub, races, __version__
+from .. import base, lang, util, pubsub, races, stealth, __version__
 from ..errors import ParseError, ActionRefused, NonSoulVerb, SecurityViolation, TaleError, TaleFlowControlException
 from ..player import Player
 from ..story import *
+from ..story_context import StoryContext
 
 
 def lookup_module_path(path: str) -> ModuleType:
@@ -854,6 +855,42 @@ def do_set_visible(player: Player, parsed: base.ParseResult, ctx: util.Context) 
     except ValueError as x:
         raise ActionRefused(str(x))
     
+@wizcmd("set_concealment")
+def do_set_concealment(player: Player, parsed: base.ParseResult, ctx: util.Context) -> None:
+    """Set the stealth concealment tier of a location.
+    Usage: set_concealment <location|here> <0-4>
+    """
+    if len(parsed.args) != 2:
+        raise ParseError("You need to specify the location and the concealment tier (0-4)")
+    name = str(parsed.args[0]).lower()
+    location = None
+    if name in ("here", player.location.name.lower()):
+        location = player.location
+    else:
+        story = ctx.driver.story
+        if isinstance(story, DynamicStory):
+            location = story.find_location(name)
+    if not location:
+        raise ParseError("No location found: " + str(parsed.args[0]))
+    try:
+        tier = int(parsed.args[1])
+    except ValueError:
+        raise ActionRefused("Concealment tier must be an integer between 0 and 4")
+    location.concealment = stealth.clamp_concealment(tier)
+    player.tell("%s concealment set to %d" % (location.name, location.concealment))
+
+@wizcmd("perceive")
+def do_perceive(player: Player, parsed: base.ParseResult, ctx: util.Context) -> None:
+    """Debug: force a full perception sweep (both scopes) of the current location
+    and its neighbors, returning the raw contest and glimpse outcomes.
+    Usage: perceive
+    """
+    outcomes = stealth.perceive_sweep(player)
+    if outcomes:
+        player.tell("Perception sweep:\n" + "\n".join(outcomes), evoke=False)
+    else:
+        player.tell("Perception sweep: no hidden livings here, no glimpses from adjacent locations.")
+
 @wizcmd("set_description")
 def do_set_description(player: Player, parsed: base.ParseResult, ctx: util.Context) -> None:
     """Set description of any object."""
@@ -991,3 +1028,24 @@ def do_save(player: Player, parsed: base.ParseResult, ctx: util.Context) -> None
             raise ActionRefused(str(x))
     else:
         raise ActionRefused("Not a dynamic story")
+
+
+@wizcmd("set_beat")
+def do_set_beat(player: Player, parsed: base.ParseResult, ctx: util.Context) -> None:
+    """Set the active story beat by id. If the id doesn't exist, a new beat is added
+    and selected. The previously active beat is marked completed.
+    Usage: !set_beat <beat id> [description]"""
+    if not parsed.args:
+        raise ParseError("Set which beat? Usage: !set_beat <beat id> [description]")
+    beat_id = parsed.args[0]
+    description = " ".join(parsed.args[1:])
+    story = ctx.driver.story
+    context = story.config.context if story else None
+    if not isinstance(context, StoryContext):
+        raise ActionRefused("This story has no beat-based story context")
+    existed = any(b.id == beat_id for b in context.beats)
+    beat = context.set_beat(beat_id, description)
+    if existed:
+        player.tell("Active beat is now '%s': %s" % (beat.id, beat.description))
+    else:
+        player.tell("Added new beat '%s' and activated it: %s" % (beat.id, beat.description))

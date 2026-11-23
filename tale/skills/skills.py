@@ -2,20 +2,29 @@
 
 from enum import  IntEnum
 
+DEFAULT_PERCEPTION_SKILL = 10  # hidden skill, rolled by the engine only (see tale/stealth.py)
 
 class SkillType(IntEnum):
 
     HIDE = 1
     SEARCH = 2
     PICK_LOCK = 3
+    PERCEPTION = 4
+    DODGE = 5        # defense against trap effects
+    SET_TRAP = 6     # arming traps
+    DISARM_TRAP = 7  # disarming revealed traps
 
 class Skills(dict):
 
     def __init__(self):
-        
+
         self[SkillType.HIDE] = 0
         self[SkillType.SEARCH] = 0
         self[SkillType.PICK_LOCK] = 0
+        self[SkillType.PERCEPTION] = DEFAULT_PERCEPTION_SKILL
+        self[SkillType.DODGE] = 0
+        self[SkillType.SET_TRAP] = 0
+        self[SkillType.DISARM_TRAP] = 0
 
     def get(self, skill: SkillType) -> int:
         return super().get(skill, 0)  # Use the dict's get method

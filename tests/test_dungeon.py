@@ -224,3 +224,45 @@ class TestDungeon:
         assert dungeon.max_depth == 7
         assert dungeon.zones[0].dungeon_config is not None
         assert dungeon.zones[0].dungeon_config.name == "Custom Dungeon"
+
+    def test_go_through_dungeon_entrance_lands_in_dungeon_with_return_exit(self):
+        """Going through a DungeonEntrance must land in the generated dungeon entrance
+        (not the placeholder target) and provide a way back out to the source location."""
+        from tale import mud_context
+        from tale.player import Player
+        from tests.supportstuff import FakeDriver
+
+        driver = FakeDriver()
+        driver.story = self.story
+        driver.llm_util = self.llm_util
+        mud_context.driver = driver
+        mud_context.config = self.story.config
+
+        zone = Zone("surface zone", "The surface")
+        zone.dungeon_config = DungeonConfig(name="Test Dungeon", description="A test dungeon",
+                                            races=[], items=[], max_depth=1)
+        self.story.add_zone(zone)
+
+        cellar = Location("Cellar", "A dark cellar")
+        cellar.world_location = Coord(0, 0, 0)
+        zone.add_location(cellar)
+
+        placeholder = Location("Cave Entrance", "A placeholder that should be bypassed")
+        entrance = DungeonEntrance(["cave", "down"], placeholder, "A stairway leads down", "")
+        cellar.add_exits([entrance])
+
+        tester = Player("tester", "m")
+        cellar.insert(tester, tester)
+
+        driver.go_through_exit(tester, "down", evoke=False)
+
+        dungeon_entrance_location = entrance.dungeon.get_entrance_location()
+        assert tester.location is dungeon_entrance_location
+        assert tester.location is not placeholder
+        # the dungeon entrance has a way back out to the cellar
+        return_exit = tester.location.exits.get("up")
+        assert return_exit is not None
+        assert return_exit.target is cellar
+        # going back out works and lands in the cellar again
+        driver.go_through_exit(tester, "up", evoke=False)
+        assert tester.location is cellar

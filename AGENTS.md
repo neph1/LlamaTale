@@ -86,6 +86,21 @@ Player-specific code.
 - Output formatting, screen width/indent management.
 - Tell system for messaging.
 
+### tale/traps.py
+Trap system. A trap can be attached to any MudObject via `traps.attach(obj, trap)`; it lives in
+`obj.story_data["trap"]` as a builtins-only dict (survives savegames automatically).
+- `Trap` dataclass + `TrapState`/`TrapTrigger`/`TrapOutcome` enums; triggers: ENTER (location arrival),
+  OPEN (Boxlike/Door.open), MOVE (Item.notify_moved), TOUCH (custom verb via handle_verb).
+- Resolution is a DODGE skill throw (`randint(1,100) + DODGE - level*10`) with outcome bands
+  escape/partial/full/complication; `disarm` command uses DISARM_TRAP, SEARCH reveals hidden traps.
+- Effects: DAMAGE, RESTRAIN, HOBBLE, DOOR (close/lock), ALARM, SPELL (skips caster checks).
+- Traps are data: JSON dicts (`"trap": {...}` blocks in item/location/exit dicts, `type: "Trap"`
+  items) are validated by `traps.trap_from_dict` (level clamped 1..10, known effect, trigger valid
+  for the object type) so LLM world-building can create them without Python. `TrapItem` is the
+  physical, takeable form. LLM guidance strings (`llm_hint`, `effect_hint`, `descr`) are passed as
+  `extra_context` on narration messages.
+- Note: `Location.nearby(no_traps=True)` uses "trap" for one-way exit destinations; unrelated.
+
 ## Game Modes
 
 ### IF Mode (`GameMode.IF`)
@@ -144,17 +159,25 @@ Story configuration and base classes.
 - `TickMethod`: Enum (COMMAND, TIMER)
 - `MoneyType`: Enum (FANTASY, MODERN, NOTHING)
 
+### tale/scenario.py
+Beat data model for story progression, plus the typed world-event vocabulary that drives goal completion.
+- `BeatStatus`: IntEnum (LOCKED/ACTIVE/COMPLETED/FAILED), `str()` gives the lowercase name.
+- `Beat`: A single story beat: `id`, `description` (the string that enters the LLM context while active), `status`, `goals` (list of `Goal`), `match` ("all"/"any"); `to_json()`/`from_json()` serialization.
+- `Goal`: a code-verifiable beat goal: `type` + `target` + runtime `satisfied` flag. Known types today: `quest_complete`, `interact`, `kill` (`visit`/`have_item`/`flag` land later); unknown types are rejected at load. The LLM never judges satisfaction.
+- Typed story events published on the `"story-events"` pubsub topic via `publish_story_event()` (synchronous delivery): `QuestCompleted` (from `Quest.complete()`), `Interacted` (from `LivingNpc.do_say()`), `NpcKilled` (from `Living.do_on_death()`).
+- `load_beats()`/`validate_beats()`: load and validate authored beats from JSON (unique, non-empty ids; description required; goals validated).
+
 ### tale/story_context.py
 Story progression and narrative structure.
-- `StoryContext`: Manages story sections and progress.
+- `StoryContext`: Manages story beats and progress. Is a `pubsub.Listener` for the `"story-events"` topic.
   - `base_story`: Base plot description
-  - `current_section`: Active story section
-  - `past_sections`: List of completed sections
-  - `progress`: Float tracking advancement (0.0 to length)
-  - `increase_progress()`: Periodically called method to advance story
-  - `to_context()`, `to_context_with_past()`: Generate LLM context strings
-  - `from_json()`, `to_json()`: Serialization for save games
-  - Decorated with `@call_periodically(10, 20)` for automatic progress updates
+  - `beats`: List of `Beat` objects; one ACTIVE beat, the rest LOCKED/COMPLETED
+  - `authored`: True when the beats come from the story config, False when generated on the fly
+  - `progress`: Float tracking advancement (0.0 to length); not increased automatically anymore
+  - `set_beat(id, description="")`: Activate the beat with the given id, adding it as a new beat if it doesn't exist (used by the `!set_beat` wizard command and the MCP `set_beat` tool); the previously active beat becomes COMPLETED
+  - `on_story_event(event)` / `subscribe_events()` / `unsubscribe_events()`: typed world events are recorded against every beat's goals; ACTIVE beats whose goals match (all/any) become COMPLETED and the next LOCKED beat activates, cascading (`_settle()`). Goal-less beats never auto-complete (manual advance). StoryManager subscribes the live story's context automatically.
+  - `to_context()`, `to_context_with_past()`: Generate LLM context strings from the active/completed beats
+  - `from_json()`, `to_json()`: Serialization for save games (old saves with current_section/past_sections are migrated to beats; beat goals and their satisfied flags persist)
 
 ## Story Configuration
 
@@ -175,11 +198,11 @@ class MyStory(StoryBase):
 
 ## Story Progression
 
-Stories can have sections that progress over time:
-- `StoryContext` tracks which section is active
-- Progress advances automatically (COMMAND or TIMER tick method)
-- When progress crosses integer thresholds, LLM advances to next section
-- Past sections are preserved for context
+Stories progress through beats:
+- `StoryContext` tracks which beat is active (see `tale/scenario.py`)
+- Stories with authored beats (`"beats"` key in story_config.json) are advanced by hand with the wizard command `!set_beat <beat id> [description]` or the MCP `set_beat` tool (no automatic time-based progress)
+- A beat may declare `goals` (e.g. `{"type": "kill", "target": "giant rat"}`, `interact`, `quest_complete`; `"match": "all"/"any"`). Typed world events (quest completed, dialogue with an NPC, NPC killed) published on the `"story-events"` pubsub topic complete such beats automatically; goals satisfied before activation complete the beat when it activates
+- Completed beats are preserved for context
 
 ## Example
 

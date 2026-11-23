@@ -765,12 +765,9 @@ class TestStoryBuilding():
     
     story.init(driver)
 
-    def test_advance_story_section(self):
-        self.llm_util._story_building.io_util.response = "Chapter 2"
-
+    def test_set_beat_creates_and_selects(self):
         self.story.config.context = StoryContext(base_story='test context')
-
-        result = self.llm_util._story_building.advance_story_section(self.story.config.context)
-
-        assert(result == 'Chapter 2')
-        assert(self.story.config.context.current_section == 'Chapter 2')
+        beat = self.story.config.context.set_beat('beat-0', 'Chapter 2')
+        assert beat.id == 'beat-0'
+        assert beat.status.name == 'ACTIVE'
+        assert self.story.config.context.active_beat().description == 'Chapter 2'

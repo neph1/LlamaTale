@@ -15,9 +15,11 @@ server depends on.
 import os
 import random
 import threading
+import weakref
 from typing import Optional
 
-from tale.base import Location, Exit, Door
+from tale import pubsub
+from tale.base import Location, Exit, Door, Item
 from tale.combat import lethality_guidance, parse_combat_type
 from tale.errors import LocationIntegrityError
 from tale.items.basic import Note
@@ -31,11 +33,34 @@ from tale.story_context import StoryContext
 from tale.zone import Zone
 
 import tale.parse_utils as parse_utils
+from tale import traps
 from tale.load_items import load_item, load_items
+from tale.traps import TrapState
 from tale.mcp.validation import validate_zone, validate_location, validate_npc, validate_item
 from tale.mcp.events import StoryEvents
+from tale.scenario import STORY_EVENTS_TOPIC, StoryEvent
 
 __all__ = ["StoryManager", "register", "current", "get"]
+
+
+class _BeatEventListener(pubsub.Listener):
+    """Forwards typed story events (the "story-events" pubsub topic) to the
+    live story's beat context, which completes goal-beats from them. The
+    context is resolved lazily on every event, so savegame loads that swap
+    out ``story.config`` keep working."""
+
+    def __init__(self, manager: "StoryManager") -> None:
+        self._manager_ref = weakref.ref(manager)
+
+    def pubsub_event(self, topicname, event) -> None:
+        if topicname != STORY_EVENTS_TOPIC or not isinstance(event, StoryEvent):
+            return
+        manager = self._manager_ref()
+        if manager is None:
+            return
+        context = manager._story.config.context
+        if isinstance(context, StoryContext):
+            context.on_story_event(event)
 
 
 # --- module-level registry for in-process access ------------------------------
@@ -106,6 +131,9 @@ class StoryManager:
         # the live world's wiretap topics so an agent can poll what is happening.
         self._events = StoryEvents(maxlen=500)
         self._subscribe_events()
+        # typed story events drive beat goal completion (tale/scenario.py)
+        self._beat_events = _BeatEventListener(self)
+        pubsub.topic(STORY_EVENTS_TOPIC).subscribe(self._beat_events)
 
     # -- helpers ----------------------------------------------------------------
 
@@ -733,7 +761,7 @@ class StoryManager:
         """The structured live state of a location (mirrors ActionContext):
         name, description, short_descr, indoors, world_location:[x,y,z],
         exits:{direction: target_name},
-        livings:[{name, short_descr, alive, visible, is_player}],
+        livings:[{name, short_descr, alive, visible, hidden, is_player}],
         items:[{name, look_description, visible}]. Returns an empty dict if the
         location is not found."""
         _zone_obj, location = self._zone_location(zone, name)
@@ -747,6 +775,7 @@ class StoryManager:
                 "short_descr": living.short_description,
                 "alive": living.alive,
                 "visible": living.visible,
+                "hidden": living.hidden,
                 "is_player": living.name in player_names,
             })
         items = []
@@ -771,16 +800,20 @@ class StoryManager:
         }
 
     def get_story_state(self) -> dict:
-        """The story's narrative state: story (the context string with past
-        sections), current_section, past_sections, progress, length, name,
-        type, world_info, world_mood, combat_type, lethal."""
+        """The story's narrative state: story (the context string rendered from
+        beats), beats (id, description, status, match, goals per beat), progress,
+        length, name, type, world_info, world_mood, combat_type, lethal.
+        current_section and past_sections are kept as derived legacy fields
+        (active/completed beat descriptions)."""
         config = self._story.config
         context = config.context
         if isinstance(context, StoryContext):
+            active = context.active_beat()
             return {
                 "story": context.to_context_with_past(),
-                "current_section": context.current_section,
-                "past_sections": list(context.past_sections),
+                "beats": [beat.to_json() for beat in context.beats],
+                "current_section": active.description if active else "",
+                "past_sections": [beat.description for beat in context.completed_beats()],
                 "progress": context.progress,
                 "length": context.length,
                 "name": config.name,
@@ -793,6 +826,7 @@ class StoryManager:
         # the context may be a bare base-story string (not yet a StoryContext)
         return {
             "story": context if isinstance(context, str) else str(context),
+            "beats": [],
             "current_section": "",
             "past_sections": [],
             "progress": 0.0,
@@ -828,12 +862,16 @@ class StoryManager:
         with self._lock:
             self._story.config.context = StoryContext(base_story)
 
-    def advance_story_section(self, section: str) -> None:
-        """Advance the story context to a new section."""
+    def set_beat(self, beat_id: str, description: str = "") -> Optional[dict]:
+        """Set the active story beat by id. If no beat with that id exists, a
+        new beat with the given description is added and selected. The
+        previously active beat is marked completed. Returns the beat as a dict
+        ({id, description, status}), or None if the story has no beat context."""
         with self._lock:
             context = self._story.config.context
-            if isinstance(context, StoryContext):
-                context.set_current_section(section)
+            if not isinstance(context, StoryContext):
+                return None
+            return context.set_beat(beat_id, description).to_json()
 
     def set_start_location(self, zone: str, name: str) -> None:
         """Set the player/wizard start location to ``zone.name``.
@@ -866,12 +904,13 @@ class StoryManager:
         NPCs/items and spawners in place.
         """
         with self._lock:
-            from tale.llm.dynamic_story import WorldInfo, Catalogue
+            from tale.llm.dynamic_story import WorldInfo, Catalogue, load_authored_beats
             from tale.parse import parse_locations
             import tale.llm.llm_cache as llm_cache
 
             world = parse_utils.load_json(os.path.join(path, 'world.json'))
             config = parse_utils.load_story_config(parse_utils.load_json(os.path.join(path, 'story_config.json')))
+            load_authored_beats(config)
 
             # reset state and rebuild from the saved files
             self._story._zones = dict()
@@ -1227,6 +1266,90 @@ class StoryManager:
             if npc is None:
                 return False, f"npc '{name}' not found"
             npc.goal = goal
+            return True, ""
+
+    # -- traps -----------------------------------------------------------------
+
+    def _find_trappable(self, zone: str, location_name: str, object_name: str):
+        """Resolve a trappable object in a live location: the location itself
+        (``object_name`` empty or 'room'/'location'/'here'), an item by name in
+        the location, or an exit by direction/name. Returns ``(object, error)``."""
+        if self._zone(zone) is None:
+            return None, f"zone '{zone}' not found"
+        _zone_obj, location = self._zone_location(zone, location_name)
+        if location is None:
+            return None, f"location '{location_name}' not found in zone '{zone}'"
+        object_name = (object_name or '').strip().lower()
+        if object_name in ('', 'room', 'location', 'here'):
+            return location, ""
+        item = Item.search_item(object_name, location.items)
+        if item is not None:
+            return item, ""
+        exit = self._location_exit(location, object_name)
+        if exit is not None:
+            return exit, ""
+        return None, f"object '{object_name}' not found in '{location_name}'"
+
+    def add_trap(self, zone: str, location: str, object: str, trap: dict) -> tuple:
+        """Attach a trap (given as a dict) to an object in a live location.
+
+        ``object`` is 'room' (or empty) for the location itself, an item name
+        in the location, or an exit direction. The trap dict is validated
+        (level clamped 1..10, known effect, trigger valid for the object type),
+        so malformed traps are rejected here. Returns ``(success, error)``.
+        """
+        with self._lock:
+            obj, err = self._find_trappable(zone, location, object)
+            if obj is None:
+                return False, err
+            try:
+                traps.attach(obj, trap)
+            except (ValueError, TypeError) as e:
+                return False, str(e)
+            return True, ""
+
+    def get_trap(self, zone: str, location: str, object: str) -> dict:
+        """Return the trap dict attached to the object (empty dict if none or
+        the object is not found)."""
+        with self._lock:
+            obj, _err = self._find_trappable(zone, location, object)
+            if obj is None:
+                return {}
+            trap = traps.get(obj)
+            return trap.to_json() if trap is not None else {}
+
+    def remove_trap(self, zone: str, location: str, object: str) -> tuple:
+        """Remove the trap from the object. Returns ``(success, error)``."""
+        with self._lock:
+            obj, err = self._find_trappable(zone, location, object)
+            if obj is None:
+                return False, err
+            if traps.get(obj) is None:
+                return False, f"no trap attached to '{object}'"
+            traps.remove(obj)
+            return True, ""
+
+    def arm_trap(self, zone: str, location: str, object: str) -> tuple:
+        """(Re-)arm the trap on the object: state -> ARMED.
+        Returns ``(success, error)``."""
+        with self._lock:
+            obj, err = self._find_trappable(zone, location, object)
+            if obj is None:
+                return False, err
+            if traps.set_state(obj, TrapState.ARMED) is None:
+                return False, f"no trap attached to '{object}'"
+            return True, ""
+
+    def disarm_trap(self, zone: str, location: str, object: str) -> tuple:
+        """Disarm the trap on the object: state -> DISARMED (direct state change,
+        no skill throw -- this is a world-building tool, unlike the in-game
+        'disarm' command). Returns ``(success, error)``."""
+        with self._lock:
+            obj, err = self._find_trappable(zone, location, object)
+            if obj is None:
+                return False, err
+            if traps.set_state(obj, TrapState.DISARMED) is None:
+                return False, f"no trap attached to '{object}'"
             return True, ""
 
     # -- LLM-driven / narrative (Stage 4) --------------------------------------

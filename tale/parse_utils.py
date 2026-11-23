@@ -13,6 +13,7 @@ from tale.skills.magic import MagicType
 from tale.npc_defs import StationaryMob, StationaryNpc, Trader
 from tale.races import BodyType, UnarmedAttack
 from tale.mob_spawner import MobSpawner
+from tale.scenario import Beat, load_beats
 from tale.story import GameMode, MoneyType, TickMethod, StoryConfig
 from tale.combat import parse_combat_type
 from tale.story_context import StoryContext
@@ -35,9 +36,19 @@ def load_json(file_path: str):
         return json.load(f, strict=False)
 
 
+def _maybe_attach_trap(mudobj, data: dict):
+    """ Attaches a trap from a "trap": {...} block if present. Rejects malformed traps. """
+    trap_data = data.get('trap')
+    if trap_data:
+        from tale.traps import attach, trap_from_dict
+        attach(mudobj, trap_from_dict(trap_data, obj=mudobj))
+
 def location_from_json(json_object: dict):
+    from tale import stealth
     location = Location(name=json_object['name'], descr=json_object.get('descr', ''))
     location.built = json_object.get('built', True)
+    _maybe_attach_trap(location, json_object)
+    location.concealment = stealth.clamp_concealment(json_object.get('concealment', 0))
     return location
 
 def load_npcs(json_npcs: list, locations: list[Location] = [], world_items = [], parse_occupation = False) -> dict:
@@ -183,6 +194,7 @@ def load_story_config(json_file: dict):
         config.context = StoryContext().from_json(context)
     else:
         config.context = context
+    config.beats = load_beats(json_file['beats']) if json_file.get('beats') else []
     config.type = json_file.get('type', '')
     config.world_info = json_file.get('world_info', '')
     config.world_mood = json_file.get('world_mood', config.world_mood)
@@ -227,6 +239,7 @@ def save_story_config(config: StoryConfig) -> dict:
     json_file['combat_type'] = config.combat_type
     json_file['lethal'] = config.lethal
     json_file['context'] = config.context if isinstance(config.context, str) else config.context.to_json()
+    json_file['beats'] = [beat.to_json() if isinstance(beat, Beat) else beat for beat in config.beats]
     json_file['custom_resources'] = config.custom_resources
     json_file['image_gen'] = config.image_gen
     json_file['epoch'] = 0 # TODO: fix later
@@ -349,6 +362,7 @@ def parse_generated_exits(exits: list, exit_location_name: str, location: Locati
             neighbor = neighbor_locations[direction] # type: Location
             new_exit = Exit(directions=[neighbor.name, direction], target_location=neighbor, short_descr= f'To the {direction} you see {neighbor.name}.')
             connect_location_to_exit(neighbor, location, new_exit)
+            _maybe_attach_trap(new_exit, exit)
             new_exits.append(new_exit)
         elif exit['name'] != exit_location_name:
             # create location
@@ -379,6 +393,7 @@ def parse_generated_exits(exits: list, exit_location_name: str, location: Locati
                             target_location=new_location, 
                             short_descr=to_description, 
                             enter_msg=exit.get('enter_msg', ''))
+            _maybe_attach_trap(exit_to, exit)
             new_exits.append(exit_to)
             new_locations.append(new_location)
                 
@@ -534,7 +549,6 @@ def save_npcs(creatures: list) -> dict:
             stored_npc['goal'] = npc.goal
             stored_npc['autonomous'] = npc.autonomous
             stored_npc['aggressive'] = npc.aggressive
-            stored_npc['planned_actions'] = npc.planned_actions
 
         
         npcs[npc.name.lower()] = stored_npc
@@ -619,6 +633,7 @@ def save_locations(locations: List[Location]) -> dict:
         json_location['exits'] = []
         json_location['world_location'] = location.world_location.as_tuple()
         json_location['built'] = location.built
+        json_location['concealment'] = location.concealment
         exits = []
         for exit in location.exits.values():
             json_exit = {}

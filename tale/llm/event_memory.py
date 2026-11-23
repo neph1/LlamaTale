@@ -1,9 +1,10 @@
 """Memory store for an NPC: observed events, sentiments, action history,
-planned actions, known locations and the current goal.
+known locations and the current goal.
 
 Extracted from LivingNpc so the state has one owner with capped growth and a
 single dump/load implementation. Event strings are stored as hashes in the
-global llm_cache; only the hashes live here.
+global llm_cache; only the hashes live here. Planned actions are runtime-only
+state and intentionally not persisted.
 """
 
 import tale.llm.llm_cache as llm_cache
@@ -76,14 +77,13 @@ class EventMemory:
             observed_events=list(self.events),
             sentiments=self.sentiments,
             action_history=list(self.action_history),
-            planned_actions=list(self.planned_actions),
             goal=self.goal)
 
     def load(self, memory: dict) -> None:
         self.known_locations = memory.get('known_locations', {})
         # 'conversations' is a legacy key from older savegames
-        self.events = list(memory.get('observed_events', [])) + list(memory.get('conversations', []))
+        events = list(memory.get('observed_events', [])) + list(memory.get('conversations', []))
+        self.events = [llm_cache.cache_event(event) if isinstance(event, str) else event for event in events]
         self.sentiments = memory.get('sentiments', {})
         self.action_history = list(memory.get('action_history', []))
-        self.planned_actions = list(memory.get('planned_actions', []))
         self.goal = memory.get('goal', None)

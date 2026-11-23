@@ -17,6 +17,7 @@ from tale.skills.skills import SkillType
 from . import abbreviations, cmd, disabled_in_gamemode, disable_notify_action, overrides_soul, no_soul_parse, wizcmd
 from .. import base
 from .. import lang
+from .. import stealth
 from .. import races
 from .. import util
 from .. import cmds
@@ -922,6 +923,8 @@ def do_say(player: Player, parsed: base.ParseResult, ctx: util.Context) -> None:
                 break
     player.tell("You say%s: %s" % (target, message), evoke=False, short_len=False)
     player.tell_others("{Actor} says%s: %s" % (target, message), evoke=True, short_len=False)
+    if player.hidden:
+        stealth.risky_action(player, hider_penalty=stealth.TALK_WHILE_HIDDEN_PENALTY)
 
 
 @cmd("wait")
@@ -1849,6 +1852,26 @@ def do_search_hidden(player: Player, parsed: base.ParseResult, ctx: util.Context
 
     player.search_hidden()
     
+@cmd("disarm")
+def do_disarm(player: Player, parsed: base.ParseResult, ctx: util.Context) -> None:
+    """Disarm a trap you have discovered."""
+    from tale import traps
+    if len(parsed.args) < 1:
+        raise ParseError("Disarm what?")
+    name = str(parsed.args[0])
+    if name in ("room", "here", "floor", "ground"):
+        target = player.location
+    else:
+        target = player.search_item(name)
+        if target is None:
+            for direction, exit in player.location.exits.items():
+                if name == direction or name == exit.name or name in exit.aliases:
+                    target = exit
+                    break
+    if target is None:
+        raise ActionRefused("You don't see that here.")
+    traps.disarm(target, player, ctx)
+
 @cmd("pick_lock")
 def do_pick_lock(player: Player, parsed: base.ParseResult, ctx: util.Context) -> None:
     """Pick a lock on a door."""

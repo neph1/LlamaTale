@@ -10,6 +10,7 @@ from typing import Any, List, Optional, Tuple
 from tale.skills import weapon_type
 from tale.story import CombatType
 import tale.base as base
+from tale import stealth
 from tale.wearable import WearLocation, body_parts_for_bodytype
 from tale.wearable import WearLocation
 import random
@@ -63,11 +64,12 @@ def lethality_guidance(combat_type: Any, lethal: bool) -> str:
 
 class Combat():
 
-    def __init__(self, attackers: List['base.Living'], defenders: List['base.Living'], target_body_part: WearLocation = None, lethal: bool = True) -> None:
+    def __init__(self, attackers: List['base.Living'], defenders: List['base.Living'], target_body_part: WearLocation = None, lethal: bool = True, ambush: bool = False) -> None:
         self.attackers = attackers
         self.defenders = defenders
         self.target_body_part = target_body_part
         self.lethal = lethal
+        self.ambush = ambush  # first strike from hiding grants the lead attacker a bonus
 
     def _apply_damage(self, actor: 'base.Living', damage: int) -> int:
         """Apply damage to an actor, honoring the non-lethal hp floor of 1.
@@ -86,6 +88,8 @@ class Combat():
         """ Calculate the success of an attack. <5 is a critical hit.
         Lower chance for attacker if trying to hit a specific body part."""
         chance = actor.stats.weapon_skills.get(actor.wielding.type)
+        if self.ambush and actor == self.attackers[0]:
+            chance += stealth.FIRST_STRIKE_BONUS
         if self.target_body_part and actor == self.attacker:
             chance *= 1.2
         return random.randrange(0, 100) - chance
