@@ -1,0 +1,78 @@
+{
+    "story": {
+        "name": "Non-Lethal Arena"
+    },
+    "zones": {
+        "Arena": {
+            "description": "A padded sparring arena.",
+            "level": 1,
+            "mood": 3,
+            "races": [],
+            "items": [],
+            "size": 5,
+            "center": [
+                0,
+                0,
+                0
+            ],
+            "name": "Arena",
+            "locations": [
+                {
+                    "name": "Pit",
+                    "descr": "A circular pit covered in soft sand, surrounded by padded walls. A training dummy stands in the middle.",
+                    "short_descr": "",
+                    "exits": [],
+                    "world_location": [
+                        "0",
+                        "0",
+                        "0"
+                    ],
+                    "built": false
+                }
+            ]
+        }
+    },
+    "world": {
+        "npcs": {
+            "dummy": {
+                "location": "Pit",
+                "name": "dummy",
+                "title": "Training Dummy",
+                "short_descr": "A wooden training dummy",
+                "descr": "A sturdy wooden training dummy with padded limbs, built to take a beating without getting seriously hurt.",
+                "personality": "Patient and tireless",
+                "occupation": "",
+                "age": 0,
+                "type": "Mob",
+                "race": "human",
+                "gender": "m",
+                "level": 1,
+                "aggressive": false,
+                "autonomous": false,
+                "stats": {
+                    "ac": 0,
+                    "hp": 5,
+                    "max_hp": 5,
+                    "level": 1,
+                    "weapon_skills": {
+                        "6": 10
+                    },
+                    "gender": "m",
+                    "alignment": 0,
+                    "weight": 72.0,
+                    "xp": 0,
+                    "strength": 3,
+                    "dexterity": 3,
+                    "unarmed_attack": "FISTS",
+                    "race": "human"
+                }
+            }
+        },
+        "items": {},
+        "spawners": []
+    },
+    "catalogue": {
+        "items": [],
+        "creatures": []
+    }
+}

@@ -20,6 +20,7 @@ from typing import Optional
 
 from tale import pubsub
 from tale.base import Item, Living, Location, Exit, Door
+from tale.combat import lethality_guidance, parse_combat_type
 from tale.effects import EffectRunner
 from tale.errors import LocationIntegrityError
 from tale.items.basic import Note
@@ -264,6 +265,8 @@ class StoryManager:
             type=config.type,
             world_info=config.world_info,
             world_mood=config.world_mood,
+            combat_type=config.combat_type,
+            lethal=config.lethal,
             custom_resources=config.custom_resources,
             day_night=config.day_night,
             random_events=config.random_events,
@@ -274,7 +277,10 @@ class StoryManager:
 
     def set_config(self, **fields) -> None:
         """Set the given config fields. ``supported_modes`` accepts a list of
-        mode names; ``context`` accepts a base-story string."""
+        mode names; ``context`` accepts a base-story string. When
+        ``combat_type`` is given without ``lethal``, lethality defaults to the
+        tone's ``lethal_by_default`` (True for free text), matching
+        :func:`tale.parse_utils.load_story_config`."""
         with self._lock:
             config = self._story.config
             modes = fields.pop("supported_modes", None)
@@ -283,9 +289,61 @@ class StoryManager:
             context = fields.pop("context", None)
             if context is not None:
                 config.context = StoryContext(context) if isinstance(context, str) else context
+            combat_type = fields.pop("combat_type", None)
+            lethal = fields.pop("lethal", None)
             for key, value in fields.items():
                 if hasattr(config, key):
                     setattr(config, key, value)
+            if combat_type is not None:
+                ok, error = self._apply_combat_type(combat_type, lethal)
+                if not ok:
+                    raise ValueError(error)
+            elif lethal is not None:
+                if not isinstance(lethal, bool):
+                    raise ValueError("lethal must be a boolean")
+                config.lethal = lethal
+
+    def get_combat_config(self) -> dict:
+        """Return the combat settings as a JSON-friendly dict: ``combat_type``
+        (named tone or free text), the ``lethal`` flag, the parsed CombatType
+        name (``None`` for free text), and the ``lethality_guidance`` sentence
+        used in combat prompts."""
+        config = self._story.config
+        parsed = parse_combat_type(config.combat_type)
+        return {
+            "combat_type": config.combat_type,
+            "lethal": config.lethal,
+            "combat_type_parsed": parsed.name if parsed else None,
+            "lethality_guidance": lethality_guidance(config.combat_type, config.lethal),
+        }
+
+    def set_combat_type(self, combat_type: str, lethal: Optional[bool] = None) -> tuple:
+        """Set the combat tone and lethality. ``combat_type`` is one of the
+        named CombatType values (non-lethal, sparring, cartoony, historical,
+        ultra-violent; matched case-insensitively) or any free-text tone. When
+        ``lethal`` is omitted it defaults to the tone's ``lethal_by_default``
+        (True for free text), matching :func:`tale.parse_utils.load_story_config`.
+
+        Returns ``(success, error_message)``: ``(True, "")`` on success, or
+        ``(False, "what went wrong")`` on failure.
+        """
+        with self._lock:
+            return self._apply_combat_type(combat_type, lethal)
+
+    def _apply_combat_type(self, combat_type, lethal) -> tuple:
+        """Validate and apply combat_type/lethal. The caller must hold ``self._lock``."""
+        if not isinstance(combat_type, str) or not combat_type.strip():
+            return False, "combat_type must be a non-empty string"
+        if lethal is not None and not isinstance(lethal, bool):
+            return False, "lethal must be a boolean"
+        config = self._story.config
+        config.combat_type = combat_type.strip()
+        if lethal is not None:
+            config.lethal = lethal
+        else:
+            parsed = parse_combat_type(config.combat_type)
+            config.lethal = parsed.lethal_by_default if parsed else True
+        return True, ""
 
     # -- zones ------------------------------------------------------------------
 
@@ -751,9 +809,9 @@ class StoryManager:
     def get_story_state(self) -> dict:
         """The story's narrative state: story (the context string rendered from
         beats), beats (id, description, status, match, goals per beat), progress,
-        length, name, type, world_info, world_mood. current_section and
-        past_sections are kept as derived legacy fields (active/completed beat
-        descriptions)."""
+        length, name, type, world_info, world_mood, combat_type, lethal.
+        current_section and past_sections are kept as derived legacy fields
+        (active/completed beat descriptions)."""
         config = self._story.config
         context = config.context
         if isinstance(context, StoryContext):
@@ -769,6 +827,8 @@ class StoryManager:
                 "type": config.type,
                 "world_info": config.world_info,
                 "world_mood": config.world_mood,
+                "combat_type": config.combat_type,
+                "lethal": config.lethal,
             }
         # the context may be a bare base-story string (not yet a StoryContext)
         return {
@@ -782,6 +842,8 @@ class StoryManager:
             "type": config.type,
             "world_info": config.world_info,
             "world_mood": config.world_mood,
+            "combat_type": config.combat_type,
+            "lethal": config.lethal,
         }
 
     def get_world_map(self) -> dict:

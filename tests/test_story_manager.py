@@ -81,6 +81,83 @@ class TestConfig():
         assert {"IF", "MUD"} == {m.name for m in modes}
 
 
+class TestCombatConfig():
+
+    def test_get_combat_config_defaults(self):
+        mgr = StoryManager(make_story())
+        combat = mgr.get_combat_config()
+        assert combat["combat_type"] == "historical"
+        assert combat["lethal"] is True
+        assert combat["combat_type_parsed"] == "HISTORICAL"
+        assert "Death is possible" in combat["lethality_guidance"]
+
+    def test_set_combat_type_named_derives_lethal(self):
+        mgr = StoryManager(make_story())
+        ok, error = mgr.set_combat_type("non-lethal")
+        assert (ok, error) == (True, "")
+        assert mgr.story.config.combat_type == "non-lethal"
+        assert mgr.story.config.lethal is False
+        ok, _ = mgr.set_combat_type("ULTRA-VIOLENT")
+        assert ok is True
+        assert mgr.story.config.lethal is True
+        ok, _ = mgr.set_combat_type("Sparring")
+        assert ok is True
+        assert mgr.story.config.lethal is False
+
+    def test_set_combat_type_explicit_lethal_wins(self):
+        mgr = StoryManager(make_story())
+        ok, _ = mgr.set_combat_type("historical", lethal=False)
+        assert ok is True
+        assert mgr.story.config.lethal is False
+        ok, _ = mgr.set_combat_type("non-lethal", lethal=True)
+        assert ok is True
+        assert mgr.story.config.lethal is True
+
+    def test_set_combat_type_free_text(self):
+        mgr = StoryManager(make_story())
+        ok, _ = mgr.set_combat_type("wuxia wire-fu choreography")
+        assert ok is True
+        assert mgr.story.config.combat_type == "wuxia wire-fu choreography"
+        # free text defaults to lethal, matching load_story_config
+        assert mgr.story.config.lethal is True
+        combat = mgr.get_combat_config()
+        assert combat["combat_type_parsed"] is None
+        assert "Death is possible" in combat["lethality_guidance"]
+
+    def test_set_combat_type_invalid(self):
+        mgr = StoryManager(make_story())
+        ok, error = mgr.set_combat_type("")
+        assert ok is False
+        assert "combat_type" in error
+        ok, error = mgr.set_combat_type("non-lethal", lethal="yes")
+        assert ok is False
+        assert "lethal" in error
+        # failed calls leave the config untouched
+        assert mgr.story.config.combat_type == "historical"
+        assert mgr.story.config.lethal is True
+
+    def test_set_config_combat_type_derives_lethal(self):
+        mgr = StoryManager(make_story())
+        mgr.set_config(combat_type="non-lethal")
+        assert mgr.story.config.combat_type == "non-lethal"
+        assert mgr.story.config.lethal is False
+        mgr.set_config(combat_type="sparring", lethal=True)
+        assert mgr.story.config.lethal is True
+        mgr.set_config(lethal=False)
+        assert mgr.story.config.lethal is False
+        with pytest.raises(ValueError):
+            mgr.set_config(combat_type="")
+
+    def test_combat_config_mirrored_in_get_config_and_story_state(self):
+        mgr = StoryManager(make_story())
+        mgr.set_combat_type("cartoony", lethal=False)
+        assert mgr.get_config()["combat_type"] == "cartoony"
+        assert mgr.get_config()["lethal"] is False
+        state = mgr.get_story_state()
+        assert state["combat_type"] == "cartoony"
+        assert state["lethal"] is False
+
+
 class TestZones():
 
     def test_add_and_get_zone(self):
