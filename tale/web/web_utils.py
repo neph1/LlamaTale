@@ -4,7 +4,7 @@ import shutil
 
 dialogue_splitter = ' &lt;:&gt; '
 
-web_resources_path = '../../tale/web' # the game is run from the stories directory
+web_resources_path = os.path.dirname(os.path.abspath(__file__))  # the tale/web package dir, independent of the current working directory
 resource_folder = 'resources'
 static_folder = 'static/resources'
 
@@ -80,9 +80,12 @@ def clear_resources():
     
     for item in os.listdir(resource_path):
         item_path = os.path.join(resource_path, item)
-        
+
         if os.path.isfile(item_path):
-            os.remove(item_path)
+            try:
+                os.remove(item_path)
+            except FileNotFoundError:
+                pass  # already removed by a concurrent _stop_driver() call
 
 def copy_single_image(gamepath: str, image_name: str) -> str:
     from_path = os.path.join(gamepath, resource_folder, image_name)
