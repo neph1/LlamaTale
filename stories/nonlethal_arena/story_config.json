@@ -1,0 +1,32 @@
+{
+    "name": "Non-Lethal Arena",
+    "author": "test author",
+    "author_address": "",
+    "version": "1.0",
+    "supported_modes": [
+        "IF"
+    ],
+    "player_name": "smokey",
+    "player_gender": "m",
+    "player_race": "human",
+    "player_money": 0.0,
+    "money_type": "NOTHING",
+    "server_tick_method": "COMMAND",
+    "server_tick_time": 0.5,
+    "gametime_to_realtime": 1,
+    "display_gametime": false,
+    "startlocation_player": "Arena.Pit",
+    "startlocation_wizard": "Arena.Pit",
+    "zones": [
+        "Arena"
+    ],
+    "server_mode": "IF",
+    "npcs": "",
+    "items": "",
+    "context": "A padded sparring pit where nobody gets seriously hurt.",
+    "type": "A non-lethal combat arena",
+    "world_info": "A training arena with padded walls and a soft sand pit. Fights here end with a knockout, never a death.",
+    "world_mood": 3,
+    "combat_type": "non-lethal",
+    "custom_resources": false
+}
