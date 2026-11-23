@@ -6,7 +6,7 @@ Util class for combat related functions.
 
 import logging
 import random
-from typing import Any, List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Set, Tuple
 from tale.skills import weapon_type
 from tale.story import CombatType
 import tale.base as base
@@ -26,6 +26,9 @@ LETHALITY_GUIDANCE = {
     CombatType.HISTORICAL: "Grounded and realistic. Injuries are painful and matter. Death is possible.",
     CombatType.ULTRAVIOLENT: "Graphic, visceral, brutal. Do not sanitize the violence.",
 }
+
+# how often tied initiative rolls are rerolled before the tie stands (simultaneous batch)
+INITIATIVE_TIE_REROLLS = 5
 
 
 def apply_damage(target: 'base.Living', damage: int, lethal: bool = True) -> int:
@@ -94,6 +97,44 @@ class Combat():
             chance *= 1.2
         return random.randrange(0, 100) - chance
     
+    def _calculate_initiative(self, actor: 'base.Living') -> int:
+        """ Roll initiative for one combatant. Lower result acts first (house style,
+        consistent with _calculate_attack_success). Dexterity + perception scale
+        the roll with progression."""
+        return random.randrange(0, 100) - (actor.stats.dexterity + actor.stats.perception)
+
+    def _roll_initiative(self, combatants: List['base.Living']) -> Dict['base.Living', int]:
+        """ Roll initiative once per combatant, producing one roll per individual so
+        sides interleave naturally in group combat. An ambushing lead attacker is
+        treated as the lowest roll and acts first, with no additional roll. Ties are
+        rerolled between the tied combatants; if the rerolls are exhausted the tie
+        stands and the batch resolves simultaneously."""
+        initiative_results = {}  # type: Dict[base.Living, int]
+        ambusher = self.attackers[0] if self.ambush and self.attackers else None
+        for combatant in combatants:
+            if combatant is ambusher:
+                continue  # no roll: treated as the lowest below
+            initiative_results[combatant] = self._calculate_initiative(combatant)
+        if ambusher is not None and ambusher in combatants:
+            initiative_results[ambusher] = min(initiative_results.values(), default=0) - 1
+        for _ in range(INITIATIVE_TIE_REROLLS):
+            tied_rolls = {roll for roll, count in Counter(initiative_results.values()).items() if count > 1}
+            if not tied_rolls:
+                break
+            for combatant, roll in initiative_results.items():
+                if roll in tied_rolls and combatant is not ambusher:
+                    initiative_results[combatant] = self._calculate_initiative(combatant)
+        return initiative_results
+
+    def _initiative_text(self, actor: 'base.Living', target: 'base.Living', initiative_results: Dict['base.Living', int], acted: Set['base.Living']) -> str:
+        """ Initiative narration flag for the textual combat result (the LLM prompt
+        needs no new slots; these ride the result list _round() produces)."""
+        if initiative_results[actor] == initiative_results[target]:
+            return f'{actor.title} and {target.title} strike in the same instant'
+        if target not in acted:
+            return random.choice(['seizes the initiative', 'strikes first'])
+        return ''
+
     def _calculate_block_success(self, actor1: 'base.Living', actor2: 'base.Living') -> int:
         """ Calculate the chance of blocking an attack.
         If the attacker is wielding a ranged weapon, the defender can't block.
@@ -155,34 +196,43 @@ class Combat():
         return normalized_distribution
     
     def resolve_attack(self) -> str:
-        """ Both attacker and defender attack each other once.
-        They get a chance to block, unless it's a critical hit, 5/100.
+        """ One combat tick. Every combatant (attackers + defenders) rolls initiative
+        once and the merged list is resolved in ascending order (lowest roll acts
+        first). Each combatant makes one attack against a randomly chosen living
+        enemy from the opposing side and damage is applied immediately, so a
+        combatant reduced below 1 hp can no longer act this tick and is skipped
+        silently. They get a chance to block, unless it's a critical hit, 5/100.
         Returns a textual representation of the combat and the damage done to each actor.
         """
         texts = []  # type: List[str]
-        
-        for attacker in self.attackers:
-            random_defender = random.choice(self.defenders)
-            text_result, damage_to_defender = self._round(attacker, random_defender)   
-            texts.append(text_result)
-            applied = self._apply_damage(random_defender, damage_to_defender)
-            texts.append(self._defeat_text(random_defender, applied))
 
-        for defender in self.defenders:
-            if defender.stats.hp < 1:
-                continue
-            random_attacker = random.choice(self.attackers)
-            text_result, damage_to_attacker = self._round(defender, random_attacker)
-            texts.append(text_result)
+        combatants = self.attackers + self.defenders
+        initiative_results = self._roll_initiative(combatants)
+        ordered = sorted(combatants, key=lambda combatant: initiative_results[combatant])
+        acted = set()  # type: Set[base.Living]
 
-            applied = self._apply_damage(random_attacker, damage_to_attacker)
-            texts.append(self._defeat_text(random_attacker, applied))
+        for actor in ordered:
+            if actor.stats.hp < 1:
+                continue  # reduced below 1 hp earlier this tick: can no longer act
+            opposing = self.defenders if actor in self.attackers else self.attackers
+            living_targets = [target for target in opposing if target.stats.hp >= 1]
+            if not living_targets:
+                continue  # no living enemy left: the attack does not happen
+            target = random.choice(living_targets)
+            initiative_text = self._initiative_text(actor, target, initiative_results, acted)
+            text_result, damage_to_target = self._round(actor, target, initiative_text=initiative_text)
+            texts.append(text_result)
+            applied = self._apply_damage(target, damage_to_target)
+            texts.append(self._defeat_text(target, applied))
+            acted.add(actor)
 
         return '\n'.join(text for text in texts if text)
     
-    def _round(self, actor1: 'base.Living', actor2: 'base.Living') -> Tuple[List[str], int]:
+    def _round(self, actor1: 'base.Living', actor2: 'base.Living', initiative_text: str = '') -> Tuple[List[str], int]:
         attack_result = self._calculate_attack_success(actor1)
         attack_text = f'{actor1.title} attacks {actor2.title} with their {actor1.wielding.name}'
+        if initiative_text:
+            attack_text += f' ({initiative_text})'
         if attack_result < 0:
             if attack_result < -actor1.stats.weapon_skills.get(actor1.wielding.type) + 5:
                 attack_text += ' and hits critically'

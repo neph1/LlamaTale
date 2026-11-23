@@ -1,3 +1,5 @@
+import re
+
 import tale
 from types import SimpleNamespace
 from tale import lang
@@ -18,7 +20,7 @@ import tale.util as util
 
 class TestCombat():
 
-    def test_resolve_attack(self):
+    def test_resolve_attack(self, monkeypatch):
         attacker = LivingNpc(name='attacker', gender='m', age=42, personality='A fierce fighter')
         defender = LivingNpc(name='defender', gender='f', age=37, personality='A fierce fighter')
 
@@ -27,9 +29,11 @@ class TestCombat():
         text = combat.resolve_attack()
 
         self._assert_combat(attacker, defender, text)
-        
+
         attacker.stats.level = 10
         attacker.stats.weapon_skills.set(WeaponType.UNARMED, 100)
+        # attacker wins initiative, so the kill denies the defender's counter
+        monkeypatch.setattr(Combat, '_calculate_initiative', lambda self, actor: 0 if actor is attacker else 50)
 
         combat = Combat([attacker], [defender])
 
@@ -40,7 +44,7 @@ class TestCombat():
         assert not 'defender attacks' in text
 
 
-    def test_block_ranged_fails(self):
+    def test_block_ranged_fails(self, monkeypatch):
         attacker = LivingNpc(name='attacker', gender='m', age=42, personality='A ranged fighter')
         defender = LivingNpc(name='defender', gender='f', age=37, personality='A fierce fighter')
         defender.stats.weapon_skills.set(WeaponType.UNARMED, 100)
@@ -48,6 +52,7 @@ class TestCombat():
 
         attacker.wielding = bow
         attacker.stats.weapon_skills.set(WeaponType.TWO_HANDED_RANGED, 100)
+        monkeypatch.setattr(Combat, '_calculate_initiative', lambda self, actor: 0 if actor is attacker else 50)
 
         combat = Combat([attacker], [defender])
 
@@ -56,7 +61,7 @@ class TestCombat():
         assert('defender is injured' in text)
         assert('defender dies' in text)
 
-    def test_block_with_ranged_fails(self):
+    def test_block_with_ranged_fails(self, monkeypatch):
         attacker = LivingNpc(name='attacker', gender='f', age=37, personality='A fierce fighter')
         defender = LivingNpc(name='defender', gender='m', age=42, personality='A ranged fighter')
         attacker.stats.weapon_skills.set(WeaponType.UNARMED, 100)
@@ -64,6 +69,7 @@ class TestCombat():
 
         defender.wielding = bow
         defender.stats.weapon_skills.set(WeaponType.TWO_HANDED_RANGED, 100)
+        monkeypatch.setattr(Combat, '_calculate_initiative', lambda self, actor: 0 if actor is attacker else 50)
 
         combat = Combat([attacker], [defender])
 
@@ -349,6 +355,113 @@ class TestCombat():
         self._assert_combat(attacker, defender, text)
         assert('attacker attacks')
         assert('attacker2 attacks')
+
+    def test_calculate_initiative_formula(self, monkeypatch):
+        attacker = LivingNpc(name='attacker', gender='m', age=42, personality='A fierce fighter')
+        defender = LivingNpc(name='defender', gender='f', age=37, personality='A fierce fighter')
+        combat = Combat([attacker], [defender])
+        monkeypatch.setattr('tale.combat.random.randrange', lambda a, b: 50)
+        # randrange(0, 100) - (dexterity + perception); default stats are 3 + 3
+        assert combat._calculate_initiative(attacker) == 50 - (attacker.stats.dexterity + attacker.stats.perception)
+        assert combat._calculate_initiative(attacker) == 44
+
+    def test_initiative_lower_roll_acts_first(self, monkeypatch):
+        attacker = LivingNpc(name='attacker', gender='m', age=42, personality='A fierce fighter')
+        defender = LivingNpc(name='defender', gender='f', age=37, personality='A fierce fighter')
+        attacker.stats.hp = defender.stats.hp = 100
+        attacker.stats.max_hp = defender.stats.max_hp = 100
+        rolls = {attacker: 50, defender: 10}  # defender rolls lower and acts first
+        monkeypatch.setattr(Combat, '_calculate_initiative', lambda self, actor: rolls[actor])
+
+        combat = Combat([attacker], [defender])
+        text = combat.resolve_attack()
+
+        assert text.index('defender attacks') < text.index('attacker attacks')
+        # the first actor seizes the initiative; the second gets no initiative text
+        assert text.count('seizes the initiative') + text.count('strikes first') == 1
+
+    def test_initiative_counter_denied_when_struck_down(self, monkeypatch):
+        attacker = LivingNpc(name='attacker', gender='m', age=42, personality='A fierce fighter')
+        defender = LivingNpc(name='defender', gender='f', age=37, personality='A fierce fighter')
+        attacker.stats.weapon_skills.set(WeaponType.UNARMED, 100)
+        attacker.stats.wc = 100
+        defender.stats.hp = 5
+        defender.stats.max_hp = 5
+        rolls = {attacker: 0, defender: 50}  # attacker strikes first and drops the defender below 1 hp
+        monkeypatch.setattr(Combat, '_calculate_initiative', lambda self, actor: rolls[actor])
+
+        combat = Combat([attacker], [defender], lethal=True)
+        text = combat.resolve_attack()
+
+        assert defender.stats.hp < 1
+        assert 'defender dies from their injuries.' in text
+        assert 'defender attacks' not in text  # the counter is denied
+        assert 'seizes the initiative' in text or 'strikes first' in text
+
+    def test_ambush_grants_guaranteed_initiative(self, monkeypatch):
+        attacker = LivingNpc(name='attacker', gender='m', age=42, personality='A fierce fighter')
+        defender = LivingNpc(name='defender', gender='f', age=37, personality='A fierce fighter')
+        attacker.stats.hp = defender.stats.hp = 100
+        attacker.stats.max_hp = defender.stats.max_hp = 100
+        # the defender would win a normal roll; the ambusher is treated as the lowest anyway
+        rolls = {attacker: 90, defender: -100}
+        monkeypatch.setattr(Combat, '_calculate_initiative', lambda self, actor: rolls[actor])
+
+        combat = Combat([attacker], [defender], ambush=True)
+        text = combat.resolve_attack()
+
+        assert text.index('attacker attacks') < text.index('defender attacks')
+
+    def test_initiative_ties_do_not_crash(self, monkeypatch):
+        attacker = LivingNpc(name='attacker', gender='m', age=42, personality='A fierce fighter')
+        defender = LivingNpc(name='defender', gender='f', age=37, personality='A fierce fighter')
+        attacker.stats.hp = defender.stats.hp = 100
+        attacker.stats.max_hp = defender.stats.max_hp = 100
+        # constant roll: rerolls never break the tie, so the batch strikes simultaneously
+        monkeypatch.setattr(Combat, '_calculate_initiative', lambda self, actor: 42)
+
+        combat = Combat([attacker], [defender])
+        text = combat.resolve_attack()
+
+        assert 'attacker attacks' in text
+        assert 'defender attacks' in text
+        assert 'strike in the same instant' in text
+
+    def test_group_combat_interleaves_sides(self, monkeypatch):
+        attacker = LivingNpc(name='attacker', gender='m', age=42, personality='A fierce fighter')
+        attacker2 = LivingNpc(name='attacker2', gender='m', age=42, personality='A fierce fighter')
+        defender = LivingNpc(name='defender', gender='f', age=37, personality='A fierce fighter')
+        defender2 = LivingNpc(name='defender2', gender='f', age=37, personality='A fierce fighter')
+        for actor in (attacker, attacker2, defender, defender2):
+            actor.stats.hp = 100
+            actor.stats.max_hp = 100
+        rolls = {defender: 5, attacker2: 15, defender2: 25, attacker: 35}
+        monkeypatch.setattr(Combat, '_calculate_initiative', lambda self, actor: rolls[actor])
+
+        combat = Combat(attackers=[attacker, attacker2], defenders=[defender, defender2])
+        text = combat.resolve_attack()
+
+        order = re.findall(r'(\w+) attacks', text)
+        assert order == ['defender', 'attacker2', 'defender2', 'attacker']
+
+    def test_dead_combatant_not_targeted(self, monkeypatch):
+        attacker = LivingNpc(name='attacker', gender='m', age=42, personality='A fierce fighter')
+        attacker2 = LivingNpc(name='attacker2', gender='m', age=42, personality='A fierce fighter')
+        defender = LivingNpc(name='defender', gender='f', age=37, personality='A fierce fighter')
+        attacker.stats.weapon_skills.set(WeaponType.UNARMED, 100)
+        attacker.stats.wc = 100
+        defender.stats.hp = 5
+        defender.stats.max_hp = 5
+        rolls = {attacker: 0, attacker2: 10, defender: 20}
+        monkeypatch.setattr(Combat, '_calculate_initiative', lambda self, actor: rolls[actor])
+
+        combat = Combat(attackers=[attacker, attacker2], defenders=[defender], lethal=True)
+        text = combat.resolve_attack()
+
+        assert 'defender dies from their injuries.' in text
+        assert 'attacker attacks' in text
+        assert 'attacker2 attacks' not in text  # no living enemy left for the second attacker
+        assert 'defender attacks' not in text
 
     def test_start_attack_no_combat_points(self):
         attacker = Player(name='att', gender='m')
