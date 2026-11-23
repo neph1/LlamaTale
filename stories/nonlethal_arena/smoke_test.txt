@@ -1,0 +1,18 @@
+# Automated smoke test for the Non-Lethal Arena story (non-lethal combat, PR #153).
+# Run with: python -m tale.smoketest --game stories/nonlethal_arena --script stories/nonlethal_arena/smoke_test.txt
+# (also executed by tests/test_smoke.py)
+# One command per line; blank lines and lines starting with '#' are ignored.
+# The story config sets combat_type "non-lethal" without an explicit lethal flag,
+# so lethal=False is derived from the combat tone. Attacking the training dummy
+# must floor its hp at 1 ("knocked out and yields"), never kill it.
+# The player name comes from the story config, so no character creation dialog.
+look
+attack dummy
+attack dummy
+attack dummy
+attack dummy
+attack dummy
+attack dummy
+look
+quit
+y

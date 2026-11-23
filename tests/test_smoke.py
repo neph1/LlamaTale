@@ -104,5 +104,32 @@ class TestPrancingLlamaSmokeTest(unittest.TestCase):
         self.assertIn("SMOKE TEST OK", result.stdout)
 
 
+class TestNonlethalArenaSmokeTest(unittest.TestCase):
+    """Run the non-lethal arena story end-to-end with the dummy backend and its smoke script.
+    Verifies non-lethal combat (StoryConfig combat_type/lethal): the story config sets
+    combat_type "non-lethal" without an explicit lethal flag, so lethal=False is derived
+    from the combat tone. Attacking the training dummy must floor its hp at 1
+    ("knocked out and yields"), never kill it. Fails on timeouts, crashes, or wrong narration."""
+
+    def test_nonlethal_arena_smoke_test(self):
+        repo_root = pathlib.Path(__file__).parent.parent.resolve()
+        game = repo_root / "stories" / "nonlethal_arena"
+        script = game / "smoke_test.txt"
+        self.assertTrue(script.exists(), "smoke script missing: %s" % script)
+        with tempfile.TemporaryDirectory() as tmp:
+            # run in a temp cwd so the crash log and other artifacts don't pollute the repo
+            env = dict(os.environ, PYTHONPATH=str(repo_root) + os.pathsep + os.environ.get("PYTHONPATH", ""))
+            result = subprocess.run(
+                [sys.executable, "-m", "tale.smoketest",
+                 "--game", str(game), "--script", str(script), "--timeout", "60"],
+                cwd=tmp, env=env, capture_output=True, text=True, timeout=600)
+        self.assertEqual(0, result.returncode,
+                         msg="smoke test failed.\nstdout:\n%s\nstderr:\n%s" % (result.stdout, result.stderr))
+        self.assertIn("SMOKE TEST OK", result.stdout)
+        # non-lethal combat: the dummy is knocked out at the hp floor of 1, never killed
+        self.assertIn("is knocked out and yields.", result.stdout)
+        self.assertNotIn("dies from their injuries", result.stdout)
+
+
 if __name__ == '__main__':
     unittest.main()
