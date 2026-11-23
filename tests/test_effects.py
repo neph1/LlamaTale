@@ -572,9 +572,10 @@ class TestBeatsTestStoryEffects:
     def test_beats_test_story_effects_execute_end_to_end(self):
         # the authored JSON effects actually fire against a live world:
         # arrival on_start sets Mrs. Corbin's goal; talking to her completes
-        # suspicion, whose on_end gives the player the torn diary page
+        # arrival, completing her quest completes suspicion, whose on_end
+        # gives the player the torn diary page
         import tale.parse_utils as parse_utils
-        from tale.scenario import publish_story_event, Interacted
+        from tale.scenario import publish_story_event, Interacted, QuestCompleted
         config = parse_utils.load_story_config(parse_utils.load_json('stories/beats_test/story_config.json'))
         story, cave, hall = make_story()
         cellar = Location("Cellar")
@@ -593,8 +594,9 @@ class TestBeatsTestStoryEffects:
             context.set_beats(config.beats)
             assert context.active_beat().id == "arrival"
             assert corbin.goal == "avoid all questions about the cellar"  # arrival on_start
-            context.set_beat("suspicion")  # arrival is goal-less: advance manually
-            publish_story_event(Interacted(npc="mrs. corbin", npc_title="Mrs. Corbin"))
+            publish_story_event(Interacted(npc="mrs. corbin", npc_title="Mrs. Corbin"))  # completes arrival
+            assert context.active_beat().id == "suspicion"
+            publish_story_event(QuestCompleted(quest="the cellar secret", giver="Mrs. Corbin"))  # completes suspicion
             assert context.active_beat().id == "descent"
             assert [item.name for item in hero.inventory] == ["torn diary page"]  # suspicion on_end
             assert corbin.location is cellar  # descent on_start

@@ -6,9 +6,15 @@ smokey
 m
 y
 smith
-# walk the story through its authored beats with the wizard command
-!set_beat suspicion
-!set_beat descent
+# drive the story through its authored beats with player actions (no timer, no wizard command):
+# talking to the landlady completes "arrival" (interact goal)
+say to corbin hello
+# a second exchange completes her TALK quest, completing "suspicion" (quest_complete goal)
+say to corbin what is in the cellar
+# killing the thing in the cellar completes "descent" (kill goal)
+down
+attack the thing in the cellar
+attack the thing in the cellar
 look
 exits
 inventory

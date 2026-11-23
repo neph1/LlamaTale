@@ -931,9 +931,11 @@ class Location(MudObject):
         # actions concerning player input have been handled, so we don't have to
         # queue the delegated calls.
         self.notify_action(parsed, actor)
-        for living in self.livings:
+        # iterate over copies: a notification can move a living or item out of
+        # this location (e.g. a beat boundary effect triggered by a story event)
+        for living in set(self.livings):
             living._notify_action_all(parsed, actor)
-        for item in self.items:
+        for item in set(self.items):
             item.notify_action(parsed, actor)
         for exit in set(self.exits.values()):
             exit.notify_action(parsed, actor)

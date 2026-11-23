@@ -23,11 +23,14 @@
     "server_mode": "IF",
     "npcs": "",
     "items": "",
-    "context": "A test story with authored beats, advanced by a timer.",
+    "context": "A test story with authored beats, advanced by player actions (world events), not by time.",
     "beats": [
         {
             "id": "arrival",
             "description": "The investigators arrive at the boarding house.",
+            "goals": [
+                {"type": "interact", "target": "Mrs. Corbin"}
+            ],
             "on_start": [
                 {"effect": "set_goal", "npc": "Mrs. Corbin", "goal": "avoid all questions about the cellar"}
             ]
@@ -36,7 +39,7 @@
             "id": "suspicion",
             "description": "The landlady's story does not add up.",
             "goals": [
-                {"type": "interact", "target": "Mrs. Corbin"}
+                {"type": "quest_complete", "target": "the cellar secret"}
             ],
             "on_end": [
                 {"effect": "add_item", "item": "torn diary page", "to": "player"}
