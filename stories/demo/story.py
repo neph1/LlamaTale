@@ -23,7 +23,7 @@ class Story(StoryBase):
     config.author = "Irmen de Jong"
     config.author_address = "irmen@razorvine.net"
     config.version = "1.12"
-    config.requires_tale = "4.0"
+    config.requires_tale = "0.51.0"
     config.supported_modes = {GameMode.IF, GameMode.MUD}
     config.player_money = 15.5
     config.playable_races = {"human", "elf", "dark-elf"}

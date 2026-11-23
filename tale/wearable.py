@@ -33,8 +33,8 @@ def load_wearables_from_json(file_path):
             item['type'] = 'Wearable'
         return data
     
-wearables_fantasy = load_wearables_from_json('../items/wearables_fantasy.json')
-wearables_modern = load_wearables_from_json('../items/wearables_modern.json')
+wearables_fantasy = load_wearables_from_json('items/wearables_fantasy.json')
+wearables_modern = load_wearables_from_json('items/wearables_modern.json')
 wearbles_story = []
 
 dressable_body_types = [BodyType.HUMANOID, BodyType.SEMI_BIPEDAL, BodyType.WINGED_MAN]

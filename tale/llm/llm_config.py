@@ -4,7 +4,7 @@ import yaml
 
 def load_config() -> dict:
     # Load base configuration from YAML
-    config_path = os.path.realpath(os.path.join(os.path.dirname(__file__), "../../llm_config.yaml"))
+    config_path = os.path.realpath(os.path.join(os.path.dirname(__file__), "llm_config.yaml"))
     with open(config_path, "r") as stream:
         try:
             params = yaml.safe_load(stream)
