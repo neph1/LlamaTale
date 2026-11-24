@@ -56,6 +56,15 @@ pre {
     color: green;
 }
 
+.clickable-npc, .clickable-exit, .clickable-item {
+    cursor: pointer;
+    text-decoration: underline;
+}
+
+.clickable-npc:hover, .clickable-exit:hover, .clickable-item:hover {
+    color: lightgreen;
+}
+
 #textframe {
     border: 1px solid gainsboro;
     overflow: auto;

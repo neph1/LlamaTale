@@ -11,7 +11,7 @@ from html import escape as html_escape
 from threading import Lock, Event, Thread
 from typing import Sequence, Tuple, Any, Optional, Dict, List
 
-from tale.web.web_utils import create_chat_container, dialogue_splitter
+from tale.web.web_utils import create_chat_container, dialogue_splitter, exits_for_web
 
 from . import iobase
 from .. import mud_context, vfs, lang
@@ -323,12 +323,12 @@ if FASTAPI_AVAILABLE:
                                     special.append("noecho")
                                 npc_names = ''
                                 items = ''
-                                exits = ''
+                                exits = []
                                 if location:
                                     npc_names = ','.join([l.name for l in location.livings if l.alive and l.visible and l != player.player])
                                     items = ','.join([i.name for i in location.items if i.visible])
-                                    exits = ','.join(list(set([e.name for e in location.exits.values() if e.visible])))
-                                
+                                    exits = exits_for_web(location)
+
                                 response = {
                                     "type": "text",
                                     "text": "\n".join(html),
@@ -338,7 +338,7 @@ if FASTAPI_AVAILABLE:
                                     "location_image": location.avatar if location and location.avatar else "",
                                     "npcs": npc_names if location else '',
                                     "items": items if location else '',
-                                    "exits": exits if location else '',
+                                    "exits": exits,
                                 }
                                 await websocket.send_text(json.dumps(response))
                                 has_output = True
