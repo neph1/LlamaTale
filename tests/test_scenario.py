@@ -41,7 +41,7 @@ class TestBeat:
         beat = Beat("arrival", "The investigators arrive.", BeatStatus.ACTIVE)
         restored = Beat.from_json(beat.to_json())
         assert restored.to_json() == {"id": "arrival", "description": "The investigators arrive.", "status": "active",
-                                      "match": "all", "goals": []}
+                                      "match": "all", "goals": [], "on_start": [], "on_end": [], "on_fail": []}
         assert restored.status == BeatStatus.ACTIVE
 
     def test_from_json_defaults_to_locked(self):
@@ -276,8 +276,8 @@ class TestBeatsStoryConfigGoals:
     def test_beats_test_story_config_parses_goals(self):
         config = parse_utils.load_story_config(parse_utils.load_json('stories/beats_test/story_config.json'))
         by_id = {beat.id: beat for beat in config.beats}
-        assert by_id["arrival"].goals == []
-        assert [(goal.type, goal.target) for goal in by_id["suspicion"].goals] == [("interact", "Mrs. Corbin")]
+        assert [(goal.type, goal.target) for goal in by_id["arrival"].goals] == [("interact", "Mrs. Corbin")]
+        assert [(goal.type, goal.target) for goal in by_id["suspicion"].goals] == [("quest_complete", "the cellar secret")]
         assert [(goal.type, goal.target) for goal in by_id["descent"].goals] == [("kill", "the thing in the cellar")]
 
 
@@ -431,10 +431,11 @@ class TestStoryContextGoalEvents:
         mgr = StoryManager(story)  # subscribes its beat-event listener to the story-events topic
         context = story.config.context
         assert context.active_beat().id == "arrival"
-        # the interact goal of the locked "suspicion" beat is satisfied by this event
+        # talking to the landlady satisfies the active "arrival" beat's interact goal
         publish_story_event(Interacted(npc="mrs. corbin", npc_title="Mrs. Corbin"))
-        assert context.active_beat().id == "arrival"  # goal-less beat still advances manually
-        context.set_beat("suspicion")
-        # suspicion's goal was already satisfied: it completes immediately and descent activates
+        assert context.beats[0].status == BeatStatus.COMPLETED
+        assert context.active_beat().id == "suspicion"
+        # completing her TALK quest satisfies "suspicion"'s quest_complete goal
+        publish_story_event(QuestCompleted(quest="the cellar secret", giver="Mrs. Corbin"))
         assert context.beats[1].status == BeatStatus.COMPLETED
         assert context.active_beat().id == "descent"

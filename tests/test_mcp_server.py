@@ -780,7 +780,7 @@ class TestProgressionTools():
         assert context.active_beat().description == "The beginning"
         state = mgr.get_story_state()
         assert state["current_section"] == "The beginning"
-        assert state["beats"] == [{"id": "beat-0", "description": "The beginning", "status": "active", "match": "all", "goals": []}]
+        assert state["beats"] == [{"id": "beat-0", "description": "The beginning", "status": "active", "match": "all", "goals": [], "on_start": [], "on_end": [], "on_fail": []}]
 
     def test_set_beat_unknown_id_adds_new_beat(self):
         mgr = make_manager()

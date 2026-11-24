@@ -412,7 +412,7 @@ class TestStoryProgression():
         mgr = StoryManager(make_story())
         mgr.set_story_context("Base plot")
         beat = mgr.set_beat("beat-0", "The beginning")
-        assert beat == {"id": "beat-0", "description": "The beginning", "status": "active", "match": "all", "goals": []}
+        assert beat == {"id": "beat-0", "description": "The beginning", "status": "active", "match": "all", "goals": [], "on_start": [], "on_end": [], "on_fail": []}
         context = mgr.story.config.context
         assert context.active_beat().description == "The beginning"
         assert context.active_beat().id == "beat-0"
@@ -422,7 +422,7 @@ class TestStoryProgression():
         mgr.set_story_context("Base plot")
         mgr.set_beat("one", "First")
         beat = mgr.set_beat("two", "Second")
-        assert beat == {"id": "two", "description": "Second", "status": "active", "match": "all", "goals": []}
+        assert beat == {"id": "two", "description": "Second", "status": "active", "match": "all", "goals": [], "on_start": [], "on_end": [], "on_fail": []}
         context = mgr.story.config.context
         assert context.active_beat().id == "two"
         assert [b.status.name for b in context.beats] == ["COMPLETED", "ACTIVE"]
@@ -754,7 +754,7 @@ class TestLiveState():
         assert state["world_mood"] == 3
         assert state["current_section"] == "The beginning"
         assert state["past_sections"] == []
-        assert state["beats"] == [{"id": "beat-0", "description": "The beginning", "status": "active", "match": "all", "goals": []}]
+        assert state["beats"] == [{"id": "beat-0", "description": "The beginning", "status": "active", "match": "all", "goals": [], "on_start": [], "on_end": [], "on_fail": []}]
         assert state["progress"] == 0.0
         assert "Base plot" in state["story"]
 

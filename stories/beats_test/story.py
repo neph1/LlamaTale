@@ -21,6 +21,7 @@ class Story(JsonStory):
         super(Story, self).init(driver)
         # TALK quest on the landlady: completes on the second dialogue exchange
         # with her (the first one starts it), publishing a QuestCompleted event
+        # that completes the "suspicion" beat
         corbin = self._world.npcs.get("corbin")
         if corbin is not None:
             corbin.quest = Quest(name="the cellar secret", type=QuestType.TALK,
